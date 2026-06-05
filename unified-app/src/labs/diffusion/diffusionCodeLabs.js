@@ -820,33 +820,140 @@ function ddpmSamplingStep(xt, epsTheta, t, totalSteps, betaStart, betaEnd, zNois
 
   // --- classifier-free-guidance ---
   {
-    id: 'cfg-combine-noise',
+    id: 'cfg-combine-direction',
     stepLabel: '74.1',
     group: 'scale mix',
-    title: 'CFG Noise Combination',
-    concept: 'Classifier-Free Guidance extrapolates predictions away from unconditioned outputs: eps = eps_uncond + s * (eps_cond - eps_uncond).',
-    objective: 'Compute the guided noise prediction vector.',
+    title: 'Guidance Direction',
+    concept: 'Classifier-Free Guidance extrapolates predictions away from unconditioned outputs. First, we find the direction vector between the conditional and unconditional predictions.',
+    objective: 'Compute the guidance direction: epsCond - epsUncond.',
     difficulty: 'warmup',
     starterCode: `function cfgCombine(epsCond, epsUncond, scale) {
-  // TODO: return epsUncond + scale * (epsCond - epsUncond)
+  // TODO: compute guidance direction
+  const direction = 0;
+  
+  const scaledDirection = scale * direction;
+  return epsUncond + scaledDirection;
+}`,
+    testCode: `const results = [];
+function check(name, actual, expected) {
+  results.push({ name, actual, expected, passed: Math.abs(actual - expected) < 1e-5 });
+}
+check('scale factor 3.0', cfgCombine(0.8, 0.2, 3.0), 2.0);
+return results;`,
+    hints: [
+      'Subtract epsUncond from epsCond.',
+    ],
+    solution: `function cfgCombine(epsCond, epsUncond, scale) {
+  const direction = epsCond - epsUncond;
+  
+  const scaledDirection = scale * direction;
+  return epsUncond + scaledDirection;
+}`,
+    explanation: 'The direction vector points away from the generic unconditioned output toward the specific prompt-aligned output.',
+  },
+  {
+    id: 'cfg-combine-scaled',
+    stepLabel: '74.2',
+    group: 'scale mix',
+    title: 'Guidance Amplification',
+    concept: 'We amplify the guidance direction by multiplying it by the guidance scale (usually > 1.0).',
+    objective: 'Compute the scaled direction: scale * direction.',
+    difficulty: 'core',
+    starterCode: `function cfgCombine(epsCond, epsUncond, scale) {
+  const direction = epsCond - epsUncond;
+  
+  // TODO: compute the scaled direction
+  const scaledDirection = 0;
+  
+  return epsUncond + scaledDirection;
+}`,
+    testCode: `const results = [];
+function check(name, actual, expected) {
+  results.push({ name, actual, expected, passed: Math.abs(actual - expected) < 1e-5 });
+}
+check('scale factor 3.0', cfgCombine(0.8, 0.2, 3.0), 2.0);
+return results;`,
+    hints: [
+      'Multiply direction by scale.',
+    ],
+    solution: `function cfgCombine(epsCond, epsUncond, scale) {
+  const direction = epsCond - epsUncond;
+  
+  const scaledDirection = scale * direction;
+  
+  return epsUncond + scaledDirection;
+}`,
+    explanation: 'A scale greater than 1 forces the model to strongly favor the conditioning signal over the unconditioned prior.',
+  },
+  {
+    id: 'cfg-combine-baseline',
+    stepLabel: '74.3',
+    group: 'scale mix',
+    title: 'Unconditioned Baseline',
+    concept: 'The extrapolated direction is anchored back onto the unconditioned baseline prediction to form the final noise estimate.',
+    objective: 'Identify the unconditioned baseline to add to the scaled direction.',
+    difficulty: 'warmup',
+    starterCode: `function cfgCombine(epsCond, epsUncond, scale) {
+  const direction = epsCond - epsUncond;
+  const scaledDirection = scale * direction;
+  
+  // TODO: set the baseline to epsUncond
+  const baseline = 0;
+  
+  return baseline + scaledDirection;
+}`,
+    testCode: `const results = [];
+function check(name, actual, expected) {
+  results.push({ name, actual, expected, passed: Math.abs(actual - expected) < 1e-5 });
+}
+check('scale factor 3.0', cfgCombine(0.8, 0.2, 3.0), 2.0);
+return results;`,
+    hints: [
+      'Set baseline equal to epsUncond.',
+    ],
+    solution: `function cfgCombine(epsCond, epsUncond, scale) {
+  const direction = epsCond - epsUncond;
+  const scaledDirection = scale * direction;
+  
+  const baseline = epsUncond;
+  
+  return baseline + scaledDirection;
+}`,
+    explanation: 'The unconditioned prediction provides the base structural noise, while the scaled direction steers the semantics.',
+  },
+  {
+    id: 'cfg-combine-full',
+    stepLabel: '74.4',
+    group: 'scale mix',
+    title: 'Full CFG Combination',
+    concept: 'The final guided noise prediction vector is the combination of the baseline and the scaled direction.',
+    objective: 'Add the baseline and scaled direction together to return the full CFG result.',
+    difficulty: 'core',
+    starterCode: `function cfgCombine(epsCond, epsUncond, scale) {
+  const direction = epsCond - epsUncond;
+  const scaledDirection = scale * direction;
+  const baseline = epsUncond;
+  
+  // TODO: add baseline and scaledDirection
   return 0;
 }`,
     testCode: `const results = [];
-function approxEqual(a, b, tol = 1e-5) {
-  return Math.abs(a - b) <= tol;
-}
 function check(name, actual, expected) {
-  results.push({ name, actual, expected, passed: approxEqual(actual, expected) });
+  results.push({ name, actual, expected, passed: Math.abs(actual - expected) < 1e-5 });
 }
-check('scale factor 3.0', cfgCombine(0.8, 0.2, 3.0), 2.0); // 0.2 + 3 * 0.6 = 2.0
+check('scale factor 3.0', cfgCombine(0.8, 0.2, 3.0), 2.0);
 check('scale factor 1.0', cfgCombine(0.8, 0.2, 1.0), 0.8);
 check('scale factor 0.0', cfgCombine(0.8, 0.2, 0.0), 0.2);
 return results;`,
     hints: [
-      'Subtract epsUncond from epsCond, multiply by scale, and add epsUncond.',
+      'Return baseline + scaledDirection.',
     ],
     solution: `function cfgCombine(epsCond, epsUncond, scale) {
-  return epsUncond + scale * (epsCond - epsUncond);
+  const direction = epsCond - epsUncond;
+  const scaledDirection = scale * direction;
+  const baseline = epsUncond;
+  
+  return baseline + scaledDirection;
 }`,
     explanation: 'Guidance scales greater than 1 amplify the influence of conditioning signals, boosting text alignment and image contrast.',
   },
@@ -1261,34 +1368,140 @@ return results;`,
 
   // --- dit ---
   {
-    id: 'dit-adaln-scale-shift',
+    id: 'dit-adaln-factor',
     stepLabel: '83.1',
     group: 'adaLN scale/shift',
-    title: 'AdaLN Scale and Shift',
-    concept: 'Diffusion Transformers modulate layers using adaptive layer normalization (adaLN) scale and shift parameters derived from time embeddings.',
-    objective: 'Apply the scale and shift modulation: y = x * (1 + scale) + shift.',
+    title: 'Scale Factor',
+    concept: 'Diffusion Transformers modulate layers using adaptive layer normalization (adaLN). The scale parameter acts as a delta, so the true multiplier is 1 + scale.',
+    objective: 'Compute the true scale multiplier: 1 + scale.',
+    difficulty: 'warmup',
+    starterCode: `function applyAdaLN(x, scale, shift) {
+  // TODO: compute 1 + scale
+  const scaleMultiplier = 0;
+  
+  const scaledX = x * scaleMultiplier;
+  return scaledX + shift;
+}`,
+    testCode: `const results = [];
+function check(name, actual, expected) {
+  results.push({ name, actual, expected, passed: Math.abs(actual - expected) < 1e-5 });
+}
+check('scale and shift positive', applyAdaLN(1.5, 0.2, 0.5), 2.3);
+return results;`,
+    hints: [
+      'Add 1 to scale.',
+    ],
+    solution: `function applyAdaLN(x, scale, shift) {
+  const scaleMultiplier = 1 + scale;
+  
+  const scaledX = x * scaleMultiplier;
+  return scaledX + shift;
+}`,
+    explanation: 'By treating the predicted scale as a delta centered at zero, the network naturally defaults to identity initialization (multiplier = 1).',
+  },
+  {
+    id: 'dit-adaln-apply-scale',
+    stepLabel: '83.2',
+    group: 'adaLN scale/shift',
+    title: 'Apply Scaling',
+    concept: 'We apply the scale multiplier directly to the normalized input vector x.',
+    objective: 'Multiply the input x by the scale multiplier.',
     difficulty: 'core',
     starterCode: `function applyAdaLN(x, scale, shift) {
-  // TODO: compute and return x * (1 + scale) + shift
+  const scaleMultiplier = 1 + scale;
+  
+  // TODO: multiply x by scaleMultiplier
+  const scaledX = 0;
+  
+  return scaledX + shift;
+}`,
+    testCode: `const results = [];
+function check(name, actual, expected) {
+  results.push({ name, actual, expected, passed: Math.abs(actual - expected) < 1e-5 });
+}
+check('scale and shift positive', applyAdaLN(1.5, 0.2, 0.5), 2.3);
+return results;`,
+    hints: [
+      'Compute x * scaleMultiplier.',
+    ],
+    solution: `function applyAdaLN(x, scale, shift) {
+  const scaleMultiplier = 1 + scale;
+  
+  const scaledX = x * scaleMultiplier;
+  
+  return scaledX + shift;
+}`,
+    explanation: 'This scaling operation injects the magnitude of the conditioning context (like time embedding) into the feature stream.',
+  },
+  {
+    id: 'dit-adaln-apply-shift',
+    stepLabel: '83.3',
+    group: 'adaLN scale/shift',
+    title: 'Apply Shift',
+    concept: 'The shift parameter acts as a bias offset applied after scaling.',
+    objective: 'Add the shift parameter to the scaled input.',
+    difficulty: 'warmup',
+    starterCode: `function applyAdaLN(x, scale, shift) {
+  const scaleMultiplier = 1 + scale;
+  const scaledX = x * scaleMultiplier;
+  
+  // TODO: add shift to scaledX
+  const shiftedX = 0;
+  
+  return shiftedX;
+}`,
+    testCode: `const results = [];
+function check(name, actual, expected) {
+  results.push({ name, actual, expected, passed: Math.abs(actual - expected) < 1e-5 });
+}
+check('scale and shift positive', applyAdaLN(1.5, 0.2, 0.5), 2.3);
+return results;`,
+    hints: [
+      'Compute scaledX + shift.',
+    ],
+    solution: `function applyAdaLN(x, scale, shift) {
+  const scaleMultiplier = 1 + scale;
+  const scaledX = x * scaleMultiplier;
+  
+  const shiftedX = scaledX + shift;
+  
+  return shiftedX;
+}`,
+    explanation: 'The shift biases the mean of the activations based on the conditioning information.',
+  },
+  {
+    id: 'dit-adaln-full',
+    stepLabel: '83.4',
+    group: 'adaLN scale/shift',
+    title: 'Full AdaLN',
+    concept: 'The full AdaLN modulation computes the scaled and shifted activation output.',
+    objective: 'Return the fully modulated feature value.',
+    difficulty: 'core',
+    starterCode: `function applyAdaLN(x, scale, shift) {
+  const scaleMultiplier = 1 + scale;
+  const scaledX = x * scaleMultiplier;
+  const shiftedX = scaledX + shift;
+  
+  // TODO: return the shiftedX value
   return 0;
 }`,
     testCode: `const results = [];
-function approxEqual(a, b, tol = 1e-5) {
-  return Math.abs(a - b) <= tol;
-}
 function check(name, actual, expected) {
-  results.push({ name, actual, expected, passed: approxEqual(actual, expected) });
+  results.push({ name, actual, expected, passed: Math.abs(actual - expected) < 1e-5 });
 }
-check('scale and shift positive', applyAdaLN(1.5, 0.2, 0.5), 2.3); // 1.5 * 1.2 + 0.5 = 1.8 + 0.5 = 2.3
-check('scale and shift negative', applyAdaLN(1.5, -0.2, -0.5), 0.7); // 1.5 * 0.8 - 0.5 = 1.2 - 0.5 = 0.7
+check('scale and shift positive', applyAdaLN(1.5, 0.2, 0.5), 2.3);
+check('scale and shift negative', applyAdaLN(1.5, -0.2, -0.5), 0.7);
 return results;`,
     hints: [
-      'Multiply x by (1 + scale).',
-      'Add shift to the result.',
+      'Return shiftedX.',
     ],
     solution: `function applyAdaLN(x, scale, shift) {
-  return x * (1 + scale) + shift;
+  const scaleMultiplier = 1 + scale;
+  const scaledX = x * scaleMultiplier;
+  const shiftedX = scaledX + shift;
+  
+  return shiftedX;
 }`,
-    explanation: 'AdaLN conditioning injects temporal context (like noise level) directly into the transformer\'s layer normalization channels.',
+    explanation: "AdaLN conditioning injects temporal context (like noise level) directly into the transformer's layer normalization channels.",
   }
 ];

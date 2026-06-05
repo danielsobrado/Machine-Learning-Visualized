@@ -3414,33 +3414,184 @@ return results;`,
     explanation: 'Scaling weights by He standard deviation maintains constant activation variance across layers.',
   },
   {
-    id: 'vae-kl-loss-term',
+    id: 'vae-kl-mu-sq',
     stepLabel: '36.1',
     group: 'KL closed form',
-    title: 'VAE KL divergence term',
-    concept: 'Variational Autoencoders use a Kullback-Leibler (KL) divergence loss term to force latent vectors to fit a standard Normal distribution: KL = -0.5 * (1 + logvar - mu^2 - exp(logvar)).',
-    objective: 'Compute the KL loss contribution for a single latent dimension coordinate.',
-    difficulty: 'core',
+    title: 'Mean Penalty',
+    concept: 'Variational Autoencoders use a Kullback-Leibler (KL) divergence loss term. The first component penalizes the mean deviating from 0.',
+    objective: 'Compute the square of the mean (mu).',
+    difficulty: 'warmup',
     starterCode: `function vaeKlDivergence(mu, logvar) {
-  // TODO: compute -0.5 * (1 + logvar - mu^2 - exp(logvar))
-  return 0;
+  // TODO: compute mu squared
+  const muSq = 0;
+  
+  const varExp = Math.exp(logvar);
+  const interior = 1 + logvar - muSq - varExp;
+  return -0.5 * interior;
 }`,
     testCode: `const results = [];
-function approxEqual(a, b, tol = 1e-5) {
-  return Math.abs(a - b) <= tol;
-}
 function check(name, actual, expected) {
-  results.push({ name, actual, expected, passed: approxEqual(actual, expected) });
+  results.push({ name, actual, expected, passed: Math.abs(actual - expected) < 1e-5 });
 }
-check('zero latent stats', vaeKlDivergence(0, 0), 0); // -0.5 * (1 + 0 - 0 - 1) = 0
-check('skewed latent stats', vaeKlDivergence(1.0, -1.0), 0.6839397); // -0.5 * (1 - 1 - 1 - e^-1) = -0.5 * (-1 - 0.367879) = 0.683939
+check('zero latent stats', vaeKlDivergence(0, 0), 0);
+return results;`,
+    hints: [
+      'Multiply mu by itself: mu * mu.',
+    ],
+    solution: `function vaeKlDivergence(mu, logvar) {
+  const muSq = mu * mu;
+  
+  const varExp = Math.exp(logvar);
+  const interior = 1 + logvar - muSq - varExp;
+  return -0.5 * interior;
+}`,
+    explanation: 'Squaring the mean applies a parabolic penalty that pulls latent vectors toward the origin.',
+  },
+  {
+    id: 'vae-kl-var-exp',
+    stepLabel: '36.2',
+    group: 'KL closed form',
+    title: 'Variance Extraction',
+    concept: 'VAEs output log-variance instead of raw variance for numerical stability. We must exponentiate it to get the true variance.',
+    objective: 'Compute the true variance by exponentiating logvar.',
+    difficulty: 'core',
+    starterCode: `function vaeKlDivergence(mu, logvar) {
+  const muSq = mu * mu;
+  
+  // TODO: compute exponential of logvar
+  const varExp = 0;
+  
+  const interior = 1 + logvar - muSq - varExp;
+  return -0.5 * interior;
+}`,
+    testCode: `const results = [];
+function check(name, actual, expected) {
+  results.push({ name, actual, expected, passed: Math.abs(actual - expected) < 1e-5 });
+}
+check('skewed latent stats', vaeKlDivergence(1.0, -1.0), 0.6839397);
 return results;`,
     hints: [
       'Use Math.exp(logvar).',
-      'The formula is: -0.5 * (1 + logvar - mu * mu - Math.exp(logvar)).',
     ],
     solution: `function vaeKlDivergence(mu, logvar) {
-  return -0.5 * (1 + logvar - mu * mu - Math.exp(logvar));
+  const muSq = mu * mu;
+  
+  const varExp = Math.exp(logvar);
+  
+  const interior = 1 + logvar - muSq - varExp;
+  return -0.5 * interior;
+}`,
+    explanation: 'Exponentiating log-variance guarantees the variance is always positive without needing activation constraints like ReLU.',
+  },
+  {
+    id: 'vae-kl-var-penalty',
+    stepLabel: '36.3',
+    group: 'KL closed form',
+    title: 'Variance Penalty',
+    concept: 'The variance penalty forces the standard deviation to approach 1.0 (logvar approaches 0).',
+    objective: 'Calculate the variance penalty term: logvar - varExp.',
+    difficulty: 'core',
+    starterCode: `function vaeKlDivergence(mu, logvar) {
+  const muSq = mu * mu;
+  const varExp = Math.exp(logvar);
+  
+  // TODO: calculate the variance penalty term
+  const varPenalty = 0;
+  
+  const interior = 1 - muSq + varPenalty;
+  return -0.5 * interior;
+}`,
+    testCode: `const results = [];
+function check(name, actual, expected) {
+  results.push({ name, actual, expected, passed: Math.abs(actual - expected) < 1e-5 });
+}
+check('skewed latent stats', vaeKlDivergence(1.0, -1.0), 0.6839397);
+return results;`,
+    hints: [
+      'Subtract varExp from logvar.',
+    ],
+    solution: `function vaeKlDivergence(mu, logvar) {
+  const muSq = mu * mu;
+  const varExp = Math.exp(logvar);
+  
+  const varPenalty = logvar - varExp;
+  
+  const interior = 1 - muSq + varPenalty;
+  return -0.5 * interior;
+}`,
+    explanation: 'The function (x - e^x) reaches its maximum exactly when x=0, which corresponds to a true variance of 1.0.',
+  },
+  {
+    id: 'vae-kl-interior',
+    stepLabel: '36.4',
+    group: 'KL closed form',
+    title: 'Interior Sum',
+    concept: 'We combine the mean penalty, the variance penalty, and the constant 1 to form the full interior expression.',
+    objective: 'Calculate 1 - muSq + varPenalty.',
+    difficulty: 'core',
+    starterCode: `function vaeKlDivergence(mu, logvar) {
+  const muSq = mu * mu;
+  const varExp = Math.exp(logvar);
+  const varPenalty = logvar - varExp;
+  
+  // TODO: calculate the full interior sum
+  const interior = 0;
+  
+  return -0.5 * interior;
+}`,
+    testCode: `const results = [];
+function check(name, actual, expected) {
+  results.push({ name, actual, expected, passed: Math.abs(actual - expected) < 1e-5 });
+}
+check('skewed latent stats', vaeKlDivergence(1.0, -1.0), 0.6839397);
+return results;`,
+    hints: [
+      'Compute 1 - muSq + varPenalty.',
+    ],
+    solution: `function vaeKlDivergence(mu, logvar) {
+  const muSq = mu * mu;
+  const varExp = Math.exp(logvar);
+  const varPenalty = logvar - varExp;
+  
+  const interior = 1 - muSq + varPenalty;
+  
+  return -0.5 * interior;
+}`,
+    explanation: 'When mu=0 and logvar=0, this interior sum evaluates exactly to 0, indicating perfect alignment with a standard Normal.',
+  },
+  {
+    id: 'vae-kl-full',
+    stepLabel: '36.5',
+    group: 'KL closed form',
+    title: 'Final KL Loss',
+    concept: 'The complete closed-form KL divergence acts as a regularizer during VAE training.',
+    objective: 'Multiply the interior sum by -0.5 to get the final loss scalar.',
+    difficulty: 'core',
+    starterCode: `function vaeKlDivergence(mu, logvar) {
+  const muSq = mu * mu;
+  const varExp = Math.exp(logvar);
+  const varPenalty = logvar - varExp;
+  const interior = 1 - muSq + varPenalty;
+  
+  // TODO: multiply interior by -0.5 and return
+  return 0;
+}`,
+    testCode: `const results = [];
+function check(name, actual, expected) {
+  results.push({ name, actual, expected, passed: Math.abs(actual - expected) < 1e-5 });
+}
+check('skewed latent stats', vaeKlDivergence(1.0, -1.0), 0.6839397);
+return results;`,
+    hints: [
+      'Return -0.5 * interior.',
+    ],
+    solution: `function vaeKlDivergence(mu, logvar) {
+  const muSq = mu * mu;
+  const varExp = Math.exp(logvar);
+  const varPenalty = logvar - varExp;
+  const interior = 1 - muSq + varPenalty;
+  
+  return -0.5 * interior;
 }`,
     explanation: 'KL divergence acts as a regularizer, shaping the latent space into a continuous, smooth distribution suitable for generation.',
   },

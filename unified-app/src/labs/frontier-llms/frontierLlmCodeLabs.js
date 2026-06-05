@@ -1,28 +1,158 @@
 export const FRONTIER_LLM_CODE_LABS = [
   // --- FRONTIER LLM ARCHITECTURE OVERVIEW ---
   {
-    id: 'frontier-weight-bytes',
+    id: 'frontier-weight-raw-params',
     stepLabel: '19.1',
     group: 'Weight bytes',
-    title: 'Model parameters memory size',
-    concept: 'Frontier LLM serving memory is dominated by parameters. At 16-bit precision (FP16/BF16), each parameter occupies 2 bytes; at 8-bit precision (INT8), it occupies 1 byte.',
-    objective: 'Calculate the total gigabytes (GB) needed to store parameters in memory.',
+    title: 'Raw Parameter Count',
+    concept: 'Frontier LLM serving memory is dominated by parameters. First, we expand the billions shorthand to the absolute number of parameters.',
+    objective: 'Expand the billions count by multiplying by 10^9.',
     difficulty: 'warmup',
     starterCode: `function getWeightBytesGB(numParamsBillions, bytesPerParam) {
-  // TODO: return memory in GB: (params * 10^9 * bytesPerParam) / 10^9
+  // TODO: calculate absolute parameter count
+  const absoluteParams = 0;
+  
+  const rawBytes = absoluteParams * bytesPerParam;
+  return rawBytes / 1e9;
+}`,
+    testCode: `const results = [];
+function check(name, actual, expected) {
+  results.push({ name, actual, expected, passed: Math.abs(actual - expected) < 1e-5 });
+}
+check('Llama 70B FP16', getWeightBytesGB(70, 2), 140);
+return results;`,
+    hints: [
+      'Multiply numParamsBillions by 1e9.',
+    ],
+    solution: `function getWeightBytesGB(numParamsBillions, bytesPerParam) {
+  const absoluteParams = numParamsBillions * 1e9;
+  
+  const rawBytes = absoluteParams * bytesPerParam;
+  return rawBytes / 1e9;
+}`,
+    explanation: 'A 70B model technically means 70,000,000,000 floating point numbers in memory.',
+  },
+  {
+    id: 'frontier-weight-raw-bytes',
+    stepLabel: '19.2',
+    group: 'Weight bytes',
+    title: 'Raw Byte Size',
+    concept: 'Next, we compute the total memory footprint in raw bytes by multiplying the parameter count by the bytes per parameter.',
+    objective: 'Multiply absoluteParams by bytesPerParam.',
+    difficulty: 'warmup',
+    starterCode: `function getWeightBytesGB(numParamsBillions, bytesPerParam) {
+  const absoluteParams = numParamsBillions * 1e9;
+  
+  // TODO: calculate total raw bytes
+  const rawBytes = 0;
+  
+  return rawBytes / 1e9;
+}`,
+    testCode: `const results = [];
+function check(name, actual, expected) {
+  results.push({ name, actual, expected, passed: Math.abs(actual - expected) < 1e-5 });
+}
+check('Llama 70B FP16', getWeightBytesGB(70, 2), 140);
+return results;`,
+    hints: [
+      'Multiply absoluteParams by bytesPerParam.',
+    ],
+    solution: `function getWeightBytesGB(numParamsBillions, bytesPerParam) {
+  const absoluteParams = numParamsBillions * 1e9;
+  
+  const rawBytes = absoluteParams * bytesPerParam;
+  
+  return rawBytes / 1e9;
+}`,
+    explanation: 'At 16-bit precision, each parameter occupies 2 bytes. At 8-bit precision, each takes 1 byte.',
+  },
+  {
+    id: 'frontier-weight-gb',
+    stepLabel: '19.3',
+    group: 'Weight bytes',
+    title: 'Gigabyte Conversion',
+    concept: 'Server memory is measured in Gigabytes (GB). We must divide the raw byte count by 10^9 to convert it to GB.',
+    objective: 'Convert rawBytes into GBs.',
+    difficulty: 'warmup',
+    starterCode: `function getWeightBytesGB(numParamsBillions, bytesPerParam) {
+  const absoluteParams = numParamsBillions * 1e9;
+  const rawBytes = absoluteParams * bytesPerParam;
+  
+  // TODO: convert rawBytes to Gigabytes
+  const gigabytes = 0;
+  
+  return gigabytes;
+}`,
+    testCode: `const results = [];
+function check(name, actual, expected) {
+  results.push({ name, actual, expected, passed: Math.abs(actual - expected) < 1e-5 });
+}
+check('Llama 70B FP16', getWeightBytesGB(70, 2), 140);
+return results;`,
+    hints: [
+      'Divide rawBytes by 1e9.',
+    ],
+    solution: `function getWeightBytesGB(numParamsBillions, bytesPerParam) {
+  const absoluteParams = numParamsBillions * 1e9;
+  const rawBytes = absoluteParams * bytesPerParam;
+  
+  const gigabytes = rawBytes / 1e9;
+  
+  return gigabytes;
+}`,
+    explanation: 'Converting to GB puts the memory requirement in the same units used by GPU specs (e.g. 80GB for an A100).',
+  },
+  {
+    id: 'frontier-weight-cancel',
+    stepLabel: '19.4',
+    group: 'Weight bytes',
+    title: 'Cancellation Insight',
+    concept: 'Notice that multiplying by 10^9 (billion scale) and dividing by 10^9 (GB scale) perfectly cancels out! We can simplify the entire calculation.',
+    objective: 'Replace the 3-step calculation with the simplified direct multiplication.',
+    difficulty: 'core',
+    starterCode: `function getWeightBytesGB(numParamsBillions, bytesPerParam) {
+  // TODO: use the cancellation insight to simplify
+  const gigabytes = 0;
+  
+  return gigabytes;
+}`,
+    testCode: `const results = [];
+function check(name, actual, expected) {
+  results.push({ name, actual, expected, passed: Math.abs(actual - expected) < 1e-5 });
+}
+check('Llama 70B FP16', getWeightBytesGB(70, 2), 140);
+return results;`,
+    hints: [
+      'Just multiply numParamsBillions by bytesPerParam.',
+    ],
+    solution: `function getWeightBytesGB(numParamsBillions, bytesPerParam) {
+  const gigabytes = numParamsBillions * bytesPerParam;
+  
+  return gigabytes;
+}`,
+    explanation: 'Because 1 billion parameters is exactly 1 GB per 1 byte-per-param, we can skip the intermediate 1e9 conversions entirely.',
+  },
+  {
+    id: 'frontier-weight-full',
+    stepLabel: '19.5',
+    group: 'Weight bytes',
+    title: 'Optimized Finalization',
+    concept: 'Return the simplified expression directly.',
+    objective: 'Return the directly calculated GB footprint.',
+    difficulty: 'warmup',
+    starterCode: `function getWeightBytesGB(numParamsBillions, bytesPerParam) {
+  // TODO: return the optimized product directly
   return 0;
 }`,
     testCode: `const results = [];
 function check(name, actual, expected) {
-  results.push({ name, actual, expected, passed: Object.is(actual, expected) });
+  results.push({ name, actual, expected, passed: Math.abs(actual - expected) < 1e-5 });
 }
 check('Llama 70B FP16', getWeightBytesGB(70, 2), 140);
 check('Llama 8B INT8', getWeightBytesGB(8, 1), 8);
 return results;`,
     hints: [
-      'The billions scale cancels out with the GB scale (both 10^9).',
-      'Simply multiply numParamsBillions by bytesPerParam.',
-      'return numParamsBillions * bytesPerParam;',
+      'Return numParamsBillions * bytesPerParam.',
     ],
     solution: `function getWeightBytesGB(numParamsBillions, bytesPerParam) {
   return numParamsBillions * bytesPerParam;
@@ -59,63 +189,276 @@ return results;`,
 
   // --- FRONTIER MOE SYSTEMS ---
   {
-    id: 'moe-active-params',
+    id: 'moe-active-ratio',
     stepLabel: '20.1',
     group: 'Active fraction',
-    title: 'Active parameters fraction',
-    concept: 'At Frontier scale, Mixture of Experts (MoE) models only activate a subset of experts per token to minimize computational costs (FLOPs).',
-    objective: 'Calculate the active parameters count: nonAttnBase + (activeExperts / totalExperts) * totalExpertParams.',
+    title: 'Active Ratio',
+    concept: 'At Frontier scale, Mixture of Experts (MoE) models only activate a subset of experts per token to minimize computational costs (FLOPs). First, we find the routing ratio.',
+    objective: 'Calculate the active fraction of experts: activeExperts / totalExperts.',
     difficulty: 'warmup',
     starterCode: `function getActiveParams(nonAttnBase, totalExpertParams, activeExperts, totalExperts) {
-  // TODO: calculate and return active parameters
-  return 0;
+  // TODO: compute the active ratio
+  const activeRatio = 0;
+  
+  const activeExpertParams = activeRatio * totalExpertParams;
+  return nonAttnBase + activeExpertParams;
 }`,
     testCode: `const results = [];
 function check(name, actual, expected) {
-  results.push({ name, actual, expected, passed: Object.is(actual, expected) });
+  results.push({ name, actual, expected, passed: Math.abs(actual - expected) < 1e-5 });
 }
 check('Mixtral 8x7B active params', getActiveParams(12, 35, 2, 8), 20.75);
 return results;`,
     hints: [
-      'Multiply totalExpertParams by activeExperts / totalExperts.',
-      'Add nonAttnBase to the result.',
-      'return nonAttnBase + (activeExperts / totalExperts) * totalExpertParams;',
+      'Divide activeExperts by totalExperts.',
     ],
     solution: `function getActiveParams(nonAttnBase, totalExpertParams, activeExperts, totalExperts) {
-  return nonAttnBase + (activeExperts / totalExperts) * totalExpertParams;
+  const activeRatio = activeExperts / totalExperts;
+  
+  const activeExpertParams = activeRatio * totalExpertParams;
+  return nonAttnBase + activeExpertParams;
+}`,
+    explanation: 'In an 8x7B model that activates 2 experts per token, the active ratio is 2/8 (or 25%).',
+  },
+  {
+    id: 'moe-active-expert-params',
+    stepLabel: '20.2',
+    group: 'Active fraction',
+    title: 'Active Expert Footprint',
+    concept: 'We apply the routing ratio to the total expert parameters to find how many expert parameters are actually used during a single forward pass.',
+    objective: 'Multiply totalExpertParams by the activeRatio.',
+    difficulty: 'core',
+    starterCode: `function getActiveParams(nonAttnBase, totalExpertParams, activeExperts, totalExperts) {
+  const activeRatio = activeExperts / totalExperts;
+  
+  // TODO: compute active expert parameters
+  const activeExpertParams = 0;
+  
+  return nonAttnBase + activeExpertParams;
+}`,
+    testCode: `const results = [];
+function check(name, actual, expected) {
+  results.push({ name, actual, expected, passed: Math.abs(actual - expected) < 1e-5 });
+}
+check('Mixtral 8x7B active params', getActiveParams(12, 35, 2, 8), 20.75);
+return results;`,
+    hints: [
+      'Multiply totalExpertParams by activeRatio.',
+    ],
+    solution: `function getActiveParams(nonAttnBase, totalExpertParams, activeExperts, totalExperts) {
+  const activeRatio = activeExperts / totalExperts;
+  
+  const activeExpertParams = activeRatio * totalExpertParams;
+  
+  return nonAttnBase + activeExpertParams;
+}`,
+    explanation: 'This drastically reduces the FLOPs required. You get the capacity of a massive model with the latency of a much smaller one.',
+  },
+  {
+    id: 'moe-active-base',
+    stepLabel: '20.3',
+    group: 'Active fraction',
+    title: 'Static Baseline',
+    concept: 'MoE layers only replace the Feed-Forward Network (FFN). The self-attention layers and embeddings (nonAttnBase) still run for every token.',
+    objective: 'Identify the static baseline parameters that must always be added.',
+    difficulty: 'warmup',
+    starterCode: `function getActiveParams(nonAttnBase, totalExpertParams, activeExperts, totalExperts) {
+  const activeRatio = activeExperts / totalExperts;
+  const activeExpertParams = activeRatio * totalExpertParams;
+  
+  // TODO: set the baseline
+  const baseline = 0;
+  
+  return baseline + activeExpertParams;
+}`,
+    testCode: `const results = [];
+function check(name, actual, expected) {
+  results.push({ name, actual, expected, passed: Math.abs(actual - expected) < 1e-5 });
+}
+check('Mixtral 8x7B active params', getActiveParams(12, 35, 2, 8), 20.75);
+return results;`,
+    hints: [
+      'The baseline is nonAttnBase.',
+    ],
+    solution: `function getActiveParams(nonAttnBase, totalExpertParams, activeExperts, totalExperts) {
+  const activeRatio = activeExperts / totalExperts;
+  const activeExpertParams = activeRatio * totalExpertParams;
+  
+  const baseline = nonAttnBase;
+  
+  return baseline + activeExpertParams;
+}`,
+    explanation: 'The attention mechanism isn\'t conditionally routed, so its parameter footprint is constant.',
+  },
+  {
+    id: 'moe-active-total',
+    stepLabel: '20.4',
+    group: 'Active fraction',
+    title: 'Total Active Parameters',
+    concept: 'The final active parameter count per token is the sum of the dense attention layers and the sparse routed experts.',
+    objective: 'Add the baseline to the active expert parameters.',
+    difficulty: 'core',
+    starterCode: `function getActiveParams(nonAttnBase, totalExpertParams, activeExperts, totalExperts) {
+  const activeRatio = activeExperts / totalExperts;
+  const activeExpertParams = activeRatio * totalExpertParams;
+  const baseline = nonAttnBase;
+  
+  // TODO: return the total active parameters sum
+  return 0;
+}`,
+    testCode: `const results = [];
+function check(name, actual, expected) {
+  results.push({ name, actual, expected, passed: Math.abs(actual - expected) < 1e-5 });
+}
+check('Mixtral 8x7B active params', getActiveParams(12, 35, 2, 8), 20.75);
+return results;`,
+    hints: [
+      'Return baseline + activeExpertParams.',
+    ],
+    solution: `function getActiveParams(nonAttnBase, totalExpertParams, activeExperts, totalExperts) {
+  const activeRatio = activeExperts / totalExperts;
+  const activeExpertParams = activeRatio * totalExpertParams;
+  const baseline = nonAttnBase;
+  
+  return baseline + activeExpertParams;
 }`,
     explanation: 'By activating only 2 out of 8 experts per token, MoE models keep latency low while offering massive model capacities.',
   },
 
   // --- MULTI-HEAD LATENT ATTENTION ---
   {
-    id: 'mla-compression-ratio',
+    id: 'mla-compression-bottleneck',
     stepLabel: '21.1',
     group: 'Cache size ratio',
-    title: 'MLA cache compression ratio',
-    concept: 'Multi-head Latent Attention (MLA) compresses the KV cache by projecting key-value vectors into a low-dimensional latent space.',
-    objective: 'Calculate the cache savings ratio: compressedLatentDim / (standardKVHeads * headDim).',
+    title: 'Latent Bottleneck',
+    concept: 'Multi-head Latent Attention (MLA) compresses the KV cache. First, we identify the dimension of the compressed latent space.',
+    objective: 'Extract the compressed latent dimension size.',
     difficulty: 'warmup',
     starterCode: `function getMLACacheRatio(latentDim, kvHeads, headDim) {
-  // TODO: return the ratio of compressed latent size to standard KV size
+  // TODO: identify the compressed size
+  const compressedSize = 0;
+  
+  const standardSize = kvHeads * headDim;
+  return compressedSize / standardSize;
+}`,
+    testCode: `const results = [];
+function check(name, actual, expected) {
+  results.push({ name, actual, expected, passed: Math.abs(actual - expected) < 1e-5 });
+}
+check('DeepSeek-V2 MLA ratio', getMLACacheRatio(128, 128, 128), 0.0078125);
+return results;`,
+    hints: [
+      'Assign compressedSize to latentDim.',
+    ],
+    solution: `function getMLACacheRatio(latentDim, kvHeads, headDim) {
+  const compressedSize = latentDim;
+  
+  const standardSize = kvHeads * headDim;
+  return compressedSize / standardSize;
+}`,
+    explanation: 'Instead of caching full keys and values for every head, MLA only caches this tiny latent representation.',
+  },
+  {
+    id: 'mla-compression-dense',
+    stepLabel: '21.2',
+    group: 'Cache size ratio',
+    title: 'Dense KV Size',
+    concept: 'To understand the savings, we need to know what the memory footprint would have been using standard Multi-Head Attention.',
+    objective: 'Calculate the uncompressed KV size: kvHeads * headDim.',
+    difficulty: 'core',
+    starterCode: `function getMLACacheRatio(latentDim, kvHeads, headDim) {
+  const compressedSize = latentDim;
+  
+  // TODO: compute standard size
+  const standardSize = 0;
+  
+  return compressedSize / standardSize;
+}`,
+    testCode: `const results = [];
+function check(name, actual, expected) {
+  results.push({ name, actual, expected, passed: Math.abs(actual - expected) < 1e-5 });
+}
+check('DeepSeek-V2 MLA ratio', getMLACacheRatio(128, 128, 128), 0.0078125);
+return results;`,
+    hints: [
+      'Multiply kvHeads by headDim.',
+    ],
+    solution: `function getMLACacheRatio(latentDim, kvHeads, headDim) {
+  const compressedSize = latentDim;
+  
+  const standardSize = kvHeads * headDim;
+  
+  return compressedSize / standardSize;
+}`,
+    explanation: 'A model with 128 heads of dimension 128 normally requires 16,384 floats per token just for the cache!',
+  },
+  {
+    id: 'mla-compression-math',
+    stepLabel: '21.3',
+    group: 'Cache size ratio',
+    title: 'Compression Math',
+    concept: 'The ratio is exactly the new compressed size divided by the old standard size.',
+    objective: 'Compute the ratio of compressedSize to standardSize.',
+    difficulty: 'core',
+    starterCode: `function getMLACacheRatio(latentDim, kvHeads, headDim) {
+  const compressedSize = latentDim;
+  const standardSize = kvHeads * headDim;
+  
+  // TODO: calculate the ratio
+  const ratio = 0;
+  
+  return ratio;
+}`,
+    testCode: `const results = [];
+function check(name, actual, expected) {
+  results.push({ name, actual, expected, passed: Math.abs(actual - expected) < 1e-5 });
+}
+check('DeepSeek-V2 MLA ratio', getMLACacheRatio(128, 128, 128), 0.0078125);
+return results;`,
+    hints: [
+      'Divide compressedSize by standardSize.',
+    ],
+    solution: `function getMLACacheRatio(latentDim, kvHeads, headDim) {
+  const compressedSize = latentDim;
+  const standardSize = kvHeads * headDim;
+  
+  const ratio = compressedSize / standardSize;
+  
+  return ratio;
+}`,
+    explanation: 'For DeepSeek-V2, this ratio reaches an incredible 1/128th of the original size (0.0078).',
+  },
+  {
+    id: 'mla-compression-full',
+    stepLabel: '21.4',
+    group: 'Cache size ratio',
+    title: 'Full MLA Ratio',
+    concept: 'Return the computed MLA compression ratio.',
+    objective: 'Return the final ratio value.',
+    difficulty: 'warmup',
+    starterCode: `function getMLACacheRatio(latentDim, kvHeads, headDim) {
+  const compressedSize = latentDim;
+  const standardSize = kvHeads * headDim;
+  const ratio = compressedSize / standardSize;
+  
+  // TODO: return the ratio
   return 0;
 }`,
     testCode: `const results = [];
-function approxEqual(a, b, tol = 1e-5) {
-  return Math.abs(a - b) <= tol;
-}
 function check(name, actual, expected) {
-  results.push({ name, actual, expected, passed: approxEqual(actual, expected) });
+  results.push({ name, actual, expected, passed: Math.abs(actual - expected) < 1e-5 });
 }
-check('DeepSeek-V2 MLA ratio', getMLACacheRatio(128, 128, 128), 0.0078125); // 128 / 16384
+check('DeepSeek-V2 MLA ratio', getMLACacheRatio(128, 128, 128), 0.0078125);
 return results;`,
     hints: [
-      'Calculate standard KV size: kvHeads * headDim.',
-      'Divide latentDim by this standard size.',
-      'return latentDim / (kvHeads * headDim);',
+      'Return the ratio.',
     ],
     solution: `function getMLACacheRatio(latentDim, kvHeads, headDim) {
-  return latentDim / (kvHeads * headDim);
+  const compressedSize = latentDim;
+  const standardSize = kvHeads * headDim;
+  const ratio = compressedSize / standardSize;
+  
+  return ratio;
 }`,
     explanation: 'MLA reduces the memory footprint of KV caches by more than 90%, allowing much larger batch sizes and context lengths.',
   },
