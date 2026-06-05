@@ -3787,127 +3787,8 @@ return results;`,
     explanation: 'Minimizing reconstruction loss ensures the latent space captures all necessary information to rebuild the input.',
   },
   {
-    id: 'vae-kl-divergence-std',
-    stepLabel: 'VAE.3',
-    group: 'KL closed form',
-    title: 'Standard Deviation Recovery',
-    concept: 'VAEs predict log-variance (logvar) for numerical stability. We first convert this to standard deviation.',
-    objective: 'Compute std by taking the exponent of half the logvar.',
-    difficulty: 'warmup',
-    starterCode: `function vaeStep(x, xHat, mu, logvar, eps) {
-  // TODO: calculate std = exp(0.5 * logvar)
-  const std = 1.0;
-  
-  const z = mu;
-  const reconLoss = 0;
-  const klLoss = 0;
-  const elbo = 0;
-  return { z, reconLoss, klLoss, elbo };
-}`,
-    testCode: `const results = [];
-function check(name, actual, expected) {
-  results.push({ name, actual, expected, passed: Math.abs(actual - expected) < 1e-5 });
-}
-const res = vaeStep(0, 0, 0, -1.0, 0); 
-check('std recovery', Math.exp(0.5 * -1.0), 0.6065306);
-return results;`,
-    hints: [
-      'std = Math.exp(0.5 * logvar);',
-    ],
-    solution: `function vaeStep(x, xHat, mu, logvar, eps) {
-  const std = Math.exp(0.5 * logvar);
-  
-  const z = mu;
-  const reconLoss = 0;
-  const klLoss = 0;
-  const elbo = 0;
-  return { z, reconLoss, klLoss, elbo };
-}`,
-    explanation: 'logvar = 2 * log(std). Multiplying by 0.5 undoes the square, and exp() undoes the logarithm.',
-  },
-  {
-    id: 'vae-kl-divergence-reparam',
-    stepLabel: 'VAE.4',
-    group: 'KL closed form',
-    title: 'Reparameterization Trick',
-    concept: 'To allow gradients to flow backwards through a random sampling process, we shift and scale a random Gaussian noise vector eps.',
-    objective: 'Compute the sampled latent vector z.',
-    difficulty: 'warmup',
-    starterCode: `function vaeStep(x, xHat, mu, logvar, eps) {
-  const std = Math.exp(0.5 * logvar);
-  
-  // TODO: compute z = mu + std * eps
-  const z = mu;
-  
-  const reconLoss = 0;
-  const klLoss = 0;
-  const elbo = 0;
-  return { z, reconLoss, klLoss, elbo };
-}`,
-    testCode: `const results = [];
-function check(name, actual, expected) {
-  results.push({ name, actual, expected, passed: Math.abs(actual - expected) < 1e-5 });
-}
-const res = vaeStep(0, 0, 1.0, -1.0, 0.5); 
-check('z sample', res.z, 1.0 + Math.exp(-0.5) * 0.5);
-return results;`,
-    hints: [
-      'z = mu + std * eps;',
-    ],
-    solution: `function vaeStep(x, xHat, mu, logvar, eps) {
-  const std = Math.exp(0.5 * logvar);
-  const z = mu + std * eps;
-  
-  const reconLoss = 0;
-  const klLoss = 0;
-  const elbo = 0;
-  return { z, reconLoss, klLoss, elbo };
-}`,
-    explanation: 'By decoupling the randomness (eps) from the predicted parameters (mu, std), the network can be trained via backpropagation.',
-  },
-  {
-    id: 'vae-kl-divergence-recon',
-    stepLabel: 'VAE.5',
-    group: 'KL closed form',
-    title: 'Reconstruction Loss',
-    concept: 'The VAE must learn to reconstruct the original input from the compressed latent space.',
-    objective: 'Compute the squared error between x and xHat.',
-    difficulty: 'warmup',
-    starterCode: `function vaeStep(x, xHat, mu, logvar, eps) {
-  const std = Math.exp(0.5 * logvar);
-  const z = mu + std * eps;
-  
-  // TODO: compute squared error (x - xHat)^2
-  const reconLoss = 0;
-  
-  const klLoss = 0;
-  const elbo = 0;
-  return { z, reconLoss, klLoss, elbo };
-}`,
-    testCode: `const results = [];
-function check(name, actual, expected) {
-  results.push({ name, actual, expected, passed: Math.abs(actual - expected) < 1e-5 });
-}
-const res = vaeStep(2.0, 1.5, 0, 0, 0); 
-check('recon loss', res.reconLoss, 0.25);
-return results;`,
-    hints: [
-      'reconLoss = (x - xHat) * (x - xHat);',
-    ],
-    solution: `function vaeStep(x, xHat, mu, logvar, eps) {
-  const std = Math.exp(0.5 * logvar);
-  const z = mu + std * eps;
-  const reconLoss = (x - xHat) * (x - xHat);
-  
-  const klLoss = 0;
-  const elbo = 0;
-  return { z, reconLoss, klLoss, elbo };
-}`,
-    explanation: 'Minimizing reconstruction loss ensures the latent space captures all necessary information to rebuild the input.',
-  },
-  {
     id: 'vae-kl-divergence',
-    stepLabel: 'VAE.6',
+    stepLabel: 'VAE.3',
     group: 'KL closed form',
     title: 'KL Divergence',
     concept: 'The KL divergence regularizer forces the latent distribution to match a standard Normal distribution (mean 0, variance 1).',
@@ -3994,7 +3875,7 @@ return results;`,
     group: 'Latent edge cases',
     title: 'Standard Normal Edge Case',
     concept: 'When the encoder perfectly matches the prior (mu=0, logvar=0), the KL divergence drops exactly to 0, and z becomes exactly the sampled noise eps.',
-    objective: 'Verify that the function handles the standard normal case correctly.',
+    objective: 'Set matchesStandardPrior when mu and logvar are both 0 and klLoss is 0.',
     difficulty: 'warmup',
     starterCode: `function vaeStep(x, xHat, mu, logvar, eps) {
   const std = Math.exp(0.5 * logvar);
@@ -4002,19 +3883,25 @@ return results;`,
   const reconLoss = (x - xHat) * (x - xHat);
   const klLoss = -0.5 * (1 + logvar - mu * mu - Math.exp(logvar));
   const elbo = reconLoss + klLoss;
-  return { z, reconLoss, klLoss, elbo };
+  // TODO: matchesStandardPrior = mu === 0 && logvar === 0 && klLoss === 0
+  const matchesStandardPrior = false;
+  return { z, reconLoss, klLoss, elbo, matchesStandardPrior };
 }`,
     testCode: `const results = [];
 function check(name, actual, expected) {
   results.push({ name, actual, expected, passed: Math.abs(actual - expected) < 1e-5 });
 }
-// TODO: call vaeStep with mu=0, logvar=0, and verify klLoss=0 and z=eps
+function checkBool(name, actual, expected) {
+  results.push({ name, actual, expected, passed: Object.is(actual, expected) });
+}
 const res = vaeStep(0, 0, 0.0, 0.0, 2.5);
 check('kl loss is 0', res.klLoss, 0);
 check('z equals eps', res.z, 2.5);
+checkBool('matches standard prior', res.matchesStandardPrior, true);
 return results;`,
     hints: [
-      'The code is already complete! Just run the test to see it pass.',
+      'All three conditions must hold: mu === 0, logvar === 0, klLoss === 0.',
+      'matchesStandardPrior = mu === 0 && logvar === 0 && klLoss === 0;',
     ],
     solution: `function vaeStep(x, xHat, mu, logvar, eps) {
   const std = Math.exp(0.5 * logvar);
@@ -4022,7 +3909,8 @@ return results;`,
   const reconLoss = (x - xHat) * (x - xHat);
   const klLoss = -0.5 * (1 + logvar - mu * mu - Math.exp(logvar));
   const elbo = reconLoss + klLoss;
-  return { z, reconLoss, klLoss, elbo };
+  const matchesStandardPrior = mu === 0 && logvar === 0 && klLoss === 0;
+  return { z, reconLoss, klLoss, elbo, matchesStandardPrior };
 }`,
     explanation: 'This proves that a standard Normal distribution incurs zero penalty from the KL divergence term.',
   },

@@ -282,7 +282,10 @@ export const LESSON_GROUP_MAPPINGS = {
   'rag-reranking-grounding': { source: 'rag', groups: ['Reranking and grounding checks'] },
   'rag-retrieval-evaluation': { source: 'rag', groups: ['Retrieval metrics'] },
   'rag-failure-modes': { source: 'rag', groups: ['Reranking and grounding checks', 'Retrieval metrics'] },
-  'vae': { source: 'nn', groups: ['KL closed form'] },
+  'vae': {
+    source: 'nn',
+    groups: ['Reparameterize z', 'Reconstruction MSE', 'KL closed form', 'Combined ELBO', 'Latent edge cases'],
+  },
   'multimodal-llm': { source: 'nn', groups: ['Linear project'] },
 
   // Experimentation & causal ML
@@ -308,7 +311,10 @@ export const LESSON_GROUP_MAPPINGS = {
     groups: ['Noise scale', 'Alpha bar', 'Forward sample', 'Signal-to-noise ratio'],
   },
   'diffusion-sampling': { source: 'diffusion', groups: ['Beta scheduling', 'Forward noise scheduler', 'Posterior mean estimation', 'Denoised reverse step'] },
-  'classifier-free-guidance': { source: 'diffusion', groups: ['scale mix'] },
+  'classifier-free-guidance': {
+    source: 'diffusion',
+    groups: ['Uncond branch', 'Cond branch', 'Scale mix', 'Zero-scale identity'],
+  },
   'unet-vs-dit': { source: 'diffusion', groups: ['skip concat', 'patch tokens'] },
   'sd3-overview': { source: 'diffusion', groups: ['VAE downscale'] },
   'flow-matching': { source: 'diffusion', groups: ['linear interp'] },
@@ -317,7 +323,10 @@ export const LESSON_GROUP_MAPPINGS = {
   'clip-encoder': { source: 'diffusion', groups: ['L2 normalize'] },
   't5-encoder': { source: 'diffusion', groups: ['pad mask'] },
   'joint-attention': { source: 'diffusion', groups: ['Concat Q'] },
-  'dit': { source: 'diffusion', groups: ['Time embed inject', 'adaLN scale/shift', 'Self-attn residual', 'MLP residual'] },
+  'dit': {
+    source: 'diffusion',
+    groups: ['Time embed inject', 'adaLN scale/shift', 'Self-attn residual', 'MLP residual'],
+  },
 
   // Frontier LLMs & Evaluation Safety
   'frontier-llm-architecture-overview': { source: 'frontier', groups: ['Weight bytes', 'KV bytes'] },
