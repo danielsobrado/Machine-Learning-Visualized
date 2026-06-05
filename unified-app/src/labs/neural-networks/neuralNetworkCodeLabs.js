@@ -2994,74 +2994,209 @@ function gradB(A, dC) {
 
   // --- WAVE 4: NEURAL NETWORKS & ADVANCED MODELS ---
   {
-    id: 'lstm-forget-gate',
+    id: 'lstm-gates-f-i',
     stepLabel: '31.1',
-    group: 'Forget gate',
-    title: 'LSTM forget gate calculation',
-    concept: 'An LSTM forget gate decides how much of the past cell state to keep: f_t = sigmoid(w * x + u * hPrev + b).',
-    objective: 'Compute the forget gate activation using sigmoid function.',
+    group: 'Forget and input gates',
+    title: 'LSTM Forget and Input Gates',
+    concept: 'An LSTM cell regulates information flow. The forget gate (f) controls how much historical memory to keep, while the input gate (i) controls how much new input to incorporate: f = sigmoid(wf * x + uf * hPrev + bf), i = sigmoid(wi * x + ui * hPrev + bi).',
+    objective: 'Compute and return the forget gate and input gate activation values.',
     difficulty: 'warmup',
-    starterCode: `function lstmForgetGate(x, hPrev, wx, wh, b) {
+    starterCode: `/**
+ * Computes the forget and input gate activations for an LSTM cell.
+ * @param {number} x - Current input scalar.
+ * @param {number} hPrev - Past hidden state scalar.
+ * @param {{ wf: number, uf: number, bf: number, wi: number, ui: number, bi: number }} params - Gating parameters.
+ * @returns {[number, number]} Activated gates [f, i] in (0, 1).
+ */
+function lstmGates(x, hPrev, params) {
   function sigmoid(v) {
     return 1 / (1 + Math.exp(-v));
   }
-  const score = wx * x + wh * hPrev + b;
-  // TODO: return the sigmoid of score
-  return 0;
+  // TODO: Compute forget gate f and input gate i
+  return [0, 0];
 }`,
     testCode: `const results = [];
-function approxEqual(a, b, tol = 1e-5) {
-  return Math.abs(a - b) <= tol;
-}
+function approxEqual(a, b, tol = 1e-5) { return Math.abs(a - b) <= tol; }
+function sameArray(a, b) { return a.length === b.length && a.every((v, i) => approxEqual(v, b[i])); }
 function check(name, actual, expected) {
-  results.push({ name, actual, expected, passed: approxEqual(actual, expected) });
+  results.push({ name, actual: JSON.stringify(actual), expected: JSON.stringify(expected), passed: sameArray(actual, expected) });
 }
-check('forget gate zero', lstmForgetGate(0, 0, 1, 1, 0), 0.5);
-check('forget gate positive', lstmForgetGate(1, 1, 0.5, 0.5, 0), 0.731058);
+const p = { wf: 0.5, uf: 0.5, bf: 0.0, wi: -0.5, ui: 1.0, bi: 0.2 };
+check('gates standard', lstmGates(1.0, 1.0, p), [0.731058, 0.668187]);
+check('gates zero inputs', lstmGates(0.0, 0.0, p), [0.5, 0.549833]);
+check('gates opposite', lstmGates(-2.0, 1.0, p), [0.377540, 0.900250]);
 return results;`,
     hints: [
-      'Call sigmoid(score).',
-      'return sigmoid(score);',
+      'The forget gate score is wf * x + uf * hPrev + bf.',
+      'The input gate score is wi * x + ui * hPrev + bi.',
+      'Apply the sigmoid function to both scores and return [f, i].',
     ],
-    solution: `function lstmForgetGate(x, hPrev, wx, wh, b) {
+    solution: `/**
+ * Computes the forget and input gate activations for an LSTM cell.
+ * @param {number} x - Current input scalar.
+ * @param {number} hPrev - Past hidden state scalar.
+ * @param {{ wf: number, uf: number, bf: number, wi: number, ui: number, bi: number }} params - Gating parameters.
+ * @returns {[number, number]} Activated gates [f, i] in (0, 1).
+ */
+function lstmGates(x, hPrev, params) {
   function sigmoid(v) {
     return 1 / (1 + Math.exp(-v));
   }
-  const score = wx * x + wh * hPrev + b;
-  return sigmoid(score);
+  const f = sigmoid(params.wf * x + params.uf * hPrev + params.bf);
+  const i = sigmoid(params.wi * x + params.ui * hPrev + params.bi);
+  return [f, i];
 }`,
-    explanation: 'A forget gate output of 1 means keep the past completely; 0 means discard it.',
+    explanation: 'Sigmoid gates output values between 0 and 1, acting as continuous multiplicative valves for gradient flow.',
   },
   {
-    id: 'lstm-cell-state-update',
+    id: 'lstm-candidate-state',
     stepLabel: '31.2',
     group: 'Candidate cell',
-    title: 'LSTM cell state update',
-    concept: 'The LSTM cell state updates by combining the gated past cell state and the gated new candidate: C_t = f_t * C_prev + i_t * C_cand.',
-    objective: 'Compute the updated cell state Ct.',
-    difficulty: 'core',
-    starterCode: `function updateCellState(cPrev, f, i, cCand) {
-  // TODO: compute Ct = f * cPrev + i * cCand
+    title: 'LSTM Candidate Cell State',
+    concept: 'The candidate cell state (cCand) generates the new candidate information to write to memory, squashed to [-1, 1] using tanh: cCand = tanh(wc * x + uc * hPrev + bc).',
+    objective: 'Compute the LSTM cell state candidate using Math.tanh.',
+    difficulty: 'warmup',
+    starterCode: `/**
+ * Computes the LSTM candidate cell state.
+ * @param {number} x - Current input scalar.
+ * @param {number} hPrev - Past hidden state scalar.
+ * @param {{ wc: number, uc: number, bc: number }} params - Candidate parameters.
+ * @returns {number} The candidate cell state.
+ */
+function lstmCandidate(x, hPrev, params) {
+  // TODO: Compute candidate cell state using Math.tanh
   return 0;
 }`,
     testCode: `const results = [];
-function approxEqual(a, b, tol = 1e-5) {
-  return Math.abs(a - b) <= tol;
-}
+function approxEqual(a, b, tol = 1e-5) { return Math.abs(a - b) <= tol; }
 function check(name, actual, expected) {
   results.push({ name, actual, expected, passed: approxEqual(actual, expected) });
 }
-check('update state simple', updateCellState(2.0, 0.9, 0.2, 3.0), 2.4); // 0.9*2 + 0.2*3 = 1.8 + 0.6 = 2.4
+const p = { wc: 0.8, uc: 0.2, bc: -0.1 };
+check('candidate positive', lstmCandidate(1.0, 2.0, p), 0.800499);
+check('candidate zero inputs', lstmCandidate(0.0, 0.0, p), -0.099667);
+check('candidate negative', lstmCandidate(-1.0, -1.0, p), -0.800499);
 return results;`,
     hints: [
-      'f * cPrev is the kept past.',
-      'i * cCand is the new input added.',
-      'return f * cPrev + i * cCand;',
+      'Compute the score: wc * x + uc * hPrev + bc.',
+      'Return Math.tanh(score).',
     ],
-    solution: `function updateCellState(cPrev, f, i, cCand) {
+    solution: `/**
+ * Computes the LSTM candidate cell state.
+ * @param {number} x - Current input scalar.
+ * @param {number} hPrev - Past hidden state scalar.
+ * @param {{ wc: number, uc: number, bc: number }} params - Candidate parameters.
+ * @returns {number} The candidate cell state.
+ */
+function lstmCandidate(x, hPrev, params) {
+  const score = params.wc * x + params.uc * hPrev + params.bc;
+  return Math.tanh(score);
+}`,
+    explanation: 'Squashing the candidate using tanh bounds values and prevents computational instabilities during long unrolled forward loops.',
+  },
+  {
+    id: 'lstm-state-fusion',
+    stepLabel: '31.3',
+    group: 'Cell state update',
+    title: 'LSTM Cell State Fusion',
+    concept: 'The updated cell state (Ct) combines gated historical memory and the newly generated candidate information: Ct = f * cPrev + i * cCand.',
+    objective: 'Implement the cell state update fusion equation.',
+    difficulty: 'core',
+    starterCode: `/**
+ * Fuses historical cell state and new candidate state.
+ * @param {number} cPrev - Past cell state.
+ * @param {number} f - Forget gate value.
+ * @param {number} i - Input gate value.
+ * @param {number} cCand - Candidate cell state.
+ * @returns {number} The new cell state.
+ */
+function lstmStateFusion(cPrev, f, i, cCand) {
+  // TODO: Compute fused cell state Ct
+  return 0;
+}`,
+    testCode: `const results = [];
+function approxEqual(a, b, tol = 1e-5) { return Math.abs(a - b) <= tol; }
+function check(name, actual, expected) {
+  results.push({ name, actual, expected, passed: approxEqual(actual, expected) });
+}
+check('fusion positive', lstmStateFusion(2.0, 0.9, 0.2, 3.0), 2.4);
+check('fusion full forget', lstmStateFusion(10.0, 0.0, 0.5, 2.0), 1.0);
+check('fusion keep only', lstmStateFusion(5.0, 1.0, 0.0, -2.0), 5.0);
+check('fusion negative values', lstmStateFusion(-1.0, 0.5, 0.5, -2.0), -1.5);
+return results;`,
+    hints: [
+      'Scale cPrev by f.',
+      'Scale cCand by i.',
+      'Add the scaled components together.',
+    ],
+    solution: `/**
+ * Fuses historical cell state and new candidate state.
+ * @param {number} cPrev - Past cell state.
+ * @param {number} f - Forget gate value.
+ * @param {number} i - Input gate value.
+ * @param {number} cCand - Candidate cell state.
+ * @returns {number} The new cell state.
+ */
+function lstmStateFusion(cPrev, f, i, cCand) {
   return f * cPrev + i * cCand;
 }`,
-    explanation: 'The linear cell state update path allows gradients to flow over long sequences without vanishing/exploding.',
+    explanation: 'Linear cell updates bypass saturating activation functions, addressing the vanishing gradient problem in vanilla RNNs.',
+  },
+  {
+    id: 'lstm-hidden-output',
+    stepLabel: '31.4',
+    group: 'Output gate & hidden output',
+    title: 'LSTM Hidden Output Generation',
+    concept: 'Finally, the output gate (o) determines which sections of the cell state write to the hidden state output: o = sigmoid(wo * x + uo * hPrev + bo) and h = o * tanh(Ct).',
+    objective: 'Compute the output gate activation and the final hidden state output.',
+    difficulty: 'challenge',
+    starterCode: `/**
+ * Computes the LSTM output gate and hidden state output.
+ * @param {number} x - Current input scalar.
+ * @param {number} hPrev - Past hidden state scalar.
+ * @param {number} cNew - Newly updated cell state.
+ * @param {{ wo: number, uo: number, bo: number }} params - Output parameters.
+ * @returns {{ o: number, h: number }} The output gate and hidden state.
+ */
+function lstmOutputAndHidden(x, hPrev, cNew, params) {
+  function sigmoid(v) {
+    return 1 / (1 + Math.exp(-v));
+  }
+  // TODO: Compute output gate o and hidden state h
+  return { o: 0, h: 0 };
+}`,
+    testCode: `const results = [];
+function approxEqual(a, b, tol = 1e-5) { return Math.abs(a - b) <= tol; }
+function check(name, actual, expected) {
+  results.push({ name, actual: JSON.stringify(actual), expected: JSON.stringify(expected), passed: approxEqual(actual.o, expected.o) && approxEqual(actual.h, expected.h) });
+}
+const p = { wo: 0.5, uo: 0.5, bo: -0.2 };
+// score = 0.5 * 1 + 0.5 * 2 - 0.2 = 1.3 -> o = sigmoid(1.3) = 0.7858349
+// h = o * tanh(3.0) = 0.7858349 * 0.9950547 = 0.7819488
+check('output and hidden positive', lstmOutputAndHidden(1.0, 2.0, 3.0, p), { o: 0.785835, h: 0.781949 });
+check('output and hidden zero', lstmOutputAndHidden(0.0, 0.0, 0.0, p), { o: 0.450166, h: 0.0 });
+return results;`,
+    hints: [
+      'Calculate output gate: sigmoid(wo * x + uo * hPrev + bo).',
+      'Calculate hidden output: o * Math.tanh(cNew).',
+    ],
+    solution: `/**
+ * Computes the LSTM output gate and hidden state output.
+ * @param {number} x - Current input scalar.
+ * @param {number} hPrev - Past hidden state scalar.
+ * @param {number} cNew - Newly updated cell state.
+ * @param {{ wo: number, uo: number, bo: number }} params - Output parameters.
+ * @returns {{ o: number, h: number }} The output gate and hidden state.
+ */
+function lstmOutputAndHidden(x, hPrev, cNew, params) {
+  function sigmoid(v) {
+    return 1 / (1 + Math.exp(-v));
+  }
+  const o = sigmoid(params.wo * x + params.uo * hPrev + params.bo);
+  const h = o * Math.tanh(cNew);
+  return { o, h };
+}`,
+    explanation: 'The output gate filters the cell contents so the hidden representation only exposes contextually relevant features.',
   },
   {
     id: 'conv2d-output-size',

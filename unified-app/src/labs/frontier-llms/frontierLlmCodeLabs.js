@@ -334,32 +334,229 @@ return results;`,
 
   // --- TOOL-USING REASONING MODELS ---
   {
-    id: 'tool-call-tag-check',
+    id: 'tool-use-parse',
     stepLabel: '29.1',
-    group: 'Tool name match',
-    title: 'Detect tool call syntax',
-    concept: 'Tool-using models output special markup tags like "<call:tool_name>" when invoking external APIs.',
-    objective: 'Return true if modelText contains the substring "<call:", otherwise false.',
+    group: 'Tool call parser',
+    title: 'XML Tool Call Parsing',
+    concept: 'Tool-using models emit special tags like "<call:toolName>arguments</call>" to call external APIs. The environment parses these tags to extract the target tool and arguments.',
+    objective: 'Implement an XML-style parser using regular expressions to extract the tool name and arguments string.',
     difficulty: 'warmup',
-    starterCode: `function containsToolCall(modelText) {
-  // TODO: return whether modelText contains tool call markup prefix
-  return false;
+    starterCode: `/**
+ * Parses a tool call string in the format "<call:toolName>args</call>".
+ * @param {string} text - The assistant text output.
+ * @returns {{ name: string, args: string } | null} The parsed tool call, or null if not found.
+ */
+function parseToolCall(text) {
+  // TODO: Match <call:name>args</call> using regex and return the groups, or null
+  return null;
+}`,
+    testCode: `const results = [];
+function check(name, actual, expected) {
+  results.push({ name, actual: JSON.stringify(actual), expected: JSON.stringify(expected), passed: JSON.stringify(actual) === JSON.stringify(expected) });
+}
+check('valid tool call', parseToolCall('I need to search: <call:google_search>climate change</call>'), { name: 'google_search', args: 'climate change' });
+check('no tool call present', parseToolCall('The weather is nice today.'), null);
+check('empty args tool call', parseToolCall('Restarting system: <call:restart></call>'), { name: 'restart', args: '' });
+check('multiple tags edge case', parseToolCall('First <call:a>b</call> then <call:c>d</call>'), { name: 'a', args: 'b' });
+return results;`,
+    hints: [
+      'Use a regular expression like /<call:(\\\\w+)>(.*?)<\\\\/call>/.',
+      'Check if the string matches the regex.',
+      'If matched, return { name: match[1], args: match[2] }; otherwise return null.',
+    ],
+    solution: `/**
+ * Parses a tool call string in the format "<call:toolName>args</call>".
+ * @param {string} text - The assistant text output.
+ * @returns {{ name: string, args: string } | null} The parsed tool call, or null if not found.
+ */
+function parseToolCall(text) {
+  const match = text.match(/<call:(\\w+)>(.*?)<\\/call>/);
+  if (!match) return null;
+  return { name: match[1], args: match[2] };
+}`,
+    explanation: 'Strict XML tag parsing ensures the runtime environment can identify API call boundaries in the unstructured text output of LLMs.',
+  },
+  {
+    id: 'tool-use-dispatch',
+    stepLabel: '29.2',
+    group: 'Action dispatcher',
+    title: 'Tool Call Dispatcher',
+    concept: 'After extraction, tool calls are dispatched to local handler functions. Dispatchers must resolve function lookups and intercept exceptions to prevent agent crashes.',
+    objective: 'Implement a dispatcher that invokes the correct tool in a registry and catches errors, returning the output.',
+    difficulty: 'core',
+    starterCode: `/**
+ * Dispatches a tool call to a registry of available tool functions.
+ * @param {{ name: string, args: string }} toolCall - The parsed tool call.
+ * @param {Object.<string, function>} registry - Dictionary of available tool functions.
+ * @returns {string} The string output from the tool execution or error message.
+ */
+function dispatchTool(toolCall, registry) {
+  // TODO: Retrieve tool matching toolCall.name from registry, execute it with toolCall.args, and return result.
+  // Handle missing tools or execution errors gracefully by returning error strings.
+  return '';
 }`,
     testCode: `const results = [];
 function check(name, actual, expected) {
   results.push({ name, actual, expected, passed: Object.is(actual, expected) });
 }
-check('tool call present', containsToolCall('Let me search. <call:google_search>query</call>'), true);
-check('no tool call', containsToolCall('No search is needed.'), false);
+const reg = {
+  upper: (arg) => arg.toUpperCase(),
+  fail: () => { throw new Error('DB timeout'); }
+};
+check('successful dispatch', dispatchTool({ name: 'upper', args: 'hello' }, reg), 'HELLO');
+check('missing tool dispatch', dispatchTool({ name: 'lower', args: 'hello' }, reg), 'Error: Tool "lower" not found');
+check('error catching dispatch', dispatchTool({ name: 'fail', args: '' }, reg), 'Error: DB timeout');
 return results;`,
     hints: [
-      'Use the .includes() method on strings.',
-      "return modelText.includes('<call:');",
+      'Look up registry[toolCall.name]. If undefined, return a string indicating it was not found.',
+      'Wrap execution of the function in a try-catch block.',
+      'Return the string output of the tool call, or the error message if caught.',
     ],
-    solution: `function containsToolCall(modelText) {
-  return modelText.includes('<call:');
+    solution: `/**
+ * Dispatches a tool call to a registry of available tool functions.
+ * @param {{ name: string, args: string }} toolCall - The parsed tool call.
+ * @param {Object.<string, function>} registry - Dictionary of available tool functions.
+ * @returns {string} The string output from the tool execution or error message.
+ */
+function dispatchTool(toolCall, registry) {
+  const toolFn = registry[toolCall.name];
+  if (!toolFn) {
+    return 'Error: Tool "' + toolCall.name + '" not found';
+  }
+  try {
+    return toolFn(toolCall.args);
+  } catch (err) {
+    return 'Error: ' + err.message;
+  }
 }`,
-    explanation: 'Parsing tool call markers allows the execution environment to intercept generation, execute the code, and insert results.',
+    explanation: 'Safely catching execution errors prevents faulty API connections or bad arguments from stopping the entire agent reasoning cycle.',
+  },
+  {
+    id: 'tool-use-history',
+    stepLabel: '29.3',
+    group: 'History integration',
+    title: 'Tool History Integration',
+    concept: 'An agent inspects tool results by reading message history. Outputs are formatted into a special "tool" role block and appended to the dialog history.',
+    objective: 'Append the formatted tool execution result back to the conversation array.',
+    difficulty: 'core',
+    starterCode: `/**
+ * Integrates a tool execution output into the conversation message history.
+ * @param {Object[]} history - The conversation message array.
+ * @param {string} toolName - The name of the tool that was run.
+ * @param {string} result - The output of the tool execution.
+ * @returns {Object[]} The updated message history.
+ */
+function integrateToolResult(history, toolName, result) {
+  // TODO: Append tool result message to history and return updated history
+  return history;
+}`,
+    testCode: `const results = [];
+function check(name, actual, expected) {
+  results.push({ name, actual: JSON.stringify(actual), expected: JSON.stringify(expected), passed: JSON.stringify(actual) === JSON.stringify(expected) });
+}
+const hist = [{ role: 'user', content: 'hello' }];
+check('integrate tool result', integrateToolResult(hist, 'search', 'results found'), [
+  { role: 'user', content: 'hello' },
+  { role: 'tool', name: 'search', content: 'results found' }
+]);
+check('immutability verification', hist.length, 1);
+return results;`,
+    hints: [
+      'Create a copy of history (e.g. [...history]).',
+      'Create a new message object: { role: "tool", name: toolName, content: result }.',
+      'Push the new message object to the copied history array and return it.',
+    ],
+    solution: `/**
+ * Integrates a tool execution output into the conversation message history.
+ * @param {Object[]} history - The conversation message array.
+ * @param {string} toolName - The name of the tool that was run.
+ * @param {string} result - The output of the tool execution.
+ * @returns {Object[]} The updated message history.
+ */
+function integrateToolResult(history, toolName, result) {
+  return [
+    ...history,
+    { role: 'tool', name: toolName, content: result }
+  ];
+}`,
+    explanation: 'Role structures differentiate tool outputs from assistant messages, telling the LLM parser that the data originated from execution feedback.',
+  },
+  {
+    id: 'tool-use-agent-loop',
+    stepLabel: '29.4',
+    group: 'Agent execution loop',
+    title: 'Agent Reason-Action Loop',
+    concept: 'A full agent step executes one iteration: parsing a tool call from the model output. If a call is found, we execute the tool and append the result. If no tool is requested, the generation loop completes.',
+    objective: 'Implement the loop state manager coordinating tool checks, execution, and termination conditions.',
+    difficulty: 'challenge',
+    starterCode: `/**
+ * Simulates a single execution cycle of an agentic reasoning loop.
+ * @param {string} assistantText - The output text from the assistant.
+ * @param {Object[]} history - The current message history list.
+ * @param {Object.<string, function>} registry - Available tool registry.
+ * @returns {{ nextMessage: Object, shouldStop: boolean }} Action results.
+ */
+function runAgentStep(assistantText, history, registry) {
+  // TODO: Coordinate parsing, execution, and history updates.
+  return { nextMessage: {}, shouldStop: true };
+}`,
+    testCode: `const results = [];
+function check(name, actual, expected) {
+  results.push({ name, actual: JSON.stringify(actual), expected: JSON.stringify(expected), passed: JSON.stringify(actual) === JSON.stringify(expected) });
+}
+const registry = {
+  get_weather: (loc) => 'sunny in ' + loc
+};
+const hist = [{ role: 'user', content: 'weather?' }];
+check('step with tool execution', runAgentStep('Checking: <call:get_weather>Paris</call>', hist, registry), {
+  nextMessage: { role: 'tool', name: 'get_weather', content: 'sunny in Paris' },
+  shouldStop: false
+});
+check('step with terminal generation', runAgentStep('It is sunny in Paris.', hist, registry), {
+  nextMessage: { role: 'assistant', content: 'It is sunny in Paris.' },
+  shouldStop: true
+});
+return results;`,
+    hints: [
+      'Parse the assistantText using parseToolCall logic.',
+      'If a tool call is detected, dispatch it to registry, and return { nextMessage: { role: "tool", name: toolCall.name, content: result }, shouldStop: false }.',
+      'If no tool call is found, return { nextMessage: { role: "assistant", content: assistantText }, shouldStop: true }.',
+    ],
+    solution: `/**
+ * Simulates a single execution cycle of an agentic reasoning loop.
+ * @param {string} assistantText - The output text from the assistant.
+ * @param {Object[]} history - The current message history list.
+ * @param {Object.<string, function>} registry - Available tool registry.
+ * @returns {{ nextMessage: Object, shouldStop: boolean }} Action results.
+ */
+function runAgentStep(assistantText, history, registry) {
+  const match = assistantText.match(/<call:(\\w+)>(.*?)<\\/call>/);
+  if (match) {
+    const name = match[1];
+    const args = match[2];
+    const toolFn = registry[name];
+    let content = '';
+    if (!toolFn) {
+      content = 'Error: Tool "' + name + '" not found';
+    } else {
+      try {
+        content = toolFn(args);
+      } catch (err) {
+        content = 'Error: ' + err.message;
+      }
+    }
+    return {
+      nextMessage: { role: 'tool', name, content },
+      shouldStop: false
+    };
+  } else {
+    return {
+      nextMessage: { role: 'assistant', content: assistantText },
+      shouldStop: true
+    };
+  }
+}`,
+    explanation: 'Automating parsing, execution, and state checking is what enables systems to run autonomous multi-step tasks without human intervention.',
   },
 
   // --- AGENTIC CODING SYSTEMS ---

@@ -1878,39 +1878,297 @@ return results;`,
     explanation: 'Repeating KV heads aligns vectors shape-wise so standard multi-head dot product attention can proceed.',
   },
   {
-    id: 'kv-cache-append',
+    id: 'kv-cache-append-step',
     stepLabel: '8.1',
-    group: 'Slice write index',
-    title: 'KV Cache append',
-    concept: 'To avoid recalculating representations for past tokens, models maintain a KV Cache containing Key and Value vectors for all past positions.',
-    objective: 'Append the new key vector to the keyCache array and the new value vector to the valueCache array.',
+    group: 'Cache append',
+    title: 'KV Cache Append Step',
+    concept: 'Autoregressive models generate tokens one by one. To avoid recomputing Key (K) and Value (V) projections of previous tokens, we append the current token’s Key and Value vectors to a persistent KV cache.',
+    objective: 'Append the new key vector to the keyCache array and the new value vector to the valueCache array, and return the updated cache sizes.',
     difficulty: 'warmup',
-    starterCode: `function appendKVCache(keyCache, valueCache, newK, newV) {
-  // TODO: append newK to keyCache, and newV to valueCache
-  
+    starterCode: `/**
+ * Appends the current token's Key and Value vectors to the historical cache.
+ * @param {number[][]} keyCache - The accumulated Key vectors cache.
+ * @param {number[][]} valueCache - The accumulated Value vectors cache.
+ * @param {number[]} newK - New Key vector for the current token.
+ * @param {number[]} newV - New Value vector for the current token.
+ * @returns {[number, number]} The new cache lengths [keyCacheLength, valueCacheLength].
+ */
+function appendKVCache(keyCache, valueCache, newK, newV) {
+  // TODO: Append newK to keyCache and newV to valueCache
   return [keyCache.length, valueCache.length];
 }`,
     testCode: `const results = [];
-function sameArray(a, b) {
-  return JSON.stringify(a) === JSON.stringify(b);
-}
+function sameArray(a, b) { return JSON.stringify(a) === JSON.stringify(b); }
 function check(name, actual, expected) {
   results.push({ name, actual: JSON.stringify(actual), expected: JSON.stringify(expected), passed: sameArray(actual, expected) });
 }
-const kC = [[1]];
-const vC = [[2]];
-check('append to cache', appendKVCache(kC, vC, [3], [4]), [2, 2]);
+const kC = [[1.0, -1.0]];
+const vC = [[0.5, 2.0]];
+check('append standard', appendKVCache(kC, vC, [2.0, 3.0], [-1.0, 0.0]), [2, 2]);
+check('verify key cache contents', kC[1], [2.0, 3.0]);
+check('verify value cache contents', vC[1], [-1.0, 0.0]);
+check('verify initial contents remain', kC[0], [1.0, -1.0]);
+check('multiple appends count', appendKVCache(kC, vC, [0, 0], [1, 1]), [3, 3]);
 return results;`,
     hints: [
-      'Use the .push() method on arrays.',
-      'Push newK to keyCache, and newV to valueCache.',
+      'Use keyCache.push(newK) to append the key vector.',
+      'Use valueCache.push(newV) to append the value vector.',
     ],
-    solution: `function appendKVCache(keyCache, valueCache, newK, newV) {
+    solution: `/**
+ * Appends the current token's Key and Value vectors to the historical cache.
+ * @param {number[][]} keyCache - The accumulated Key vectors cache.
+ * @param {number[][]} valueCache - The accumulated Value vectors cache.
+ * @param {number[]} newK - New Key vector for the current token.
+ * @param {number[]} newV - New Value vector for the current token.
+ * @returns {[number, number]} The new cache lengths [keyCacheLength, valueCacheLength].
+ */
+function appendKVCache(keyCache, valueCache, newK, newV) {
   keyCache.push(newK);
   valueCache.push(newV);
   return [keyCache.length, valueCache.length];
 }`,
-    explanation: 'Saving K and V vectors saves computation, reducing incremental decoding costs from O(N^2) to O(N).',
+    explanation: 'Appending new projections to a running list reduces generation latency since past states are never recomputed.',
+  },
+  {
+    id: 'kv-cache-slicing',
+    stepLabel: '8.2',
+    group: 'Sequence slicing',
+    title: 'KV Cache Sequence Slicing',
+    concept: 'During autoregressive generation, we may need to slice the key/value cache up to a specific token index context size, and scale queries for scaled dot-product attention: scale = 1 / sqrt(headDim).',
+    objective: 'Slice the Key cache up to seqLen (exclusive) and return the sliced keys and attention scale.',
+    difficulty: 'core',
+    starterCode: `/**
+ * Retrieves cached Key vectors up to the active sequence length and computes attention scale.
+ * @param {number[][]} keyCache - The full Key cache array.
+ * @param {number} seqLen - The current active sequence length.
+ * @param {number} headDim - Dimensionality of each attention head.
+ * @returns {{ keys: number[][], scale: number }} Slicing results and attention scale.
+ */
+function prepareAttentionInputs(keyCache, seqLen, headDim) {
+  // TODO: Slice keyCache up to seqLen (exclusive) and compute scale 1 / Math.sqrt(headDim)
+  return { keys: [], scale: 0 };
+}`,
+    testCode: `const results = [];
+function approxEqual(a, b, tol = 1e-5) { return Math.abs(a - b) <= tol; }
+function sameArray(a, b) { return JSON.stringify(a) === JSON.stringify(b); }
+function check(name, actual, expected) {
+  results.push({ name, actual: JSON.stringify(actual), expected: JSON.stringify(expected), passed: sameArray(actual, expected) });
+}
+const kC = [[1, 2], [3, 4], [5, 6], [7, 8]];
+const out1 = prepareAttentionInputs(kC, 2, 4);
+check('keys slice len 2', out1.keys, [[1, 2], [3, 4]]);
+results.push({ name: 'scale check 4', actual: out1.scale, expected: 0.5, passed: approxEqual(out1.scale, 0.5) });
+const out2 = prepareAttentionInputs(kC, 4, 16);
+check('keys slice len 4', out2.keys, [[1, 2], [3, 4], [5, 6], [7, 8]]);
+results.push({ name: 'scale check 16', actual: out2.scale, expected: 0.25, passed: approxEqual(out2.scale, 0.25) });
+return results;`,
+    hints: [
+      'Use keyCache.slice(0, seqLen) to extract active history keys.',
+      'Compute scale = 1 / Math.sqrt(headDim).',
+    ],
+    solution: `/**
+ * Retrieves cached Key vectors up to the active sequence length and computes attention scale.
+ * @param {number[][]} keyCache - The full Key cache array.
+ * @param {number} seqLen - The current active sequence length.
+ * @param {number} headDim - Dimensionality of each attention head.
+ * @returns {{ keys: number[][], scale: number }} Slicing results and attention scale.
+ */
+function prepareAttentionInputs(keyCache, seqLen, headDim) {
+  const keys = keyCache.slice(0, seqLen);
+  const scale = 1 / Math.sqrt(headDim);
+  return { keys, scale };
+}`,
+    explanation: 'Slicing guarantees that attention values are computed only over valid active history, preventing information leakage from padding or future slots.',
+  },
+  {
+    id: 'kv-cache-attention-blend',
+    stepLabel: '8.3',
+    group: 'Cached cross-attention',
+    title: 'KV Cache Attention Blending',
+    concept: 'Using the single Query vector of the current token, we calculate similarity logits across all cached Key vectors. We apply Softmax to convert scores to attention weights, and blend the cached Value vectors accordingly.',
+    objective: 'Implement scaled dot-product attention between the query and cached keys/values.',
+    difficulty: 'core',
+    starterCode: `/**
+ * Computes attention output using the current Query vector and cached Keys/Values.
+ * @param {number[]} query - Current query vector of size headDim.
+ * @param {number[][]} keys - Sliced Key cache.
+ * @param {number[][]} values - Sliced Value cache.
+ * @param {number} scale - Scaled factor (1 / sqrt(headDim)).
+ * @returns {number[]} Blended attention representation of size headDim.
+ */
+function computeCachedAttention(query, keys, values, scale) {
+  // TODO: Compute dot products, apply softmax, and blend values.
+  return [];
+}`,
+    testCode: `const results = [];
+function approxEqual(a, b, tol = 1e-4) { return Math.abs(a - b) <= tol; }
+function approxArray(a, b) { return a.length === b.length && a.every((v, i) => approxEqual(v, b[i])); }
+function check(name, actual, expected) {
+  results.push({ name, actual: JSON.stringify(actual), expected: JSON.stringify(expected), passed: approxArray(actual, expected) });
+}
+const q = [1.0, 0.0];
+const k = [[1.0, 0.0], [0.0, 1.0]];
+const v = [[10.0, 20.0], [30.0, 40.0]];
+// scores: q . k0 = 1.0, q . k1 = 0.0. Scale = 1.0. Logits: [1.0, 0.0]
+// exp(logits): [2.71828, 1.0]. Sum: 3.71828. Softmax: [0.731058, 0.268941]
+// output: 0.731058 * [10, 20] + 0.268941 * [30, 40]
+// output_x = 7.31058 + 8.06823 = 15.3788
+// output_y = 14.62116 + 10.75764 = 25.3788
+check('blend attention output', computeCachedAttention(q, k, v, 1.0), [15.3788, 25.3788]);
+check('orthogonal identical query', computeCachedAttention([0.0, 2.0], [[0, 1], [1, 0]], [[5, 5], [10, 10]], 0.5), [6.3447, 6.3447]);
+return results;`,
+    hints: [
+      'Compute raw dot products for each key: query[d] * keys[j][d] summed over dimensions.',
+      'Multiply raw score by scale to get logits.',
+      'Softmax: subtract max logit for numerical stability, exponentiate, divide by sum.',
+      'Blend: accumulate softmax[j] * values[j][d] for each output dimension.',
+    ],
+    solution: `/**
+ * Computes attention output using the current Query vector and cached Keys/Values.
+ * @param {number[]} query - Current query vector of size headDim.
+ * @param {number[][]} keys - Sliced Key cache.
+ * @param {number[][]} values - Sliced Value cache.
+ * @param {number} scale - Scaled factor (1 / sqrt(headDim)).
+ * @returns {number[]} Blended attention representation of size headDim.
+ */
+function computeCachedAttention(query, keys, values, scale) {
+  const n = keys.length;
+  const d = query.length;
+  if (n === 0) return Array(d).fill(0);
+  
+  const scores = [];
+  for (let j = 0; j < n; j++) {
+    let dot = 0;
+    for (let k = 0; k < d; k++) {
+      dot += query[k] * keys[j][k];
+    }
+    scores.push(dot * scale);
+  }
+  
+  const maxScore = Math.max(...scores);
+  const exps = scores.map(s => Math.exp(s - maxScore));
+  const sumExp = exps.reduce((sum, val) => sum + val, 0);
+  const weights = exps.map(e => e / sumExp);
+  
+  const output = Array(d).fill(0);
+  for (let j = 0; j < n; j++) {
+    for (let k = 0; k < d; k++) {
+      output[k] += weights[j] * values[j][k];
+    }
+  }
+  return output;
+}`,
+    explanation: 'Cached attention matches the single query of the generated token with all past keys, avoiding full sequence self-attention scaling costs.',
+  },
+  {
+    id: 'kv-cache-generation',
+    stepLabel: '8.4',
+    group: 'Autoregressive generation step',
+    title: 'Autoregressive KV Cache Generation',
+    concept: 'Putting it all together, a model generates a new token by: projecting the token embedding x to Query, Key, and Value vectors; appending Key and Value to the cache; and performing cached attention over the active history.',
+    objective: 'Implement the full generation step: project input, update cache, and blend attention outputs.',
+    difficulty: 'challenge',
+    starterCode: `/**
+ * Processes a single token generation step, updating the KV cache and producing attention output.
+ * @param {number[]} x - Input token embedding of size dModel.
+ * @param {number[][]} Wq - Query weight matrix of size [headDim, dModel].
+ * @param {number[][]} Wk - Key weight matrix of size [headDim, dModel].
+ * @param {number[][]} Wv - Value weight matrix of size [headDim, dModel].
+ * @param {number[][]} keyCache - Historical Key cache to update in-place.
+ * @param {number[][]} valueCache - Historical Value cache to update in-place.
+ * @returns {number[]} Attention output vector for the generated token.
+ */
+function decodeKVCacheStep(x, Wq, Wk, Wv, keyCache, valueCache) {
+  // TODO: Project x to Q, K, V. Append K and V in-place. Compute scaled attention and return.
+  return [];
+}`,
+    testCode: `const results = [];
+function approxEqual(a, b, tol = 1e-4) { return Math.abs(a - b) <= tol; }
+function approxArray(a, b) {
+  if (typeof a === 'number' && typeof b === 'number') return approxEqual(a, b);
+  return a.length === b.length && a.every((v, i) => approxEqual(v, b[i]));
+}
+function check(name, actual, expected) {
+  results.push({ name, actual: JSON.stringify(actual), expected: JSON.stringify(expected), passed: approxArray(actual, expected) });
+}
+const x = [1.0, 2.0];
+const Wq = [[1, 0], [0, 1]];
+const Wk = [[0.5, 0], [0, 0.5]];
+const Wv = [[2, 0], [0, 2]];
+const kC = [[0.5, 1.0]];
+const vC = [[2.0, 4.0]];
+// q = Wq . x = [1.0, 2.0]
+// k = Wk . x = [0.5, 1.0] -> appended to kC -> kC = [[0.5, 1.0], [0.5, 1.0]]
+// v = Wv . x = [2.0, 4.0] -> appended to vC -> vC = [[2.0, 4.0], [2.0, 4.0]]
+// scale = 1 / sqrt(2) = 0.707106
+// scores: q . k0 = 2.5, q . k1 = 2.5. Logits: [1.7677, 1.7677] -> Softmax: [0.5, 0.5]
+// output: 0.5 * [2, 4] + 0.5 * [2, 4] = [2, 4]
+const out = decodeKVCacheStep(x, Wq, Wk, Wv, kC, vC);
+check('decoding step output', out, [2.0, 4.0]);
+check('decoding step key cache length', kC.length, 2);
+check('decoding step value cache length', vC.length, 2);
+return results;`,
+    hints: [
+      'Project x to q, k, v by computing matrix-vector products (e.g. Wq dot x).',
+      'Append k to keyCache and v to valueCache.',
+      'Slice keyCache and valueCache (all active elements).',
+      'Compute attention using computeCachedAttention logic with scale 1 / Math.sqrt(q.length).',
+    ],
+    solution: `/**
+ * Processes a single token generation step, updating the KV cache and producing attention output.
+ * @param {number[]} x - Input token embedding of size dModel.
+ * @param {number[][]} Wq - Query weight matrix of size [headDim, dModel].
+ * @param {number[][]} Wk - Key weight matrix of size [headDim, dModel].
+ * @param {number[][]} Wv - Value weight matrix of size [headDim, dModel].
+ * @param {number[][]} keyCache - Historical Key cache to update in-place.
+ * @param {number[][]} valueCache - Historical Value cache to update in-place.
+ * @returns {number[]} Attention output vector for the generated token.
+ */
+function decodeKVCacheStep(x, Wq, Wk, Wv, keyCache, valueCache) {
+  const dModel = x.length;
+  const headDim = Wq.length;
+  
+  const q = Array(headDim).fill(0);
+  const k = Array(headDim).fill(0);
+  const v = Array(headDim).fill(0);
+  
+  for (let i = 0; i < headDim; i++) {
+    for (let j = 0; j < dModel; j++) {
+      q[i] += Wq[i][j] * x[j];
+      k[i] += Wk[i][j] * x[j];
+      v[i] += Wv[i][j] * x[j];
+    }
+  }
+  
+  keyCache.push(k);
+  valueCache.push(v);
+  
+  const n = keyCache.length;
+  const scale = 1 / Math.sqrt(headDim);
+  const scores = [];
+  for (let j = 0; j < n; j++) {
+    let dot = 0;
+    for (let m = 0; m < headDim; m++) {
+      dot += q[m] * keyCache[j][m];
+    }
+    scores.push(dot * scale);
+  }
+  
+  const maxScore = Math.max(...scores);
+  const exps = scores.map(s => Math.exp(s - maxScore));
+  const sumExp = exps.reduce((sum, val) => sum + val, 0);
+  const weights = exps.map(e => e / sumExp);
+  
+  const output = Array(headDim).fill(0);
+  for (let j = 0; j < n; j++) {
+    for (let m = 0; m < headDim; m++) {
+      output[m] += weights[j] * valueCache[j][m];
+    }
+  }
+  
+  return output;
+}`,
+    explanation: 'Integrating projections, caching, and attention steps is what enables scalable autoregressive token generation in modern Transformers.',
   },
   {
     id: 'flash-max-update',
@@ -2086,37 +2344,278 @@ return results;`,
     explanation: 'Fusing scales after matrix operations reduces floating-point overhead.',
   },
   {
-    id: 'bert-mask-replace',
+    id: 'bert-mlm-masking',
     stepLabel: '14.1',
-    group: 'Mask token replace',
-    title: 'BERT MLM token masking',
-    concept: 'BERT training replaces a subset of tokens with the special [MASK] token (index 103) so the model learns bidirectional context.',
-    objective: 'Return a copy of the tokens array with the token at maskIdx replaced by 103.',
+    group: '80-10-10 masking rule',
+    title: 'BERT MLM 80/10/10 Masking Rule',
+    concept: 'BERT randomly masks 15% of selected tokens. Out of these, 80% are replaced with the special [MASK] token (103), 10% are replaced with a random vocabulary token, and 10% remain unchanged.',
+    objective: 'Implement the 80/10/10 token corruption rule for the selected mask indices.',
     difficulty: 'warmup',
-    starterCode: `function applyBertMask(tokens, maskIdx) {
-  const result = [...tokens];
-  // TODO: replace token at maskIdx with 103
-  
-  return result;
+    starterCode: `/**
+ * Applies the BERT 80/10/10 MLM masking rule to selected token indices.
+ * @param {number[]} tokens - Array of input token IDs.
+ * @param {number[]} maskIndices - Selected indices to apply masking to.
+ * @param {number[]} randVals - Pre-sampled random probabilities in [0, 1) corresponding to each mask index.
+ * @param {number[]} randTokens - Pre-sampled random token IDs to use for the 10% random replacement.
+ * @returns {number[]} The corrupted tokens array.
+ */
+function applyMLMMasking(tokens, maskIndices, randVals, randTokens) {
+  const output = [...tokens];
+  // TODO: Implement the 80% [MASK] (103), 10% random, 10% unchanged rule
+  return output;
 }`,
     testCode: `const results = [];
-function sameArray(a, b) {
-  return JSON.stringify(a) === JSON.stringify(b);
-}
+function sameArray(a, b) { return JSON.stringify(a) === JSON.stringify(b); }
 function check(name, actual, expected) {
   results.push({ name, actual: JSON.stringify(actual), expected: JSON.stringify(expected), passed: sameArray(actual, expected) });
 }
-check('mask index 2', applyBertMask([10, 20, 30, 40], 2), [10, 20, 103, 40]);
+const tokens = [10, 20, 30, 40, 50];
+// randVals[0] = 0.5 (< 0.8) -> mask (103)
+// randVals[1] = 0.85 (>= 0.8 && < 0.9) -> random replacement (randTokens[1] = 99)
+// randVals[2] = 0.95 (>= 0.9) -> keep unchanged (30 remains 30)
+check('mlm masking mixed', applyMLMMasking(tokens, [0, 1, 2], [0.5, 0.85, 0.95], [5, 99, 12]), [103, 99, 30, 40, 50]);
+check('all mask', applyMLMMasking(tokens, [3, 4], [0.1, 0.7], [22, 23]), [10, 20, 30, 103, 103]);
+check('all random', applyMLMMasking(tokens, [0, 1], [0.88, 0.81], [404, 505]), [404, 505, 30, 40, 50]);
+check('all unchanged', applyMLMMasking(tokens, [1, 2], [0.99, 0.91], [404, 505]), [10, 20, 30, 40, 50]);
 return results;`,
     hints: [
-      'Use result[maskIdx] = 103.',
+      'Loop over each index in maskIndices.',
+      'Check randVals[i]. If it is < 0.8, replace output[idx] with 103.',
+      'If it is >= 0.8 and < 0.9, replace output[idx] with randTokens[i].',
+      'Otherwise (>= 0.9), leave output[idx] unchanged.',
     ],
-    solution: `function applyBertMask(tokens, maskIdx) {
-  const result = [...tokens];
-  result[maskIdx] = 103;
-  return result;
+    solution: `/**
+ * Applies the BERT 80/10/10 MLM masking rule to selected token indices.
+ * @param {number[]} tokens - Array of input token IDs.
+ * @param {number[]} maskIndices - Selected indices to apply masking to.
+ * @param {number[]} randVals - Pre-sampled random probabilities in [0, 1) corresponding to each mask index.
+ * @param {number[]} randTokens - Pre-sampled random token IDs to use for the 10% random replacement.
+ * @returns {number[]} The corrupted tokens array.
+ */
+function applyMLMMasking(tokens, maskIndices, randVals, randTokens) {
+  const output = [...tokens];
+  for (let i = 0; i < maskIndices.length; i++) {
+    const idx = maskIndices[i];
+    const rVal = randVals[i];
+    if (rVal < 0.8) {
+      output[idx] = 103; // [MASK]
+    } else if (rVal < 0.9) {
+      output[idx] = randTokens[i]; // Random replacement
+    }
+    // Else leave unchanged
+  }
+  return output;
 }`,
-    explanation: 'Masking tokens forces BERT to use surrounding tokens on both sides to predict the hidden words.',
+    explanation: 'The 80/10/10 rule ensures the model maintains a representation for the actual input tokens while learning context for masked ones, preventing mismatch between training and inference.',
+  },
+  {
+    id: 'bert-bidirectional-mask',
+    stepLabel: '14.2',
+    group: 'Bidirectional attention mask',
+    title: 'BERT Bidirectional Attention Mask',
+    concept: 'BERT leverages bidirectional context by allowing all tokens to attend to each other. However, special padding tokens (ID 0) must be masked out to prevent them from influencing the representation.',
+    objective: 'Construct a 2D attention mask matrix where mask[i][j] = 1 if neither token i nor token j is a padding token (0), otherwise 0.',
+    difficulty: 'core',
+    starterCode: `/**
+ * Constructs a bidirectional attention mask where padding tokens (ID 0) cannot be attended to.
+ * @param {number[]} tokens - Array of input token IDs.
+ * @returns {number[][]} A 2D attention mask matrix of size [seqLen, seqLen].
+ */
+function getBidirectionalMask(tokens) {
+  const n = tokens.length;
+  const mask = Array.from({ length: n }, () => Array(n).fill(0));
+  // TODO: Fill mask[i][j] = 1 if neither tokens[i] nor tokens[j] is 0
+  return mask;
+}`,
+    testCode: `const results = [];
+function sameArray(a, b) { return JSON.stringify(a) === JSON.stringify(b); }
+function check(name, actual, expected) {
+  results.push({ name, actual: JSON.stringify(actual), expected: JSON.stringify(expected), passed: sameArray(actual, expected) });
+}
+check('mask no padding', getBidirectionalMask([10, 20]), [[1, 1], [1, 1]]);
+check('mask with padding', getBidirectionalMask([10, 20, 0]), [[1, 1, 0], [1, 1, 0], [0, 0, 0]]);
+check('all padding fallback', getBidirectionalMask([0, 0]), [[0, 0], [0, 0]]);
+return results;`,
+    hints: [
+      'Iterate i from 0 to n-1 and j from 0 to n-1.',
+      'Set mask[i][j] = (tokens[i] !== 0 && tokens[j] !== 0) ? 1 : 0;',
+    ],
+    solution: `/**
+ * Constructs a bidirectional attention mask where padding tokens (ID 0) cannot be attended to.
+ * @param {number[]} tokens - Array of input token IDs.
+ * @returns {number[][]} A 2D attention mask matrix of size [seqLen, seqLen].
+ */
+function getBidirectionalMask(tokens) {
+  const n = tokens.length;
+  const mask = Array.from({ length: n }, () => Array(n).fill(0));
+  for (let i = 0; i < n; i++) {
+    for (let j = 0; j < n; j++) {
+      if (tokens[i] !== 0 && tokens[j] !== 0) {
+        mask[i][j] = 1;
+      }
+    }
+  }
+  return mask;
+}`,
+    explanation: 'Excluding padding tokens from the attention mask prevents the model from wasting computational capacity on inactive sequence filler.',
+  },
+  {
+    id: 'bert-mlm-loss',
+    stepLabel: '14.3',
+    group: 'MLM cross-entropy loss',
+    title: 'BERT MLM Cross-Entropy Loss',
+    concept: 'The Masked Language Modeling loss is calculated by taking the average cross-entropy loss only over the masked/corrupted token positions, ignoring all uncorrupted labels.',
+    objective: 'Compute the average cross-entropy loss over the masked indices.',
+    difficulty: 'core',
+    starterCode: `/**
+ * Computes BERT Masked Language Modeling loss over masked token indices.
+ * @param {number[][]} logits - Prediction logits of size [seqLen, vocabSize].
+ * @param {number[]} labels - Ground truth labels of size [seqLen].
+ * @param {number[]} maskIndices - Indices of the masked/corrupted tokens.
+ * @returns {number} The average loss over the masked tokens.
+ */
+function computeMLMLoss(logits, labels, maskIndices) {
+  // TODO: Compute cross-entropy loss only at maskIndices.
+  return 0;
+}`,
+    testCode: `const results = [];
+function approxEqual(a, b, tol = 1e-4) { return Math.abs(a - b) <= tol; }
+function check(name, actual, expected) {
+  results.push({ name, actual, expected, passed: approxEqual(actual, expected) });
+}
+const logits = [
+  [2.0, 0.0],
+  [0.0, 2.0],
+  [1.0, 1.0]
+];
+const labels = [0, 1, 0];
+// Softmax for pos 0: exp(2)/sum = 7.389 / 8.389 = 0.880797 -> -log(0.880797) = 0.126928
+// Softmax for pos 2: exp(1)/sum = 2.718 / 5.436 = 0.5 -> -log(0.5) = 0.693147
+// Avg loss over [0, 2] = (0.126928 + 0.693147) / 2 = 0.410037
+check('mlm loss calculations', computeMLMLoss(logits, labels, [0, 2]), 0.410037);
+return results;`,
+    hints: [
+      'Initialize totalLoss = 0.',
+      'Loop over each index in maskIndices.',
+      'For index idx, compute softmax over logits[idx]: exponentiate each value, divide by their sum.',
+      'Add -Math.log(softmax[targetLabel]) to totalLoss, then divide by maskIndices.length.',
+    ],
+    solution: `/**
+ * Computes BERT Masked Language Modeling loss over masked token indices.
+ * @param {number[][]} logits - Prediction logits of size [seqLen, vocabSize].
+ * @param {number[]} labels - Ground truth labels of size [seqLen].
+ * @param {number[]} maskIndices - Indices of the masked/corrupted tokens.
+ * @returns {number} The average loss over the masked tokens.
+ */
+function computeMLMLoss(logits, labels, maskIndices) {
+  if (maskIndices.length === 0) return 0;
+  let totalLoss = 0;
+  for (let i = 0; i < maskIndices.length; i++) {
+    const idx = maskIndices[i];
+    const logitRow = logits[idx];
+    const targetLabel = labels[idx];
+    
+    const maxLogit = Math.max(...logitRow);
+    const exps = logitRow.map(l => Math.exp(l - maxLogit));
+    const sumExp = exps.reduce((sum, v) => sum + v, 0);
+    const prob = exps[targetLabel] / sumExp;
+    
+    totalLoss -= Math.log(prob);
+  }
+  return totalLoss / maskIndices.length;
+}`,
+    explanation: 'Restricting the loss function solely to masked positions guides the network parameters to optimize bidirectional context decoding.',
+  },
+  {
+    id: 'bert-mlm-forward',
+    stepLabel: '14.4',
+    group: 'BERT MLM step',
+    title: 'Complete BERT MLM Forward Step',
+    concept: 'A full BERT MLM training step integrates bidirectional attention masking, predicting tokens via logits, and calculating losses over masked indexes.',
+    objective: 'Implement the full training forward pass logic: compile the predictions and average loss.',
+    difficulty: 'challenge',
+    starterCode: `/**
+ * Computes a single forward training step for BERT MLM.
+ * @param {number[]} tokens - Input token IDs.
+ * @param {number[]} labels - Ground-truth label token IDs.
+ * @param {number[]} maskIndices - Selected masked token indices.
+ * @param {number[][]} logits - Pre-calculated vocab logits of size [seqLen, vocabSize].
+ * @returns {{ loss: number, predictions: number[] }} Average loss and predicted token IDs.
+ */
+function bertMLMStep(tokens, labels, maskIndices, logits) {
+  // TODO: Build bidirectional mask, compute MLM loss, and return loss and argmax prediction list.
+  return { loss: 0, predictions: [] };
+}`,
+    testCode: `const results = [];
+function approxEqual(a, b, tol = 1e-4) { return Math.abs(a - b) <= tol; }
+function sameArray(a, b) { return JSON.stringify(a) === JSON.stringify(b); }
+function check(name, actual, expected) {
+  results.push({ name, actual: JSON.stringify(actual), expected: JSON.stringify(expected), passed: sameArray(actual.predictions, expected.predictions) && approxEqual(actual.loss, expected.loss) });
+}
+const tokens = [10, 20, 0];
+const labels = [0, 1, 0];
+const logits = [
+  [2.0, 0.0],
+  [0.0, 2.0],
+  [1.0, 1.0]
+];
+check('full bert mlm step', bertMLMStep(tokens, labels, [0, 1], logits), { loss: 0.126928, predictions: [0, 1, 0] });
+return results;`,
+    hints: [
+      'Call getBidirectionalMask(tokens) to check active tokens (this exercise validates mask structure internally).',
+      'Compute predictions: for each logit row, find the index of the maximum logit (argmax).',
+      'Calculate MLM loss over maskIndices using the computeMLMLoss logic.',
+      'Return { loss, predictions }.',
+    ],
+    solution: `/**
+ * Computes a single forward training step for BERT MLM.
+ * @param {number[]} tokens - Input token IDs.
+ * @param {number[]} labels - Ground-truth label token IDs.
+ * @param {number[]} maskIndices - Selected masked token indices.
+ * @param {number[][]} logits - Pre-calculated vocab logits of size [seqLen, vocabSize].
+ * @returns {{ loss: number, predictions: number[] }} Average loss and predicted token IDs.
+ */
+function bertMLMStep(tokens, labels, maskIndices, logits) {
+  // Bidirectional mask construction verification
+  const seqLen = tokens.length;
+  const mask = Array.from({ length: seqLen }, () => Array(seqLen).fill(0));
+  for (let i = 0; i < seqLen; i++) {
+    for (let j = 0; j < seqLen; j++) {
+      if (tokens[i] !== 0 && tokens[j] !== 0) mask[i][j] = 1;
+    }
+  }
+  
+  // Argmax predictions
+  const predictions = [];
+  for (let i = 0; i < seqLen; i++) {
+    const logitRow = logits[i];
+    let maxIdx = 0;
+    for (let j = 1; j < logitRow.length; j++) {
+      if (logitRow[j] > logitRow[maxIdx]) maxIdx = j;
+    }
+    predictions.push(maxIdx);
+  }
+  
+  // Loss
+  let totalLoss = 0;
+  const count = maskIndices.length;
+  for (let i = 0; i < count; i++) {
+    const idx = maskIndices[i];
+    const logitRow = logits[idx];
+    const targetLabel = labels[idx];
+    
+    const maxLogit = Math.max(...logitRow);
+    const exps = logitRow.map(l => Math.exp(l - maxLogit));
+    const sumExp = exps.reduce((sum, v) => sum + v, 0);
+    const prob = exps[targetLabel] / sumExp;
+    
+    totalLoss -= Math.log(prob);
+  }
+  const loss = count > 0 ? totalLoss / count : 0;
+  
+  return { loss, predictions };
+}`,
+    explanation: 'Integrating attention masks, label recovery loss, and vocab projections forms the complete execution flow of BERT training.',
   },
   {
     id: 'moe-topk-indices',

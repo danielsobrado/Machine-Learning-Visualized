@@ -373,54 +373,81 @@ return results;`,
 
   // --- q-learning ---
   {
-    id: 'q-learning-td-target',
+    id: 'q-learning-select-action',
     stepLabel: '62.1',
-    group: 'TD target',
-    title: 'Q-Learning TD Target',
-    concept: 'Q-learning computes temporal difference targets using the max action value of the successor state: Target = r + gamma * max_a\' Q(s\', a\').',
-    objective: 'Compute the TD target value.',
+    group: 'Epsilon-greedy selection',
+    title: 'Epsilon-Greedy Action Selection',
+    concept: 'Epsilon-greedy selection balances exploration and exploitation. With probability epsilon, a random action is chosen. Otherwise, the action with the maximum Q-value is selected.',
+    objective: 'Implement epsilon-greedy action selection, returning the random action index if randVal < epsilon, otherwise finding the argmax index in qValues.',
     difficulty: 'warmup',
-    starterCode: `function getTdTarget(reward, nextStateQValues, gamma) {
-  let maxNextQ = -Infinity;
-  for (let a = 0; a < nextStateQValues.length; a++) {
-    if (nextStateQValues[a] > maxNextQ) {
-      maxNextQ = nextStateQValues[a];
-    }
-  }
-  // TODO: compute and return reward + gamma * maxNextQ
+    starterCode: `/**
+ * Selects an action using the epsilon-greedy policy.
+ * @param {number[]} qValues - The Q-values for all possible actions in the current state.
+ * @param {number} epsilon - The probability of exploring (choosing a random action).
+ * @param {number} randVal - A pre-sampled random value in [0, 1) to determine exploration.
+ * @param {number} randAction - A pre-sampled random action index.
+ * @returns {number} The selected action index.
+ */
+function selectAction(qValues, epsilon, randVal, randAction) {
+  if (qValues.length === 0) return 0;
+  // TODO: Implement epsilon-greedy logic
   return 0;
 }`,
     testCode: `const results = [];
 function check(name, actual, expected) {
   results.push({ name, actual, expected, passed: Object.is(actual, expected) });
 }
-check('TD target simple', getTdTarget(2.0, [5.0, 10.0, 3.0], 0.9), 11.0);
+check('explore random choice', selectAction([1.5, 3.0, 2.0], 0.2, 0.1, 0), 0);
+check('exploit best choice 1', selectAction([1.5, 3.0, 2.0], 0.2, 0.5, 1), 1);
+check('exploit best choice 2', selectAction([-5, -2, -10], 0.1, 0.3, 2), 1);
+check('empty q-values fallback', selectAction([], 0.2, 0.5, 1), 0);
+check('explore bound check', selectAction([1.5, 3.0, 2.0], 0.5, 0.499, 2), 2);
 return results;`,
     hints: [
-      'Multiply maxNextQ by gamma and add reward.',
-      'return reward + gamma * maxNextQ;',
+      'Check if randVal < epsilon. If so, return randAction.',
+      'Otherwise, find the index of the maximum value in qValues.',
+      'Initialize maxIdx = 0, loop through, and update when qValues[i] > qValues[maxIdx].',
     ],
-    solution: `function getTdTarget(reward, nextStateQValues, gamma) {
-  let maxNextQ = -Infinity;
-  for (let a = 0; a < nextStateQValues.length; a++) {
-    if (nextStateQValues[a] > maxNextQ) {
-      maxNextQ = nextStateQValues[a];
+    solution: `/**
+ * Selects an action using the epsilon-greedy policy.
+ * @param {number[]} qValues - The Q-values for all possible actions in the current state.
+ * @param {number} epsilon - The probability of exploring (choosing a random action).
+ * @param {number} randVal - A pre-sampled random value in [0, 1) to determine exploration.
+ * @param {number} randAction - A pre-sampled random action index.
+ * @returns {number} The selected action index.
+ */
+function selectAction(qValues, epsilon, randVal, randAction) {
+  if (qValues.length === 0) return 0;
+  if (randVal < epsilon) {
+    return randAction;
+  }
+  let maxIdx = 0;
+  for (let i = 1; i < qValues.length; i++) {
+    if (qValues[i] > qValues[maxIdx]) {
+      maxIdx = i;
     }
   }
-  return reward + gamma * maxNextQ;
+  return maxIdx;
 }`,
-    explanation: 'The TD target represents the target utility estimation constructed from immediate feedback and successor states.',
+    explanation: 'Exploration enables discovery of new paths, while exploitation leverages the best known actions based on current estimated values.',
   },
   {
-    id: 'q-learning-update-step',
+    id: 'q-learning-td-target',
     stepLabel: '62.2',
-    group: 'Learning rate blend',
-    title: 'Q-Value Temporal Difference Update',
-    concept: 'Q-learning updates tabular Q-values by shifting the current estimate toward the TD target: Q(s,a) = Q(s,a) + alpha * (TD_Target - Q(s,a)).',
-    objective: 'Calculate the updated Q(s,a) value.',
+    group: 'Terminal-aware TD target',
+    title: 'Terminal-Aware TD Target',
+    concept: 'Q-learning estimates target value for state-action updates. If the next state is non-terminal, target = reward + gamma * max(Q(s\', a\')). If next state is terminal, the agent cannot take further actions, so target = reward.',
+    objective: 'Compute the TD target, handling empty nextStateQValues (terminal states) by setting the future value contribution to zero.',
     difficulty: 'core',
-    starterCode: `function updateQValue(currentQ, tdTarget, alpha) {
-  // TODO: return the updated Q-value using learning rate alpha
+    starterCode: `/**
+ * Computes the temporal difference (TD) target for a transition.
+ * @param {number} reward - Immediate reward received.
+ * @param {number[]} nextStateQValues - The Q-values of the next state (empty if terminal).
+ * @param {number} gamma - Discount factor.
+ * @returns {number} The temporal difference target.
+ */
+function getTdTarget(reward, nextStateQValues, gamma) {
+  // TODO: Compute TD target, returning reward alone if nextStateQValues is empty.
   return 0;
 }`,
     testCode: `const results = [];
@@ -428,16 +455,161 @@ function approxEqual(a, b, tol = 1e-5) { return Math.abs(a - b) <= tol; }
 function check(name, actual, expected) {
   results.push({ name, actual, expected, passed: approxEqual(actual, expected) });
 }
-check('update blend step', updateQValue(4.0, 10.0, 0.1), 4.6);
+check('happy path non-terminal', getTdTarget(2.0, [5.0, 10.0, 3.0], 0.9), 11.0);
+check('terminal state (empty Q)', getTdTarget(1.5, [], 0.9), 1.5);
+check('zero discount test', getTdTarget(3.0, [10, 20], 0.0), 3.0);
+check('negative reward non-terminal', getTdTarget(-1.0, [-2.0, -5.0], 0.5), -2.0);
+check('all negative terminal', getTdTarget(-5.0, [], 0.9), -5.0);
+return results;`,
+    hints: [
+      'If nextStateQValues.length === 0, return reward directly.',
+      'Otherwise, find the maximum next Q-value: Math.max(...nextStateQValues).',
+      'Multiply the maximum next Q-value by gamma and add the reward.',
+    ],
+    solution: `/**
+ * Computes the temporal difference (TD) target for a transition.
+ * @param {number} reward - Immediate reward received.
+ * @param {number[]} nextStateQValues - The Q-values of the next state (empty if terminal).
+ * @param {number} gamma - Discount factor.
+ * @returns {number} The temporal difference target.
+ */
+function getTdTarget(reward, nextStateQValues, gamma) {
+  if (!nextStateQValues || nextStateQValues.length === 0) {
+    return reward;
+  }
+  let maxNextQ = nextStateQValues[0];
+  for (let i = 1; i < nextStateQValues.length; i++) {
+    if (nextStateQValues[i] > maxNextQ) {
+      maxNextQ = nextStateQValues[i];
+    }
+  }
+  return reward + gamma * maxNextQ;
+}`,
+    explanation: 'A terminal state has no future actions, preventing it from inheriting discounted successor values.',
+  },
+  {
+    id: 'q-learning-update-step',
+    stepLabel: '62.3',
+    group: 'Tabular Q-update',
+    title: 'Q-Value Temporal Difference Update',
+    concept: 'Temporal difference updates blend the new target estimate with the old estimate using a learning rate: Q_new = (1 - alpha) * Q_old + alpha * Target.',
+    objective: 'Compute the updated Q-value.',
+    difficulty: 'core',
+    starterCode: `/**
+ * Performs a temporal difference blending update on a Q-value.
+ * @param {number} currentQ - The current Q-value estimate.
+ * @param {number} tdTarget - The target Q-value estimate.
+ * @param {number} alpha - The learning rate.
+ * @returns {number} The updated Q-value estimate.
+ */
+function updateQValue(currentQ, tdTarget, alpha) {
+  // TODO: Compute updated Q-value using alpha blending
+  return 0;
+}`,
+    testCode: `const results = [];
+function approxEqual(a, b, tol = 1e-5) { return Math.abs(a - b) <= tol; }
+function check(name, actual, expected) {
+  results.push({ name, actual, expected, passed: approxEqual(actual, expected) });
+}
+check('standard blend update', updateQValue(4.0, 10.0, 0.1), 4.6);
+check('zero learning rate (no change)', updateQValue(5.0, 12.0, 0.0), 5.0);
+check('unit learning rate (full overwrite)', updateQValue(3.0, 8.5, 1.0), 8.5);
+check('negative values blend', updateQValue(-2.0, -10.0, 0.25), -4.0);
+check('exact match check', updateQValue(7.5, 7.5, 0.5), 7.5);
 return results;`,
     hints: [
       'Use formula: currentQ + alpha * (tdTarget - currentQ).',
-      'Or return (1 - alpha) * currentQ + alpha * tdTarget.',
+      'Or equivalent: (1 - alpha) * currentQ + alpha * tdTarget.',
     ],
-    solution: `function updateQValue(currentQ, tdTarget, alpha) {
+    solution: `/**
+ * Performs a temporal difference blending update on a Q-value.
+ * @param {number} currentQ - The current Q-value estimate.
+ * @param {number} tdTarget - The target Q-value estimate.
+ * @param {number} alpha - The learning rate.
+ * @returns {number} The updated Q-value estimate.
+ */
+function updateQValue(currentQ, tdTarget, alpha) {
   return currentQ + alpha * (tdTarget - currentQ);
 }`,
-    explanation: 'Blending updates using alpha stabilizes learning convergence under stochastic transitions.',
+    explanation: 'The learning rate alpha acts as a low-pass filter, preventing sudden updates from single stochastic transitions.',
+  },
+  {
+    id: 'q-learning-full-step',
+    stepLabel: '62.4',
+    group: 'Complete agent step',
+    title: 'Complete Tabular Q-Learning Step',
+    concept: 'A full Q-learning step transitions the agent and updates its Q-table state in-place given experience parameters.',
+    objective: 'Implement the update of the Q-table in-place, returning the updated cell value.',
+    difficulty: 'challenge',
+    starterCode: `/**
+ * Performs a complete step of tabular Q-learning, updating the qTable in-place.
+ * @param {number[][]} qTable - The 2D table representing Q(state, action).
+ * @param {number} state - The current state index.
+ * @param {number} action - The action index taken.
+ * @param {number} reward - Immediate reward received.
+ * @param {number} nextState - The successor state index.
+ * @param {boolean} isTerminal - Whether the nextState is terminal.
+ * @param {number} alpha - Learning rate.
+ * @param {number} gamma - Discount factor.
+ * @returns {number} The newly updated Q-value Q(state, action).
+ */
+function qLearningStep(qTable, state, action, reward, nextState, isTerminal, alpha, gamma) {
+  // TODO: Update qTable[state][action] and return the new value.
+  // Note: Handle terminal states where no future actions exist.
+  return 0;
+}`,
+    testCode: `const results = [];
+function approxEqual(a, b, tol = 1e-5) { return Math.abs(a - b) <= tol; }
+function check(name, actual, expected) {
+  results.push({ name, actual, expected, passed: approxEqual(actual, expected) });
+}
+const qTable = [
+  [1.0, 2.0],
+  [3.0, 4.0]
+];
+const val1 = qLearningStep(qTable, 0, 1, 1.5, 1, false, 0.5, 0.9);
+check('q-learning step non-terminal', val1, 3.55);
+check('qTable update verification', qTable[0][1], 3.55);
+const val2 = qLearningStep(qTable, 1, 0, 2.5, 0, true, 0.2, 0.9);
+check('q-learning step terminal', val2, 2.9);
+check('qTable terminal update verification', qTable[1][0], 2.9);
+return results;`,
+    hints: [
+      'Look up currentQ = qTable[state][action].',
+      'Determine nextStateQValues. If isTerminal is true, use an empty array []. Otherwise, use qTable[nextState].',
+      'Compute the TD target using getTdTarget helper logic (reward + gamma * maxNextQ if not terminal).',
+      'Compute the updated value and assign it to qTable[state][action]. Return that value.',
+    ],
+    solution: `/**
+ * Performs a complete step of tabular Q-learning, updating the qTable in-place.
+ * @param {number[][]} qTable - The 2D table representing Q(state, action).
+ * @param {number} state - The current state index.
+ * @param {number} action - The action index taken.
+ * @param {number} reward - Immediate reward received.
+ * @param {number} nextState - The successor state index.
+ * @param {boolean} isTerminal - Whether the nextState is terminal.
+ * @param {number} alpha - Learning rate.
+ * @param {number} gamma - Discount factor.
+ * @returns {number} The newly updated Q-value Q(state, action).
+ */
+function qLearningStep(qTable, state, action, reward, nextState, isTerminal, alpha, gamma) {
+  const currentQ = qTable[state][action];
+  let maxNextQ = 0;
+  if (!isTerminal) {
+    const nextQValues = qTable[nextState];
+    maxNextQ = nextQValues[0];
+    for (let i = 1; i < nextQValues.length; i++) {
+      if (nextQValues[i] > maxNextQ) {
+        maxNextQ = nextQValues[i];
+      }
+    }
+  }
+  const tdTarget = isTerminal ? reward : reward + gamma * maxNextQ;
+  const updatedQ = currentQ + alpha * (tdTarget - currentQ);
+  qTable[state][action] = updatedQ;
+  return updatedQ;
+}`,
+    explanation: 'Integrating state transition observations, terminal conditions, and action-value tables represents the core step of reinforcement learning.',
   },
 
   // --- rl-exploration ---

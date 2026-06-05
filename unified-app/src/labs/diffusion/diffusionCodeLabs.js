@@ -63,15 +63,123 @@ return results;`,
 
   // --- diffusion-sampling ---
   {
-    id: 'diff-reverse-step-calc',
+    id: 'diff-scheduler-betas',
     stepLabel: '73.1',
-    group: 'posterior mean',
+    group: 'Beta scheduling',
+    title: 'Linear Beta Schedule',
+    concept: 'Denoising Diffusion Probabilistic Models (DDPM) corrupt images by adding noise according to a schedule. A linear beta schedule interpolates variance levels from a small start value to a larger end value across T timesteps.',
+    objective: 'Generate a linear beta schedule array of size T, representing variance increments at each step.',
+    difficulty: 'warmup',
+    starterCode: `/**
+ * Generates a linear beta schedule for diffusion variance.
+ * @param {number} T - Total diffusion timesteps.
+ * @param {number} betaStart - Starting variance (beta_0).
+ * @param {number} betaEnd - Ending variance (beta_T).
+ * @returns {number[]} Array of beta values of size T.
+ */
+function makeBetaSchedule(T, betaStart, betaEnd) {
+  const betas = [];
+  // TODO: Fill betas array with linearly interpolated values
+  return betas;
+}`,
+    testCode: `const results = [];
+function approxEqual(a, b, tol = 1e-5) { return Math.abs(a - b) <= tol; }
+function sameArray(a, b) { return a.length === b.length && a.every((v, i) => approxEqual(v, b[i])); }
+function check(name, actual, expected) {
+  results.push({ name, actual: JSON.stringify(actual), expected: JSON.stringify(expected), passed: sameArray(actual, expected) });
+}
+check('beta schedule 5 steps', makeBetaSchedule(5, 0.0001, 0.02), [0.0001, 0.005075, 0.01005, 0.015025, 0.02]);
+check('beta schedule 2 steps', makeBetaSchedule(2, 0.1, 0.5), [0.1, 0.5]);
+return results;`,
+    hints: [
+      'The step increment is (betaEnd - betaStart) / (T - 1).',
+      'Loop i from 0 to T-1, calculate beta_i = betaStart + i * step, and push to betas.',
+    ],
+    solution: `/**
+ * Generates a linear beta schedule for diffusion variance.
+ * @param {number} T - Total diffusion timesteps.
+ * @param {number} betaStart - Starting variance (beta_0).
+ * @param {number} betaEnd - Ending variance (beta_T).
+ * @returns {number[]} Array of beta values of size T.
+ */
+function makeBetaSchedule(T, betaStart, betaEnd) {
+  const betas = [];
+  if (T <= 1) {
+    betas.push(betaStart);
+    return betas;
+  }
+  const step = (betaEnd - betaStart) / (T - 1);
+  for (let i = 0; i < T; i++) {
+    betas.push(betaStart + i * step);
+  }
+  return betas;
+}`,
+    explanation: 'A linear schedule gradually ramps up noise, preserving image structure at early steps and applying strong corruption at later ones.',
+  },
+  {
+    id: 'diff-forward-diffusion-step',
+    stepLabel: '73.2',
+    group: 'Forward noise scheduler',
+    title: 'Closed-Form Forward Diffusion',
+    concept: 'A major feature of DDPM is that the corrupted latent at any timestep t (x_t) can be computed directly from clean data x_0 in closed-form: x_t = sqrt(alpha_bar_t) * x_0 + sqrt(1 - alpha_bar_t) * noise.',
+    objective: 'Implement the closed-form forward diffusion equation to add noise to a clean value.',
+    difficulty: 'warmup',
+    starterCode: `/**
+ * Computes a closed-form forward diffusion latent x_t from clean input x_0.
+ * @param {number} x0 - Original clean scalar value.
+ * @param {number} noise - Sampled Gaussian noise.
+ * @param {number} alphaBarT - Cumulative alpha product (alpha_bar_t).
+ * @returns {number} Corrupted latent value x_t.
+ */
+function forwardDiffuse(x0, noise, alphaBarT) {
+  // TODO: Compute and return corrupted latent x_t
+  return 0;
+}`,
+    testCode: `const results = [];
+function approxEqual(a, b, tol = 1e-5) { return Math.abs(a - b) <= tol; }
+function check(name, actual, expected) {
+  results.push({ name, actual, expected, passed: approxEqual(actual, expected) });
+}
+check('forward diffuse standard', forwardDiffuse(1.5, -0.8, 0.64), 0.72); // 0.8 * 1.5 + 0.6 * -0.8 = 1.2 - 0.48 = 0.72
+check('forward diffuse zero noise', forwardDiffuse(2.0, 0.0, 0.25), 1.0); // 0.5 * 2.0 = 1.0
+check('forward diffuse zero signal', forwardDiffuse(0.0, 1.2, 0.0), 1.2); // 1.0 * 1.2 = 1.2
+return results;`,
+    hints: [
+      'Use Math.sqrt(alphaBarT) as the coefficient for x0.',
+      'Use Math.sqrt(1 - alphaBarT) as the coefficient for noise.',
+      'Add the scaled components together.',
+    ],
+    solution: `/**
+ * Computes a closed-form forward diffusion latent x_t from clean input x_0.
+ * @param {number} x0 - Original clean scalar value.
+ * @param {number} noise - Sampled Gaussian noise.
+ * @param {number} alphaBarT - Cumulative alpha product (alpha_bar_t).
+ * @returns {number} Corrupted latent value x_t.
+ */
+function forwardDiffuse(x0, noise, alphaBarT) {
+  return Math.sqrt(alphaBarT) * x0 + Math.sqrt(1 - alphaBarT) * noise;
+}`,
+    explanation: 'Closed-form forward steps enable efficient neural network training because we can predict noise at any step without unrolling the chain recurrently.',
+  },
+  {
+    id: 'diff-posterior-mean',
+    stepLabel: '73.3',
+    group: 'Posterior mean estimation',
     title: 'DDPM Reverse Step Mean',
-    concept: 'Denoising steps estimate the posterior mean: mu_t = 1/sqrt(alpha_t) * (x_t - (beta_t / sqrt(1 - alpha_bar_t)) * eps_theta).',
-    objective: 'Compute the reverse step mean mu_t.',
+    concept: 'The reverse denoising step calculates the mean of the posterior distribution: mu_t = 1/sqrt(alpha_t) * (x_t - (beta_t / sqrt(1 - alpha_bar_t)) * eps_theta), representing the cleaned-up value prediction.',
+    objective: 'Compute the reverse step mean mu_t given predicted noise and variance parameters.',
     difficulty: 'core',
-    starterCode: `function ddpmReverseMean(xt, epsTheta, alphaT, betaT, alphaBarT) {
-  // TODO: compute and return the posterior mean mu_t
+    starterCode: `/**
+ * Calculates the posterior mean mu_t of the reverse diffusion distribution.
+ * @param {number} xt - Corrupted latent at timestep t.
+ * @param {number} epsTheta - Predicted noise from the neural network.
+ * @param {number} alphaT - Alpha at timestep t (1 - beta_t).
+ * @param {number} betaT - Beta at timestep t.
+ * @param {number} alphaBarT - Cumulative alpha product at timestep t.
+ * @returns {number} Estimated posterior mean value.
+ */
+function ddpmReverseMean(xt, epsTheta, alphaT, betaT, alphaBarT) {
+  // TODO: Compute and return the reverse step posterior mean mu_t
   return 0;
 }`,
     testCode: `const results = [];
@@ -80,22 +188,87 @@ function check(name, actual, expected) {
   results.push({ name, actual, expected, passed: approxEqual(actual, expected) });
 }
 // xt = 1.2, epsTheta = 0.5, alphaT = 0.96, betaT = 0.04, alphaBarT = 0.64
-// term: 1/sqrt(0.96) * (1.2 - (0.04 / sqrt(1 - 0.64)) * 0.5)
-// = 1/0.9797959 * (1.2 - (0.04 / 0.6) * 0.5)
-// = 1.02062 * (1.2 - 0.033333) = 1.02062 * 1.166667 = 1.190724
-check('reverse mean step', ddpmReverseMean(1.2, 0.5, 0.96, 0.04, 0.64), 1.190724);
+check('reverse mean standard', ddpmReverseMean(1.2, 0.5, 0.96, 0.04, 0.64), 1.190724);
 return results;`,
     hints: [
-      'Numerator inside: betaT * epsTheta.',
-      'Denominator inside: Math.sqrt(1 - alphaBarT).',
-      'Parenthesis term: xt - (numerator / denominator).',
-      'Return parenthesis term divided by Math.sqrt(alphaT).',
+      'Subtract (betaT / Math.sqrt(1 - alphaBarT)) * epsTheta from xt.',
+      'Divide the result by Math.sqrt(alphaT).',
     ],
-    solution: `function ddpmReverseMean(xt, epsTheta, alphaT, betaT, alphaBarT) {
+    solution: `/**
+ * Calculates the posterior mean mu_t of the reverse diffusion distribution.
+ * @param {number} xt - Corrupted latent at timestep t.
+ * @param {number} epsTheta - Predicted noise from the neural network.
+ * @param {number} alphaT - Alpha at timestep t (1 - beta_t).
+ * @param {number} betaT - Beta at timestep t.
+ * @param {number} alphaBarT - Cumulative alpha product at timestep t.
+ * @returns {number} Estimated posterior mean value.
+ */
+function ddpmReverseMean(xt, epsTheta, alphaT, betaT, alphaBarT) {
   const inner = xt - (betaT / Math.sqrt(1 - alphaBarT)) * epsTheta;
   return inner / Math.sqrt(alphaT);
 }`,
-    explanation: 'The reverse step mean guides the current sample one step backward toward the clean data distribution.',
+    explanation: 'The posterior mean directs the reverse Markov step, shifting the latent toward a high-density area of clean data.',
+  },
+  {
+    id: 'diff-reverse-denoise-step',
+    stepLabel: '73.4',
+    group: 'Denoised reverse step',
+    title: 'DDPM Complete Denoising Step',
+    concept: 'To sample x_{t-1} from x_t, we calculate the posterior mean. If t > 0, we add scaled random noise zNoise ~ N(0, I) to maintain stochastic variety: x_{t-1} = mu_t + sqrt(beta_t) * zNoise. If t = 0, no noise is added.',
+    objective: 'Implement the full reverse step, adding noise only if t > 0.',
+    difficulty: 'challenge',
+    starterCode: `/**
+ * Performs one full step of DDPM reverse denoising, returning the sampled x_{t-1}.
+ * @param {number} xt - Corrupted latent at timestep t.
+ * @param {number} epsTheta - Predicted noise.
+ * @param {number} t - Current timestep index (T-1 down to 0).
+ * @param {number} alphaT - Alpha at timestep t.
+ * @param {number} betaT - Beta at timestep t.
+ * @param {number} alphaBarT - Cumulative alpha product at timestep t.
+ * @param {number} zNoise - Random Gaussian noise sample.
+ * @returns {number} The denoised latent value x_{t-1}.
+ */
+function ddpmReverseStep(xt, epsTheta, t, alphaT, betaT, alphaBarT, zNoise) {
+  // TODO: Compute posterior mean. If t > 0, add zNoise scaled by sqrt(betaT). Return results.
+  return 0;
+}`,
+    testCode: `const results = [];
+function approxEqual(a, b, tol = 1e-5) { return Math.abs(a - b) <= tol; }
+function check(name, actual, expected) {
+  results.push({ name, actual, expected, passed: approxEqual(actual, expected) });
+}
+// xt = 1.2, epsTheta = 0.5, t = 5, alphaT = 0.96, betaT = 0.04, alphaBarT = 0.64, zNoise = 0.1
+// mu = 1.190724. Noise addition: sqrt(0.04) * 0.1 = 0.2 * 0.1 = 0.02.
+// Total: 1.190724 + 0.02 = 1.210724
+check('reverse step t > 0 with noise', ddpmReverseStep(1.2, 0.5, 5, 0.96, 0.04, 0.64, 0.1), 1.210724);
+// t = 0 -> no noise added. Total should be mu = 1.190724
+check('reverse step t = 0 no noise', ddpmReverseStep(1.2, 0.5, 0, 0.96, 0.04, 0.64, 0.1), 1.190724);
+return results;`,
+    hints: [
+      'First calculate the posterior mean: mu = (xt - (betaT / Math.sqrt(1 - alphaBarT)) * epsTheta) / Math.sqrt(alphaT).',
+      'Check if t > 0. If so, return mu + Math.sqrt(betaT) * zNoise.',
+      'Otherwise (t === 0), return mu directly.',
+    ],
+    solution: `/**
+ * Performs one full step of DDPM reverse denoising, returning the sampled x_{t-1}.
+ * @param {number} xt - Corrupted latent at timestep t.
+ * @param {number} epsTheta - Predicted noise.
+ * @param {number} t - Current timestep index (T-1 down to 0).
+ * @param {number} alphaT - Alpha at timestep t.
+ * @param {number} betaT - Beta at timestep t.
+ * @param {number} alphaBarT - Cumulative alpha product at timestep t.
+ * @param {number} zNoise - Random Gaussian noise sample.
+ * @returns {number} The denoised latent value x_{t-1}.
+ */
+function ddpmReverseStep(xt, epsTheta, t, alphaT, betaT, alphaBarT, zNoise) {
+  const inner = xt - (betaT / Math.sqrt(1 - alphaBarT)) * epsTheta;
+  const mu = inner / Math.sqrt(alphaT);
+  if (t > 0) {
+    return mu + Math.sqrt(betaT) * zNoise;
+  }
+  return mu;
+}`,
+    explanation: 'Adding random variance during early sampling steps represents Langevin dynamics, helping the model escape local modes and produce diverse images.',
   },
 
   // --- classifier-free-guidance ---

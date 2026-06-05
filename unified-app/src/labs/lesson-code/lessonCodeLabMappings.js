@@ -142,7 +142,7 @@ export const LESSON_GROUP_MAPPINGS = {
   'dropout-batchnorm': { source: 'nn', groups: ['Regularization'] },
   'gradient-problems': { source: 'nn', groups: ['Activation gradients', 'Derivative basics'] },
   'layer-normalization': { source: 'transformer', groups: ['LayerNorm and RMSNorm'] },
-  'lstm': { source: 'nn', groups: ['Forget gate', 'Candidate cell'] },
+  'lstm': { source: 'nn', groups: ['Forget and input gates', 'Candidate cell', 'Cell state update', 'Output gate & hidden output'] },
   'conv2d': { source: 'nn', groups: ['Output size formula', 'One patch dot product'] },
   'max-pooling': { source: 'nn', groups: ['Window max'] },
   'conv-relu': { source: 'nn', groups: ['ReLU clip'] },
@@ -173,12 +173,12 @@ export const LESSON_GROUP_MAPPINGS = {
   'transformer-architecture-families': { source: 'transformer', groups: ['FFN expansion ratio', 'Parameter estimate'] },
   'coconut-latent-reasoning': { source: 'transformer', groups: ['Latent residual add', 'Gate blend'] },
   'grouped-query-attention': { source: 'transformer', groups: ['KV head index', 'Repeat/broadcast rule'] },
-  'kv-cache': { source: 'transformer', groups: ['Slice write index'] },
+  'kv-cache': { source: 'transformer', groups: ['Cache append', 'Sequence slicing', 'Cached cross-attention', 'Autoregressive generation step'] },
   'flash-attention': { source: 'transformer', groups: ['Row max update', 'Running sum'] },
   'spec-sparse-attention': { source: 'transformer', groups: ['Accept/reject rule'] },
   'turboquant': { source: 'transformer', groups: ['Nearest codebook entry'] },
   'efficient-inference-compression-track': { source: 'transformer', groups: ['Dequant fuse'] },
-  'bert': { source: 'transformer', groups: ['Mask token replace'] },
+  'bert': { source: 'transformer', groups: ['80-10-10 masking rule', 'Bidirectional attention mask', 'MLM cross-entropy loss', 'BERT MLM step'] },
   'moe': { source: 'transformer', groups: ['Top-k pick'] },
   'fine-tuning': { source: 'transformer', groups: ['Alpha scaling', 'Effective delta add'] },
   'native-sparse-attention': { source: 'transformer', groups: ['Block grid'] },
@@ -227,7 +227,7 @@ export const LESSON_GROUP_MAPPINGS = {
   ],
   'word2vec': {
     source: 'nlp',
-    groups: ['Context-target pair', 'Negative sampling'],
+    groups: ['Similarity score', 'Sigmoid activation', 'Positive pair likelihood', 'Negative sample loss', 'Skip-gram gradient update'],
   },
   'glove': {
     source: 'nlp',
@@ -277,7 +277,7 @@ export const LESSON_GROUP_MAPPINGS = {
 
   // Diffusion Models
   'diffusion-basics': { source: 'diffusion', groups: ['Noise scale', 'Alpha bar'] },
-  'diffusion-sampling': { source: 'diffusion', groups: ['posterior mean'] },
+  'diffusion-sampling': { source: 'diffusion', groups: ['Beta scheduling', 'Forward noise scheduler', 'Posterior mean estimation', 'Denoised reverse step'] },
   'classifier-free-guidance': { source: 'diffusion', groups: ['scale mix'] },
   'unet-vs-dit': { source: 'diffusion', groups: ['skip concat', 'patch tokens'] },
   'sd3-overview': { source: 'diffusion', groups: ['VAE downscale'] },
@@ -300,7 +300,7 @@ export const LESSON_GROUP_MAPPINGS = {
   'diffusion-language-models': { source: 'frontier', groups: ['Mask ratio'] },
   'efficient-llm-serving': { source: 'frontier', groups: ['Continuous batching'] },
   'frontier-evaluation-safety': { source: 'eval', groups: ['Pass@k'] },
-  'tool-using-reasoning-models': { source: 'frontier', groups: ['Tool name match'] },
+  'tool-using-reasoning-models': { source: 'frontier', groups: ['Tool call parser', 'Action dispatcher', 'History integration', 'Agent execution loop'] },
   'agentic-coding-systems': { source: 'frontier', groups: ['Hunk apply'] },
 
   // Reinforcement learning
@@ -308,7 +308,7 @@ export const LESSON_GROUP_MAPPINGS = {
   'mdp-formalism': { source: 'rl', groups: ['Transition sum', 'Gamma discount'] },
   'value-iteration': { source: 'rl', groups: ['Max over actions', 'Backup once'] },
   'policy-iteration': { source: 'rl', groups: ['Eval backup', 'Greedy improve'] },
-  'q-learning': { source: 'rl', groups: ['TD target', 'Learning rate blend'] },
+  'q-learning': { source: 'rl', groups: ['Epsilon-greedy selection', 'Terminal-aware TD target', 'Tabular Q-update', 'Complete agent step'] },
   'rl-exploration': { source: 'rl', groups: ['Epsilon mix', 'UCB formula'] },
   'policy-gradients': { source: 'rl', groups: ['Baseline subtract', 'Return multiply'] },
   'actor-critic': { source: 'rl', groups: ['TD error', 'Actor log grad'] },
