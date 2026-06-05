@@ -317,7 +317,7 @@ export const LESSON_GROUP_MAPPINGS = {
   'clip-encoder': { source: 'diffusion', groups: ['L2 normalize'] },
   't5-encoder': { source: 'diffusion', groups: ['pad mask'] },
   'joint-attention': { source: 'diffusion', groups: ['Concat Q'] },
-  'dit': { source: 'diffusion', groups: ['adaLN scale/shift'] },
+  'dit': { source: 'diffusion', groups: ['Time embed inject', 'adaLN scale/shift', 'Self-attn residual', 'MLP residual'] },
 
   // Frontier LLMs & Evaluation Safety
   'frontier-llm-architecture-overview': { source: 'frontier', groups: ['Weight bytes', 'KV bytes'] },

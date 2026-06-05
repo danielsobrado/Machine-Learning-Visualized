@@ -1261,18 +1261,140 @@ return results;`,
     explanation: 'Hinge loss penalizes the model when the positive item score is not higher than the negative item score by at least the margin.',
   },
   {
-    id: 'eval-pass-at-k',
+    id: 'eval-pass-at-k-edge',
     stepLabel: '28.1',
     group: 'Pass@k',
-    title: 'Pass@k evaluation metric',
-    concept: 'Pass@k measures LLM code generation quality: probability that at least one of k generated samples passes tests. Formula: 1 - C(n-c, k) / C(n, k), where n is total samples and c is number of passing samples.',
-    objective: 'Compute the Pass@k ratio. If n - c < k, return 1.0; otherwise calculate the product.',
-    difficulty: 'challenge',
+    title: 'Guaranteed Pass Condition',
+    concept: 'Pass@k measures LLM code generation quality: probability that at least one of k generated samples passes tests. If the number of failing samples (n - c) is less than k, you are guaranteed to pick at least one passing sample.',
+    objective: 'If n - c < k, return 1.0.',
+    difficulty: 'warmup',
+    starterCode: `function passAtK(n, c, k) {
+  // TODO: check the guaranteed pass condition
+  
+  let prod = 1.0;
+  for (let i = 0; i < k; i++) {
+    prod *= (n - c - i) / (n - i);
+  }
+  return 1.0 - prod;
+}`,
+    testCode: `const results = [];
+function check(name, actual, expected) {
+  results.push({ name, actual, expected, passed: Object.is(actual, expected) });
+}
+check('guaranteed pass', passAtK(10, 9, 2), 1.0);
+return results;`,
+    hints: [
+      'if (n - c < k) return 1.0;',
+    ],
+    solution: `function passAtK(n, c, k) {
+  if (n - c < k) return 1.0;
+  
+  let prod = 1.0;
+  for (let i = 0; i < k; i++) {
+    prod *= (n - c - i) / (n - i);
+  }
+  return 1.0 - prod;
+}`,
+    explanation: 'By checking this early, we avoid calculating probabilities for impossible failing combinations.',
+  },
+  {
+    id: 'eval-pass-at-k-base',
+    stepLabel: '28.2',
+    group: 'Pass@k',
+    title: 'Failure Probability Initialization',
+    concept: 'To find the probability of at least one pass, we first calculate the probability that ALL k samples fail. We initialize the product to 1.0.',
+    objective: 'Initialize a variable prod to 1.0.',
+    difficulty: 'warmup',
+    starterCode: `function passAtK(n, c, k) {
+  if (n - c < k) return 1.0;
+  
+  // TODO: initialize the failure probability product
+  let prod = 0;
+  
+  for (let i = 0; i < k; i++) {
+    prod *= (n - c - i) / (n - i);
+  }
+  return 1.0 - prod;
+}`,
+    testCode: `const results = [];
+function approxEqual(a, b, tol = 1e-5) {
+  return Math.abs(a - b) <= tol;
+}
+function check(name, actual, expected) {
+  results.push({ name, actual, expected, passed: approxEqual(actual, expected) });
+}
+check('pass@1 equal', passAtK(10, 2, 1), 0.2); // 1 - 0.8
+return results;`,
+    hints: [
+      'let prod = 1.0;',
+    ],
+    solution: `function passAtK(n, c, k) {
+  if (n - c < k) return 1.0;
+  let prod = 1.0;
+  for (let i = 0; i < k; i++) {
+    prod *= (n - c - i) / (n - i);
+  }
+  return 1.0 - prod;
+}`,
+    explanation: 'A product accumulator must start at 1.0 to multiply consecutive probabilities.',
+  },
+  {
+    id: 'eval-pass-at-k-loop',
+    stepLabel: '28.3',
+    group: 'Pass@k',
+    title: 'Sampling Iteration',
+    concept: 'We iterate k times, representing drawing k samples without replacement from the n total samples.',
+    objective: 'Create a loop from i = 0 to i < k.',
+    difficulty: 'warmup',
+    starterCode: `function passAtK(n, c, k) {
+  if (n - c < k) return 1.0;
+  let prod = 1.0;
+  
+  // TODO: loop from 0 up to k-1
+  let i = 0;
+  if (i < k) {
+    prod *= (n - c - i) / (n - i);
+  }
+  
+  return 1.0 - prod;
+}`,
+    testCode: `const results = [];
+function approxEqual(a, b, tol = 1e-5) {
+  return Math.abs(a - b) <= tol;
+}
+function check(name, actual, expected) {
+  results.push({ name, actual, expected, passed: approxEqual(actual, expected) });
+}
+check('pass@2 with c=2', passAtK(10, 2, 2), 0.377778);
+return results;`,
+    hints: [
+      'for (let i = 0; i < k; i++) {',
+      '  prod *= (n - c - i) / (n - i);',
+      '}',
+    ],
+    solution: `function passAtK(n, c, k) {
+  if (n - c < k) return 1.0;
+  let prod = 1.0;
+  for (let i = 0; i < k; i++) {
+    prod *= (n - c - i) / (n - i);
+  }
+  return 1.0 - prod;
+}`,
+    explanation: 'This models sampling k times in a row.',
+  },
+  {
+    id: 'eval-pass-at-k-accumulate',
+    stepLabel: '28.4',
+    group: 'Pass@k',
+    title: 'Failure Chain Accumulation',
+    concept: 'At step i, there are (n - i) remaining samples to pick from, and (n - c - i) of them are failing samples. We multiply the current failure probability by this ratio.',
+    objective: 'Multiply prod by (n - c - i) / (n - i).',
+    difficulty: 'core',
     starterCode: `function passAtK(n, c, k) {
   if (n - c < k) return 1.0;
   let prod = 1.0;
   for (let i = 0; i < k; i++) {
-    // TODO: multiply prod by (n - c - i) / (n - i)
+    // TODO: multiply prod by the failure ratio
     prod *= 1.0;
   }
   return 1.0 - prod;
@@ -1284,13 +1406,49 @@ function approxEqual(a, b, tol = 1e-5) {
 function check(name, actual, expected) {
   results.push({ name, actual, expected, passed: approxEqual(actual, expected) });
 }
-check('pass@1 equal', passAtK(10, 2, 1), 0.2); // c/n = 0.2
-check('pass@2 with c=2', passAtK(10, 2, 2), 0.377778); // 1 - (8/10 * 7/9) = 1 - 0.622222 = 0.377778
+check('pass@2 with c=2', passAtK(10, 2, 2), 0.377778);
 return results;`,
     hints: [
-      'The term for index i is (n - c - i) / (n - i).',
-      'Multiply prod by this term.',
       'prod *= (n - c - i) / (n - i);',
+    ],
+    solution: `function passAtK(n, c, k) {
+  if (n - c < k) return 1.0;
+  let prod = 1.0;
+  for (let i = 0; i < k; i++) {
+    prod *= (n - c - i) / (n - i);
+  }
+  return 1.0 - prod;
+}`,
+    explanation: 'The product chain computes the total probability that every single sampled output is a failure.',
+  },
+  {
+    id: 'eval-pass-at-k',
+    stepLabel: '28.5',
+    group: 'Pass@k',
+    title: 'Pass@k Final Metric',
+    concept: 'Since we computed the probability that ALL k samples fail, the probability that AT LEAST ONE sample passes is its complement: 1.0 - prod.',
+    objective: 'Return 1.0 - prod.',
+    difficulty: 'core',
+    starterCode: `function passAtK(n, c, k) {
+  if (n - c < k) return 1.0;
+  let prod = 1.0;
+  for (let i = 0; i < k; i++) {
+    prod *= (n - c - i) / (n - i);
+  }
+  // TODO: return the probability of at least one pass
+  return prod;
+}`,
+    testCode: `const results = [];
+function approxEqual(a, b, tol = 1e-5) {
+  return Math.abs(a - b) <= tol;
+}
+function check(name, actual, expected) {
+  results.push({ name, actual, expected, passed: approxEqual(actual, expected) });
+}
+check('pass@2 with c=2', passAtK(10, 2, 2), 0.377778);
+return results;`,
+    hints: [
+      'return 1.0 - prod;',
     ],
     solution: `function passAtK(n, c, k) {
   if (n - c < k) return 1.0;

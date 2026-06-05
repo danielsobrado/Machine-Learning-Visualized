@@ -460,17 +460,166 @@ return results;`,
   
   return ratio;
 }`,
-    explanation: 'MLA reduces the memory footprint of KV caches by more than 90%, allowing much larger batch sizes and context lengths.',
+  explanation: 'MLA reduces the memory footprint of KV caches by more than 90%, allowing much larger batch sizes and context lengths.',
   },
 
   // --- REASONING RLVR GRPO ---
   {
-    id: 'grpo-relative-advantage',
-    stepLabel: '22.1',
+    id: 'grpo-relative-advantage-sum',
+    stepLabel: 'GRPO.1',
     group: 'Relative advantage',
-    title: 'GRPO relative advantage calculation',
-    concept: 'Group Relative Policy Optimization (GRPO) calculates advantages relative to a group baseline rather than using a separate critic network.',
-    objective: 'For each score in a group, calculate: (score - mean) / std.',
+    title: 'Group Score Sum',
+    concept: 'Group Relative Policy Optimization (GRPO) calculates advantages relative to a group baseline. First, we need the sum of all scores in the group.',
+    objective: 'Compute the sum of all scores in the array.',
+    difficulty: 'warmup',
+    starterCode: `function getRelativeAdvantages(scores) {
+  const n = scores.length;
+  
+  // TODO: compute the sum of all scores
+  const sum = 0;
+  
+  const mean = sum / n;
+  let variance = scores.reduce((s, val) => s + Math.pow(val - mean, 2), 0) / n;
+  const std = Math.sqrt(variance) || 1e-8;
+  
+  const advantages = [];
+  for (let i = 0; i < n; i++) {
+    advantages.push((scores[i] - mean) / std);
+  }
+  return advantages;
+}`,
+    testCode: `const results = [];
+function check(name, actual, expected) {
+  results.push({ name, actual: JSON.stringify(actual), expected: JSON.stringify(expected), passed: JSON.stringify(actual) === JSON.stringify(expected) });
+}
+const adv = getRelativeAdvantages([2, 4, 6]);
+check('advantages test', Math.abs(adv[0] - -1.22474) < 1e-4, true);
+return results;`,
+    hints: [
+      'Use reduce, e.g. scores.reduce((sum, s) => sum + s, 0);',
+    ],
+    solution: `function getRelativeAdvantages(scores) {
+  const n = scores.length;
+  const sum = scores.reduce((acc, s) => acc + s, 0);
+  
+  const mean = sum / n;
+  let variance = scores.reduce((s, val) => s + Math.pow(val - mean, 2), 0) / n;
+  const std = Math.sqrt(variance) || 1e-8;
+  
+  const advantages = [];
+  for (let i = 0; i < n; i++) {
+    advantages.push((scores[i] - mean) / std);
+  }
+  return advantages;
+}`,
+    explanation: 'The sum is the first step to finding the group baseline.',
+  },
+  {
+    id: 'grpo-relative-advantage-mean',
+    stepLabel: 'GRPO.2',
+    group: 'Relative advantage',
+    title: 'Group Baseline Mean',
+    concept: 'The mean score acts as the baseline for the group. We subtract this from each individual score to find if it was above or below average.',
+    objective: 'Compute the mean by dividing the sum by n.',
+    difficulty: 'warmup',
+    starterCode: `function getRelativeAdvantages(scores) {
+  const n = scores.length;
+  const sum = scores.reduce((acc, s) => acc + s, 0);
+  
+  // TODO: compute mean
+  const mean = 0;
+  
+  let variance = scores.reduce((s, val) => s + Math.pow(val - mean, 2), 0) / n;
+  const std = Math.sqrt(variance) || 1e-8;
+  
+  const advantages = [];
+  for (let i = 0; i < n; i++) {
+    advantages.push((scores[i] - mean) / std);
+  }
+  return advantages;
+}`,
+    testCode: `const results = [];
+function check(name, actual, expected) {
+  results.push({ name, actual: JSON.stringify(actual), expected: JSON.stringify(expected), passed: JSON.stringify(actual) === JSON.stringify(expected) });
+}
+const adv = getRelativeAdvantages([2, 4, 6]);
+check('advantages test', Math.abs(adv[0] - -1.22474) < 1e-4, true);
+return results;`,
+    hints: [
+      'mean = sum / n;',
+    ],
+    solution: `function getRelativeAdvantages(scores) {
+  const n = scores.length;
+  const sum = scores.reduce((acc, s) => acc + s, 0);
+  const mean = sum / n;
+  
+  let variance = scores.reduce((s, val) => s + Math.pow(val - mean, 2), 0) / n;
+  const std = Math.sqrt(variance) || 1e-8;
+  
+  const advantages = [];
+  for (let i = 0; i < n; i++) {
+    advantages.push((scores[i] - mean) / std);
+  }
+  return advantages;
+}`,
+    explanation: 'Subtracting the mean centers the advantages around zero.',
+  },
+  {
+    id: 'grpo-relative-advantage-center',
+    stepLabel: 'GRPO.3',
+    group: 'Relative advantage',
+    title: 'Centering Scores',
+    concept: 'By subtracting the mean from each score, we get raw centered advantages. Positive means better than average.',
+    objective: 'Inside the loop, push (scores[i] - mean) into the advantages array.',
+    difficulty: 'warmup',
+    starterCode: `function getRelativeAdvantages(scores) {
+  const n = scores.length;
+  const mean = scores.reduce((sum, s) => sum + s, 0) / n;
+  
+  let variance = scores.reduce((sum, s) => sum + Math.pow(s - mean, 2), 0) / n;
+  const std = Math.sqrt(variance) || 1e-8;
+  
+  const advantages = [];
+  for (let i = 0; i < n; i++) {
+    // TODO: push centered score: scores[i] - mean
+    advantages.push(0);
+  }
+  return advantages;
+}`,
+    testCode: `const results = [];
+function approxArray(a, b, tol = 1e-5) {
+  return a.length === b.length && a.every((v, i) => Math.abs(v - b[i]) <= tol);
+}
+function check(name, actual, expected) {
+  results.push({ name, actual: JSON.stringify(actual), expected: JSON.stringify(expected), passed: approxArray(actual, expected) });
+}
+check('centered scores', getRelativeAdvantages([2, 4, 6]), [-2, 0, 2]);
+return results;`,
+    hints: [
+      'advantages.push(scores[i] - mean);',
+    ],
+    solution: `function getRelativeAdvantages(scores) {
+  const n = scores.length;
+  const mean = scores.reduce((sum, s) => sum + s, 0) / n;
+  
+  let variance = scores.reduce((sum, s) => sum + Math.pow(s - mean, 2), 0) / n;
+  const std = Math.sqrt(variance) || 1e-8;
+  
+  const advantages = [];
+  for (let i = 0; i < n; i++) {
+    advantages.push(scores[i] - mean);
+  }
+  return advantages;
+}`,
+    explanation: 'Centered scores act as unscaled advantages.',
+  },
+  {
+    id: 'grpo-relative-advantage',
+    stepLabel: 'GRPO.4',
+    group: 'Relative advantage',
+    title: 'GRPO Advantage Calculation',
+    concept: 'To finalize the GRPO advantages, we divide the centered scores by the standard deviation. This normalizes the advantages.',
+    objective: 'Divide the centered score by std.',
     difficulty: 'core',
     starterCode: `function getRelativeAdvantages(scores) {
   const n = scores.length;
@@ -481,8 +630,8 @@ return results;`,
   
   const advantages = [];
   for (let i = 0; i < n; i++) {
-    // TODO: compute advantage score and push it to advantages array
-    advantages.push(0);
+    // TODO: compute full advantage: (scores[i] - mean) / std
+    advantages.push(scores[i] - mean);
   }
   return advantages;
 }`,
@@ -496,9 +645,7 @@ function check(name, actual, expected) {
 check('advantages test', getRelativeAdvantages([2, 4, 6]), [-1.22474, 0, 1.22474]);
 return results;`,
     hints: [
-      'The mean is already mean.',
-      'The standard deviation is std.',
-      'The formula is: (scores[i] - mean) / std.',
+      'advantage = (scores[i] - mean) / std;',
     ],
     solution: `function getRelativeAdvantages(scores) {
   const n = scores.length;
@@ -513,51 +660,198 @@ return results;`,
   }
   return advantages;
 }`,
-    explanation: 'By normalizing rewards across a group of candidate outputs, GRPO reduces policy gradient variance without requiring a value critic.',
+    explanation: 'By standardizing scores within a group, GRPO avoids needing a learned value network, simplifying the RL pipeline.',
   },
 
   // --- TEST-TIME COMPUTE THINKING BUDGETS ---
   {
-    id: 'budget-thinking-check',
+    id: 'budget-thinking-check-complete',
     stepLabel: '23.1',
     group: 'Budget split',
-    title: 'Thinking budget boundary check',
+    title: 'Thinking Token Search',
     concept: 'Test-time compute thinking models generate reasoning steps between <thought> and </thought> tags before emitting the final answer.',
-    objective: 'Return true if tokens contains "</thought>", signaling thinking is complete, otherwise false.',
+    objective: 'Check if the tokens array includes the </thought> tag.',
     difficulty: 'warmup',
-    starterCode: `function isThinkingComplete(tokens) {
-  // TODO: return whether tokens array includes '</thought>' tag
-  return false;
+    starterCode: `function parseThinkingOutput(tokens) {
+  // TODO: set isComplete to true if tokens includes '</thought>'
+  const isComplete = false;
+  
+  const thoughtTokens = [];
+  const answerTokens = [];
+  
+  return { isComplete, thoughtTokens, answerTokens };
 }`,
     testCode: `const results = [];
 function check(name, actual, expected) {
   results.push({ name, actual, expected, passed: Object.is(actual, expected) });
 }
-check('thought ongoing', isThinkingComplete(['<thought>', 'Let', 'me', 'think']), false);
-check('thought ended', isThinkingComplete(['<thought>', 'Okay', '</thought>', 'Answer:']), true);
+check('thought ongoing', parseThinkingOutput(['<thought>', 'Let', 'me', 'think']).isComplete, false);
+check('thought ended', parseThinkingOutput(['<thought>', 'Okay', '</thought>', 'Answer:']).isComplete, true);
 return results;`,
     hints: [
-      'Use the array .includes() method.',
-      "return tokens.includes('</thought>');",
+      "Use tokens.includes('</thought>')",
     ],
-    solution: `function isThinkingComplete(tokens) {
-  return tokens.includes('</thought>');
+    solution: `function parseThinkingOutput(tokens) {
+  const isComplete = tokens.includes('</thought>');
+  
+  const thoughtTokens = [];
+  const answerTokens = [];
+  
+  return { isComplete, thoughtTokens, answerTokens };
 }`,
-    explanation: 'Checking thinking tags allows LLM inference servers to allocate dynamic token budgets and switch routing modes.',
+    explanation: 'Detecting the end tag allows the server to switch from reasoning mode to output generation mode.',
+  },
+  {
+    id: 'budget-thinking-check-index',
+    stepLabel: '23.2',
+    group: 'Budget split',
+    title: 'Find Thought Boundary',
+    concept: 'To split the output, we need to locate exactly where the reasoning ends.',
+    objective: 'Find the index of </thought> using indexOf().',
+    difficulty: 'warmup',
+    starterCode: `function parseThinkingOutput(tokens) {
+  const isComplete = tokens.includes('</thought>');
+  
+  // TODO: find the index of '</thought>'
+  const endIndex = -1;
+  
+  const thoughtTokens = [];
+  const answerTokens = [];
+  
+  return { isComplete, endIndex, thoughtTokens, answerTokens };
+}`,
+    testCode: `const results = [];
+function check(name, actual, expected) {
+  results.push({ name, actual, expected, passed: Object.is(actual, expected) });
+}
+check('boundary index', parseThinkingOutput(['<thought>', 'Okay', '</thought>', 'Answer:']).endIndex, 2);
+return results;`,
+    hints: [
+      'endIndex = tokens.indexOf("</thought>");',
+    ],
+    solution: `function parseThinkingOutput(tokens) {
+  const isComplete = tokens.includes('</thought>');
+  const endIndex = tokens.indexOf('</thought>');
+  
+  const thoughtTokens = [];
+  const answerTokens = [];
+  
+  return { isComplete, endIndex, thoughtTokens, answerTokens };
+}`,
+    explanation: 'Finding the index is required before slicing the array.',
+  },
+  {
+    id: 'budget-thinking-check-thoughts',
+    stepLabel: '23.3',
+    group: 'Budget split',
+    title: 'Extracting Thoughts',
+    concept: 'We can now isolate the internal thought process by slicing the array from the start tag to the end tag.',
+    objective: 'Slice the tokens array from index 1 to endIndex to get the thought tokens.',
+    difficulty: 'warmup',
+    starterCode: `function parseThinkingOutput(tokens) {
+  const isComplete = tokens.includes('</thought>');
+  const endIndex = tokens.indexOf('</thought>');
+  
+  let thoughtTokens = [];
+  let answerTokens = [];
+  
+  if (isComplete) {
+    // TODO: set thoughtTokens by slicing from index 1 to endIndex
+    thoughtTokens = [];
+  }
+  
+  return { isComplete, thoughtTokens, answerTokens };
+}`,
+    testCode: `const results = [];
+function check(name, actual, expected) {
+  results.push({ name, actual: JSON.stringify(actual), expected: JSON.stringify(expected), passed: JSON.stringify(actual) === JSON.stringify(expected) });
+}
+const out = parseThinkingOutput(['<thought>', 'Step', '1', '</thought>', 'Answer']);
+check('thought extracted', out.thoughtTokens, ['Step', '1']);
+return results;`,
+    hints: [
+      'thoughtTokens = tokens.slice(1, endIndex);',
+    ],
+    solution: `function parseThinkingOutput(tokens) {
+  const isComplete = tokens.includes('</thought>');
+  const endIndex = tokens.indexOf('</thought>');
+  
+  let thoughtTokens = [];
+  let answerTokens = [];
+  
+  if (isComplete) {
+    thoughtTokens = tokens.slice(1, endIndex);
+  }
+  
+  return { isComplete, thoughtTokens, answerTokens };
+}`,
+    explanation: 'Test-time compute models use these thoughts internally to structure their final response.',
+  },
+  {
+    id: 'budget-thinking-check',
+    stepLabel: '23.4',
+    group: 'Budget split',
+    title: 'Extracting Final Answer',
+    concept: 'Once thinking is complete, any tokens emitted after the closing tag form the final user-facing response.',
+    objective: 'Slice the tokens array from endIndex + 1 to the end to get the answer tokens.',
+    difficulty: 'core',
+    starterCode: `function parseThinkingOutput(tokens) {
+  const isComplete = tokens.includes('</thought>');
+  const endIndex = tokens.indexOf('</thought>');
+  
+  let thoughtTokens = [];
+  let answerTokens = [];
+  
+  if (isComplete) {
+    thoughtTokens = tokens.slice(1, endIndex);
+    // TODO: set answerTokens by slicing from endIndex + 1
+    answerTokens = [];
+  }
+  
+  return { isComplete, thoughtTokens, answerTokens };
+}`,
+    testCode: `const results = [];
+function check(name, actual, expected) {
+  results.push({ name, actual: JSON.stringify(actual), expected: JSON.stringify(expected), passed: JSON.stringify(actual) === JSON.stringify(expected) });
+}
+const out = parseThinkingOutput(['<thought>', 'Step', '1', '</thought>', 'Final', 'Answer']);
+check('answer extracted', out.answerTokens, ['Final', 'Answer']);
+return results;`,
+    hints: [
+      'answerTokens = tokens.slice(endIndex + 1);',
+    ],
+    solution: `function parseThinkingOutput(tokens) {
+  const isComplete = tokens.includes('</thought>');
+  const endIndex = tokens.indexOf('</thought>');
+  
+  let thoughtTokens = [];
+  let answerTokens = [];
+  
+  if (isComplete) {
+    thoughtTokens = tokens.slice(1, endIndex);
+    answerTokens = tokens.slice(endIndex + 1);
+  }
+  
+  return { isComplete, thoughtTokens, answerTokens };
+}`,
+    explanation: 'By splitting thoughts and answers, the UI can render reasoning chains dynamically in an accordion while displaying the answer plainly.',
   },
 
   // --- LONG CONTEXT FRONTIER MODELS ---
   {
-    id: 'long-context-scale-kv',
+    id: 'long-context-scale-factor',
     stepLabel: '24.1',
     group: 'Linear seq scaling',
-    title: 'Linear sequence memory scaling',
-    concept: 'Long context models scale their KV cache memory footprint linearly with context length.',
-    objective: 'Scale a baseline memory value (in MB) at baselineLen to newLen.',
+    title: 'Context Growth Factor',
+    concept: 'Long context models scale their KV cache memory footprint linearly with context length. The first step is to compute the growth factor.',
+    objective: 'Compute the growth factor: newLen / baselineLen.',
     difficulty: 'warmup',
     starterCode: `function scaleMemory(baselineMB, baselineLen, newLen) {
-  // TODO: return scaled memory in MB
-  return 0;
+  // TODO: compute growth factor
+  const factor = 1;
+  
+  const scaled = baselineMB * factor;
+  return Math.floor(scaled);
 }`,
     testCode: `const results = [];
 function check(name, actual, expected) {
@@ -566,29 +860,239 @@ function check(name, actual, expected) {
 check('scale from 4k to 32k', scaleMemory(256, 4096, 32768), 2048);
 return results;`,
     hints: [
-      'The memory scales by the factor: newLen / baselineLen.',
-      'return baselineMB * (newLen / baselineLen);',
+      'factor = newLen / baselineLen;',
     ],
     solution: `function scaleMemory(baselineMB, baselineLen, newLen) {
-  return baselineMB * (newLen / baselineLen);
+  const factor = newLen / baselineLen;
+  const scaled = baselineMB * factor;
+  return Math.floor(scaled);
+}`,
+    explanation: 'The factor represents how many times larger the new sequence is compared to the baseline.',
+  },
+  {
+    id: 'long-context-scale-direct',
+    stepLabel: '24.2',
+    group: 'Linear seq scaling',
+    title: 'Direct Scaling Application',
+    concept: 'With the growth factor calculated, we apply it directly to the baseline memory footprint.',
+    objective: 'Multiply baselineMB by the factor.',
+    difficulty: 'warmup',
+    starterCode: `function scaleMemory(baselineMB, baselineLen, newLen) {
+  const factor = newLen / baselineLen;
+  
+  // TODO: multiply baselineMB by factor
+  const scaled = baselineMB;
+  
+  return Math.floor(scaled);
+}`,
+    testCode: `const results = [];
+function check(name, actual, expected) {
+  results.push({ name, actual, expected, passed: Object.is(actual, expected) });
+}
+check('scale from 4k to 32k', scaleMemory(256, 4096, 32768), 2048);
+return results;`,
+    hints: [
+      'scaled = baselineMB * factor;',
+    ],
+    solution: `function scaleMemory(baselineMB, baselineLen, newLen) {
+  const factor = newLen / baselineLen;
+  const scaled = baselineMB * factor;
+  return Math.floor(scaled);
+}`,
+    explanation: 'Because attention memory scales linearly with context length (for KV cache), a 8x longer sequence requires 8x the memory.',
+  },
+  {
+    id: 'long-context-scale-floor',
+    stepLabel: '24.3',
+    group: 'Linear seq scaling',
+    title: 'Integer Memory Bounds',
+    concept: 'Memory allocations are often chunked. Using Math.floor ensures we provide a safe lower bound integer.',
+    objective: 'Apply Math.floor to the scaled memory.',
+    difficulty: 'warmup',
+    starterCode: `function scaleMemory(baselineMB, baselineLen, newLen) {
+  const factor = newLen / baselineLen;
+  const scaled = baselineMB * factor;
+  
+  // TODO: return the floored value of scaled
+  return scaled;
+}`,
+    testCode: `const results = [];
+function check(name, actual, expected) {
+  results.push({ name, actual, expected, passed: Object.is(actual, expected) });
+}
+check('scale with floor', scaleMemory(100, 1000, 2500), 250);
+return results;`,
+    hints: [
+      'return Math.floor(scaled);',
+    ],
+    solution: `function scaleMemory(baselineMB, baselineLen, newLen) {
+  const factor = newLen / baselineLen;
+  const scaled = baselineMB * factor;
+  return Math.floor(scaled);
+}`,
+    explanation: 'Bounding the memory usage prevents out-of-memory errors from floating point imprecision.',
+  },
+  {
+    id: 'long-context-scale-kv',
+    stepLabel: '24.4',
+    group: 'Linear seq scaling',
+    title: 'Linear sequence memory scaling',
+    concept: 'We can optimize the computation into a single step.',
+    objective: 'Combine the calculation into a single return statement: Math.floor(baselineMB * (newLen / baselineLen)).',
+    difficulty: 'core',
+    starterCode: `function scaleMemory(baselineMB, baselineLen, newLen) {
+  const factor = newLen / baselineLen;
+  const scaled = baselineMB * factor;
+  
+  // TODO: optimize to a single line
+  return Math.floor(scaled);
+}`,
+    testCode: `const results = [];
+function check(name, actual, expected) {
+  results.push({ name, actual, expected, passed: Object.is(actual, expected) });
+}
+check('scale from 4k to 32k', scaleMemory(256, 4096, 32768), 2048);
+return results;`,
+    hints: [
+      'return Math.floor(baselineMB * (newLen / baselineLen));',
+    ],
+    solution: `function scaleMemory(baselineMB, baselineLen, newLen) {
+  return Math.floor(baselineMB * (newLen / baselineLen));
 }`,
     explanation: 'Linear scaling shows how cache requirements grow directly with the input sequence length.',
   },
 
   // --- OMNI MULTIMODAL ARCHITECTURES ---
   {
-    id: 'omni-fuse-embeddings',
+    id: 'omni-fuse-vision-scale',
     stepLabel: '25.1',
     group: 'Weighted fuse',
+    title: 'Vision Scaling',
+    concept: 'Omni models fuse text and vision tokens by applying gating layers. The gate value controls how much of the vision embedding to keep.',
+    objective: 'Scale the vision embedding: multiply visionEmb[i] by gate.',
+    difficulty: 'warmup',
+    starterCode: `function fuseModalEmbeddings(textEmb, visionEmb, gate) {
+  const fused = [];
+  for (let i = 0; i < textEmb.length; i++) {
+    // TODO: compute the scaled vision value
+    const vScaled = 0;
+    
+    fused.push(vScaled);
+  }
+  return fused;
+}`,
+    testCode: `const results = [];
+function check(name, actual, expected) {
+  results.push({ name, actual: JSON.stringify(actual), expected: JSON.stringify(expected), passed: JSON.stringify(actual) === JSON.stringify(expected) });
+}
+check('vision scale', fuseModalEmbeddings([1.0, 2.0], [3.0, 4.0], 0.5), [1.5, 2.0]);
+return results;`,
+    hints: [
+      'vScaled = gate * visionEmb[i];',
+    ],
+    solution: `function fuseModalEmbeddings(textEmb, visionEmb, gate) {
+  const fused = [];
+  for (let i = 0; i < textEmb.length; i++) {
+    const vScaled = gate * visionEmb[i];
+    fused.push(vScaled);
+  }
+  return fused;
+}`,
+    explanation: 'The gating value allows the network to dynamically attend more to vision or text depending on the input context.',
+  },
+  {
+    id: 'omni-fuse-text-scale',
+    stepLabel: '25.2',
+    group: 'Weighted fuse',
+    title: 'Text Scaling',
+    concept: 'The remaining portion of the representation (1 - gate) is allocated to the text embedding.',
+    objective: 'Scale the text embedding: multiply textEmb[i] by (1 - gate).',
+    difficulty: 'warmup',
+    starterCode: `function fuseModalEmbeddings(textEmb, visionEmb, gate) {
+  const fused = [];
+  for (let i = 0; i < textEmb.length; i++) {
+    const vScaled = gate * visionEmb[i];
+    
+    // TODO: compute the scaled text value
+    const tScaled = 0;
+    
+    fused.push(vScaled + tScaled);
+  }
+  return fused;
+}`,
+    testCode: `const results = [];
+function check(name, actual, expected) {
+  results.push({ name, actual: JSON.stringify(actual), expected: JSON.stringify(expected), passed: JSON.stringify(actual) === JSON.stringify(expected) });
+}
+check('text scale', fuseModalEmbeddings([1.0, 2.0], [3.0, 4.0], 0.5), [2.0, 3.0]);
+return results;`,
+    hints: [
+      'tScaled = (1 - gate) * textEmb[i];',
+    ],
+    solution: `function fuseModalEmbeddings(textEmb, visionEmb, gate) {
+  const fused = [];
+  for (let i = 0; i < textEmb.length; i++) {
+    const vScaled = gate * visionEmb[i];
+    const tScaled = (1 - gate) * textEmb[i];
+    fused.push(vScaled + tScaled);
+  }
+  return fused;
+}`,
+    explanation: 'By strictly tying the two scales together (they sum to 1), the fusion operation preserves the overall magnitude of the activation.',
+  },
+  {
+    id: 'omni-fuse-add',
+    stepLabel: '25.3',
+    group: 'Weighted fuse',
+    title: 'Modality Addition',
+    concept: 'Now we merge the scaled embeddings together by adding them.',
+    objective: 'Add the scaled vision and text values and push them into the fused array.',
+    difficulty: 'warmup',
+    starterCode: `function fuseModalEmbeddings(textEmb, visionEmb, gate) {
+  const fused = [];
+  for (let i = 0; i < textEmb.length; i++) {
+    const vScaled = gate * visionEmb[i];
+    const tScaled = (1 - gate) * textEmb[i];
+    
+    // TODO: add vScaled and tScaled and push to fused array
+  }
+  return fused;
+}`,
+    testCode: `const results = [];
+function check(name, actual, expected) {
+  results.push({ name, actual: JSON.stringify(actual), expected: JSON.stringify(expected), passed: JSON.stringify(actual) === JSON.stringify(expected) });
+}
+check('fuse add', fuseModalEmbeddings([1.0, 2.0], [3.0, 4.0], 0.5), [2.0, 3.0]);
+return results;`,
+    hints: [
+      'fused.push(vScaled + tScaled);',
+    ],
+    solution: `function fuseModalEmbeddings(textEmb, visionEmb, gate) {
+  const fused = [];
+  for (let i = 0; i < textEmb.length; i++) {
+    const vScaled = gate * visionEmb[i];
+    const tScaled = (1 - gate) * textEmb[i];
+    fused.push(vScaled + tScaled);
+  }
+  return fused;
+}`,
+    explanation: 'This produces a single, combined sequence vector that can be processed by later transformer blocks natively.',
+  },
+  {
+    id: 'omni-fuse-embeddings',
+    stepLabel: '25.4',
+    group: 'Weighted fuse',
     title: 'Weighted multimodal embedding fusion',
-    concept: 'Omni models fuse text and vision/audio tokens by applying gating layers to blend representations.',
-    objective: 'Fuse text and vision embeddings coordinate by coordinate: output[i] = gate * vision[i] + (1 - gate) * text[i].',
+    concept: 'We can optimize this fusion step into a single line inside the loop.',
+    objective: 'Fuse the embeddings directly: output[i] = gate * vision[i] + (1 - gate) * text[i].',
     difficulty: 'core',
     starterCode: `function fuseModalEmbeddings(textEmb, visionEmb, gate) {
   const fused = [];
   for (let i = 0; i < textEmb.length; i++) {
-    // TODO: compute weighted blend of vision and text coordinates
-    fused.push(0);
+    // TODO: compute the final weighted sum and push directly
+    const vScaled = gate * visionEmb[i];
+    const tScaled = (1 - gate) * textEmb[i];
+    fused.push(vScaled + tScaled);
   }
   return fused;
 }`,
@@ -602,8 +1106,7 @@ function check(name, actual, expected) {
 check('fuse half-half', fuseModalEmbeddings([1.0, 2.0], [3.0, 4.0], 0.5), [2.0, 3.0]);
 return results;`,
     hints: [
-      'Use the formula: gate * visionEmb[i] + (1 - gate) * textEmb[i].',
-      'Push it to the fused array.',
+      'fused.push(gate * visionEmb[i] + (1 - gate) * textEmb[i]);',
     ],
     solution: `function fuseModalEmbeddings(textEmb, visionEmb, gate) {
   const fused = [];
@@ -612,21 +1115,118 @@ return results;`,
   }
   return fused;
 }`,
-    explanation: 'Gated fusion layers allow the network to dynamically scale the balance of textual and visual inputs at each sequence index.',
+    explanation: 'Many modern multimodal architectures, like Gemini, rely heavily on dynamic routing and gating mechanisms for cross-modality understanding.',
   },
 
   // --- DIFFUSION LANGUAGE MODELS ---
   {
-    id: 'diffusion-lm-mask-ratio',
+    id: 'diffusion-lm-mask-factor',
     stepLabel: '26.1',
     group: 'Mask ratio',
-    title: 'Diffusion language model mask ratio',
-    concept: 'Diffusion language models iteratively denoise corrupted sequences. At time step t out of T, a linear scheduler masks a fraction t/T of tokens.',
-    objective: 'Compute the number of tokens to mask: Math.round(tokens.length * (t / T)).',
+    title: 'Diffusion Noise Schedule',
+    concept: 'Diffusion language models iteratively denoise sequences. The noise schedule defines the fraction of tokens masked at time step t out of T.',
+    objective: 'Compute the masking fraction: t / T.',
     difficulty: 'warmup',
     starterCode: `function getMaskCount(seqLen, t, T) {
-  // TODO: return how many tokens to mask at step t
-  return 0;
+  // TODO: compute the fraction of tokens to mask
+  const fraction = 0;
+  
+  const rawCount = seqLen * fraction;
+  return Math.round(rawCount);
+}`,
+    testCode: `const results = [];
+function check(name, actual, expected) {
+  results.push({ name, actual, expected, passed: Object.is(actual, expected) });
+}
+check('mid diffusion step', getMaskCount(100, 50, 100), 50);
+return results;`,
+    hints: [
+      'fraction = t / T;',
+    ],
+    solution: `function getMaskCount(seqLen, t, T) {
+  const fraction = t / T;
+  const rawCount = seqLen * fraction;
+  return Math.round(rawCount);
+}`,
+    explanation: 'The linear noise schedule masks progressively fewer tokens as generation proceeds from t=T down to t=0.',
+  },
+  {
+    id: 'diffusion-lm-mask-raw',
+    stepLabel: '26.2',
+    group: 'Mask ratio',
+    title: 'Sequence Fraction',
+    concept: 'We apply the masking fraction to the total sequence length to find how many tokens should be masked.',
+    objective: 'Multiply the seqLen by the fraction.',
+    difficulty: 'warmup',
+    starterCode: `function getMaskCount(seqLen, t, T) {
+  const fraction = t / T;
+  
+  // TODO: multiply seqLen by fraction
+  const rawCount = seqLen;
+  
+  return Math.round(rawCount);
+}`,
+    testCode: `const results = [];
+function check(name, actual, expected) {
+  results.push({ name, actual, expected, passed: Object.is(actual, expected) });
+}
+check('start diffusion step', getMaskCount(100, 90, 100), 90);
+return results;`,
+    hints: [
+      'rawCount = seqLen * fraction;',
+    ],
+    solution: `function getMaskCount(seqLen, t, T) {
+  const fraction = t / T;
+  const rawCount = seqLen * fraction;
+  return Math.round(rawCount);
+}`,
+    explanation: 'This determines the theoretical continuous number of tokens to corrupt.',
+  },
+  {
+    id: 'diffusion-lm-mask-round',
+    stepLabel: '26.3',
+    group: 'Mask ratio',
+    title: 'Discrete Mask Count',
+    concept: 'Because we can only mask whole tokens, we round the raw count to the nearest integer.',
+    objective: 'Apply Math.round to the raw count.',
+    difficulty: 'warmup',
+    starterCode: `function getMaskCount(seqLen, t, T) {
+  const fraction = t / T;
+  const rawCount = seqLen * fraction;
+  
+  // TODO: return the rounded value
+  return rawCount;
+}`,
+    testCode: `const results = [];
+function check(name, actual, expected) {
+  results.push({ name, actual, expected, passed: Object.is(actual, expected) });
+}
+check('rounding step', getMaskCount(100, 33, 100), 33);
+return results;`,
+    hints: [
+      'return Math.round(rawCount);',
+    ],
+    solution: `function getMaskCount(seqLen, t, T) {
+  const fraction = t / T;
+  const rawCount = seqLen * fraction;
+  return Math.round(rawCount);
+}`,
+    explanation: 'Rounding provides the exact discrete number of [MASK] tokens to insert into the input sequence.',
+  },
+  {
+    id: 'diffusion-lm-mask-ratio',
+    stepLabel: '26.4',
+    group: 'Mask ratio',
+    title: 'Diffusion language model mask ratio',
+    concept: 'We can optimize the computation into a single step.',
+    objective: 'Combine the calculation into a single return statement: Math.round(seqLen * (t / T)).',
+    difficulty: 'core',
+    starterCode: `function getMaskCount(seqLen, t, T) {
+  const fraction = t / T;
+  const rawCount = seqLen * fraction;
+  
+  // TODO: optimize to a single line
+  return Math.round(rawCount);
 }`,
     testCode: `const results = [];
 function check(name, actual, expected) {
@@ -636,8 +1236,6 @@ check('mid diffusion step', getMaskCount(100, 50, 100), 50);
 check('start diffusion step', getMaskCount(100, 90, 100), 90);
 return results;`,
     hints: [
-      'Divide t by T.',
-      'Multiply by seqLen, and round the result using Math.round.',
       'return Math.round(seqLen * (t / T));',
     ],
     solution: `function getMaskCount(seqLen, t, T) {
@@ -648,15 +1246,77 @@ return results;`,
 
   // --- EFFICIENT LLM SERVING ---
   {
-    id: 'serving-batch-utilization',
+    id: 'serving-batch-valid',
     stepLabel: '27.1',
     group: 'Continuous batching',
-    title: 'Serving batch slot utilization',
-    concept: 'In continuous batching LLM serving, tokens are processed in shared batch slots. Monitoring slot utilization helps scale serving resources.',
-    objective: 'Calculate the utilization ratio: activeSlots / maxBatchSlots.',
+    title: 'Validate Active Slots',
+    concept: 'In continuous batching LLM serving, tokens are processed in shared batch slots. First, we must ensure the active slot count does not exceed the maximum capacity.',
+    objective: 'Return Math.min(activeSlots, maxBatchSlots) to ensure we do not exceed capacity.',
     difficulty: 'warmup',
     starterCode: `function getBatchUtilization(activeSlots, maxBatchSlots) {
-  // TODO: return utilization fraction
+  // TODO: clamp activeSlots to maxBatchSlots
+  const validActive = activeSlots;
+  
+  return validActive / (maxBatchSlots || 1);
+}`,
+    testCode: `const results = [];
+function check(name, actual, expected) {
+  results.push({ name, actual, expected, passed: Object.is(actual, expected) });
+}
+check('clamp slots', getBatchUtilization(40, 32), 1);
+return results;`,
+    hints: [
+      'validActive = Math.min(activeSlots, maxBatchSlots);',
+    ],
+    solution: `function getBatchUtilization(activeSlots, maxBatchSlots) {
+  const validActive = Math.min(activeSlots, maxBatchSlots);
+  return validActive / (maxBatchSlots || 1);
+}`,
+    explanation: 'Hardware limits the maximum parallel requests a GPU can serve.',
+  },
+  {
+    id: 'serving-batch-zero',
+    stepLabel: '27.2',
+    group: 'Continuous batching',
+    title: 'Handle Zero Capacity',
+    concept: 'If there are no batch slots available (e.g., node is offline), we must prevent division by zero.',
+    objective: 'If maxBatchSlots is 0, return 0.',
+    difficulty: 'warmup',
+    starterCode: `function getBatchUtilization(activeSlots, maxBatchSlots) {
+  // TODO: return 0 if maxBatchSlots is 0
+  
+  const validActive = Math.min(activeSlots, maxBatchSlots);
+  return validActive / maxBatchSlots;
+}`,
+    testCode: `const results = [];
+function check(name, actual, expected) {
+  results.push({ name, actual, expected, passed: Object.is(actual, expected) });
+}
+check('zero capacity', getBatchUtilization(16, 0), 0);
+return results;`,
+    hints: [
+      'if (maxBatchSlots === 0) return 0;',
+    ],
+    solution: `function getBatchUtilization(activeSlots, maxBatchSlots) {
+  if (maxBatchSlots === 0) return 0;
+  const validActive = Math.min(activeSlots, maxBatchSlots);
+  return validActive / maxBatchSlots;
+}`,
+    explanation: 'Checking for zero capacity prevents NaN errors in system monitoring.',
+  },
+  {
+    id: 'serving-batch-ratio',
+    stepLabel: '27.3',
+    group: 'Continuous batching',
+    title: 'Calculate Ratio',
+    concept: 'To monitor system load, we divide the active slots by the total available slots.',
+    objective: 'Compute the utilization ratio: validActive / maxBatchSlots.',
+    difficulty: 'warmup',
+    starterCode: `function getBatchUtilization(activeSlots, maxBatchSlots) {
+  if (maxBatchSlots === 0) return 0;
+  const validActive = Math.min(activeSlots, maxBatchSlots);
+  
+  // TODO: calculate and return the ratio
   return 0;
 }`,
     testCode: `const results = [];
@@ -666,11 +1326,40 @@ function check(name, actual, expected) {
 check('half utilized', getBatchUtilization(16, 32), 0.5);
 return results;`,
     hints: [
-      'Divide activeSlots by maxBatchSlots.',
-      'return activeSlots / maxBatchSlots;',
+      'return validActive / maxBatchSlots;',
     ],
     solution: `function getBatchUtilization(activeSlots, maxBatchSlots) {
-  return activeSlots / maxBatchSlots;
+  if (maxBatchSlots === 0) return 0;
+  const validActive = Math.min(activeSlots, maxBatchSlots);
+  return validActive / maxBatchSlots;
+}`,
+    explanation: 'A ratio near 1.0 indicates the hardware is fully saturated.',
+  },
+  {
+    id: 'serving-batch-utilization',
+    stepLabel: '27.4',
+    group: 'Continuous batching',
+    title: 'Serving batch slot utilization',
+    concept: 'We can shorten this logic using a ternary operator.',
+    objective: 'Combine into: maxBatchSlots === 0 ? 0 : Math.min(activeSlots, maxBatchSlots) / maxBatchSlots.',
+    difficulty: 'core',
+    starterCode: `function getBatchUtilization(activeSlots, maxBatchSlots) {
+  // TODO: shorten logic with a ternary operator
+  if (maxBatchSlots === 0) return 0;
+  const validActive = Math.min(activeSlots, maxBatchSlots);
+  return validActive / maxBatchSlots;
+}`,
+    testCode: `const results = [];
+function check(name, actual, expected) {
+  results.push({ name, actual, expected, passed: Object.is(actual, expected) });
+}
+check('half utilized percentage', getBatchUtilization(16, 32), 0.5);
+return results;`,
+    hints: [
+      'return maxBatchSlots === 0 ? 0 : Math.min(activeSlots, maxBatchSlots) / maxBatchSlots;',
+    ],
+    solution: `function getBatchUtilization(activeSlots, maxBatchSlots) {
+  return maxBatchSlots === 0 ? 0 : Math.min(activeSlots, maxBatchSlots) / maxBatchSlots;
 }`,
     explanation: 'Continuous batching increases hardware utilization by dynamically packing incoming requests into active GPU scheduling slots.',
   },
@@ -1056,16 +1745,116 @@ function runAgentToolStep(assistantText, history, registry) {
 
   // --- AGENTIC CODING SYSTEMS ---
   {
-    id: 'agentic-apply-patch',
+    id: 'agentic-apply-presence',
     stepLabel: '30.1',
     group: 'Hunk apply',
-    title: 'Agentic text replacement',
-    concept: 'Agentic coding engines edit code bases by applying diff patches, finding target lines, and replacing them with revised code blocks.',
-    objective: 'Replace the first occurrence of targetString with replacementString in the content string.',
+    title: 'Verify target string',
+    concept: 'Agentic coding engines edit code bases by applying diff patches. Before replacing, the agent must verify the target block exists.',
+    objective: 'Return true if content includes the targetString.',
     difficulty: 'warmup',
     starterCode: `function applyPatch(content, targetString, replacementString) {
-  // TODO: replace targetString with replacementString in content
-  return '';
+  // TODO: check if the content contains the target block
+  const found = false;
+  return found;
+}`,
+    testCode: `const results = [];
+function check(name, actual, expected) {
+  results.push({ name, actual, expected, passed: Object.is(actual, expected) });
+}
+check('found match', applyPatch('let x = 1;\\nreturn x;', 'let x = 1;', 'let x = 2;'), true);
+check('missing match', applyPatch('let x = 1;', 'let y = 1;', 'let y = 2;'), false);
+return results;`,
+    hints: [
+      'Use content.includes(targetString);',
+    ],
+    solution: `function applyPatch(content, targetString, replacementString) {
+  const found = content.includes(targetString);
+  return found;
+}`,
+    explanation: 'Strict matching ensures the AI agent does not accidentally modify the wrong section of a file.',
+  },
+  {
+    id: 'agentic-apply-index',
+    stepLabel: '30.2',
+    group: 'Hunk apply',
+    title: 'Locate target string',
+    concept: 'Finding the exact index of the target block helps debugging if there are multiple identical blocks.',
+    objective: 'Find the index of targetString in content.',
+    difficulty: 'warmup',
+    starterCode: `function applyPatch(content, targetString, replacementString) {
+  // TODO: locate the index of targetString
+  const index = -1;
+  return index;
+}`,
+    testCode: `const results = [];
+function check(name, actual, expected) {
+  results.push({ name, actual, expected, passed: Object.is(actual, expected) });
+}
+check('index match', applyPatch('// top\\nlet x = 1;', 'let x = 1;', 'let x = 2;'), 7);
+return results;`,
+    hints: [
+      'Use content.indexOf(targetString);',
+    ],
+    solution: `function applyPatch(content, targetString, replacementString) {
+  const index = content.indexOf(targetString);
+  return index;
+}`,
+    explanation: 'Advanced code agents often use AST parsers or line-number tracking instead of simple string searches.',
+  },
+  {
+    id: 'agentic-apply-error',
+    stepLabel: '30.3',
+    group: 'Hunk apply',
+    title: 'Handle missing targets',
+    concept: 'If the target string cannot be found (perhaps due to a hallucination or an outdated read), the system should abort rather than silently corrupting the file.',
+    objective: 'If targetString is not in content, throw an Error.',
+    difficulty: 'warmup',
+    starterCode: `function applyPatch(content, targetString, replacementString) {
+  const index = content.indexOf(targetString);
+  
+  // TODO: throw an Error('Target not found') if index is -1
+  
+  return true;
+}`,
+    testCode: `const results = [];
+function check(name, actual, expected) {
+  results.push({ name, actual, expected, passed: Object.is(actual, expected) });
+}
+try {
+  applyPatch('let x = 1;', 'let y = 1;', 'let y = 2;');
+  check('throw error', false, true);
+} catch (e) {
+  check('throw error', true, true);
+}
+return results;`,
+    hints: [
+      "if (index === -1) throw new Error('Target not found');",
+    ],
+    solution: `function applyPatch(content, targetString, replacementString) {
+  const index = content.indexOf(targetString);
+  if (index === -1) {
+    throw new Error('Target not found');
+  }
+  return true;
+}`,
+    explanation: 'Failing fast ensures human operators can review the conflict before it cascades.',
+  },
+  {
+    id: 'agentic-apply-patch',
+    stepLabel: '30.4',
+    group: 'Hunk apply',
+    title: 'Agentic text replacement',
+    concept: 'Once verified, the replacement block is swapped into the exact location of the target block.',
+    objective: 'Return the updated content using content.replace.',
+    difficulty: 'core',
+    starterCode: `function applyPatch(content, targetString, replacementString) {
+  const index = content.indexOf(targetString);
+  if (index === -1) {
+    throw new Error('Target not found');
+  }
+  
+  // TODO: replace targetString with replacementString
+  return content;
 }`,
     testCode: `const results = [];
 function check(name, actual, expected) {
@@ -1074,10 +1863,13 @@ function check(name, actual, expected) {
 check('replace line', applyPatch('let x = 1;\\nreturn x;', 'let x = 1;', 'let x = 2;'), 'let x = 2;\\nreturn x;');
 return results;`,
     hints: [
-      'Use the .replace() method on strings.',
       'return content.replace(targetString, replacementString);',
     ],
     solution: `function applyPatch(content, targetString, replacementString) {
+  const index = content.indexOf(targetString);
+  if (index === -1) {
+    throw new Error('Target not found');
+  }
   return content.replace(targetString, replacementString);
 }`,
     explanation: 'Applying localized replacements enables developer agents to make targeted code changes without rewriting entire files.',
