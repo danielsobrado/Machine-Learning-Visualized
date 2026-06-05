@@ -490,10 +490,11 @@ return results;`,
 }`,
     testCode: `const results = [];
 function check(name, actual, expected) {
-  results.push({ name, actual: JSON.stringify(actual), expected: JSON.stringify(expected), passed: JSON.stringify(actual) === JSON.stringify(expected) });
+  results.push({ name, actual, expected, passed: Object.is(actual, expected) });
 }
 const adv = getRelativeAdvantages([2, 4, 6]);
-check('advantages test', Math.abs(adv[0] - -1.22474) < 1e-4, true);
+check('below-mean score is negative', adv[0] < 0, true);
+check('above-mean score is positive', adv[2] > 0, true);
 return results;`,
     hints: [
       'Use reduce, e.g. scores.reduce((sum, s) => sum + s, 0);',
@@ -539,11 +540,14 @@ return results;`,
   return advantages;
 }`,
     testCode: `const results = [];
+function approxEqual(a, b, tol = 1e-5) {
+  return Math.abs(a - b) <= tol;
+}
 function check(name, actual, expected) {
-  results.push({ name, actual: JSON.stringify(actual), expected: JSON.stringify(expected), passed: JSON.stringify(actual) === JSON.stringify(expected) });
+  results.push({ name, actual, expected, passed: approxEqual(actual, expected) });
 }
 const adv = getRelativeAdvantages([2, 4, 6]);
-check('advantages test', Math.abs(adv[0] - -1.22474) < 1e-4, true);
+check('mean-centered middle score', adv[1], 0);
 return results;`,
     hints: [
       'mean = sum / n;',
@@ -1344,10 +1348,8 @@ return results;`,
     objective: 'Combine into: maxBatchSlots === 0 ? 0 : Math.min(activeSlots, maxBatchSlots) / maxBatchSlots.',
     difficulty: 'core',
     starterCode: `function getBatchUtilization(activeSlots, maxBatchSlots) {
-  // TODO: shorten logic with a ternary operator
-  if (maxBatchSlots === 0) return 0;
-  const validActive = Math.min(activeSlots, maxBatchSlots);
-  return validActive / maxBatchSlots;
+  // TODO: return maxBatchSlots === 0 ? 0 : Math.min(activeSlots, maxBatchSlots) / maxBatchSlots
+  return 0;
 }`,
     testCode: `const results = [];
 function check(name, actual, expected) {
@@ -1750,26 +1752,27 @@ function runAgentToolStep(assistantText, history, registry) {
     group: 'Hunk apply',
     title: 'Verify target string',
     concept: 'Agentic coding engines edit code bases by applying diff patches. Before replacing, the agent must verify the target block exists.',
-    objective: 'Return true if content includes the targetString.',
+    objective: 'Return content unchanged when targetString is not found.',
     difficulty: 'warmup',
     starterCode: `function applyPatch(content, targetString, replacementString) {
-  // TODO: check if the content contains the target block
-  const found = false;
-  return found;
+  // TODO: return content unchanged when targetString is missing
+  return content;
 }`,
     testCode: `const results = [];
 function check(name, actual, expected) {
   results.push({ name, actual, expected, passed: Object.is(actual, expected) });
 }
-check('found match', applyPatch('let x = 1;\\nreturn x;', 'let x = 1;', 'let x = 2;'), true);
-check('missing match', applyPatch('let x = 1;', 'let y = 1;', 'let y = 2;'), false);
+check('missing target unchanged', applyPatch('let x = 1;', 'let y = 1;', 'let y = 2;'), 'let x = 1;');
+check('found target not yet replaced', applyPatch('let x = 1;\\nreturn x;', 'let x = 1;', 'let x = 2;'), 'let x = 1;\\nreturn x;');
 return results;`,
     hints: [
-      'Use content.includes(targetString);',
+      'if (!content.includes(targetString)) return content;',
     ],
     solution: `function applyPatch(content, targetString, replacementString) {
-  const found = content.includes(targetString);
-  return found;
+  if (!content.includes(targetString)) {
+    return content;
+  }
+  return content;
 }`,
     explanation: 'Strict matching ensures the AI agent does not accidentally modify the wrong section of a file.',
   },
@@ -1779,25 +1782,29 @@ return results;`,
     group: 'Hunk apply',
     title: 'Locate target string',
     concept: 'Finding the exact index of the target block helps debugging if there are multiple identical blocks.',
-    objective: 'Find the index of targetString in content.',
+    objective: 'Use indexOf and return content unchanged when the target is missing.',
     difficulty: 'warmup',
     starterCode: `function applyPatch(content, targetString, replacementString) {
-  // TODO: locate the index of targetString
-  const index = -1;
-  return index;
+  const index = content.indexOf(targetString);
+  // TODO: return content unchanged when index === -1
+  return content;
 }`,
     testCode: `const results = [];
 function check(name, actual, expected) {
   results.push({ name, actual, expected, passed: Object.is(actual, expected) });
 }
-check('index match', applyPatch('// top\\nlet x = 1;', 'let x = 1;', 'let x = 2;'), 7);
+check('missing target unchanged', applyPatch('let x = 1;', 'let y = 1;', 'let y = 2;'), 'let x = 1;');
+check('found target not yet replaced', applyPatch('let x = 1;\\nreturn x;', 'let x = 1;', 'let x = 2;'), 'let x = 1;\\nreturn x;');
 return results;`,
     hints: [
-      'Use content.indexOf(targetString);',
+      'if (index === -1) return content;',
     ],
     solution: `function applyPatch(content, targetString, replacementString) {
   const index = content.indexOf(targetString);
-  return index;
+  if (index === -1) {
+    return content;
+  }
+  return content;
 }`,
     explanation: 'Advanced code agents often use AST parsers or line-number tracking instead of simple string searches.',
   },
@@ -1807,14 +1814,14 @@ return results;`,
     group: 'Hunk apply',
     title: 'Handle missing targets',
     concept: 'If the target string cannot be found (perhaps due to a hallucination or an outdated read), the system should abort rather than silently corrupting the file.',
-    objective: 'If targetString is not in content, throw an Error.',
+    objective: 'Throw an Error when indexOf returns -1; otherwise return content unchanged.',
     difficulty: 'warmup',
     starterCode: `function applyPatch(content, targetString, replacementString) {
   const index = content.indexOf(targetString);
   
   // TODO: throw an Error('Target not found') if index is -1
   
-  return true;
+  return content;
 }`,
     testCode: `const results = [];
 function check(name, actual, expected) {
@@ -1826,6 +1833,7 @@ try {
 } catch (e) {
   check('throw error', true, true);
 }
+check('found not replaced', applyPatch('let x = 1;', 'let x = 1;', 'let x = 2;'), 'let x = 1;');
 return results;`,
     hints: [
       "if (index === -1) throw new Error('Target not found');",
@@ -1835,7 +1843,7 @@ return results;`,
   if (index === -1) {
     throw new Error('Target not found');
   }
-  return true;
+  return content;
 }`,
     explanation: 'Failing fast ensures human operators can review the conflict before it cascades.',
   },
