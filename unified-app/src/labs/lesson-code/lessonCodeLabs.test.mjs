@@ -113,7 +113,7 @@ test('lesson pages and the central labs route can resolve code lab groups', asyn
   assert.equal(getLessonCodeLabExercises('gradient-descent').length, 8);
   assert.match(getLessonCodeLabExercises('gradient-descent')[0].starterCode, /derivativeOfLine/);
   assert.match(getLessonCodeLabExercises('gradient-descent')[4].starterCode, /predictionError/);
-  assert.equal(getLessonCodeLabExercises('word2vec').length, 0);
+  assert.ok(getLessonCodeLabExercises('word2vec').length > 0);
 
   const appSource = await readFile(new URL('../../App.jsx', import.meta.url), 'utf8');
   const animationPageSource = await readFile(new URL('../../pages/AnimationPage.jsx', import.meta.url), 'utf8');

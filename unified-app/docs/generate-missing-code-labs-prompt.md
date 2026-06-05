@@ -2,7 +2,7 @@
 
 Use this document as a **copy-paste master prompt** for an LLM or human author. It defines the rules we agreed on during the Code Lab audit, the repo wiring, and an enumerated backlog of **83 lessons** that currently expose **no** page-level Code Lab.
 
-**Current state (2026-06):** 69 lessons have real labs · 83 lessons are intentionally hidden · 0 lessons use keyword placeholders.
+**Current state (2026-06):** 99 lessons have real labs · 53 lessons are intentionally hidden · 0 lessons use keyword placeholders.
 
 ---
 
@@ -170,21 +170,21 @@ Process **one lesson at a time** unless batching a tight cluster (e.g. all three
 
 ### Natural Language Processing (3)
 
-#### 1. `word2vec` — Word2Vec
+#### 1. [x] `word2vec` — Word2Vec
 - **Category:** Natural Language Processing
 - **Source:** `nlp` (new)
 - **Anchor function:** `skipGramLoss(centerIdx, contextIdx, scores)` or `negativeSamplingGradient(...)`
 - **Groups:** Context–target pair · Hierarchical softmax stub · Negative sampling · Subsampling frequent words
 - **Target:** 6–8 exercises
 
-#### 2. `glove` — GloVe
+#### 2. [x] `glove` — GloVe
 - **Category:** Natural Language Processing
 - **Source:** `nlp`
 - **Anchor function:** `gloveObjective(wi, wj, biasI, biasJ, xij, logX)` — weighted least squares on co-occurrence
 - **Groups:** Co-occurrence weight · Log term · Dot-plus-bias prediction · Full scalar loss
 - **Target:** 5–6 exercises
 
-#### 3. `fasttext` — FastText
+#### 3. [x] `fasttext` — FastText
 - **Category:** Natural Language Processing
 - **Source:** `nlp`
 - **Anchor function:** `fasttextBucketHash(ngram)` / `sumSubwordVectors(word, buckets)`
@@ -195,79 +195,79 @@ Process **one lesson at a time** unless batching a tight cluster (e.g. all three
 
 ### Transformers & Attention (13)
 
-#### 4. `rope` — RoPE (Rotary Embeddings)
+#### 4. [x] `rope` — RoPE (Rotary Embeddings)
 - **Source:** `transformer`
 - **Anchor:** `applyRoPE(x, cos, sin)` on 2D rotation pairs
 - **Groups:** Angle pair · Rotate 2D block · Apply to head dimension · Full sequence slice
 - **Target:** 6 exercises
 
-#### 5. `transformer-architecture-families` — Transformer Architecture Families
+#### 5. [x] `transformer-architecture-families` — Transformer Architecture Families
 - **Source:** `transformer`
 - **Anchor:** `blockConfigParams(config)` — count params / FFN ratio / head layout per family
 - **Groups:** FFN expansion ratio · Head count · GQA grouping · Parameter estimate
 - **Target:** 4–5 exercises
 
-#### 6. `coconut-latent-reasoning` — Coconut: Chain of Continuous Thought
+#### 6. [x] `coconut-latent-reasoning` — Coconut: Chain of Continuous Thought
 - **Source:** `transformer`
 - **Anchor:** `latentThoughtStep(hidden, thoughtVector)` — residual latent update
 - **Groups:** Latent residual add · Gate blend · Multi-step unroll · Stop condition
 - **Target:** 5 exercises
 
-#### 7. `grouped-query-attention` — Grouped-Query Attention
+#### 7. [x] `grouped-query-attention` — Grouped-Query Attention
 - **Source:** `transformer`
 - **Anchor:** `expandKV(K, V, numQueryHeads, numKVHeads)`
 - **Groups:** KV head index · Repeat/broadcast rule · Shape check · Attention-ready K/V
 - **Target:** 5–6 exercises
 
-#### 8. `kv-cache` — KV Cache
+#### 8. [x] `kv-cache` — KV Cache
 - **Source:** `transformer`
 - **Anchor:** `appendKVCache(cache, newK, newV, position)`
 - **Groups:** Slice write index · Cache length · Position offset · Concat semantics
 - **Target:** 5 exercises
 
-#### 9. `flash-attention` — Flash Attention
+#### 9. [x] `flash-attention` — Flash Attention
 - **Source:** `transformer`
 - **Anchor:** `onlineSoftmaxBlock(scores, rowMax, rowSum)` — streaming max/sum
 - **Groups:** Row max update · Exp rescale · Running sum · Normalized block output
 - **Target:** 6 exercises
 
-#### 10. `spec-sparse-attention` — SpecSA / SpecAttn
+#### 10. [x] `spec-sparse-attention` — SpecSA / SpecAttn
 - **Source:** `transformer`
 - **Anchor:** `draftVerifyAccept(draftTokens, targetLogits)`
 - **Groups:** Draft length · Accept/reject rule · KV block skip count · Effective tokens read
 - **Target:** 5 exercises
 
-#### 11. `turboquant` — TurboQuant
+#### 11. [x] `turboquant` — TurboQuant
 - **Source:** `transformer`
 - **Anchor:** `quantizeKV(vector, codebook)` / `dequantize(indices, codebook)`
 - **Groups:** Nearest codebook entry · Index encode · Dequant reconstruction · Error norm
 - **Target:** 5–6 exercises
 
-#### 12. `recommender-systems-ranking-track` — Recommender Systems & Ranking
+#### 12. [x] `recommender-systems-ranking-track` — Recommender Systems & Ranking
 - **Source:** `transformer` or `eval`
 - **Anchor:** `pairwiseRankLoss(scorePos, scoreNeg)` / `dotUserItem(user, item)`
 - **Groups:** Dot score · Pairwise hinge · Top-k mask · Batch negatives
 - **Target:** 5 exercises
 
-#### 13. `efficient-inference-compression-track` — Efficient Inference & Compression
+#### 13. [x] `efficient-inference-compression-track` — Efficient Inference & Compression
 - **Source:** `transformer`
 - **Anchor:** `quantizedMatmul(A, B, scaleA, scaleB)`
 - **Groups:** Per-channel scale · INT8 dot · Dequant fuse · Shape guard
 - **Target:** 5 exercises
 
-#### 14. `bert` — BERT
+#### 14. [x] `bert` — BERT
 - **Source:** `transformer`
 - **Anchor:** `bertMLMMask(tokens, maskIdx, vocabLogits)` — masked LM at index
 - **Groups:** Mask token replace · MLM logit slice · Cross-entropy one position · [CLS] pool (optional)
 - **Target:** 6 exercises
 
-#### 15. `moe` — Mixture of Experts
+#### 15. [x] `moe` — Mixture of Experts
 - **Source:** `transformer`
 - **Anchor:** `moeTopKRouter(logits, k)` / `dispatchToExperts(tokens, expertIdx)`
 - **Groups:** Softmax gate · Top-k pick · Load per expert · Weighted combine
 - **Target:** 6 exercises
 
-#### 16. `fine-tuning` — Fine-Tuning Methods
+#### 16. [x] `fine-tuning` — Fine-Tuning Methods
 - **Source:** `nn` + `transformer`
 - **Anchor:** `loraUpdate(W, A, B, alpha, rank)` — low-rank delta
 - **Groups:** Rank-1 product · Alpha scaling · Frozen base · Effective delta add
@@ -277,13 +277,13 @@ Process **one lesson at a time** unless batching a tight cluster (e.g. all three
 
 ### Papers (2)
 
-#### 17. `eagle-3-1-speculative-decoding` — EAGLE 3.1
+#### 17. [x] `eagle-3-1-speculative-decoding` — EAGLE 3.1
 - **Source:** `lm` (new speculative group)
 - **Anchor:** `eagleDraftExtend(tree, draftHidden, acceptMask)`
 - **Groups:** Draft tree depth · Self-trust threshold · Accept mask · Token salvage
 - **Target:** 5 exercises
 
-#### 18. `native-sparse-attention` — Native Sparse Attention
+#### 18. [x] `native-sparse-attention` — Native Sparse Attention
 - **Source:** `transformer`
 - **Anchor:** `sparseBlockMask(seqLen, blockSize, topBlocks)`
 - **Groups:** Block grid · Top-k blocks · Mask scatter · Effective attention region
@@ -293,73 +293,73 @@ Process **one lesson at a time** unless batching a tight cluster (e.g. all three
 
 ### Frontier LLMs (12)
 
-#### 19. `frontier-llm-architecture-overview` — Frontier LLM Architecture Overview
+#### 19. [x] `frontier-llm-architecture-overview` — Frontier LLM Architecture Overview
 - **Source:** `frontier` (new)
 - **Anchor:** `estimateInferenceMemory(params, context, bytesPerParam)`
 - **Groups:** Weight bytes · KV bytes · Total GB · Context scaling
 - **Target:** 4 exercises
 
-#### 20. `frontier-moe-systems` — Mixture of Experts at Frontier Scale
+#### 20. [x] `frontier-moe-systems` — Mixture of Experts at Frontier Scale
 - **Source:** `frontier`
 - **Anchor:** `moeActiveParams(totalParams, numExperts, topK)`
 - **Groups:** Active fraction · Expert param share · FLOPs ratio · Memory vs dense
 - **Target:** 4–5 exercises
 
-#### 21. `multi-head-latent-attention` — MLA / TransMLA
+#### 21. [x] `multi-head-latent-attention` — MLA / TransMLA
 - **Source:** `frontier`
 - **Anchor:** `compressKV(K, V, downProj, upProj)`
 - **Groups:** Down-project · Latent dim · Up-project restore · Cache size ratio
 - **Target:** 5–6 exercises
 
-#### 22. `reasoning-rlvr-grpo` — Reasoning Models: SFT → RLVR / GRPO
+#### 22. [x] `reasoning-rlvr-grpo` — Reasoning Models: SFT → RLVR / GRPO
 - **Source:** `frontier` + reuse `rl` groups where possible
 - **Anchor:** `grpoGroupReward(rewards)` / `relativeAdvantage(score, groupMean)`
 - **Groups:** Group baseline · Relative advantage · KL penalty stub · Policy weight
 - **Target:** 5 exercises
 
-#### 23. `test-time-compute-thinking-budgets` — Test-Time Compute & Thinking Budgets
+#### 23. [x] `test-time-compute-thinking-budgets` — Test-Time Compute & Thinking Budgets
 - **Source:** `frontier`
 - **Anchor:** `budgetedDecode(maxTokens, thinkTokens, answerTokens)`
 - **Groups:** Budget split · Early stop · Cost estimate · Answer extraction
 - **Target:** 4 exercises
 
-#### 24. `long-context-frontier-models` — Long Context: 1M to 10M Tokens
+#### 24. [x] `long-context-frontier-models` — Long Context: 1M to 10M Tokens
 - **Source:** `frontier`
 - **Anchor:** `kvMemoryBytes(layers, heads, dim, seqLen, dtypeBytes)`
 - **Groups:** Per-layer KV · Linear seq scaling · GQA savings · Million-token estimate
 - **Target:** 4–5 exercises
 
-#### 25. `omni-multimodal-architectures` — Multimodal and Omni Models
+#### 25. [x] `omni-multimodal-architectures` — Multimodal and Omni Models
 - **Source:** `frontier`
 - **Anchor:** `fuseModalEmbeddings(textEmb, imageEmb, gate)`
 - **Groups:** Gate compute · Weighted fuse · Sequence concat · Modality mask
 - **Target:** 5 exercises
 
-#### 26. `diffusion-language-models` — Diffusion Language Models
+#### 26. [x] `diffusion-language-models` — Diffusion Language Models
 - **Source:** `frontier` + `diffusion`
 - **Anchor:** `maskCorrupt(tokens, t, vocabSize)` / `denoiseStep(logits, t)`
 - **Groups:** Noise schedule · Mask ratio · One denoise step · Token unmask rule
 - **Target:** 5–6 exercises
 
-#### 27. `efficient-llm-serving` — Efficient LLM Serving
+#### 27. [x] `efficient-llm-serving` — Efficient LLM Serving
 - **Source:** `frontier`
 - **Anchor:** `batchUtilization(activeSlots, maxBatch)` / `latencyEstimate(tokens, tokPerSec)`
 - **Groups:** Continuous batching · Padding waste · Throughput · Queue latency
 - **Target:** 4 exercises
 
-#### 28. `frontier-evaluation-safety` — Frontier Evaluation and Safety
+#### 28. [x] `frontier-evaluation-safety` — Frontier Evaluation and Safety
 - **Source:** `eval`
 - **Anchor:** `harmScore(logprobs, refusalTokenIds)` / `passAtK(correctRuns, k, n)`
 - **Groups:** Pass@k · Refusal detect · Threshold · Aggregate bench score
 - **Target:** 4–5 exercises
 
-#### 29. `tool-using-reasoning-models` — Tool-Using Reasoning Models
+#### 29. [x] `tool-using-reasoning-models` — Tool-Using Reasoning Models
 - **Source:** `frontier`
 - **Anchor:** `parseToolCall(modelText)` / `injectToolResult(context, result)`
 - **Groups:** JSON arg extract · Tool name match · Result append · Next-step prompt
 - **Target:** 4–5 exercises
 
-#### 30. `agentic-coding-systems` — Agentic Coding Systems
+#### 30. [x] `agentic-coding-systems` — Agentic Coding Systems
 - **Source:** `frontier`
 - **Anchor:** `planStep(state, observation)` / `applyFilePatch(patch, content)`
 - **Groups:** Unified diff parse · Hunk apply · Test gate · Rollback flag
@@ -369,31 +369,31 @@ Process **one lesson at a time** unless batching a tight cluster (e.g. all three
 
 ### Neural Networks (5)
 
-#### 31. `lstm` — LSTM
+#### 31. [x] `lstm` — LSTM
 - **Source:** `nn`
 - **Anchor:** `lstmCell(x, hPrev, cPrev, W)` — full cell with gates
 - **Groups:** Forget gate · Input gate · Candidate cell · Output gate · Hidden update
 - **Target:** 6–8 exercises
 
-#### 32. `conv2d` — Conv2D
+#### 32. [x] `conv2d` — Conv2D
 - **Source:** `nn`
 - **Anchor:** `conv2d(image, kernel, stride, pad)`
 - **Groups:** Output size formula · One patch dot product · Stride step · Full channel sum
 - **Target:** 6–8 exercises
 
-#### 33. `max-pooling` — Max Pooling
+#### 33. [x] `max-pooling` — Max Pooling
 - **Source:** `nn`
 - **Anchor:** `maxPool2d(patch)` / full map pooling
 - **Groups:** Window max · Index track · Stride grid · Output shape
 - **Target:** 4–5 exercises
 
-#### 34. `conv-relu` — Conv + ReLU
+#### 34. [x] `conv-relu` — Conv + ReLU
 - **Source:** `nn`
 - **Anchor:** `convReluForward(x, w, b)` — conv then `Math.max(0, z)`
 - **Groups:** Conv dot · Add bias · ReLU clip · Combined forward
 - **Target:** 5 exercises
 
-#### 35. `initialization` — Initialization
+#### 35. [x] `initialization` — Initialization
 - **Source:** `nn`
 - **Anchor:** `xavierLimit(fanIn, fanOut)` / `heStd(fanIn)`
 - **Groups:** Fan-in/out · Xavier bound · He std · Sample weight scale check
@@ -403,13 +403,13 @@ Process **one lesson at a time** unless batching a tight cluster (e.g. all three
 
 ### Advanced Models (2)
 
-#### 36. `vae` — Variational Autoencoder
+#### 36. [x] `vae` — Variational Autoencoder
 - **Source:** `nn` (new VAE group)
 - **Anchor:** `vaeLoss(recon, x, mu, logvar)` — recon + KL
 - **Groups:** Reconstruction MSE · KL closed form · Reparameterize z · Combined ELBO
 - **Target:** 6 exercises
 
-#### 37. `multimodal-llm` — Multimodal LLM
+#### 37. [x] `multimodal-llm` — Multimodal LLM
 - **Source:** `nn` + `lm`
 - **Anchor:** `projectImageTokens(imageGrid, projector)` — align vision to LM dim
 - **Groups:** Patch flatten · Linear project · Insert positions · Attention mask
@@ -419,7 +419,7 @@ Process **one lesson at a time** unless batching a tight cluster (e.g. all three
 
 ### Math Fundamentals (1)
 
-#### 38. `gradient-descent` — Gradient Descent
+#### 38. [x] `gradient-descent` — Gradient Descent
 - **Category:** Math Fundamentals
 - **Note:** mapping exists but points at wrong source (`linear` vs `nn`). Fix mapping to `{ source: 'nn', groups: ['Gradient descent least squares', 'Derivative basics'] }` and ensure `Derivative basics` group exists in `linearAlgebraCodeLabs.js` OR move all GD exercises to linear with correct group names.
 - **Anchor:** `gradientDescentStep(w, grad, lr)` on full weight vector
@@ -430,55 +430,55 @@ Process **one lesson at a time** unless batching a tight cluster (e.g. all three
 
 ### Core ML (9)
 
-#### 39. `train-validation-test-split` — Train / Validation / Test Split
+#### 39. [x] `train-validation-test-split` — Train / Validation / Test Split
 - **Source:** `core` (new)
 - **Anchor:** `splitDataset(indices, trainFrac, valFrac)`
 - **Groups:** Shuffle · Train slice · Val slice · Test remainder · No leakage check
 - **Target:** 5 exercises
 
-#### 40. `cross-validation` — Cross-Validation & Data Leakage
+#### 40. [x] `cross-validation` — Cross-Validation & Data Leakage
 - **Source:** `core`
 - **Anchor:** `kFoldIndices(n, k, fold)`
 - **Groups:** Fold size · Train/val masks · Leakage guard (fit scaler on train only)
 - **Target:** 5–6 exercises
 
-#### 41. `data-leakage-deep-dive` — Data Leakage Deep Dive
+#### 41. [x] `data-leakage-deep-dive` — Data Leakage Deep Dive
 - **Source:** `core`
 - **Anchor:** `targetCorruptsFeature(y, Xcol, threshold)` / pipeline order check
 - **Groups:** Label in features · Future info · Group split · Preprocessing leak
 - **Target:** 4–5 exercises
 
-#### 42. `feature-scaling-preprocessing` — Feature Scaling & Preprocessing
+#### 42. [x] `feature-scaling-preprocessing` — Feature Scaling & Preprocessing
 - **Source:** `core`
 - **Anchor:** `standardize(X, mean, std)` / `minMaxScale(x, min, max)`
 - **Groups:** Mean · Variance · Transform · Inverse (optional)
 - **Target:** 5 exercises
 
-#### 43. `k-means` — K-Means Clustering
+#### 43. [x] `k-means` — K-Means Clustering
 - **Source:** `core`
 - **Anchor:** `kMeansAssign(x, centroids)` / `kMeansUpdate(points, labels, k)`
 - **Groups:** Distance to centroid · Assignment · Mean update · One iteration
 - **Target:** 6–7 exercises
 
-#### 44. `knn-naive-bayes-svm` — kNN, Naive Bayes, and SVM
+#### 44. [x] `knn-naive-bayes-svm` — kNN, Naive Bayes, and SVM
 - **Source:** `core`
 - **Anchor:** three mini-functions: `knnPredict(...)`, `naiveBayesClass(...)`, `hingeLoss(...)`
 - **Groups:** kNN vote · Gaussian NB likelihood · Log-posterior pick · SVM hinge
 - **Target:** 6–8 exercises (2 per algorithm)
 
-#### 45. `tree-ensembles` — Tree Ensembles
+#### 45. [x] `tree-ensembles` — Tree Ensembles
 - **Source:** `core`
 - **Anchor:** `giniImpurity(counts)` / `majorityVote(treeVotes)`
 - **Groups:** Gini · Split gain stub · Bagging average · Boosting weight
 - **Target:** 5–6 exercises
 
-#### 46. `time-series-forecasting-track` — Time Series & Forecasting
+#### 46. [x] `time-series-forecasting-track` — Time Series & Forecasting
 - **Source:** `core`
 - **Anchor:** `rollingMean(series, window)` / `expSmooth(series, alpha)`
 - **Groups:** Window slice · Rolling stat · Lag feature · One-step forecast
 - **Target:** 5 exercises
 
-#### 47. `data-engineering-for-ml-track` — Data Engineering for ML
+#### 47. [x] `data-engineering-for-ml-track` — Data Engineering for ML
 - **Source:** `core`
 - **Anchor:** `dedupeByKey(rows, key)` / `missingImputeMedian(col)`
 - **Groups:** Null count · Median impute · Dedup key · Train-only stats
@@ -488,25 +488,25 @@ Process **one lesson at a time** unless batching a tight cluster (e.g. all three
 
 ### Model Reliability (4)
 
-#### 48. `model-interpretability` — Model Interpretability
+#### 48. [x] `model-interpretability` — Model Interpretability
 - **Source:** `eval`
 - **Anchor:** `shapleySingleFeature(fWith, fWithout)` / `integratedGradStep(...)`
 - **Groups:** Marginal contrib · Sum to delta · Baseline path · Feature attribution vector
 - **Target:** 5 exercises
 
-#### 49. `model-fairness` — Model Fairness
+#### 49. [x] `model-fairness` — Model Fairness
 - **Source:** `eval`
 - **Anchor:** `demographicParityGap(yPred, group)` / `equalizedOddsDiff(...)`
 - **Groups:** Group rate · Parity gap · TPR gap · Threshold adjust stub
 - **Target:** 4–5 exercises
 
-#### 50. `uncertainty-estimation` — Uncertainty Estimation
+#### 50. [x] `uncertainty-estimation` — Uncertainty Estimation
 - **Source:** `eval`
 - **Anchor:** `entropyFromProbs(p)` / `mcDropoutStd(preds)`
 - **Groups:** Predictive entropy · Variance across samples · CI from std · Selective abstain
 - **Target:** 5 exercises
 
-#### 51. `ml-security-robustness-track` — ML Security & Robustness
+#### 51. [x] `ml-security-robustness-track` — ML Security & Robustness
 - **Source:** `eval`
 - **Anchor:** `fgmStep(x, grad, epsilon)` / `robustAccuracy(clean, adv)`
 - **Groups:** Gradient sign step · Perturbation clip · Robust acc · Detection threshold
@@ -516,37 +516,37 @@ Process **one lesson at a time** unless batching a tight cluster (e.g. all three
 
 ### Probability & Statistics (6)
 
-#### 52. `probability-distributions` — Probability Distributions
+#### 52. [x] `probability-distributions` — Probability Distributions
 - **Source:** `prob` (new)
 - **Anchor:** `gaussianPdf(x, mu, sigma)` / `bernoulliPmF(k, p)`
 - **Groups:** PDF eval · Normalization check · Bernoulli mean · Sample log-lik
 - **Target:** 5–6 exercises
 
-#### 53. `conditional-probability` — Conditional Probability
+#### 53. [x] `conditional-probability` — Conditional Probability
 - **Source:** `prob`
 - **Anchor:** `conditional(aAndB, bProb)` / `bayesNumerator(likelihood, prior)`
 - **Groups:** P(A|B) formula · Chain rule · Independence check · Table row normalize
 - **Target:** 5 exercises
 
-#### 54. `bayes-rule-ml` — Bayes Rule for ML
+#### 54. [x] `bayes-rule-ml` — Bayes Rule for ML
 - **Source:** `prob`
 - **Anchor:** `bayesPosterior(prior, likelihood, evidence)`
 - **Groups:** Numerator · Evidence sum · Posterior normalize · Log-space (optional)
 - **Target:** 5 exercises
 
-#### 55. `maximum-likelihood-estimation` — Maximum Likelihood Estimation
+#### 55. [x] `maximum-likelihood-estimation` — Maximum Likelihood Estimation
 - **Source:** `prob`
 - **Anchor:** `logLikBernoulli(data, p)` / `mleGaussianMean(data)`
 - **Groups:** Per-sample log · Sum log-lik · Argmax p · Gaussian mean MLE
 - **Target:** 5–6 exercises
 
-#### 56. `expected-value-variance` — Expected Value & Variance
+#### 56. [x] `expected-value-variance` — Expected Value & Variance
 - **Source:** `prob`
 - **Anchor:** `expectedValue(outcomes, probs)` / `variance(outcomes, probs)`
 - **Groups:** Weighted sum · Mean shortcut · Squared dev · Variance formula
 - **Target:** 5 exercises
 
-#### 57. `spearman-correlation` — Spearman Correlation
+#### 57. [x] `spearman-correlation` — Spearman Correlation
 - **Source:** `prob`
 - **Anchor:** `rankData(values)` / `spearmanRho(x, y)`
 - **Groups:** Rank with ties · Pearson on ranks · Rho in [-1,1] · Monotonic check
@@ -556,73 +556,73 @@ Process **one lesson at a time** unless batching a tight cluster (e.g. all three
 
 ### Reinforcement Learning (12)
 
-#### 58. `rl-foundations` — RL Foundations
+#### 58. [x] `rl-foundations` — RL Foundations
 - **Source:** `rl` (new)
 - **Anchor:** `discountedReturn(rewards, gamma)` / `episodeReturn(traj)`
 - **Groups:** One-step return · Discount chain · Finite horizon · Policy value stub
 - **Target:** 5 exercises
 
-#### 59. `mdp-formalism` — MDP Formalism
+#### 59. [x] `mdp-formalism` — MDP Formalism
 - **Source:** `rl`
 - **Anchor:** `bellmanExpectation(V, P, R, gamma, s)`
 - **Groups:** Transition sum · Reward term · Gamma discount · Vector backup
 - **Target:** 5–6 exercises
 
-#### 60. `value-iteration` — Value Iteration
+#### 60. [x] `value-iteration` — Value Iteration
 - **Source:** `rl`
 - **Anchor:** `valueIterationStep(V, P, R, gamma)`
 - **Groups:** Max over actions · Backup once · Convergence delta · Greedy policy extract
 - **Target:** 5–6 exercises
 
-#### 61. `policy-iteration` — Policy Iteration
+#### 61. [x] `policy-iteration` — Policy Iteration
 - **Source:** `rl`
 - **Anchor:** `policyEvalStep(V, pi, P, R, gamma)` / `policyImprove(pi, Q)`
 - **Groups:** Eval backup · Q from V · Greedy improve · Swap policy
 - **Target:** 5–6 exercises
 
-#### 62. `q-learning` — Q-Learning
+#### 62. [x] `q-learning` — Q-Learning
 - **Source:** `rl`
 - **Anchor:** `qLearningUpdate(Q, s, a, r, sNext, alpha, gamma)`
 - **Groups:** TD target · Max next Q · Learning rate blend · Tabular one-step
 - **Target:** 5–6 exercises
 
-#### 63. `rl-exploration` — Exploration vs Exploitation
+#### 63. [x] `rl-exploration` — Exploration vs Exploitation
 - **Source:** `rl`
 - **Anchor:** `epsilonGreedyAction(Qs, epsilon)` / `ucbScore(mean, n, t, c)`
 - **Groups:** Greedy pick · Random branch · Epsilon mix · UCB formula
 - **Target:** 4–5 exercises
 
-#### 64. `policy-gradients` — Policy Gradients
+#### 64. [x] `policy-gradients` — Policy Gradients
 - **Source:** `rl`
 - **Anchor:** `reinforceGradient(logProb, reward, baseline)`
 - **Groups:** Log-prob weight · Baseline subtract · Return multiply · Vector grad stub
 - **Target:** 5 exercises
 
-#### 65. `actor-critic` — Actor-Critic
+#### 65. [x] `actor-critic` — Actor-Critic
 - **Source:** `rl`
 - **Anchor:** `advantage(tdTarget, value)` / `actorLoss(logProb, advantage)`
 - **Groups:** TD error · Advantage · Critic MSE · Actor log grad
 - **Target:** 5–6 exercises
 
-#### 66. `reward-shaping` — Reward Shaping
+#### 66. [x] `reward-shaping` — Reward Shaping
 - **Source:** `rl`
 - **Anchor:** `shapedReward(r, s, sNext, gamma, phi)`
 - **Groups:** Potential phi · Shaping term · Gamma cancel · Total step reward
 - **Target:** 4–5 exercises
 
-#### 67. `grpo-reasoning` — GRPO: Learning to Reason from Groups of Answers
-- **Source:** `rl` (reuse mini-grpo logic if possible)
+#### 67. [x] `grpo-reasoning` — GRPO: Learning to Reason from Groups of Answers
+- **Source:** `rl` (high-quality grpo logic)
 - **Anchor:** `grpoRelativeReward(scores)` / `groupNormalize(rewards)`
 - **Groups:** Group mean · Relative reward · Clip extremes · Policy ratio tie-in
 - **Target:** 5 exercises
 
-#### 68. `dapo-reasoning-rl` — DAPO: Fixing GRPO at Scale
+#### 68. [x] `dapo-reasoning-rl` — DAPO: Fixing GRPO at Scale
 - **Source:** `rl`
 - **Anchor:** `dapoClipReward(r, low, high)` / `decoupledAdv(...)`
 - **Groups:** Reward clip · Decoupled baseline · Length norm · Batch scale guard
 - **Target:** 5 exercises
 
-#### 69. `markov-chains` — Markov Chains
+#### 69. [x] `markov-chains` — Markov Chains
 - **Source:** `rl` or `prob`
 - **Anchor:** `markovStep(dist, P)` / `stationaryCheck(pi, P)`
 - **Groups:** One-step multiply · n-step power · Stationary · Absorbing check
@@ -632,13 +632,13 @@ Process **one lesson at a time** unless batching a tight cluster (e.g. all three
 
 ### Algorithms & Data Structures (2)
 
-#### 70. `bloom-filter` — Bloom Filter
+#### 70. [x] `bloom-filter` — Bloom Filter
 - **Source:** `algo` (new)
 - **Anchor:** `bloomInsert(bits, item, hashes)` / `bloomMaybeContains(bits, item, hashes)`
 - **Groups:** Hash positions · Set bits · Query all bits · False positive note (structural only)
 - **Target:** 5 exercises
 
-#### 71. `pagerank` — PageRank
+#### 71. [x] `pagerank` — PageRank
 - **Source:** `algo`
 - **Anchor:** `pagerankStep(ranks, links, damping)`
 - **Groups:** Out-link normalize · Dangling mass · Damping teleport · One iteration
@@ -648,73 +648,73 @@ Process **one lesson at a time** unless batching a tight cluster (e.g. all three
 
 ### Diffusion Models (SD3) (12)
 
-#### 72. `diffusion-basics` — Diffusion Basics
+#### 72. [x] `diffusion-basics` — Diffusion Basics
 - **Source:** `diffusion` (new)
 - **Anchor:** `forwardDiffuse(x0, noise, t, alphasBar)`
 - **Groups:** Noise scale · Alpha bar · Sample x_t · Signal-to-noise
 - **Target:** 5–6 exercises
 
-#### 73. `diffusion-sampling` — Diffusion Sampling
+#### 73. [x] `diffusion-sampling` — Diffusion Sampling
 - **Source:** `diffusion`
 - **Anchor:** `ddpmReverseStep(xt, epsHat, t, betas)`
 - **Groups:** Posterior mean · Noise coeff · Step t→t-1 · Final denoise
 - **Target:** 6 exercises
 
-#### 74. `classifier-free-guidance` — Classifier-Free Guidance
+#### 74. [x] `classifier-free-guidance` — Classifier-Free Guidance
 - **Source:** `diffusion`
 - **Anchor:** `cfgCombine(epsCond, epsUncond, scale)`
 - **Groups:** Uncond branch · Cond branch · Scale mix · Zero-scale identity
 - **Target:** 4–5 exercises
 
-#### 75. `unet-vs-dit` — U-Net vs DiT
+#### 75. [x] `unet-vs-dit` — U-Net vs DiT
 - **Source:** `diffusion`
 - **Anchor:** `unetSkipShape(h, level)` / `ditPatchify(image, patch)`
 - **Groups:** U-Net down/up · Skip concat · Patch tokens · Block count compare
 - **Target:** 4–5 exercises
 
-#### 76. `sd3-overview` — SD3 Architecture Overview
+#### 76. [x] `sd3-overview` — SD3 Architecture Overview
 - **Source:** `diffusion`
 - **Anchor:** `sd3LatentShape(pixels, vaeScale)` — pipeline shape bookkeeping
 - **Groups:** VAE downscale · Latent channels · Text seq len · Joint block count
 - **Target:** 4 exercises
 
-#### 77. `flow-matching` — Flow Matching
+#### 77. [x] `flow-matching` — Flow Matching
 - **Source:** `diffusion`
 - **Anchor:** `flowPath(x0, x1, t)` / `flowVelocity(x0, x1)`
 - **Groups:** Linear interp · Time derivative · Target velocity · One Euler step
 - **Target:** 5–6 exercises
 
-#### 78. `diffusion-vae` — VAE for Diffusion
+#### 78. [x] `diffusion-vae` — VAE for Diffusion
 - **Source:** `diffusion` + `nn` VAE group
 - **Anchor:** `vaeLatentScale(latent, scalingFactor)`
 - **Groups:** Encode scale · Decode unscale · KL in latent · Recon for diffusion pipeline
 - **Target:** 5 exercises
 
-#### 79. `tokenizer-bpe` — BPE & Unigram Tokenizers
+#### 79. [x] `tokenizer-bpe` — BPE & Unigram Tokenizers
 - **Source:** `diffusion` or `lm`
 - **Anchor:** `bpeMerge(tokens, pair)` / `bpeCountPairs(corpus)`
 - **Groups:** Pair count · Merge rule · Token list update · Decode bytes
 - **Target:** 5–6 exercises
 
-#### 80. `clip-encoder` — CLIP Text Encoder
+#### 80. [x] `clip-encoder` — CLIP Text Encoder
 - **Source:** `diffusion`
 - **Anchor:** `clipTextPool(hiddenStates, eosIdx)`
 - **Groups:** EOS index · Pool vector · L2 normalize · Contrastive logit stub
 - **Target:** 4–5 exercises
 
-#### 81. `t5-encoder` — T5 Text Encoder
+#### 81. [x] `t5-encoder` — T5 Text Encoder
 - **Source:** `diffusion`
 - **Anchor:** `t5EncoderMask(padIds, seqLen)`
 - **Groups:** Pad mask · Attention bias · Last hidden slice · Cross-attn ready
 - **Target:** 4–5 exercises
 
-#### 82. `joint-attention` — Joint Attention
+#### 82. [x] `joint-attention` — Joint Attention
 - **Source:** `diffusion`
 - **Anchor:** `jointAttentionQKV(text, image, W)` — fused QKV for multimodal SD3
 - **Groups:** Concat Q · Block-sparse mask · Single softmax · Split outputs
 - **Target:** 5–6 exercises
 
-#### 83. `dit` — DiT (Diffusion Transformer)
+#### 83. [x] `dit` — DiT (Diffusion Transformer)
 - **Source:** `diffusion`
 - **Anchor:** `ditBlock(x, tEmb, cond)` — adaLN + attention + MLP
 - **Groups:** Time embed inject · adaLN scale/shift · Self-attn · MLP residual

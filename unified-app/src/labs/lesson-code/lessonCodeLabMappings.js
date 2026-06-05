@@ -5,6 +5,13 @@ import { LANGUAGE_MODEL_CODE_LABS } from '../language-models/languageModelCodeLa
 import { RAG_CODE_LABS } from '../rag/ragCodeLabs.js';
 import { EVALUATION_CODE_LABS } from '../evaluation/evaluationCodeLabs.js';
 import { EXPERIMENTATION_CODE_LABS } from '../experimentation/experimentationCodeLabs.js';
+import { NLP_CODE_LABS } from '../nlp/nlpCodeLabs.js';
+import { CORE_ML_CODE_LABS } from '../core-ml/coreMlCodeLabs.js';
+import { PROBABILITY_CODE_LABS } from '../probability/probabilityCodeLabs.js';
+import { REINFORCEMENT_LEARNING_CODE_LABS } from '../reinforcement-learning/reinforcementLearningCodeLabs.js';
+import { DIFFUSION_CODE_LABS } from '../diffusion/diffusionCodeLabs.js';
+import { ALGORITHMS_CODE_LABS } from '../algorithms/algorithmsCodeLabs.js';
+import { FRONTIER_LLM_CODE_LABS } from '../frontier-llms/frontierLlmCodeLabs.js';
 import { filterExercisesByGroups } from './filterExercisesByGroups.js';
 
 const SOURCES = {
@@ -15,6 +22,13 @@ const SOURCES = {
   rag: RAG_CODE_LABS,
   eval: EVALUATION_CODE_LABS,
   exp: EXPERIMENTATION_CODE_LABS,
+  nlp: NLP_CODE_LABS,
+  core: CORE_ML_CODE_LABS,
+  prob: PROBABILITY_CODE_LABS,
+  rl: REINFORCEMENT_LEARNING_CODE_LABS,
+  diffusion: DIFFUSION_CODE_LABS,
+  algo: ALGORITHMS_CODE_LABS,
+  frontier: FRONTIER_LLM_CODE_LABS,
 };
 
 /** Lessons with hand-authored exercises in category files (skip auto-mapping). */
@@ -90,6 +104,12 @@ export const LESSON_GROUP_MAPPINGS = {
     groups: ['Standard error and confidence intervals'],
   },
   'hypothesis-testing-intuition': { source: 'exp', groups: ['A/B test z-statistic'] },
+  'probability-distributions': { source: 'prob', groups: ['Bernoulli mean', 'PDF eval'] },
+  'conditional-probability': { source: 'prob', groups: ['P(A|B) formula', 'Chain rule'] },
+  'bayes-rule-ml': { source: 'prob', groups: ['Numerator', 'Posterior normalize'] },
+  'maximum-likelihood-estimation': { source: 'prob', groups: ['Gaussian mean MLE', 'Per-sample log'] },
+  'expected-value-variance': { source: 'prob', groups: ['Weighted sum', 'Variance formula'] },
+  'spearman-correlation': { source: 'prob', groups: ['Rank with ties', 'Pearson on ranks'] },
 
   // Core ML
   'logistic-regression': { source: 'nn', groups: ['Logistic regression bridge'] },
@@ -99,6 +119,15 @@ export const LESSON_GROUP_MAPPINGS = {
   'regularization': { source: 'nn', groups: ['Regularization'] },
   'overfitting': { source: 'nn', groups: ['Regularization', 'Training loop mechanics'] },
   'bias-variance-tradeoff': { source: 'nn', groups: ['Regularization', 'Training loop mechanics'] },
+  'train-validation-test-split': { source: 'core', groups: ['Shuffle', 'Train slice', 'No leakage check'] },
+  'cross-validation': { source: 'core', groups: ['Fold size', 'Train/val masks'] },
+  'data-leakage-deep-dive': { source: 'core', groups: ['Label in features', 'Preprocessing leak'] },
+  'feature-scaling-preprocessing': { source: 'core', groups: ['Mean', 'Transform'] },
+  'k-means': { source: 'core', groups: ['Distance to centroid', 'Assignment', 'Mean update'] },
+  'knn-naive-bayes-svm': { source: 'core', groups: ['kNN vote', 'SVM hinge'] },
+  'tree-ensembles': { source: 'core', groups: ['Gini', 'Bagging average'] },
+  'time-series-forecasting-track': { source: 'core', groups: ['Window slice', 'One-step forecast'] },
+  'data-engineering-for-ml-track': { source: 'core', groups: ['Median impute', 'Dedup key'] },
 
   // Neural networks
   'relu': { source: 'nn', groups: ['One neuron', 'Activation gradients'] },
@@ -113,6 +142,11 @@ export const LESSON_GROUP_MAPPINGS = {
   'dropout-batchnorm': { source: 'nn', groups: ['Regularization'] },
   'gradient-problems': { source: 'nn', groups: ['Activation gradients', 'Derivative basics'] },
   'layer-normalization': { source: 'transformer', groups: ['LayerNorm and RMSNorm'] },
+  'lstm': { source: 'nn', groups: ['Forget gate', 'Candidate cell'] },
+  'conv2d': { source: 'nn', groups: ['Output size formula', 'One patch dot product'] },
+  'max-pooling': { source: 'nn', groups: ['Window max'] },
+  'conv-relu': { source: 'nn', groups: ['ReLU clip'] },
+  'initialization': { source: 'nn', groups: ['He std'] },
 
   // Transformers
   'attention-mechanism': [
@@ -135,6 +169,20 @@ export const LESSON_GROUP_MAPPINGS = {
     ],
   },
   'residual-stream': { source: 'transformer', groups: ['Residual stream mechanics', 'Tiny transformer block'] },
+  'rope': { source: 'transformer', groups: ['Rotate 2D block', 'Apply to head dimension'] },
+  'transformer-architecture-families': { source: 'transformer', groups: ['FFN expansion ratio', 'Parameter estimate'] },
+  'coconut-latent-reasoning': { source: 'transformer', groups: ['Latent residual add', 'Gate blend'] },
+  'grouped-query-attention': { source: 'transformer', groups: ['KV head index', 'Repeat/broadcast rule'] },
+  'kv-cache': { source: 'transformer', groups: ['Slice write index'] },
+  'flash-attention': { source: 'transformer', groups: ['Row max update', 'Running sum'] },
+  'spec-sparse-attention': { source: 'transformer', groups: ['Accept/reject rule'] },
+  'turboquant': { source: 'transformer', groups: ['Nearest codebook entry'] },
+  'efficient-inference-compression-track': { source: 'transformer', groups: ['Dequant fuse'] },
+  'bert': { source: 'transformer', groups: ['Mask token replace'] },
+  'moe': { source: 'transformer', groups: ['Top-k pick'] },
+  'fine-tuning': { source: 'transformer', groups: ['Alpha scaling', 'Effective delta add'] },
+  'native-sparse-attention': { source: 'transformer', groups: ['Block grid'] },
+  'recommender-systems-ranking-track': { source: 'eval', groups: ['Dot score', 'Pairwise hinge'] },
   'llm-training-objectives': {
     source: 'lm',
     groups: [
@@ -165,6 +213,7 @@ export const LESSON_GROUP_MAPPINGS = {
       'Temperature and top-k / top-p',
     ],
   },
+  'eagle-3-1-speculative-decoding': { source: 'lm', groups: ['Self-trust threshold', 'Token salvage'] },
 
   // NLP
   'bag-of-words': { source: 'rag', groups: ['Bag-of-words vectors'] },
@@ -176,6 +225,18 @@ export const LESSON_GROUP_MAPPINGS = {
     { source: 'transformer', groups: ['Transformer mini-block shapes'] },
     { source: 'lm', groups: ['Mini vocabulary and logits'] },
   ],
+  'word2vec': {
+    source: 'nlp',
+    groups: ['Context-target pair', 'Negative sampling'],
+  },
+  'glove': {
+    source: 'nlp',
+    groups: ['Co-occurrence weight', 'Dot-plus-bias prediction', 'Full scalar loss'],
+  },
+  'fasttext': {
+    source: 'nlp',
+    groups: ['Character n-gram enumerate', 'Hash bucket', 'Subword vector sum'],
+  },
 
   // Advanced models / RAG
   'rag': {
@@ -194,6 +255,8 @@ export const LESSON_GROUP_MAPPINGS = {
   'rag-reranking-grounding': { source: 'rag', groups: ['Reranking and grounding checks'] },
   'rag-retrieval-evaluation': { source: 'rag', groups: ['Retrieval metrics'] },
   'rag-failure-modes': { source: 'rag', groups: ['Reranking and grounding checks', 'Retrieval metrics'] },
+  'vae': { source: 'nn', groups: ['KL closed form'] },
+  'multimodal-llm': { source: 'nn', groups: ['Linear project'] },
 
   // Experimentation & causal ML
   'ab-testing-foundations': {
@@ -208,9 +271,59 @@ export const LESSON_GROUP_MAPPINGS = {
   'sequential-testing-peeking': { source: 'exp', groups: ['A/B test z-statistic'] },
   'confounding-simpsons-paradox': { source: 'exp', groups: ['DAG adjustment-set checks'] },
 
+  // Algorithms
+  'bloom-filter': { source: 'algo', groups: ['Hash positions', 'Query all bits'] },
+  'pagerank': { source: 'algo', groups: ['Out-link normalize', 'Damping teleport'] },
+
+  // Diffusion Models
+  'diffusion-basics': { source: 'diffusion', groups: ['Noise scale', 'Alpha bar'] },
+  'diffusion-sampling': { source: 'diffusion', groups: ['posterior mean'] },
+  'classifier-free-guidance': { source: 'diffusion', groups: ['scale mix'] },
+  'unet-vs-dit': { source: 'diffusion', groups: ['skip concat', 'patch tokens'] },
+  'sd3-overview': { source: 'diffusion', groups: ['VAE downscale'] },
+  'flow-matching': { source: 'diffusion', groups: ['linear interp'] },
+  'diffusion-vae': { source: 'diffusion', groups: ['encode scale'] },
+  'tokenizer-bpe': { source: 'diffusion', groups: ['pair count', 'merge rule'] },
+  'clip-encoder': { source: 'diffusion', groups: ['L2 normalize'] },
+  't5-encoder': { source: 'diffusion', groups: ['pad mask'] },
+  'joint-attention': { source: 'diffusion', groups: ['Concat Q'] },
+  'dit': { source: 'diffusion', groups: ['adaLN scale/shift'] },
+
+  // Frontier LLMs & Evaluation Safety
+  'frontier-llm-architecture-overview': { source: 'frontier', groups: ['Weight bytes', 'KV bytes'] },
+  'frontier-moe-systems': { source: 'frontier', groups: ['Active fraction'] },
+  'multi-head-latent-attention': { source: 'frontier', groups: ['Cache size ratio'] },
+  'reasoning-rlvr-grpo': { source: 'frontier', groups: ['Relative advantage'] },
+  'test-time-compute-thinking-budgets': { source: 'frontier', groups: ['Budget split'] },
+  'long-context-frontier-models': { source: 'frontier', groups: ['Linear seq scaling'] },
+  'omni-multimodal-architectures': { source: 'frontier', groups: ['Weighted fuse'] },
+  'diffusion-language-models': { source: 'frontier', groups: ['Mask ratio'] },
+  'efficient-llm-serving': { source: 'frontier', groups: ['Continuous batching'] },
+  'frontier-evaluation-safety': { source: 'eval', groups: ['Pass@k'] },
+  'tool-using-reasoning-models': { source: 'frontier', groups: ['Tool name match'] },
+  'agentic-coding-systems': { source: 'frontier', groups: ['Hunk apply'] },
+
+  // Reinforcement learning
+  'rl-foundations': { source: 'rl', groups: ['One-step return', 'Discount chain'] },
+  'mdp-formalism': { source: 'rl', groups: ['Transition sum', 'Gamma discount'] },
+  'value-iteration': { source: 'rl', groups: ['Max over actions', 'Backup once'] },
+  'policy-iteration': { source: 'rl', groups: ['Eval backup', 'Greedy improve'] },
+  'q-learning': { source: 'rl', groups: ['TD target', 'Learning rate blend'] },
+  'rl-exploration': { source: 'rl', groups: ['Epsilon mix', 'UCB formula'] },
+  'policy-gradients': { source: 'rl', groups: ['Baseline subtract', 'Return multiply'] },
+  'actor-critic': { source: 'rl', groups: ['TD error', 'Actor log grad'] },
+  'reward-shaping': { source: 'rl', groups: ['Potential phi', 'Total step reward'] },
+  'grpo-reasoning': { source: 'rl', groups: ['Group mean', 'Relative reward'] },
+  'dapo-reasoning-rl': { source: 'rl', groups: ['Reward clip', 'Decoupled baseline'] },
+  'markov-chains': { source: 'rl', groups: ['One-step multiply', 'Stationary'] },
+
   // Model reliability
   'model-monitoring': { source: 'eval', groups: ['Drift checks'] },
   'model-debugging': { source: 'transformer', groups: ['Transformer debugging checks'] },
+  'model-interpretability': { source: 'eval', groups: ['Marginal contrib', 'Sum to delta'] },
+  'model-fairness': { source: 'eval', groups: ['Group rate', 'Parity gap'] },
+  'uncertainty-estimation': { source: 'eval', groups: ['Predictive entropy', 'Variance across samples'] },
+  'ml-security-robustness-track': { source: 'eval', groups: ['Gradient sign step', 'Perturbation clip'] },
 };
 
 function resolveMapping(mapping) {

@@ -2991,4 +2991,305 @@ function gradB(A, dC) {
 }`,
     explanation: 'This is the dense-layer weight-gradient formula used in neural-network training.',
   },
+
+  // --- WAVE 4: NEURAL NETWORKS & ADVANCED MODELS ---
+  {
+    id: 'lstm-forget-gate',
+    stepLabel: '31.1',
+    group: 'Forget gate',
+    title: 'LSTM forget gate calculation',
+    concept: 'An LSTM forget gate decides how much of the past cell state to keep: f_t = sigmoid(w * x + u * hPrev + b).',
+    objective: 'Compute the forget gate activation using sigmoid function.',
+    difficulty: 'warmup',
+    starterCode: `function lstmForgetGate(x, hPrev, wx, wh, b) {
+  function sigmoid(v) {
+    return 1 / (1 + Math.exp(-v));
+  }
+  const score = wx * x + wh * hPrev + b;
+  // TODO: return the sigmoid of score
+  return 0;
+}`,
+    testCode: `const results = [];
+function approxEqual(a, b, tol = 1e-5) {
+  return Math.abs(a - b) <= tol;
+}
+function check(name, actual, expected) {
+  results.push({ name, actual, expected, passed: approxEqual(actual, expected) });
+}
+check('forget gate zero', lstmForgetGate(0, 0, 1, 1, 0), 0.5);
+check('forget gate positive', lstmForgetGate(1, 1, 0.5, 0.5, 0), 0.731058);
+return results;`,
+    hints: [
+      'Call sigmoid(score).',
+      'return sigmoid(score);',
+    ],
+    solution: `function lstmForgetGate(x, hPrev, wx, wh, b) {
+  function sigmoid(v) {
+    return 1 / (1 + Math.exp(-v));
+  }
+  const score = wx * x + wh * hPrev + b;
+  return sigmoid(score);
+}`,
+    explanation: 'A forget gate output of 1 means keep the past completely; 0 means discard it.',
+  },
+  {
+    id: 'lstm-cell-state-update',
+    stepLabel: '31.2',
+    group: 'Candidate cell',
+    title: 'LSTM cell state update',
+    concept: 'The LSTM cell state updates by combining the gated past cell state and the gated new candidate: C_t = f_t * C_prev + i_t * C_cand.',
+    objective: 'Compute the updated cell state Ct.',
+    difficulty: 'core',
+    starterCode: `function updateCellState(cPrev, f, i, cCand) {
+  // TODO: compute Ct = f * cPrev + i * cCand
+  return 0;
+}`,
+    testCode: `const results = [];
+function approxEqual(a, b, tol = 1e-5) {
+  return Math.abs(a - b) <= tol;
+}
+function check(name, actual, expected) {
+  results.push({ name, actual, expected, passed: approxEqual(actual, expected) });
+}
+check('update state simple', updateCellState(2.0, 0.9, 0.2, 3.0), 2.4); // 0.9*2 + 0.2*3 = 1.8 + 0.6 = 2.4
+return results;`,
+    hints: [
+      'f * cPrev is the kept past.',
+      'i * cCand is the new input added.',
+      'return f * cPrev + i * cCand;',
+    ],
+    solution: `function updateCellState(cPrev, f, i, cCand) {
+  return f * cPrev + i * cCand;
+}`,
+    explanation: 'The linear cell state update path allows gradients to flow over long sequences without vanishing/exploding.',
+  },
+  {
+    id: 'conv2d-output-size',
+    stepLabel: '32.1',
+    group: 'Output size formula',
+    title: 'Conv2D output dimension',
+    concept: 'The output dimension of a 2D convolution is: outputSize = Math.floor((inputSize - kernelSize + 2 * padding) / stride) + 1.',
+    objective: 'Compute the output dimension height/width.',
+    difficulty: 'warmup',
+    starterCode: `function getConv2dOutputDim(inputSize, kernelSize, padding, stride) {
+  // TODO: calculate and return output size
+  return 0;
+}`,
+    testCode: `const results = [];
+function check(name, actual, expected) {
+  results.push({ name, actual, expected, passed: Object.is(actual, expected) });
+}
+check('conv same size', getConv2dOutputDim(32, 3, 1, 1), 32);
+check('conv downsample', getConv2dOutputDim(32, 4, 0, 2), 15);
+return results;`,
+    hints: [
+      'Apply the formula: Math.floor((inputSize - kernelSize + 2 * padding) / stride) + 1.',
+    ],
+    solution: `function getConv2dOutputDim(inputSize, kernelSize, padding, stride) {
+  return Math.floor((inputSize - kernelSize + 2 * padding) / stride) + 1;
+}`,
+    explanation: 'Correct output dimensions are crucial to allocate the correct tensor shapes during a forward pass.',
+  },
+  {
+    id: 'conv2d-dot-patch',
+    stepLabel: '32.2',
+    group: 'One patch dot product',
+    title: 'Conv2D patch dot product',
+    concept: 'At each sliding window step, Conv2D multiplies kernel weights and input image patch coordinates element-wise and sums them.',
+    objective: 'Calculate the sum of element-wise products of a 2x2 image patch and kernel.',
+    difficulty: 'core',
+    starterCode: `function conv2dPatchDot(patch, kernel) {
+  let sum = 0;
+  for (let r = 0; r < 2; r++) {
+    for (let c = 0; c < 2; c++) {
+      // TODO: multiply patch[r][c] by kernel[r][c] and accumulate in sum
+      sum += 0;
+    }
+  }
+  return sum;
+}`,
+    testCode: `const results = [];
+function check(name, actual, expected) {
+  results.push({ name, actual, expected, passed: Object.is(actual, expected) });
+}
+check('dot patch basic', conv2dPatchDot([[1, 2], [3, 4]], [[0.5, 0], [0, 0.5]]), 2.5); // 1*0.5 + 4*0.5 = 2.5
+return results;`,
+    hints: [
+      'Multiply patch[r][c] by kernel[r][c].',
+      'Add it to sum.',
+      'sum += patch[r][c] * kernel[r][c];',
+    ],
+    solution: `function conv2dPatchDot(patch, kernel) {
+  let sum = 0;
+  for (let r = 0; r < 2; r++) {
+    for (let c = 0; c < 2; c++) {
+      sum += patch[r][c] * kernel[r][c];
+    }
+  }
+  return sum;
+}`,
+    explanation: '2D sliding window dot products extract translation-invariant spatial features from inputs.',
+  },
+  {
+    id: 'max-pooling-2d-window',
+    stepLabel: '33.1',
+    group: 'Window max',
+    title: 'Max pooling window selection',
+    concept: 'Max pooling downsamples representations by selecting the maximum value in local sliding windows (e.g. 2x2).',
+    objective: 'Return the maximum value in a 2x2 patch.',
+    difficulty: 'warmup',
+    starterCode: `function getPatchMax(patch2x2) {
+  // TODO: find the maximum value in the 2D array patch2x2
+  return 0;
+}`,
+    testCode: `const results = [];
+function check(name, actual, expected) {
+  results.push({ name, actual, expected, passed: Object.is(actual, expected) });
+}
+check('max positive', getPatchMax([[1, 5], [2, 3]]), 5);
+check('max negative', getPatchMax([[-1, -5], [-2, -3]]), -1);
+return results;`,
+    hints: [
+      'Flatten the 2D array or check all elements manually.',
+      'Use Math.max(patch2x2[0][0], patch2x2[0][1], patch2x2[1][0], patch2x2[1][1]).',
+    ],
+    solution: `function getPatchMax(patch2x2) {
+  return Math.max(patch2x2[0][0], patch2x2[0][1], patch2x2[1][0], patch2x2[1][1]);
+}`,
+    explanation: 'Max pooling extracts the strongest activation from each window, ensuring model robustness to translation shifts.',
+  },
+  {
+    id: 'conv-relu-activation',
+    stepLabel: '34.1',
+    group: 'ReLU clip',
+    title: 'Conv + ReLU activation',
+    concept: 'A Conv + ReLU layer performs linear convolution and then clips all negative output coordinates to 0.',
+    objective: 'Apply the ReLU activation function: max(0, x).',
+    difficulty: 'warmup',
+    starterCode: `function relu(x) {
+  // TODO: return x if x is positive, otherwise 0
+  return 0;
+}`,
+    testCode: `const results = [];
+function check(name, actual, expected) {
+  results.push({ name, actual, expected, passed: Object.is(actual, expected) });
+}
+check('relu positive', relu(5), 5);
+check('relu negative', relu(-10), 0);
+return results;`,
+    hints: [
+      'Use Math.max(0, x).',
+    ],
+    solution: `function relu(x) {
+  return Math.max(0, x);
+}`,
+    explanation: 'ReLU introduces non-linear decision boundaries, enabling neural networks to model non-linear mappings.',
+  },
+  {
+    id: 'init-he-std',
+    stepLabel: '35.1',
+    group: 'He std',
+    title: 'He initialization standard deviation',
+    concept: 'He initialization (Kaiming init) scales random weights to prevent vanishing/exploding gradients in ReLU networks. Std = sqrt(2 / fanIn).',
+    objective: 'Compute the standard deviation for He initialization.',
+    difficulty: 'warmup',
+    starterCode: `function getHeStd(fanIn) {
+  // TODO: return standard deviation sqrt(2 / fanIn)
+  return 0;
+}`,
+    testCode: `const results = [];
+function approxEqual(a, b, tol = 1e-5) {
+  return Math.abs(a - b) <= tol;
+}
+function check(name, actual, expected) {
+  results.push({ name, actual, expected, passed: approxEqual(actual, expected) });
+}
+check('fanIn 512', getHeStd(512), 0.0625); // sqrt(2/512) = sqrt(1/256) = 1/16 = 0.0625
+return results;`,
+    hints: [
+      'Use Math.sqrt.',
+      'return Math.sqrt(2 / fanIn);',
+    ],
+    solution: `function getHeStd(fanIn) {
+  return Math.sqrt(2 / fanIn);
+}`,
+    explanation: 'Scaling weights by He standard deviation maintains constant activation variance across layers.',
+  },
+  {
+    id: 'vae-kl-loss-term',
+    stepLabel: '36.1',
+    group: 'KL closed form',
+    title: 'VAE KL divergence term',
+    concept: 'Variational Autoencoders use a Kullback-Leibler (KL) divergence loss term to force latent vectors to fit a standard Normal distribution: KL = -0.5 * (1 + logvar - mu^2 - exp(logvar)).',
+    objective: 'Compute the KL loss contribution for a single latent dimension coordinate.',
+    difficulty: 'core',
+    starterCode: `function vaeKlDivergence(mu, logvar) {
+  // TODO: compute -0.5 * (1 + logvar - mu^2 - exp(logvar))
+  return 0;
+}`,
+    testCode: `const results = [];
+function approxEqual(a, b, tol = 1e-5) {
+  return Math.abs(a - b) <= tol;
+}
+function check(name, actual, expected) {
+  results.push({ name, actual, expected, passed: approxEqual(actual, expected) });
+}
+check('zero latent stats', vaeKlDivergence(0, 0), 0); // -0.5 * (1 + 0 - 0 - 1) = 0
+check('skewed latent stats', vaeKlDivergence(1.0, -1.0), 0.6839397); // -0.5 * (1 - 1 - 1 - e^-1) = -0.5 * (-1 - 0.367879) = 0.683939
+return results;`,
+    hints: [
+      'Use Math.exp(logvar).',
+      'The formula is: -0.5 * (1 + logvar - mu * mu - Math.exp(logvar)).',
+    ],
+    solution: `function vaeKlDivergence(mu, logvar) {
+  return -0.5 * (1 + logvar - mu * mu - Math.exp(logvar));
+}`,
+    explanation: 'KL divergence acts as a regularizer, shaping the latent space into a continuous, smooth distribution suitable for generation.',
+  },
+  {
+    id: 'multimodal-llm-project',
+    stepLabel: '37.1',
+    group: 'Linear project',
+    title: 'Multimodal token projection',
+    concept: 'Multimodal LLMs project visual token embeddings into the text vocabulary hidden space using a learned projection matrix.',
+    objective: 'Compute projection: output[j] = sum of patch[d] * projector[d][j].',
+    difficulty: 'challenge',
+    starterCode: `function projectPatch(patch, projector, outDim) {
+  const projected = Array(outDim).fill(0);
+  for (let j = 0; j < outDim; j++) {
+    let sum = 0;
+    for (let d = 0; d < patch.length; d++) {
+      // TODO: multiply patch[d] by projector[d][j] and accumulate in sum
+      sum += 0;
+    }
+    projected[j] = sum;
+  }
+  return projected;
+}`,
+    testCode: `const results = [];
+function sameArray(a, b) {
+  return JSON.stringify(a) === JSON.stringify(b);
+}
+function check(name, actual, expected) {
+  results.push({ name, actual: JSON.stringify(actual), expected: JSON.stringify(expected), passed: sameArray(actual, expected) });
+}
+check('project 2D to 3D', projectPatch([1, 2], [[0.5, 0, 1], [0, 0.5, 2]], 3), [0.5, 1, 5]);
+return results;`,
+    hints: [
+      'Multiply patch[d] by projector[d][j].',
+      'sum += patch[d] * projector[d][j];',
+    ],
+    solution: `function projectPatch(patch, projector, outDim) {
+  const projected = Array(outDim).fill(0);
+  for (let j = 0; j < outDim; j++) {
+    let sum = 0;
+    for (let d = 0; d < patch.length; d++) {
+      sum += patch[d] * projector[d][j];
+    }
+    projected[j] = sum;
+  }
+  return projected;
+}`,
+    explanation: 'A projection layer translates modality-specific embeddings so the baseline LLM transformer layers can process them.',
+  },
 ];
