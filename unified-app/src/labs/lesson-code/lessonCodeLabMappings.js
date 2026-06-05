@@ -61,7 +61,10 @@ export const LESSON_GROUP_MAPPINGS = {
   'eigenvalue': { source: 'linear', groups: ['Eigenvalues'] },
   'svd': { source: 'linear', groups: ['Low-rank approximation', 'Pseudoinverse bridge', 'Eigenvalues'] },
   'qr-decomposition': { source: 'linear', groups: ['Orthonormal bases', 'QR bridge'] },
-  'gradient-descent': { source: 'linear', groups: ['Gradient descent least squares', 'Derivative basics'] },
+  'gradient-descent': [
+    { source: 'nn', groups: ['Derivative basics'] },
+    { source: 'nn', groups: ['Gradient descent least squares'] },
+  ],
   'optimization': [
     { source: 'linear', groups: ['Derivative basics', 'Chain rule'] },
     { source: 'nn', groups: ['Optimizer updates'] },

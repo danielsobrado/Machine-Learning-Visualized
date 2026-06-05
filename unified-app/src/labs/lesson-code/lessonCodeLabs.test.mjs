@@ -110,6 +110,9 @@ test('lesson pages and the central labs route can resolve code lab groups', asyn
   assert.equal(matrixExercises.length, 10);
   assert.match(matrixExercises[0].starterCode, /function matmul\(A, B\)/);
   assert.equal(getLessonCodeLabExercises('bag-of-words').length, 4);
+  assert.equal(getLessonCodeLabExercises('gradient-descent').length, 8);
+  assert.match(getLessonCodeLabExercises('gradient-descent')[0].starterCode, /derivativeOfLine/);
+  assert.match(getLessonCodeLabExercises('gradient-descent')[4].starterCode, /predictionError/);
   assert.equal(getLessonCodeLabExercises('word2vec').length, 0);
 
   const appSource = await readFile(new URL('../../App.jsx', import.meta.url), 'utf8');
