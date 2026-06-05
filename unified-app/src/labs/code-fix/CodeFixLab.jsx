@@ -1,5 +1,18 @@
 import React from 'react';
-import { CheckCircle2, Circle, Download, Eye, EyeOff, Lightbulb, Play, RotateCcw, Upload } from 'lucide-react';
+import {
+  ArrowLeft,
+  CheckCircle2,
+  Circle,
+  Code2,
+  Download,
+  Eye,
+  EyeOff,
+  Lightbulb,
+  Maximize2,
+  Play,
+  RotateCcw,
+  Upload,
+} from 'lucide-react';
 import {
   CODE_LAB_PROGRESS_EVENT,
   exportCodeLabProgressJson,
@@ -72,6 +85,9 @@ export default function CodeFixLab({ exercises, progressScopeId, onProgressChang
   const [progressMessage, setProgressMessage] = React.useState('');
   const [running, setRunning] = React.useState(false);
   const [showSolution, setShowSolution] = React.useState(false);
+  const [expanded, setExpanded] = React.useState(false);
+
+  const exitExpanded = React.useCallback(() => setExpanded(false), []);
 
   const code = codeById[activeExercise.id];
   const currentResult = resultById[activeExercise.id];
@@ -112,6 +128,37 @@ export default function CodeFixLab({ exercises, progressScopeId, onProgressChang
 
     return groups;
   }, [exercises]);
+
+  React.useEffect(() => {
+    setExpanded(false);
+  }, [progressScopeId]);
+
+  React.useEffect(() => {
+    if (!expanded || typeof document === 'undefined') return undefined;
+
+    const syncMainOffset = () => {
+      const main = document.querySelector('.ua-main');
+      const left = main?.getBoundingClientRect().left ?? 0;
+      document.documentElement.style.setProperty('--ua-code-lab-expand-left', `${left}px`);
+    };
+
+    document.documentElement.classList.add('ua-code-lab-expanded');
+    syncMainOffset();
+
+    const onKeyDown = (event) => {
+      if (event.key === 'Escape') setExpanded(false);
+    };
+
+    window.addEventListener('keydown', onKeyDown);
+    window.addEventListener('resize', syncMainOffset);
+
+    return () => {
+      window.removeEventListener('keydown', onKeyDown);
+      window.removeEventListener('resize', syncMainOffset);
+      document.documentElement.classList.remove('ua-code-lab-expanded');
+      document.documentElement.style.removeProperty('--ua-code-lab-expand-left');
+    };
+  }, [expanded]);
 
   React.useEffect(() => {
     if (!progressScopeId || typeof window === 'undefined') return undefined;
@@ -229,7 +276,38 @@ export default function CodeFixLab({ exercises, progressScopeId, onProgressChang
   const passedCount = progressSummary ? progressSummary.passedCount : localPassedCount;
 
   return (
-    <section className="ua-codefix-lab">
+    <section className={['ua-codefix-lab', expanded && 'ua-codefix-lab--expanded'].filter(Boolean).join(' ')}>
+      <div className="ua-codefix-toolbar">
+        {expanded ? (
+          <button
+            type="button"
+            className="ua-map-expand-back"
+            onClick={exitExpanded}
+            aria-label="Exit big screen mode"
+          >
+            <ArrowLeft size={15} aria-hidden />
+            <span>Back</span>
+          </button>
+        ) : null}
+        <div className="ua-codefix-toolbar-title">
+          <Code2 size={15} aria-hidden />
+          <span>Code lab</span>
+        </div>
+        {expanded ? (
+          <span className="ua-map-expand-esc">Esc to exit</span>
+        ) : (
+          <button
+            type="button"
+            className="ua-map-expand-toggle"
+            onClick={() => setExpanded(true)}
+            aria-label="Open code lab in big screen mode"
+          >
+            <Maximize2 size={14} aria-hidden />
+            <span>Big screen</span>
+          </button>
+        )}
+      </div>
+
       <div className="ua-codefix-head">
         <span>Code Completion-style lab</span>
         <h2>Fix the TODOs, run the tests</h2>

@@ -1486,6 +1486,128 @@ body {
   color: #4f463a;
 }
 
+.ua-codefix-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 0.85rem;
+}
+
+.ua-codefix-toolbar-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+  flex: 1;
+  color: #4f463a;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 0.68rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+html.ua-code-lab-expanded {
+  overflow: hidden;
+}
+
+html.ua-code-lab-expanded .ua-animation-header,
+html.ua-code-lab-expanded .ua-animation-footer,
+html.ua-code-lab-expanded .ua-learning-shell,
+html.ua-code-lab-expanded .ua-lesson-code-lab-link,
+html.ua-code-lab-expanded .ua-labs-page-container .ua-animation-header,
+html.ua-code-lab-expanded .ua-labs-page-container .ua-labs-browser {
+  display: none !important;
+}
+
+html.ua-code-lab-expanded .ua-animation-page {
+  max-width: none;
+  width: 100%;
+  margin: 0;
+  padding: 0;
+}
+
+html.ua-code-lab-expanded .ua-lesson-code-lab {
+  margin-top: 0;
+}
+
+html.ua-code-lab-expanded .ua-codefix-lab--expanded {
+  position: fixed;
+  top: 64px;
+  left: var(--ua-code-lab-expand-left, 288px);
+  right: 0;
+  bottom: 0;
+  z-index: 45;
+  display: flex;
+  flex-direction: column;
+  margin: 0;
+  width: 100%;
+  max-width: none;
+  border-radius: 0;
+  border-left: 0;
+  border-right: 0;
+  border-bottom: 0;
+  padding: 12px clamp(12px, 2vw, 24px) 16px;
+  overflow: hidden;
+}
+
+html.ua-code-lab-expanded .ua-codefix-lab--expanded .ua-codefix-head,
+html.ua-code-lab-expanded .ua-codefix-lab--expanded .ua-codefix-footer {
+  display: none;
+}
+
+html.ua-code-lab-expanded .ua-codefix-lab--expanded .ua-codefix-toolbar {
+  flex: 0 0 auto;
+  margin-bottom: 10px;
+}
+
+html.ua-code-lab-expanded .ua-codefix-lab--expanded .ua-codefix-progress {
+  flex: 0 0 auto;
+  margin-bottom: 10px;
+}
+
+html.ua-code-lab-expanded .ua-codefix-lab--expanded .ua-codefix-grid {
+  flex: 1;
+  min-height: 0;
+  height: auto;
+  grid-template-columns: minmax(200px, 0.55fr) minmax(0, 2.35fr) minmax(220px, 0.75fr);
+  align-items: stretch;
+}
+
+html.ua-code-lab-expanded .ua-codefix-lab--expanded .ua-codefix-card {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  height: 100%;
+  overflow: hidden;
+}
+
+html.ua-code-lab-expanded .ua-codefix-lab--expanded .ua-codefix-instructions,
+html.ua-code-lab-expanded .ua-codefix-lab--expanded .ua-codefix-feedback {
+  overflow-y: auto;
+}
+
+html.ua-code-lab-expanded .ua-codefix-lab--expanded .ua-codefix-editor-card {
+  min-height: 0;
+}
+
+html.ua-code-lab-expanded .ua-codefix-lab--expanded .ua-codefix-editor-shell {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+html.ua-code-lab-expanded .ua-codefix-lab--expanded .ua-codefix-highlight,
+html.ua-code-lab-expanded .ua-codefix-lab--expanded .ua-codefix-editor {
+  flex: 1;
+  min-height: 0;
+  height: 100%;
+}
+
+html.ua-code-lab-expanded .ua-codefix-lab--expanded .ua-codefix-actions {
+  flex: 0 0 auto;
+}
+
 @media (max-width: 980px) {
   .ua-codefix-grid {
     grid-template-columns: 1fr;
@@ -1493,6 +1615,25 @@ body {
 
   .ua-codefix-editor {
     min-height: 300px;
+  }
+
+  html.ua-code-lab-expanded .ua-codefix-lab--expanded {
+    left: 0;
+    padding: 10px 12px 12px;
+  }
+
+  html.ua-code-lab-expanded .ua-codefix-lab--expanded .ua-codefix-grid {
+    grid-template-columns: minmax(0, 1fr);
+    overflow-y: auto;
+  }
+
+  html.ua-code-lab-expanded .ua-codefix-lab--expanded .ua-codefix-card {
+    height: auto;
+    overflow: visible;
+  }
+
+  html.ua-code-lab-expanded .ua-codefix-lab--expanded .ua-codefix-editor-shell {
+    min-height: clamp(280px, 48vh, 520px);
   }
 }
 
