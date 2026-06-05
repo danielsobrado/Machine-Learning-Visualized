@@ -2657,43 +2657,141 @@ return results;`,
     explanation: 'The resulting array contains integers only, requiring far less memory while preserving the general distribution of weights.',
   },
   {
-    id: 'quantized-dot-scale',
+    id: 'dequant-dot-loop',
     stepLabel: '13.1',
-    group: 'Dequant fuse',
-    title: 'Scale quantized dot product',
-    concept: 'To speed up execution, hardware performs dot products in INT8 and then scales the output back to FLOAT using per-channel scale factors.',
-    objective: 'Compute integer dot product of a and b, then scale the result by scaleA * scaleB.',
-    difficulty: 'core',
-    starterCode: `function quantizedDotScale(a, b, scaleA, scaleB) {
+    group: 'Dequantized dot product',
+    title: 'Integer Dot Product Loop',
+    concept: 'Integer matrix multiplication is fundamentally faster than float math. The first step is executing the raw integer dot product.',
+    objective: 'Accumulate the product of qA[i] and qB[i] into intDot.',
+    difficulty: 'warmup',
+    starterCode: `function dequantizedDotProduct(qA, qB, scaleA, scaleB) {
   let intDot = 0;
-  for (let i = 0; i < a.length; i++) {
-    intDot += a[i] * b[i];
-  }
-  // TODO: return intDot multiplied by the combined scales
-  return 0;
-}`,
-    testCode: `const results = [];
-function approxEqual(a, b, tol = 1e-5) {
-  return Math.abs(a - b) <= tol;
-}
-function check(name, actual, expected) {
-  results.push({ name, actual, expected, passed: approxEqual(actual, expected) });
-}
-check('scale quantized dot', quantizedDotScale([10, -5], [20, 30], 0.1, 0.05), 0.25);
-return results;`,
-    hints: [
-      'Multiply intDot by scaleA.',
-      'Then multiply by scaleB.',
-      'return intDot * scaleA * scaleB;',
-    ],
-    solution: `function quantizedDotScale(a, b, scaleA, scaleB) {
-  let intDot = 0;
-  for (let i = 0; i < a.length; i++) {
-    intDot += a[i] * b[i];
+  for (let i = 0; i < qA.length; i++) {
+    // TODO: Accumulate qA[i] * qB[i] into intDot
+    
   }
   return intDot * scaleA * scaleB;
 }`,
-    explanation: 'Fusing scales after matrix operations reduces floating-point overhead.',
+    testCode: `const results = [];
+function check(name, actual, expected) {
+  results.push({ name, actual, expected, passed: Math.abs(actual - expected) < 1e-5 });
+}
+check('integer dot scale', dequantizedDotProduct([10, 2], [5, 4], 1.0, 1.0), 58);
+return results;`,
+    hints: [
+      'Use the += operator.',
+      'Multiply qA[i] by qB[i].',
+    ],
+    solution: `function dequantizedDotProduct(qA, qB, scaleA, scaleB) {
+  let intDot = 0;
+  for (let i = 0; i < qA.length; i++) {
+    intDot += qA[i] * qB[i];
+  }
+  return intDot * scaleA * scaleB;
+}`,
+    explanation: 'This inner loop happens natively on tensor cores at extreme speeds.',
+  },
+  {
+    id: 'dequant-dot-scalea',
+    stepLabel: '13.2',
+    group: 'Dequantized dot product',
+    title: 'Scale by A',
+    concept: 'To restore the float value, we must multiply by the scale factor of vector A.',
+    objective: 'Multiply the integer sum by scaleA.',
+    difficulty: 'core',
+    starterCode: `function dequantizedDotProduct(qA, qB, scaleA, scaleB) {
+  let intDot = 0;
+  for (let i = 0; i < qA.length; i++) {
+    intDot += qA[i] * qB[i];
+  }
+  // TODO: Return intDot scaled by scaleA (ignore scaleB for now)
+  return 0;
+}`,
+    testCode: `const results = [];
+function check(name, actual, expected) {
+  results.push({ name, actual, expected, passed: Math.abs(actual - expected) < 1e-5 });
+}
+check('scale A only', dequantizedDotProduct([10, 2], [5, 4], 0.1, 1.0), 5.8);
+return results;`,
+    hints: [
+      'Return intDot * scaleA.',
+    ],
+    solution: `function dequantizedDotProduct(qA, qB, scaleA, scaleB) {
+  let intDot = 0;
+  for (let i = 0; i < qA.length; i++) {
+    intDot += qA[i] * qB[i];
+  }
+  return intDot * scaleA;
+}`,
+    explanation: 'A tensor scaled down by a factor needs to be scaled up by that exact same factor to restore magnitude.',
+  },
+  {
+    id: 'dequant-dot-scaleb',
+    stepLabel: '13.3',
+    group: 'Dequantized dot product',
+    title: 'Scale by B',
+    concept: 'Both vectors were quantized, so both scale factors must be applied to the dot product.',
+    objective: 'Multiply the integer sum by both scaleA and scaleB.',
+    difficulty: 'core',
+    starterCode: `function dequantizedDotProduct(qA, qB, scaleA, scaleB) {
+  let intDot = 0;
+  for (let i = 0; i < qA.length; i++) {
+    intDot += qA[i] * qB[i];
+  }
+  // TODO: Return intDot scaled by scaleA and scaleB
+  return 0;
+}`,
+    testCode: `const results = [];
+function check(name, actual, expected) {
+  results.push({ name, actual, expected, passed: Math.abs(actual - expected) < 1e-5 });
+}
+check('scale A and B', dequantizedDotProduct([10, 2], [5, 4], 0.1, 0.5), 2.9);
+return results;`,
+    hints: [
+      'Return intDot * scaleA * scaleB.',
+    ],
+    solution: `function dequantizedDotProduct(qA, qB, scaleA, scaleB) {
+  let intDot = 0;
+  for (let i = 0; i < qA.length; i++) {
+    intDot += qA[i] * qB[i];
+  }
+  return intDot * scaleA * scaleB;
+}`,
+    explanation: 'Because dot product is linear: sum(A*sA * B*sB) = sum(A*B) * sA * sB. The scales factor out perfectly!',
+  },
+  {
+    id: 'dequant-dot-full',
+    stepLabel: '13.4',
+    group: 'Dequantized dot product',
+    title: 'Full Dequantized Dot Product',
+    concept: 'Fusing the dequantization scales natively into the dot product hardware path eliminates the need for expensive memory lookups.',
+    objective: 'Implement the complete dequantized dot product.',
+    difficulty: 'core',
+    starterCode: `function dequantizedDotProduct(qA, qB, scaleA, scaleB) {
+  let intDot = 0;
+  for (let i = 0; i < qA.length; i++) {
+    intDot += qA[i] * qB[i];
+  }
+  // TODO: Return the fully scaled float result
+  return intDot;
+}`,
+    testCode: `const results = [];
+function check(name, actual, expected) {
+  results.push({ name, actual, expected, passed: Math.abs(actual - expected) < 1e-5 });
+}
+check('full dequant', dequantizedDotProduct([10, -5], [20, 30], 0.1, 0.05), 0.25);
+return results;`,
+    hints: [
+      'Multiply intDot by scaleA and scaleB.',
+    ],
+    solution: `function dequantizedDotProduct(qA, qB, scaleA, scaleB) {
+  let intDot = 0;
+  for (let i = 0; i < qA.length; i++) {
+    intDot += qA[i] * qB[i];
+  }
+  return intDot * scaleA * scaleB;
+}`,
+    explanation: 'This entire operation forms the basis of all modern quantized LLM inference engines like vLLM and llama.cpp.',
   },
   {
     id: 'bert-mlm-masking',
@@ -2970,42 +3068,191 @@ function bertMLMStep(tokens, labels, maskIndices, logits) {
     explanation: 'Integrating attention masks, label recovery loss, and vocab projections forms the complete execution flow of BERT training.',
   },
   {
-    id: 'moe-topk-indices',
+    id: 'moe-router-map',
     stepLabel: '15.1',
-    group: 'Top-k pick',
-    title: 'MoE router top-k selection',
-    concept: 'Mixture of Experts routes tokens to the top-k experts with the highest routing scores.',
-    objective: 'Select indices of the top k routing values.',
-    difficulty: 'core',
-    starterCode: `function getTopKExperts(logits, k) {
-  const indexed = logits.map((val, idx) => ({ val, idx }));
+    group: 'MoE routing',
+    title: 'Object Mapping',
+    concept: 'Mixture of Experts routes tokens to the top-k experts. The first step is attaching the original index to each logit so we do not lose it when sorting.',
+    objective: 'Map the array of logits into an array of objects: { val: logit, idx: original_index }.',
+    difficulty: 'warmup',
+    starterCode: `function moeRouter(logits, k) {
+  // TODO: Map logits to an array of objects with 'val' and 'idx'
+  const indexed = [];
+  for (let i = 0; i < logits.length; i++) {
+    indexed.push({ val: 0, idx: 0 });
+  }
+
   indexed.sort((a, b) => b.val - a.val);
-  
   const topK = [];
   for (let i = 0; i < k; i++) {
-    // TODO: push the index of the i-th best expert to topK array
+    topK.push(indexed[i].idx);
+  }
+  return topK;
+}`,
+    testCode: `const results = [];
+function sameArray(a, b) { return JSON.stringify(a) === JSON.stringify(b); }
+function check(name, actual, expected) {
+  results.push({ name, actual: JSON.stringify(actual), expected: JSON.stringify(expected), passed: sameArray(actual, expected) });
+}
+check('map objects', moeRouter([0.2, 0.8, 0.1, 0.9], 2), [3, 1]);
+return results;`,
+    hints: [
+      'Use indexed.push({ val: logits[i], idx: i }).',
+    ],
+    solution: `function moeRouter(logits, k) {
+  const indexed = [];
+  for (let i = 0; i < logits.length; i++) {
+    indexed.push({ val: logits[i], idx: i });
+  }
+
+  indexed.sort((a, b) => b.val - a.val);
+  const topK = [];
+  for (let i = 0; i < k; i++) {
+    topK.push(indexed[i].idx);
+  }
+  return topK;
+}`,
+    explanation: 'By binding the score to its original expert index, we can safely reorder the array.',
+  },
+  {
+    id: 'moe-router-sort',
+    stepLabel: '15.2',
+    group: 'MoE routing',
+    title: 'Sort Descending',
+    concept: 'We must sort the experts from highest routing score to lowest.',
+    objective: 'Sort the indexed array descending based on the val property.',
+    difficulty: 'core',
+    starterCode: `function moeRouter(logits, k) {
+  const indexed = [];
+  for (let i = 0; i < logits.length; i++) {
+    indexed.push({ val: logits[i], idx: i });
+  }
+
+  // TODO: Sort the indexed array descending by val
+  indexed.sort((a, b) => 0);
+
+  const topK = [];
+  for (let i = 0; i < k; i++) {
+    topK.push(indexed[i].idx);
+  }
+  return topK;
+}`,
+    testCode: `const results = [];
+function sameArray(a, b) { return JSON.stringify(a) === JSON.stringify(b); }
+function check(name, actual, expected) {
+  results.push({ name, actual: JSON.stringify(actual), expected: JSON.stringify(expected), passed: sameArray(actual, expected) });
+}
+check('sort descending', moeRouter([0.2, 0.8, 0.1, 0.9], 2), [3, 1]);
+return results;`,
+    hints: [
+      'Return b.val - a.val in the sort callback.',
+    ],
+    solution: `function moeRouter(logits, k) {
+  const indexed = [];
+  for (let i = 0; i < logits.length; i++) {
+    indexed.push({ val: logits[i], idx: i });
+  }
+
+  indexed.sort((a, b) => b.val - a.val);
+
+  const topK = [];
+  for (let i = 0; i < k; i++) {
+    topK.push(indexed[i].idx);
+  }
+  return topK;
+}`,
+    explanation: 'Sorting the small array of experts (usually 8, 16, or 64) is highly efficient.',
+  },
+  {
+    id: 'moe-router-extract',
+    stepLabel: '15.3',
+    group: 'MoE routing',
+    title: 'Extract Indices',
+    concept: 'After sorting, the best experts are at the front. We just need their indices.',
+    objective: 'Push the original index of the i-th best expert into the topK array.',
+    difficulty: 'core',
+    starterCode: `function moeRouter(logits, k) {
+  const indexed = [];
+  for (let i = 0; i < logits.length; i++) {
+    indexed.push({ val: logits[i], idx: i });
+  }
+
+  indexed.sort((a, b) => b.val - a.val);
+
+  const topK = [];
+  for (let i = 0; i < k; i++) {
+    // TODO: Push the idx of the element at indexed[i]
     topK.push(0);
   }
   return topK;
 }`,
     testCode: `const results = [];
-function sameArray(a, b) {
-  return JSON.stringify(a) === JSON.stringify(b);
-}
+function sameArray(a, b) { return JSON.stringify(a) === JSON.stringify(b); }
 function check(name, actual, expected) {
   results.push({ name, actual: JSON.stringify(actual), expected: JSON.stringify(expected), passed: sameArray(actual, expected) });
 }
-check('top-2 experts', getTopKExperts([0.2, 0.8, 0.1, 0.9], 2), [3, 1]); // indexes 3 and 1
+check('extract indices', moeRouter([0.2, 0.8, 0.1, 0.9], 2), [3, 1]);
 return results;`,
     hints: [
-      'The sorted elements are inside the indexed array.',
-      'The index of the i-th element is indexed[i].idx.',
-      'topK[i] = indexed[i].idx;',
+      'Push indexed[i].idx into the topK array.',
     ],
-    solution: `function getTopKExperts(logits, k) {
-  const indexed = logits.map((val, idx) => ({ val, idx }));
+    solution: `function moeRouter(logits, k) {
+  const indexed = [];
+  for (let i = 0; i < logits.length; i++) {
+    indexed.push({ val: logits[i], idx: i });
+  }
+
   indexed.sort((a, b) => b.val - a.val);
-  
+
+  const topK = [];
+  for (let i = 0; i < k; i++) {
+    topK.push(indexed[i].idx);
+  }
+  return topK;
+}`,
+    explanation: 'These indices tell the GPU exactly which feed-forward network modules to execute for this token.',
+  },
+  {
+    id: 'moe-router-full',
+    stepLabel: '15.4',
+    group: 'MoE routing',
+    title: 'Full MoE Routing',
+    concept: 'The complete MoE router takes raw routing logits and distills them into the chosen expert pathways.',
+    objective: 'Implement the full expert routing algorithm.',
+    difficulty: 'core',
+    starterCode: `function moeRouter(logits, k) {
+  const indexed = [];
+  for (let i = 0; i < logits.length; i++) {
+    indexed.push({ val: logits[i], idx: i });
+  }
+
+  indexed.sort((a, b) => b.val - a.val);
+
+  const topK = [];
+  for (let i = 0; i < k; i++) {
+    // TODO: Push the chosen idx
+    
+  }
+  return topK;
+}`,
+    testCode: `const results = [];
+function sameArray(a, b) { return JSON.stringify(a) === JSON.stringify(b); }
+function check(name, actual, expected) {
+  results.push({ name, actual: JSON.stringify(actual), expected: JSON.stringify(expected), passed: sameArray(actual, expected) });
+}
+check('full routing', moeRouter([0.5, 0.1, 0.8, 0.4], 2), [2, 0]);
+return results;`,
+    hints: [
+      'Access indexed[i].idx.',
+    ],
+    solution: `function moeRouter(logits, k) {
+  const indexed = [];
+  for (let i = 0; i < logits.length; i++) {
+    indexed.push({ val: logits[i], idx: i });
+  }
+
+  indexed.sort((a, b) => b.val - a.val);
+
   const topK = [];
   for (let i = 0; i < k; i++) {
     topK.push(indexed[i].idx);
@@ -3081,32 +3328,182 @@ return results;`,
     explanation: 'Low-rank updates are computed in parallel to base weights and added at output, leaving baseline weights frozen.',
   },
   {
-    id: 'sparse-block-attention-check',
+    id: 'sparse-block-loop',
     stepLabel: '18.1',
-    group: 'Block grid',
-    title: 'Sparse block check',
-    concept: 'Native Sparse Attention restricts queries to attend only to selected key blocks, saving massive quadratic compute.',
-    objective: 'Return true if activeBlocks array contains kBlock index, otherwise false.',
+    group: 'Sparse block attention',
+    title: 'Active Block Loop',
+    concept: 'Native Sparse Attention restricts queries to attend only to selected key blocks. The first step is looping only over the active blocks.',
+    objective: 'Iterate over the activeBlockIndices array.',
     difficulty: 'warmup',
-    starterCode: `function isBlockAttended(kBlock, activeBlocks) {
-  // TODO: return whether kBlock is inside activeBlocks array
-  return false;
+    starterCode: `function computeSparseAttention(qBlock, kBlocks, activeBlockIndices) {
+  const outputs = [];
+  
+  // TODO: Loop over the activeBlockIndices array length
+  for (let i = 0; i < 0; i++) {
+    const kIdx = activeBlockIndices[i];
+    const kBlock = kBlocks[kIdx];
+    outputs.push(qBlock * kBlock); // Mock attention compute
+  }
+  
+  return outputs;
 }`,
     testCode: `const results = [];
+function sameArray(a, b) { return JSON.stringify(a) === JSON.stringify(b); }
 function check(name, actual, expected) {
-  results.push({ name, actual, expected, passed: Object.is(actual, expected) });
+  results.push({ name, actual: JSON.stringify(actual), expected: JSON.stringify(expected), passed: sameArray(actual, expected) });
 }
-check('block active', isBlockAttended(2, [0, 2, 5]), true);
-check('block inactive', isBlockAttended(3, [0, 2, 5]), false);
+check('loop bounds', computeSparseAttention(2.0, [1.0, 2.0, 3.0, 4.0], [0, 3]), [2.0, 8.0]);
 return results;`,
     hints: [
-      'Use the .includes() method on arrays.',
-      'return activeBlocks.includes(kBlock);',
+      'The loop should run while i < activeBlockIndices.length.',
     ],
-    solution: `function isBlockAttended(kBlock, activeBlocks) {
-  return activeBlocks.includes(kBlock);
+    solution: `function computeSparseAttention(qBlock, kBlocks, activeBlockIndices) {
+  const outputs = [];
+  
+  for (let i = 0; i < activeBlockIndices.length; i++) {
+    const kIdx = activeBlockIndices[i];
+    const kBlock = kBlocks[kIdx];
+    outputs.push(qBlock * kBlock);
+  }
+  
+  return outputs;
 }`,
-    explanation: 'Hashing or routing queries to specific key blocks creates a sparse attention pattern that handles long context lengths.',
+    explanation: 'By strictly looping over active blocks, we skip O(N^2) dense operations entirely.',
+  },
+  {
+    id: 'sparse-block-fetch',
+    stepLabel: '18.2',
+    group: 'Sparse block attention',
+    title: 'Fetch Key Block',
+    concept: 'We use the active index to dynamically gather the corresponding key block from memory.',
+    objective: 'Fetch the correct block from the kBlocks array.',
+    difficulty: 'core',
+    starterCode: `function computeSparseAttention(qBlock, kBlocks, activeBlockIndices) {
+  const outputs = [];
+  
+  for (let i = 0; i < activeBlockIndices.length; i++) {
+    const kIdx = activeBlockIndices[i];
+    // TODO: Assign the corresponding block from kBlocks to kBlock
+    const kBlock = 1.0;
+    
+    outputs.push(qBlock * kBlock);
+  }
+  
+  return outputs;
+}`,
+    testCode: `const results = [];
+function sameArray(a, b) { return JSON.stringify(a) === JSON.stringify(b); }
+function check(name, actual, expected) {
+  results.push({ name, actual: JSON.stringify(actual), expected: JSON.stringify(expected), passed: sameArray(actual, expected) });
+}
+check('fetch block', computeSparseAttention(2.0, [1.0, 2.0, 3.0, 4.0], [0, 3]), [2.0, 8.0]);
+return results;`,
+    hints: [
+      'Index into the kBlocks array using kIdx.',
+    ],
+    solution: `function computeSparseAttention(qBlock, kBlocks, activeBlockIndices) {
+  const outputs = [];
+  
+  for (let i = 0; i < activeBlockIndices.length; i++) {
+    const kIdx = activeBlockIndices[i];
+    const kBlock = kBlocks[kIdx];
+    
+    outputs.push(qBlock * kBlock);
+  }
+  
+  return outputs;
+}`,
+    explanation: 'This gather operation brings only the necessary data from VRAM into the streaming multiprocessors.',
+  },
+  {
+    id: 'sparse-block-compute',
+    stepLabel: '18.3',
+    group: 'Sparse block attention',
+    title: 'Mock Attention Compute',
+    concept: 'Once the blocks are loaded, the standard attention mechanism proceeds, but strictly within the block boundaries.',
+    objective: 'Multiply the qBlock by the kBlock to mock the attention interaction.',
+    difficulty: 'core',
+    starterCode: `function computeSparseAttention(qBlock, kBlocks, activeBlockIndices) {
+  const outputs = [];
+  
+  for (let i = 0; i < activeBlockIndices.length; i++) {
+    const kIdx = activeBlockIndices[i];
+    const kBlock = kBlocks[kIdx];
+    
+    // TODO: Push qBlock * kBlock to outputs
+    outputs.push(0);
+  }
+  
+  return outputs;
+}`,
+    testCode: `const results = [];
+function sameArray(a, b) { return JSON.stringify(a) === JSON.stringify(b); }
+function check(name, actual, expected) {
+  results.push({ name, actual: JSON.stringify(actual), expected: JSON.stringify(expected), passed: sameArray(actual, expected) });
+}
+check('compute mock attention', computeSparseAttention(3.0, [1.0, 2.0, 3.0, 4.0], [1, 2]), [6.0, 9.0]);
+return results;`,
+    hints: [
+      'Multiply qBlock and kBlock together.',
+    ],
+    solution: `function computeSparseAttention(qBlock, kBlocks, activeBlockIndices) {
+  const outputs = [];
+  
+  for (let i = 0; i < activeBlockIndices.length; i++) {
+    const kIdx = activeBlockIndices[i];
+    const kBlock = kBlocks[kIdx];
+    
+    outputs.push(qBlock * kBlock);
+  }
+  
+  return outputs;
+}`,
+    explanation: 'In reality, this is a FlashAttention block computation, but the fundamental block-wise interaction is the same.',
+  },
+  {
+    id: 'sparse-block-full',
+    stepLabel: '18.4',
+    group: 'Sparse block attention',
+    title: 'Full Sparse Block Attention',
+    concept: 'Native sparse attention allows million-token context windows by completely ignoring the vast majority of inactive keys.',
+    objective: 'Implement the full sparse block routing algorithm.',
+    difficulty: 'core',
+    starterCode: `function computeSparseAttention(qBlock, kBlocks, activeBlockIndices) {
+  const outputs = [];
+  
+  for (let i = 0; i < activeBlockIndices.length; i++) {
+    const kIdx = activeBlockIndices[i];
+    const kBlock = kBlocks[kIdx];
+    
+    // TODO: Compute and push the mock attention interaction
+    
+  }
+  
+  return outputs;
+}`,
+    testCode: `const results = [];
+function sameArray(a, b) { return JSON.stringify(a) === JSON.stringify(b); }
+function check(name, actual, expected) {
+  results.push({ name, actual: JSON.stringify(actual), expected: JSON.stringify(expected), passed: sameArray(actual, expected) });
+}
+check('full sparse attention', computeSparseAttention(5.0, [1.0, 2.0, 3.0, 4.0], [3]), [20.0]);
+return results;`,
+    hints: [
+      'Push qBlock * kBlock to the outputs array.',
+    ],
+    solution: `function computeSparseAttention(qBlock, kBlocks, activeBlockIndices) {
+  const outputs = [];
+  
+  for (let i = 0; i < activeBlockIndices.length; i++) {
+    const kIdx = activeBlockIndices[i];
+    const kBlock = kBlocks[kIdx];
+    
+    outputs.push(qBlock * kBlock);
+  }
+  
+  return outputs;
+}`,
+    explanation: 'Routing queries to specific key blocks creates a sparse attention pattern that cleanly handles ultra-long context lengths.',
   },
 ];
 
