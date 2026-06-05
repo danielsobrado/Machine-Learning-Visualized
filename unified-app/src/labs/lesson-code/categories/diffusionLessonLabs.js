@@ -1,6 +1,6 @@
-import { createCategoryLessonLabs } from '../lessonLabFactory.js';
+import { createMappedCategoryLessonLabs } from '../createMappedCategoryLessonLabs.js';
 
-export const DIFFUSION_LESSON_LABS = createCategoryLessonLabs('diffusion-models', {
+export const DIFFUSION_LESSON_LABS = createMappedCategoryLessonLabs('diffusion-models', {
   kind: 'diffusion-model pipeline',
   signalName: 'noise or denoising score',
   stages: ['noise', 'condition', 'denoise'],

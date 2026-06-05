@@ -1,6 +1,6 @@
-import { createCategoryLessonLabs } from '../lessonLabFactory.js';
+import { createMappedCategoryLessonLabs } from '../createMappedCategoryLessonLabs.js';
 
-export const RELIABILITY_LESSON_LABS = createCategoryLessonLabs('model-reliability', {
+export const RELIABILITY_LESSON_LABS = createMappedCategoryLessonLabs('model-reliability', {
   kind: 'reliability check',
   signalName: 'monitoring or risk score',
   stages: ['observe', 'alert', 'triage'],

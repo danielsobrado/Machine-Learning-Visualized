@@ -1,6 +1,6 @@
-import { createCategoryLessonLabs } from '../lessonLabFactory.js';
+import { createMappedCategoryLessonLabs } from '../createMappedCategoryLessonLabs.js';
 
-export const NLP_LESSON_LABS = createCategoryLessonLabs('nlp', {
+export const NLP_LESSON_LABS = createMappedCategoryLessonLabs('nlp', {
   kind: 'text representation',
   signalName: 'text relevance',
   stages: ['tokenize', 'vectorize', 'compare'],

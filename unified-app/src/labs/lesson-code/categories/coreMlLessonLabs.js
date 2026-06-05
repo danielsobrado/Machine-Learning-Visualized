@@ -1,6 +1,6 @@
-import { createCategoryLessonLabs } from '../lessonLabFactory.js';
+import { createMappedCategoryLessonLabs } from '../createMappedCategoryLessonLabs.js';
 
-export const CORE_ML_LESSON_LABS = createCategoryLessonLabs('core-ml', {
+export const CORE_ML_LESSON_LABS = createMappedCategoryLessonLabs('core-ml', {
   kind: 'machine-learning workflow',
   signalName: 'validation metric',
   stages: ['split', 'train', 'evaluate'],

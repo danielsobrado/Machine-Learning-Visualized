@@ -1,6 +1,6 @@
-import { createCategoryLessonLabs } from '../lessonLabFactory.js';
+import { createMappedCategoryLessonLabs } from '../createMappedCategoryLessonLabs.js';
 
-export const ALGORITHM_LESSON_LABS = createCategoryLessonLabs('algorithms', {
+export const ALGORITHM_LESSON_LABS = createMappedCategoryLessonLabs('algorithms', {
   kind: 'algorithmic data structure',
   signalName: 'rank or membership score',
   stages: ['insert', 'query', 'verify'],

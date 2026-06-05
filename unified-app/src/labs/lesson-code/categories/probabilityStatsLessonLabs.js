@@ -1,6 +1,6 @@
-import { createCategoryLessonLabs } from '../lessonLabFactory.js';
+import { createMappedCategoryLessonLabs } from '../createMappedCategoryLessonLabs.js';
 
-export const PROBABILITY_STATS_LESSON_LABS = createCategoryLessonLabs('probability-stats', {
+export const PROBABILITY_STATS_LESSON_LABS = createMappedCategoryLessonLabs('probability-stats', {
   kind: 'probability/statistics calculation',
   signalName: 'probability or uncertainty score',
   stages: ['count', 'normalize', 'summarize'],

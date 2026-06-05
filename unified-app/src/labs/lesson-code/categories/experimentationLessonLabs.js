@@ -1,6 +1,6 @@
-import { createCategoryLessonLabs } from '../lessonLabFactory.js';
+import { createMappedCategoryLessonLabs } from '../createMappedCategoryLessonLabs.js';
 
-export const EXPERIMENTATION_LESSON_LABS = createCategoryLessonLabs('experimentation-causal-ml', {
+export const EXPERIMENTATION_LESSON_LABS = createMappedCategoryLessonLabs('experimentation-causal-ml', {
   kind: 'experiment analysis',
   signalName: 'effect or balance score',
   stages: ['assign', 'measure', 'compare'],

@@ -1,6 +1,6 @@
-import { createCategoryLessonLabs } from '../lessonLabFactory.js';
+import { createMappedCategoryLessonLabs } from '../createMappedCategoryLessonLabs.js';
 
-export const TRANSFORMER_LESSON_LABS = createCategoryLessonLabs('transformers', {
+export const TRANSFORMER_LESSON_LABS = createMappedCategoryLessonLabs('transformers', {
   kind: 'sequence-modeling',
   signalName: 'attention or routing score',
   stages: ['project', 'score', 'mix'],

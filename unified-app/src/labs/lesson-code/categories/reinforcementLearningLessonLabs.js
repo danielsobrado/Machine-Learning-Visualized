@@ -1,6 +1,7 @@
-import { createCategoryLessonLabs, replaceLessonLabGroup } from '../lessonLabFactory.js';
+import { replaceLessonLabGroup } from '../lessonLabFactory.js';
+import { createMappedCategoryLessonLabs } from '../createMappedCategoryLessonLabs.js';
 
-const generatedLabs = createCategoryLessonLabs('reinforcement-learning', {
+const generatedLabs = createMappedCategoryLessonLabs('reinforcement-learning', {
   kind: 'reinforcement-learning loop',
   signalName: 'return or action-value score',
   stages: ['observe', 'act', 'learn'],

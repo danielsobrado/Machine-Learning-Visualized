@@ -1,15 +1,8 @@
-import { createCategoryLessonLabs, replaceLessonLabGroup } from '../lessonLabFactory.js';
-import { getAlgebraCodeLabsForLesson } from '../../algebra/algebraLessonCodeLabs.js';
+import { createMappedCategoryLessonLabs } from '../createMappedCategoryLessonLabs.js';
 
-const generatedLabs = createCategoryLessonLabs('math-fundamentals', {
+export const MATH_FUNDAMENTAL_LESSON_LABS = createMappedCategoryLessonLabs('math-fundamentals', {
   kind: 'mathematical computation',
   signalName: 'numeric fit or stability score',
   stages: ['represent', 'compute', 'check'],
   stageExplanation: 'Math code is clearer when representation, computation, and result checks are separate.',
 });
-
-export const MATH_FUNDAMENTAL_LESSON_LABS = replaceLessonLabGroup(
-  generatedLabs,
-  'matrix-multiplication',
-  () => getAlgebraCodeLabsForLesson('matrix-multiplication'),
-);

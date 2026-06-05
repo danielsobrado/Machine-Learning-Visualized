@@ -10,6 +10,7 @@ import {
   LESSON_CODE_LABS,
   getLessonCodeLabExercises,
 } from './lessonCodeLabs.js';
+import { hasRealLessonCodeLab } from './lessonCodeLabMappings.js';
 
 const REQUIRED_FIELDS = [
   'id',
@@ -26,23 +27,25 @@ const REQUIRED_FIELDS = [
   'explanation',
 ];
 
-test('every active lesson has one four-exercise code lab group', () => {
-  assert.equal(LESSON_CODE_LAB_GROUPS.length, allAnimations.length);
-  assert.equal(Object.keys(LESSON_CODE_LAB_BY_ID).length, allAnimations.length);
+const PLACEHOLDER_TITLE = 'Recognize the lesson keyword';
 
-  allAnimations.forEach((animation, lessonIndex) => {
-    const group = LESSON_CODE_LAB_BY_ID[animation.id];
-    assert.ok(group, `${animation.id} should have a code lab group`);
-    assert.equal(group.lessonId, animation.id);
-    assert.equal(group.lessonName, animation.name);
-    assert.equal(group.categoryId, animation.categoryId);
-    assert.equal(group.exercises.length, 4);
+test('mapped lessons expose real code labs and placeholders are removed', () => {
+  const lessonsWithLabs = new Set(LESSON_CODE_LAB_GROUPS.map((group) => group.lessonId));
 
-    group.exercises.forEach((exercise, exerciseIndex) => {
-      assert.equal(exercise.group, animation.name);
-      assert.equal(exercise.stepLabel, `${77 + lessonIndex}.${exerciseIndex + 1}`);
-    });
-  });
+  for (const animation of allAnimations) {
+    if (hasRealLessonCodeLab(animation.id)) {
+      assert.ok(lessonsWithLabs.has(animation.id), `${animation.id} should keep a code lab group`);
+      const exercises = getLessonCodeLabExercises(animation.id);
+      assert.ok(exercises.length > 0, `${animation.id} should have exercises`);
+      assert.notEqual(exercises[0].title, PLACEHOLDER_TITLE, `${animation.id} should not use keyword placeholders`);
+    } else {
+      assert.equal(
+        getLessonCodeLabExercises(animation.id).length,
+        0,
+        `${animation.id} should not expose placeholder code labs`,
+      );
+    }
+  }
 });
 
 test('lesson code lab exercises keep the Rustlings-style schema', () => {
@@ -57,10 +60,10 @@ test('lesson code lab exercises keep the Rustlings-style schema', () => {
     assert.equal(ids.has(exercise.id), false, `${exercise.id} should be unique`);
     ids.add(exercise.id);
 
-    assert.match(exercise.stepLabel, /^\d+\.[1-4]$/);
+    assert.match(exercise.stepLabel, /^\d+\.\d+$/);
     assert.match(exercise.starterCode, /TODO/);
     assert.ok(Array.isArray(exercise.hints));
-    assert.ok(exercise.hints.length >= 3);
+    assert.ok(exercise.hints.length >= 1);
   }
 });
 
@@ -107,6 +110,7 @@ test('lesson pages and the central labs route can resolve code lab groups', asyn
   assert.equal(matrixExercises.length, 10);
   assert.match(matrixExercises[0].starterCode, /function matmul\(A, B\)/);
   assert.equal(getLessonCodeLabExercises('bag-of-words').length, 4);
+  assert.equal(getLessonCodeLabExercises('word2vec').length, 0);
 
   const appSource = await readFile(new URL('../../App.jsx', import.meta.url), 'utf8');
   const animationPageSource = await readFile(new URL('../../pages/AnimationPage.jsx', import.meta.url), 'utf8');

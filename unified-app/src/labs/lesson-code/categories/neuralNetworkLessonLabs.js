@@ -1,6 +1,7 @@
-import { createCategoryLessonLabs, replaceLessonLabGroup } from '../lessonLabFactory.js';
+import { replaceLessonLabGroup } from '../lessonLabFactory.js';
+import { createMappedCategoryLessonLabs } from '../createMappedCategoryLessonLabs.js';
 
-const generatedLabs = createCategoryLessonLabs('neural-networks', {
+const generatedLabs = createMappedCategoryLessonLabs('neural-networks', {
   kind: 'neural-network computation',
   signalName: 'activation or gradient signal',
   stages: ['forward', 'loss', 'update'],

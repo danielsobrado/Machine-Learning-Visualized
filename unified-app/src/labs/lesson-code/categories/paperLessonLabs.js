@@ -1,6 +1,6 @@
-import { createCategoryLessonLabs } from '../lessonLabFactory.js';
+import { createMappedCategoryLessonLabs } from '../createMappedCategoryLessonLabs.js';
 
-export const PAPER_LESSON_LABS = createCategoryLessonLabs('papers', {
+export const PAPER_LESSON_LABS = createMappedCategoryLessonLabs('papers', {
   kind: 'paper-reading',
   signalName: 'claim, mechanism, or evidence score',
   stages: ['claim', 'mechanism', 'evidence'],
