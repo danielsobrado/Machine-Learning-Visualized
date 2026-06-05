@@ -1,186 +1,380 @@
 export const DIFFUSION_CODE_LABS = [
   // --- diffusion-basics ---
   {
-    id: 'diff-beta-schedule',
+    id: 'diffbasics-beta-schedule',
     stepLabel: '72.1',
-    group: 'Forward diffusion',
+    group: 'Noise scale',
     title: 'Linear Beta Schedule',
-    concept: 'Diffusion models inject noise sequentially according to variance schedule parameters beta_i.',
-    objective: 'Compute beta_i for step i under a linear schedule from betaMin to betaMax over totalSteps.',
+    concept: 'Diffusion models inject noise according to a variance schedule beta_t. A linear schedule ramps from betaMin to betaMax across T steps.',
+    objective: 'Inside diffusionBasicsStep, fill the betas array with linearly spaced schedule values.',
     difficulty: 'warmup',
-    starterCode: `function forwardDiffusionSample(x0, t, totalSteps, betaMin, betaMax, noise) {
-  let alphaBarT = 1.0;
-  
-  for (let i = 0; i <= t; i++) {
-    // TODO: Compute beta_i = betaMin + (i / (totalSteps - 1)) * (betaMax - betaMin)
-    const beta_i = 0.0;
-    
-    const alpha_i = 1.0 - beta_i;
-    alphaBarT *= alpha_i;
+    starterCode: `/**
+ * Runs one diffusion basics forward step: beta schedule, alpha-bar accumulation, noisy sample, SNR.
+ * @param {number} x0 - Clean signal value.
+ * @param {number} noise - Standard normal noise sample paired with x0.
+ * @param {number} t - Timestep index (0-based).
+ * @param {number} totalSteps - Number of diffusion steps T.
+ * @param {number} betaMin - Starting beta value.
+ * @param {number} betaMax - Ending beta value.
+ * @returns {{ betas: number[], alphaBars: number[], xt: number, snr: number, alphaBarT: number }} Schedule and forward sample outputs.
+ */
+function diffusionBasicsStep(x0, noise, t, totalSteps, betaMin, betaMax) {
+  const betas = [];
+  // TODO: push totalSteps linearly spaced beta values from betaMin to betaMax (single step => betaMin).
+
+  const alphaBars = [];
+  let running = 1;
+  for (let i = 0; i < totalSteps; i++) {
+    running *= (1 - betas[i]);
+    alphaBars.push(running);
   }
-  
-  return Math.sqrt(alphaBarT) * x0 + Math.sqrt(1 - alphaBarT) * noise;
+
+  const alphaBarT = alphaBars[t];
+  let xt = 0;
+  xt = Math.sqrt(alphaBarT) * x0 + Math.sqrt(1 - alphaBarT) * noise;
+
+  let snr = 0;
+  snr = alphaBarT / (1 - alphaBarT);
+
+  return { betas, alphaBars, xt, snr, alphaBarT };
 }`,
     testCode: `const results = [];
 function approxEqual(a, b, tol = 1e-5) { return Math.abs(a - b) <= tol; }
+function sameArray(a, b) { return a.length === b.length && a.every((v, i) => approxEqual(v, b[i])); }
 function check(name, actual, expected) {
-  results.push({ name, actual, expected, passed: approxEqual(actual, expected) });
+  results.push({ name, actual: JSON.stringify(actual), expected: JSON.stringify(expected), passed: sameArray(actual, expected) });
 }
-check('forward beta step', forwardDiffusionSample(1.0, 1, 3, 0.1, 0.5, 0.0), 0.793725);
+check('beta schedule', diffusionBasicsStep(1, 0, 0, 5, 0.0001, 0.02).betas, [0.0001, 0.005075, 0.01005, 0.015025, 0.02]);
+check('single step', diffusionBasicsStep(1, 0, 0, 1, 0.1, 0.2).betas, [0.1]);
 return results;`,
     hints: [
-      'Scale (betaMax - betaMin) by the fraction i / (totalSteps - 1).',
-      'Add betaMin to the result.',
+      'Loop i from 0 to totalSteps - 1 and push each beta.',
+      'When totalSteps === 1, push betaMin only; otherwise interpolate with i / (totalSteps - 1).',
+      'betas.push(betaMin + (totalSteps === 1 ? 0 : i / (totalSteps - 1)) * (betaMax - betaMin));',
     ],
-    solution: `function forwardDiffusionSample(x0, t, totalSteps, betaMin, betaMax, noise) {
-  let alphaBarT = 1.0;
-  
-  for (let i = 0; i <= t; i++) {
-    const beta_i = betaMin + (i / (totalSteps - 1)) * (betaMax - betaMin);
-    
-    const alpha_i = 1.0 - beta_i;
-    alphaBarT *= alpha_i;
+    solution: `/**
+ * Runs one diffusion basics forward step: beta schedule, alpha-bar accumulation, noisy sample, SNR.
+ * @param {number} x0 - Clean signal value.
+ * @param {number} noise - Standard normal noise sample paired with x0.
+ * @param {number} t - Timestep index (0-based).
+ * @param {number} totalSteps - Number of diffusion steps T.
+ * @param {number} betaMin - Starting beta value.
+ * @param {number} betaMax - Ending beta value.
+ * @returns {{ betas: number[], alphaBars: number[], xt: number, snr: number, alphaBarT: number }} Schedule and forward sample outputs.
+ */
+function diffusionBasicsStep(x0, noise, t, totalSteps, betaMin, betaMax) {
+  const betas = [];
+  for (let i = 0; i < totalSteps; i++) {
+    const frac = totalSteps === 1 ? 0 : i / (totalSteps - 1);
+    betas.push(betaMin + frac * (betaMax - betaMin));
   }
-  
-  return Math.sqrt(alphaBarT) * x0 + Math.sqrt(1 - alphaBarT) * noise;
+
+  const alphaBars = [];
+  let running = 1;
+  for (let i = 0; i < totalSteps; i++) {
+    running *= (1 - betas[i]);
+    alphaBars.push(running);
+  }
+
+  const alphaBarT = alphaBars[t];
+  let xt = 0;
+  xt = Math.sqrt(alphaBarT) * x0 + Math.sqrt(1 - alphaBarT) * noise;
+
+  let snr = 0;
+  snr = alphaBarT / (1 - alphaBarT);
+
+  return { betas, alphaBars, xt, snr, alphaBarT };
 }`,
-    explanation: 'A variance schedule controls the noise injection rate, fading structural features gradually.',
+    explanation: 'The beta schedule controls how quickly noise is injected across diffusion timesteps.',
   },
   {
-    id: 'diff-alpha-computation',
+    id: 'diffbasics-alpha-bar',
     stepLabel: '72.2',
-    group: 'Forward diffusion',
-    title: 'Alpha computation',
-    concept: 'Alpha represents the fraction of the original signal retained at each step.',
-    objective: 'Compute alpha_i as 1.0 minus beta_i.',
+    group: 'Alpha bar',
+    title: 'Cumulative Alpha Bar',
+    concept: 'Alpha bar is the cumulative product of (1 - beta_t). It measures how much clean signal survives at step t.',
+    objective: 'Inside diffusionBasicsStep, update the alphaBars loop so running accumulates the product of (1 - beta_i).',
     difficulty: 'core',
-    starterCode: `function forwardDiffusionSample(x0, t, totalSteps, betaMin, betaMax, noise) {
-  let alphaBarT = 1.0;
-  
-  for (let i = 0; i <= t; i++) {
-    const beta_i = betaMin + (i / (totalSteps - 1)) * (betaMax - betaMin);
-    
-    // TODO: Compute alpha_i = 1.0 - beta_i
-    const alpha_i = 1.0;
-    
-    alphaBarT *= alpha_i;
+    starterCode: `/**
+ * Runs one diffusion basics forward step: beta schedule, alpha-bar accumulation, noisy sample, SNR.
+ * @param {number} x0 - Clean signal value.
+ * @param {number} noise - Standard normal noise sample paired with x0.
+ * @param {number} t - Timestep index (0-based).
+ * @param {number} totalSteps - Number of diffusion steps T.
+ * @param {number} betaMin - Starting beta value.
+ * @param {number} betaMax - Ending beta value.
+ * @returns {{ betas: number[], alphaBars: number[], xt: number, snr: number, alphaBarT: number }} Schedule and forward sample outputs.
+ */
+function diffusionBasicsStep(x0, noise, t, totalSteps, betaMin, betaMax) {
+  const betas = [];
+  for (let i = 0; i < totalSteps; i++) {
+    const frac = totalSteps === 1 ? 0 : i / (totalSteps - 1);
+    betas.push(betaMin + frac * (betaMax - betaMin));
   }
-  
-  return Math.sqrt(alphaBarT) * x0 + Math.sqrt(1 - alphaBarT) * noise;
+
+  const alphaBars = [];
+  let running = 1;
+  for (let i = 0; i < totalSteps; i++) {
+    // TODO: multiply running by (1 - betas[i]) and push the updated running value.
+    alphaBars.push(running);
+  }
+
+  const alphaBarT = alphaBars[t];
+  let xt = 0;
+  xt = Math.sqrt(alphaBarT) * x0 + Math.sqrt(1 - alphaBarT) * noise;
+
+  let snr = 0;
+  snr = alphaBarT / (1 - alphaBarT);
+
+  return { betas, alphaBars, xt, snr, alphaBarT };
 }`,
     testCode: `const results = [];
 function approxEqual(a, b, tol = 1e-5) { return Math.abs(a - b) <= tol; }
+function sameArray(a, b) { return a.length === b.length && a.every((v, i) => approxEqual(v, b[i])); }
 function check(name, actual, expected) {
-  results.push({ name, actual, expected, passed: approxEqual(actual, expected) });
+  results.push({ name, actual: JSON.stringify(actual), expected: JSON.stringify(expected), passed: sameArray(actual, expected) });
 }
-check('forward alpha step', forwardDiffusionSample(1.0, 1, 3, 0.1, 0.5, 0.0), 0.793725);
+const out = diffusionBasicsStep(1, 0, 2, 3, 0.1, 0.3);
+check('alpha bars', out.alphaBars, [0.9, 0.9 * 0.8, 0.9 * 0.8 * 0.7]);
+check('alpha bar at t', out.alphaBarT, 0.9 * 0.8 * 0.7);
 return results;`,
     hints: [
-      'Subtract beta_i from 1.0.',
+      'Before pushing, update running *= (1 - betas[i]).',
+      'Push running after each multiplication.',
+      'Alpha bar at step i is the product of all (1 - beta_j) for j <= i.',
     ],
-    solution: `function forwardDiffusionSample(x0, t, totalSteps, betaMin, betaMax, noise) {
-  let alphaBarT = 1.0;
-  
-  for (let i = 0; i <= t; i++) {
-    const beta_i = betaMin + (i / (totalSteps - 1)) * (betaMax - betaMin);
-    
-    const alpha_i = 1.0 - beta_i;
-    
-    alphaBarT *= alpha_i;
+    solution: `/**
+ * Runs one diffusion basics forward step: beta schedule, alpha-bar accumulation, noisy sample, SNR.
+ * @param {number} x0 - Clean signal value.
+ * @param {number} noise - Standard normal noise sample paired with x0.
+ * @param {number} t - Timestep index (0-based).
+ * @param {number} totalSteps - Number of diffusion steps T.
+ * @param {number} betaMin - Starting beta value.
+ * @param {number} betaMax - Ending beta value.
+ * @returns {{ betas: number[], alphaBars: number[], xt: number, snr: number, alphaBarT: number }} Schedule and forward sample outputs.
+ */
+function diffusionBasicsStep(x0, noise, t, totalSteps, betaMin, betaMax) {
+  const betas = [];
+  for (let i = 0; i < totalSteps; i++) {
+    const frac = totalSteps === 1 ? 0 : i / (totalSteps - 1);
+    betas.push(betaMin + frac * (betaMax - betaMin));
   }
-  
-  return Math.sqrt(alphaBarT) * x0 + Math.sqrt(1 - alphaBarT) * noise;
+
+  const alphaBars = [];
+  let running = 1;
+  for (let i = 0; i < totalSteps; i++) {
+    running *= (1 - betas[i]);
+    alphaBars.push(running);
+  }
+
+  const alphaBarT = alphaBars[t];
+  let xt = 0;
+  xt = Math.sqrt(alphaBarT) * x0 + Math.sqrt(1 - alphaBarT) * noise;
+
+  let snr = 0;
+  snr = alphaBarT / (1 - alphaBarT);
+
+  return { betas, alphaBars, xt, snr, alphaBarT };
 }`,
-    explanation: 'Subtracting the noise variance gives us the signal retention coefficient.',
+    explanation: 'Cumulative alpha bars let us sample x_t in closed form without unrolling the forward chain.',
   },
   {
-    id: 'diff-alpha-bar',
+    id: 'diffbasics-forward-sample',
     stepLabel: '72.3',
-    group: 'Forward diffusion',
-    title: 'Cumulative Alpha',
-    concept: 'Alpha bar is the cumulative product of alphas from step 0 up to step t.',
-    objective: 'Multiply alphaBarT by alpha_i.',
-    difficulty: 'core',
-    starterCode: `function forwardDiffusionSample(x0, t, totalSteps, betaMin, betaMax, noise) {
-  let alphaBarT = 1.0;
-  
-  for (let i = 0; i <= t; i++) {
-    const beta_i = betaMin + (i / (totalSteps - 1)) * (betaMax - betaMin);
-    const alpha_i = 1.0 - beta_i;
-    
-    // TODO: Multiply alphaBarT by alpha_i
-    
-  }
-  
-  return Math.sqrt(alphaBarT) * x0 + Math.sqrt(1 - alphaBarT) * noise;
-}`,
-    testCode: `const results = [];
-function approxEqual(a, b, tol = 1e-5) { return Math.abs(a - b) <= tol; }
-function check(name, actual, expected) {
-  results.push({ name, actual, expected, passed: approxEqual(actual, expected) });
-}
-check('forward alpha bar', forwardDiffusionSample(1.0, 1, 3, 0.1, 0.5, 0.0), 0.793725);
-return results;`,
-    hints: [
-      'Use the *= operator to accumulate the product.',
-    ],
-    solution: `function forwardDiffusionSample(x0, t, totalSteps, betaMin, betaMax, noise) {
-  let alphaBarT = 1.0;
-  
-  for (let i = 0; i <= t; i++) {
-    const beta_i = betaMin + (i / (totalSteps - 1)) * (betaMax - betaMin);
-    const alpha_i = 1.0 - beta_i;
-    
-    alphaBarT *= alpha_i;
-  }
-  
-  return Math.sqrt(alphaBarT) * x0 + Math.sqrt(1 - alphaBarT) * noise;
-}`,
-    explanation: 'The cumulative product gives the total signal retained after sequentially passing through all t noise layers.',
-  },
-  {
-    id: 'diff-forward-sample',
-    stepLabel: '72.4',
-    group: 'Forward diffusion',
+    group: 'Forward sample',
     title: 'Forward Diffusion Sample',
     concept: 'The forward process samples x_t directly from x_0: x_t = sqrt(alpha_bar_t) * x_0 + sqrt(1 - alpha_bar_t) * noise.',
-    objective: 'Generate and return the noisy sample x_t at step t.',
+    objective: 'Inside diffusionBasicsStep, compute xt from x0, noise, and alphaBarT.',
     difficulty: 'core',
-    starterCode: `function forwardDiffusionSample(x0, t, totalSteps, betaMin, betaMax, noise) {
-  let alphaBarT = 1.0;
-  
-  for (let i = 0; i <= t; i++) {
-    const beta_i = betaMin + (i / (totalSteps - 1)) * (betaMax - betaMin);
-    const alpha_i = 1.0 - beta_i;
-    alphaBarT *= alpha_i;
+    starterCode: `/**
+ * Runs one diffusion basics forward step: beta schedule, alpha-bar accumulation, noisy sample, SNR.
+ * @param {number} x0 - Clean signal value.
+ * @param {number} noise - Standard normal noise sample paired with x0.
+ * @param {number} t - Timestep index (0-based).
+ * @param {number} totalSteps - Number of diffusion steps T.
+ * @param {number} betaMin - Starting beta value.
+ * @param {number} betaMax - Ending beta value.
+ * @returns {{ betas: number[], alphaBars: number[], xt: number, snr: number, alphaBarT: number }} Schedule and forward sample outputs.
+ */
+function diffusionBasicsStep(x0, noise, t, totalSteps, betaMin, betaMax) {
+  const betas = [];
+  for (let i = 0; i < totalSteps; i++) {
+    const frac = totalSteps === 1 ? 0 : i / (totalSteps - 1);
+    betas.push(betaMin + frac * (betaMax - betaMin));
   }
-  
-  // TODO: return sqrt(alphaBarT) * x0 + sqrt(1 - alphaBarT) * noise
-  return 0.0;
+
+  const alphaBars = [];
+  let running = 1;
+  for (let i = 0; i < totalSteps; i++) {
+    running *= (1 - betas[i]);
+    alphaBars.push(running);
+  }
+
+  const alphaBarT = alphaBars[t];
+  let xt = 0;
+  // TODO: xt = sqrt(alphaBarT) * x0 + sqrt(1 - alphaBarT) * noise
+
+  let snr = 0;
+  snr = alphaBarT / (1 - alphaBarT);
+
+  return { betas, alphaBars, xt, snr, alphaBarT };
 }`,
     testCode: `const results = [];
 function approxEqual(a, b, tol = 1e-5) { return Math.abs(a - b) <= tol; }
 function check(name, actual, expected) {
   results.push({ name, actual, expected, passed: approxEqual(actual, expected) });
 }
-check('forward diffuse sample', forwardDiffusionSample(1.5, 1, 3, 0.1, 0.5, -0.8), 0.703966);
+check('forward matches closed form', (() => {
+  const out = diffusionBasicsStep(1.5, -0.8, 5, 11, 0.1, 0.2);
+  const ab = out.alphaBarT;
+  return out.xt;
+})(), (() => {
+  const out = diffusionBasicsStep(1.5, -0.8, 5, 11, 0.1, 0.2);
+  const ab = out.alphaBarT;
+  return Math.sqrt(ab) * 1.5 + Math.sqrt(1 - ab) * (-0.8);
+})());
+check('zero noise', diffusionBasicsStep(2, 0, 0, 5, 0.0001, 0.02).xt, Math.sqrt(0.9999) * 2);
 return results;`,
     hints: [
-      'Use Math.sqrt to get the square root of alphaBarT and (1 - alphaBarT).',
-      'Multiply the roots by x0 and noise respectively, then sum them.',
+      'Use Math.sqrt for alphaBarT and (1 - alphaBarT).',
+      'Scale x0 by sqrt(alphaBarT) and noise by sqrt(1 - alphaBarT).',
+      'xt = Math.sqrt(alphaBarT) * x0 + Math.sqrt(1 - alphaBarT) * noise;',
     ],
-    solution: `function forwardDiffusionSample(x0, t, totalSteps, betaMin, betaMax, noise) {
-  let alphaBarT = 1.0;
-  
-  for (let i = 0; i <= t; i++) {
-    const beta_i = betaMin + (i / (totalSteps - 1)) * (betaMax - betaMin);
-    const alpha_i = 1.0 - beta_i;
-    alphaBarT *= alpha_i;
+    solution: `/**
+ * Runs one diffusion basics forward step: beta schedule, alpha-bar accumulation, noisy sample, SNR.
+ * @param {number} x0 - Clean signal value.
+ * @param {number} noise - Standard normal noise sample paired with x0.
+ * @param {number} t - Timestep index (0-based).
+ * @param {number} totalSteps - Number of diffusion steps T.
+ * @param {number} betaMin - Starting beta value.
+ * @param {number} betaMax - Ending beta value.
+ * @returns {{ betas: number[], alphaBars: number[], xt: number, snr: number, alphaBarT: number }} Schedule and forward sample outputs.
+ */
+function diffusionBasicsStep(x0, noise, t, totalSteps, betaMin, betaMax) {
+  const betas = [];
+  for (let i = 0; i < totalSteps; i++) {
+    const frac = totalSteps === 1 ? 0 : i / (totalSteps - 1);
+    betas.push(betaMin + frac * (betaMax - betaMin));
   }
-  
-  return Math.sqrt(alphaBarT) * x0 + Math.sqrt(1 - alphaBarT) * noise;
+
+  const alphaBars = [];
+  let running = 1;
+  for (let i = 0; i < totalSteps; i++) {
+    running *= (1 - betas[i]);
+    alphaBars.push(running);
+  }
+
+  const alphaBarT = alphaBars[t];
+  let xt = 0;
+  xt = Math.sqrt(alphaBarT) * x0 + Math.sqrt(1 - alphaBarT) * noise;
+
+  let snr = 0;
+  snr = alphaBarT / (1 - alphaBarT);
+
+  return { betas, alphaBars, xt, snr, alphaBarT };
 }`,
-    explanation: 'Closed-form forward sampling avoids having to simulate thousands of forward steps just to fetch training data.',
+    explanation: 'Closed-form forward sampling trains the denoiser at arbitrary timesteps without recurrent unrolling.',
+  },
+  {
+    id: 'diffbasics-signal-noise',
+    stepLabel: '72.4',
+    group: 'Signal-to-noise ratio',
+    title: 'Signal-to-Noise Ratio',
+    concept: 'At timestep t the signal-to-noise ratio SNR = alpha_bar_t / (1 - alpha_bar_t) summarizes how much structure remains versus noise.',
+    objective: 'Inside diffusionBasicsStep, compute snr from alphaBarT.',
+    difficulty: 'core',
+    starterCode: `/**
+ * Runs one diffusion basics forward step: beta schedule, alpha-bar accumulation, noisy sample, SNR.
+ * @param {number} x0 - Clean signal value.
+ * @param {number} noise - Standard normal noise sample paired with x0.
+ * @param {number} t - Timestep index (0-based).
+ * @param {number} totalSteps - Number of diffusion steps T.
+ * @param {number} betaMin - Starting beta value.
+ * @param {number} betaMax - Ending beta value.
+ * @returns {{ betas: number[], alphaBars: number[], xt: number, snr: number, alphaBarT: number }} Schedule and forward sample outputs.
+ */
+function diffusionBasicsStep(x0, noise, t, totalSteps, betaMin, betaMax) {
+  const betas = [];
+  for (let i = 0; i < totalSteps; i++) {
+    const frac = totalSteps === 1 ? 0 : i / (totalSteps - 1);
+    betas.push(betaMin + frac * (betaMax - betaMin));
+  }
+
+  const alphaBars = [];
+  let running = 1;
+  for (let i = 0; i < totalSteps; i++) {
+    running *= (1 - betas[i]);
+    alphaBars.push(running);
+  }
+
+  const alphaBarT = alphaBars[t];
+  let xt = 0;
+  xt = Math.sqrt(alphaBarT) * x0 + Math.sqrt(1 - alphaBarT) * noise;
+
+  let snr = 0;
+  // TODO: snr = alphaBarT / (1 - alphaBarT)
+
+  return { betas, alphaBars, xt, snr, alphaBarT };
+}`,
+    testCode: `const results = [];
+function approxEqual(a, b, tol = 1e-5) { return Math.abs(a - b) <= tol; }
+function check(name, actual, expected) {
+  results.push({ name, actual, expected, passed: approxEqual(actual, expected) });
+}
+check('snr mid schedule', (() => {
+  const out = diffusionBasicsStep(1, 0, 5, 11, 0.1, 0.2);
+  return out.snr;
+})(), (() => {
+  const out = diffusionBasicsStep(1, 0, 5, 11, 0.1, 0.2);
+  return out.alphaBarT / (1 - out.alphaBarT);
+})());
+check('snr early step', (() => {
+  const out = diffusionBasicsStep(1, 0, 0, 11, 0.1, 0.2);
+  return out.snr;
+})(), (() => {
+  const out = diffusionBasicsStep(1, 0, 0, 11, 0.1, 0.2);
+  return out.alphaBarT / (1 - out.alphaBarT);
+})());
+return results;`,
+    hints: [
+      'Divide alphaBarT by its noise complement (1 - alphaBarT).',
+      'High SNR at early timesteps means the sample is still mostly signal.',
+      'snr = alphaBarT / (1 - alphaBarT);',
+    ],
+    solution: `/**
+ * Runs one diffusion basics forward step: beta schedule, alpha-bar accumulation, noisy sample, SNR.
+ * @param {number} x0 - Clean signal value.
+ * @param {number} noise - Standard normal noise sample paired with x0.
+ * @param {number} t - Timestep index (0-based).
+ * @param {number} totalSteps - Number of diffusion steps T.
+ * @param {number} betaMin - Starting beta value.
+ * @param {number} betaMax - Ending beta value.
+ * @returns {{ betas: number[], alphaBars: number[], xt: number, snr: number, alphaBarT: number }} Schedule and forward sample outputs.
+ */
+function diffusionBasicsStep(x0, noise, t, totalSteps, betaMin, betaMax) {
+  const betas = [];
+  for (let i = 0; i < totalSteps; i++) {
+    const frac = totalSteps === 1 ? 0 : i / (totalSteps - 1);
+    betas.push(betaMin + frac * (betaMax - betaMin));
+  }
+
+  const alphaBars = [];
+  let running = 1;
+  for (let i = 0; i < totalSteps; i++) {
+    running *= (1 - betas[i]);
+    alphaBars.push(running);
+  }
+
+  const alphaBarT = alphaBars[t];
+  let xt = 0;
+  xt = Math.sqrt(alphaBarT) * x0 + Math.sqrt(1 - alphaBarT) * noise;
+
+  let snr = 0;
+  snr = alphaBarT / (1 - alphaBarT);
+
+  return { betas, alphaBars, xt, snr, alphaBarT };
+}`,
+    explanation: 'SNR tracks how denoising difficulty grows as more variance is injected through the schedule.',
   },
 
   // --- diffusion-sampling ---
@@ -189,20 +383,48 @@ return results;`,
     stepLabel: '73.1',
     group: 'Beta scheduling',
     title: 'Linear Beta Schedule',
-    concept: 'Denoising Diffusion Probabilistic Models (DDPM) corrupt images by adding noise according to a schedule. A linear beta schedule interpolates variance levels from a small start value to a larger end value across T timesteps.',
-    objective: 'Generate a linear beta schedule array of size T, representing variance increments at each step.',
+    concept: 'DDPM uses a linear beta schedule that ramps noise variance from betaStart to betaEnd across T timesteps.',
+    objective: 'Inside ddpmSamplingStep, fill the betas array with linearly interpolated values.',
     difficulty: 'warmup',
     starterCode: `/**
- * Generates a linear beta schedule for diffusion variance.
- * @param {number} T - Total diffusion timesteps.
- * @param {number} betaStart - Starting variance (beta_0).
- * @param {number} betaEnd - Ending variance (beta_T).
- * @returns {number[]} Array of beta values of size T.
+ * Runs one DDPM sampling kernel step: build schedule, optional forward diffuse, reverse denoise sample.
+ * @param {number} xt - Noisy latent at timestep t (reverse path input).
+ * @param {number} epsTheta - Predicted noise from the denoiser network.
+ * @param {number} t - Current timestep index.
+ * @param {number} totalSteps - Number of diffusion steps T.
+ * @param {number} betaStart - Starting beta value.
+ * @param {number} betaEnd - Ending beta value.
+ * @param {number} zNoise - Gaussian noise for reverse sampling when t > 0.
+ * @param {number|null} x0 - Clean value for forward diffuse tests (null skips forward branch).
+ * @param {number|null} forwardNoise - Noise paired with x0 for forward diffuse tests.
+ * @returns {{ betas: number[], alphaBars: number[], forwardXt: number|null, reverseXt: number }} Schedule and sample outputs.
  */
-function makeBetaSchedule(T, betaStart, betaEnd) {
+function ddpmSamplingStep(xt, epsTheta, t, totalSteps, betaStart, betaEnd, zNoise, x0, forwardNoise) {
   const betas = [];
-  // TODO: Fill betas array with linearly interpolated values
-  return betas;
+  // TODO: push T linearly spaced beta values from betaStart to betaEnd.
+
+  const alphaBars = [];
+  let running = 1;
+  for (let i = 0; i < totalSteps; i++) {
+    running *= (1 - betas[i]);
+    alphaBars.push(running);
+  }
+
+  let forwardXt = null;
+  if (x0 !== null && forwardNoise !== null) {
+    const ab = alphaBars[t];
+    forwardXt = Math.sqrt(ab) * x0 + Math.sqrt(1 - ab) * forwardNoise;
+  }
+
+  const betaT = betas[t];
+  const alphaT = 1 - betaT;
+  const alphaBarT = alphaBars[t];
+  const inner = xt - (betaT / Math.sqrt(1 - alphaBarT)) * epsTheta;
+  const mu = inner / Math.sqrt(alphaT);
+  let reverseXt = mu;
+  if (t > 0) reverseXt = mu + Math.sqrt(betaT) * zNoise;
+
+  return { betas, alphaBars, forwardXt, reverseXt };
 }`,
     testCode: `const results = [];
 function approxEqual(a, b, tol = 1e-5) { return Math.abs(a - b) <= tol; }
@@ -210,187 +432,390 @@ function sameArray(a, b) { return a.length === b.length && a.every((v, i) => app
 function check(name, actual, expected) {
   results.push({ name, actual: JSON.stringify(actual), expected: JSON.stringify(expected), passed: sameArray(actual, expected) });
 }
-check('beta schedule 5 steps', makeBetaSchedule(5, 0.0001, 0.02), [0.0001, 0.005075, 0.01005, 0.015025, 0.02]);
-check('beta schedule 2 steps', makeBetaSchedule(2, 0.1, 0.5), [0.1, 0.5]);
+check('beta schedule', ddpmSamplingStep(0, 0, 0, 5, 0.0001, 0.02, 0, null, null).betas, [0.0001, 0.005075, 0.01005, 0.015025, 0.02]);
 return results;`,
     hints: [
-      'The step increment is (betaEnd - betaStart) / (T - 1).',
-      'Loop i from 0 to T-1, calculate beta_i = betaStart + i * step, and push to betas.',
+      'Step size is (betaEnd - betaStart) / (totalSteps - 1) when totalSteps > 1.',
+      'Push betaStart + i * step for each i.',
     ],
     solution: `/**
- * Generates a linear beta schedule for diffusion variance.
- * @param {number} T - Total diffusion timesteps.
- * @param {number} betaStart - Starting variance (beta_0).
- * @param {number} betaEnd - Ending variance (beta_T).
- * @returns {number[]} Array of beta values of size T.
+ * Runs one DDPM sampling kernel step: build schedule, optional forward diffuse, reverse denoise sample.
+ * @param {number} xt - Noisy latent at timestep t (reverse path input).
+ * @param {number} epsTheta - Predicted noise from the denoiser network.
+ * @param {number} t - Current timestep index.
+ * @param {number} totalSteps - Number of diffusion steps T.
+ * @param {number} betaStart - Starting beta value.
+ * @param {number} betaEnd - Ending beta value.
+ * @param {number} zNoise - Gaussian noise for reverse sampling when t > 0.
+ * @param {number|null} x0 - Clean value for forward diffuse tests (null skips forward branch).
+ * @param {number|null} forwardNoise - Noise paired with x0 for forward diffuse tests.
+ * @returns {{ betas: number[], alphaBars: number[], forwardXt: number|null, reverseXt: number }} Schedule and sample outputs.
  */
-function makeBetaSchedule(T, betaStart, betaEnd) {
+function ddpmSamplingStep(xt, epsTheta, t, totalSteps, betaStart, betaEnd, zNoise, x0, forwardNoise) {
   const betas = [];
-  if (T <= 1) {
+  if (totalSteps <= 1) {
     betas.push(betaStart);
-    return betas;
+  } else {
+    const step = (betaEnd - betaStart) / (totalSteps - 1);
+    for (let i = 0; i < totalSteps; i++) {
+      betas.push(betaStart + i * step);
+    }
   }
-  const step = (betaEnd - betaStart) / (T - 1);
-  for (let i = 0; i < T; i++) {
-    betas.push(betaStart + i * step);
+
+  const alphaBars = [];
+  let running = 1;
+  for (let i = 0; i < totalSteps; i++) {
+    running *= (1 - betas[i]);
+    alphaBars.push(running);
   }
-  return betas;
+
+  let forwardXt = null;
+  if (x0 !== null && forwardNoise !== null) {
+    const ab = alphaBars[t];
+    forwardXt = Math.sqrt(ab) * x0 + Math.sqrt(1 - ab) * forwardNoise;
+  }
+
+  const betaT = betas[t];
+  const alphaT = 1 - betaT;
+  const alphaBarT = alphaBars[t];
+  const inner = xt - (betaT / Math.sqrt(1 - alphaBarT)) * epsTheta;
+  const mu = inner / Math.sqrt(alphaT);
+  let reverseXt = mu;
+  if (t > 0) reverseXt = mu + Math.sqrt(betaT) * zNoise;
+
+  return { betas, alphaBars, forwardXt, reverseXt };
 }`,
-    explanation: 'A linear schedule gradually ramps up noise, preserving image structure at early steps and applying strong corruption at later ones.',
+    explanation: 'The beta schedule controls how quickly signal is replaced by noise across the forward process.',
   },
   {
     id: 'diff-forward-diffusion-step',
     stepLabel: '73.2',
     group: 'Forward noise scheduler',
     title: 'Closed-Form Forward Diffusion',
-    concept: 'A major feature of DDPM is that the corrupted latent at any timestep t (x_t) can be computed directly from clean data x_0 in closed-form: x_t = sqrt(alpha_bar_t) * x_0 + sqrt(1 - alpha_bar_t) * noise.',
-    objective: 'Implement the closed-form forward diffusion equation to add noise to a clean value.',
+    concept: 'DDPM can jump directly to x_t with x_t = sqrt(alpha_bar_t) * x_0 + sqrt(1 - alpha_bar_t) * noise.',
+    objective: 'Inside ddpmSamplingStep, compute forwardXt when x0 and forwardNoise are provided.',
     difficulty: 'warmup',
     starterCode: `/**
- * Computes a closed-form forward diffusion latent x_t from clean input x_0.
- * @param {number} x0 - Original clean scalar value.
- * @param {number} noise - Sampled Gaussian noise.
- * @param {number} alphaBarT - Cumulative alpha product (alpha_bar_t).
- * @returns {number} Corrupted latent value x_t.
+ * Runs one DDPM sampling kernel step: build schedule, optional forward diffuse, reverse denoise sample.
+ * @param {number} xt - Noisy latent at timestep t (reverse path input).
+ * @param {number} epsTheta - Predicted noise from the denoiser network.
+ * @param {number} t - Current timestep index.
+ * @param {number} totalSteps - Number of diffusion steps T.
+ * @param {number} betaStart - Starting beta value.
+ * @param {number} betaEnd - Ending beta value.
+ * @param {number} zNoise - Gaussian noise for reverse sampling when t > 0.
+ * @param {number|null} x0 - Clean value for forward diffuse tests (null skips forward branch).
+ * @param {number|null} forwardNoise - Noise paired with x0 for forward diffuse tests.
+ * @returns {{ betas: number[], alphaBars: number[], forwardXt: number|null, reverseXt: number }} Schedule and sample outputs.
  */
-function forwardDiffuse(x0, noise, alphaBarT) {
-  // TODO: Compute and return corrupted latent x_t
-  return 0;
+function ddpmSamplingStep(xt, epsTheta, t, totalSteps, betaStart, betaEnd, zNoise, x0, forwardNoise) {
+  const betas = [];
+  if (totalSteps <= 1) betas.push(betaStart);
+  else {
+    const step = (betaEnd - betaStart) / (totalSteps - 1);
+    for (let i = 0; i < totalSteps; i++) betas.push(betaStart + i * step);
+  }
+
+  const alphaBars = [];
+  let running = 1;
+  for (let i = 0; i < totalSteps; i++) {
+    running *= (1 - betas[i]);
+    alphaBars.push(running);
+  }
+
+  let forwardXt = null;
+  if (x0 !== null && forwardNoise !== null) {
+    const ab = alphaBars[t];
+    // TODO: set forwardXt using closed-form forward diffusion.
+  }
+
+  const betaT = betas[t];
+  const alphaT = 1 - betaT;
+  const alphaBarT = alphaBars[t];
+  const inner = xt - (betaT / Math.sqrt(1 - alphaBarT)) * epsTheta;
+  const mu = inner / Math.sqrt(alphaT);
+  let reverseXt = mu;
+  if (t > 0) reverseXt = mu + Math.sqrt(betaT) * zNoise;
+
+  return { betas, alphaBars, forwardXt, reverseXt };
 }`,
     testCode: `const results = [];
 function approxEqual(a, b, tol = 1e-5) { return Math.abs(a - b) <= tol; }
 function check(name, actual, expected) {
   results.push({ name, actual, expected, passed: approxEqual(actual, expected) });
 }
-check('forward diffuse standard', forwardDiffuse(1.5, -0.8, 0.64), 0.72); // 0.8 * 1.5 + 0.6 * -0.8 = 1.2 - 0.48 = 0.72
-check('forward diffuse zero noise', forwardDiffuse(2.0, 0.0, 0.25), 1.0); // 0.5 * 2.0 = 1.0
-check('forward diffuse zero signal', forwardDiffuse(0.0, 1.2, 0.0), 1.2); // 1.0 * 1.2 = 1.2
+const out = ddpmSamplingStep(0, 0, 1, 4, 0.01, 0.04, 0, 1.5, -0.8);
+check('forward diffuse', out.forwardXt, 1.339380);
 return results;`,
     hints: [
-      'Use Math.sqrt(alphaBarT) as the coefficient for x0.',
-      'Use Math.sqrt(1 - alphaBarT) as the coefficient for noise.',
-      'Add the scaled components together.',
+      'Use alphaBars[t] as alpha_bar_t.',
+      'forwardXt = Math.sqrt(ab) * x0 + Math.sqrt(1 - ab) * forwardNoise.',
     ],
     solution: `/**
- * Computes a closed-form forward diffusion latent x_t from clean input x_0.
- * @param {number} x0 - Original clean scalar value.
- * @param {number} noise - Sampled Gaussian noise.
- * @param {number} alphaBarT - Cumulative alpha product (alpha_bar_t).
- * @returns {number} Corrupted latent value x_t.
+ * Runs one DDPM sampling kernel step: build schedule, optional forward diffuse, reverse denoise sample.
+ * @param {number} xt - Noisy latent at timestep t (reverse path input).
+ * @param {number} epsTheta - Predicted noise from the denoiser network.
+ * @param {number} t - Current timestep index.
+ * @param {number} totalSteps - Number of diffusion steps T.
+ * @param {number} betaStart - Starting beta value.
+ * @param {number} betaEnd - Ending beta value.
+ * @param {number} zNoise - Gaussian noise for reverse sampling when t > 0.
+ * @param {number|null} x0 - Clean value for forward diffuse tests (null skips forward branch).
+ * @param {number|null} forwardNoise - Noise paired with x0 for forward diffuse tests.
+ * @returns {{ betas: number[], alphaBars: number[], forwardXt: number|null, reverseXt: number }} Schedule and sample outputs.
  */
-function forwardDiffuse(x0, noise, alphaBarT) {
-  return Math.sqrt(alphaBarT) * x0 + Math.sqrt(1 - alphaBarT) * noise;
+function ddpmSamplingStep(xt, epsTheta, t, totalSteps, betaStart, betaEnd, zNoise, x0, forwardNoise) {
+  const betas = [];
+  if (totalSteps <= 1) betas.push(betaStart);
+  else {
+    const step = (betaEnd - betaStart) / (totalSteps - 1);
+    for (let i = 0; i < totalSteps; i++) betas.push(betaStart + i * step);
+  }
+
+  const alphaBars = [];
+  let running = 1;
+  for (let i = 0; i < totalSteps; i++) {
+    running *= (1 - betas[i]);
+    alphaBars.push(running);
+  }
+
+  let forwardXt = null;
+  if (x0 !== null && forwardNoise !== null) {
+    const ab = alphaBars[t];
+    forwardXt = Math.sqrt(ab) * x0 + Math.sqrt(1 - ab) * forwardNoise;
+  }
+
+  const betaT = betas[t];
+  const alphaT = 1 - betaT;
+  const alphaBarT = alphaBars[t];
+  const inner = xt - (betaT / Math.sqrt(1 - alphaBarT)) * epsTheta;
+  const mu = inner / Math.sqrt(alphaT);
+  let reverseXt = mu;
+  if (t > 0) reverseXt = mu + Math.sqrt(betaT) * zNoise;
+
+  return { betas, alphaBars, forwardXt, reverseXt };
 }`,
-    explanation: 'Closed-form forward steps enable efficient neural network training because we can predict noise at any step without unrolling the chain recurrently.',
+    explanation: 'Closed-form forward diffusion lets training sample any noisy timestep without unrolling the chain.',
   },
   {
     id: 'diff-posterior-mean',
     stepLabel: '73.3',
     group: 'Posterior mean estimation',
     title: 'DDPM Reverse Step Mean',
-    concept: 'The reverse denoising step calculates the mean of the posterior distribution: mu_t = 1/sqrt(alpha_t) * (x_t - (beta_t / sqrt(1 - alpha_bar_t)) * eps_theta), representing the cleaned-up value prediction.',
-    objective: 'Compute the reverse step mean mu_t given predicted noise and variance parameters.',
+    concept: 'The reverse posterior mean is mu_t = (x_t - (beta_t / sqrt(1 - alpha_bar_t)) * eps_theta) / sqrt(alpha_t).',
+    objective: 'Inside ddpmSamplingStep, compute reverseXt as the posterior mean when t = 0 (no extra noise).',
     difficulty: 'core',
     starterCode: `/**
- * Calculates the posterior mean mu_t of the reverse diffusion distribution.
- * @param {number} xt - Corrupted latent at timestep t.
- * @param {number} epsTheta - Predicted noise from the neural network.
- * @param {number} alphaT - Alpha at timestep t (1 - beta_t).
- * @param {number} betaT - Beta at timestep t.
- * @param {number} alphaBarT - Cumulative alpha product at timestep t.
- * @returns {number} Estimated posterior mean value.
+ * Runs one DDPM sampling kernel step: build schedule, optional forward diffuse, reverse denoise sample.
+ * @param {number} xt - Noisy latent at timestep t (reverse path input).
+ * @param {number} epsTheta - Predicted noise from the denoiser network.
+ * @param {number} t - Current timestep index.
+ * @param {number} totalSteps - Number of diffusion steps T.
+ * @param {number} betaStart - Starting beta value.
+ * @param {number} betaEnd - Ending beta value.
+ * @param {number} zNoise - Gaussian noise for reverse sampling when t > 0.
+ * @param {number|null} x0 - Clean value for forward diffuse tests (null skips forward branch).
+ * @param {number|null} forwardNoise - Noise paired with x0 for forward diffuse tests.
+ * @returns {{ betas: number[], alphaBars: number[], forwardXt: number|null, reverseXt: number }} Schedule and sample outputs.
  */
-function ddpmReverseMean(xt, epsTheta, alphaT, betaT, alphaBarT) {
-  // TODO: Compute and return the reverse step posterior mean mu_t
-  return 0;
+function ddpmSamplingStep(xt, epsTheta, t, totalSteps, betaStart, betaEnd, zNoise, x0, forwardNoise) {
+  const betas = [];
+  if (totalSteps <= 1) betas.push(betaStart);
+  else {
+    const step = (betaEnd - betaStart) / (totalSteps - 1);
+    for (let i = 0; i < totalSteps; i++) betas.push(betaStart + i * step);
+  }
+
+  const alphaBars = [];
+  let running = 1;
+  for (let i = 0; i < totalSteps; i++) {
+    running *= (1 - betas[i]);
+    alphaBars.push(running);
+  }
+
+  let forwardXt = null;
+  if (x0 !== null && forwardNoise !== null) {
+    const ab = alphaBars[t];
+    forwardXt = Math.sqrt(ab) * x0 + Math.sqrt(1 - ab) * forwardNoise;
+  }
+
+  const betaT = betas[t];
+  const alphaT = 1 - betaT;
+  const alphaBarT = alphaBars[t];
+  let reverseXt = 0;
+  // TODO: set reverseXt to the posterior mean mu_t (without extra sampling noise).
+
+  return { betas, alphaBars, forwardXt, reverseXt };
 }`,
     testCode: `const results = [];
 function approxEqual(a, b, tol = 1e-5) { return Math.abs(a - b) <= tol; }
 function check(name, actual, expected) {
   results.push({ name, actual, expected, passed: approxEqual(actual, expected) });
 }
-// xt = 1.2, epsTheta = 0.5, alphaT = 0.96, betaT = 0.04, alphaBarT = 0.64
-check('reverse mean standard', ddpmReverseMean(1.2, 0.5, 0.96, 0.04, 0.64), 1.190724);
+const out = ddpmSamplingStep(1.2, 0.5, 2, 5, 0.0001, 0.02, 0.1, null, null);
+check('posterior mean', out.reverseXt, 1.175099);
 return results;`,
     hints: [
       'Subtract (betaT / Math.sqrt(1 - alphaBarT)) * epsTheta from xt.',
-      'Divide the result by Math.sqrt(alphaT).',
+      'Divide by Math.sqrt(alphaT).',
     ],
     solution: `/**
- * Calculates the posterior mean mu_t of the reverse diffusion distribution.
- * @param {number} xt - Corrupted latent at timestep t.
- * @param {number} epsTheta - Predicted noise from the neural network.
- * @param {number} alphaT - Alpha at timestep t (1 - beta_t).
- * @param {number} betaT - Beta at timestep t.
- * @param {number} alphaBarT - Cumulative alpha product at timestep t.
- * @returns {number} Estimated posterior mean value.
+ * Runs one DDPM sampling kernel step: build schedule, optional forward diffuse, reverse denoise sample.
+ * @param {number} xt - Noisy latent at timestep t (reverse path input).
+ * @param {number} epsTheta - Predicted noise from the denoiser network.
+ * @param {number} t - Current timestep index.
+ * @param {number} totalSteps - Number of diffusion steps T.
+ * @param {number} betaStart - Starting beta value.
+ * @param {number} betaEnd - Ending beta value.
+ * @param {number} zNoise - Gaussian noise for reverse sampling when t > 0.
+ * @param {number|null} x0 - Clean value for forward diffuse tests (null skips forward branch).
+ * @param {number|null} forwardNoise - Noise paired with x0 for forward diffuse tests.
+ * @returns {{ betas: number[], alphaBars: number[], forwardXt: number|null, reverseXt: number }} Schedule and sample outputs.
  */
-function ddpmReverseMean(xt, epsTheta, alphaT, betaT, alphaBarT) {
+function ddpmSamplingStep(xt, epsTheta, t, totalSteps, betaStart, betaEnd, zNoise, x0, forwardNoise) {
+  const betas = [];
+  if (totalSteps <= 1) betas.push(betaStart);
+  else {
+    const step = (betaEnd - betaStart) / (totalSteps - 1);
+    for (let i = 0; i < totalSteps; i++) betas.push(betaStart + i * step);
+  }
+
+  const alphaBars = [];
+  let running = 1;
+  for (let i = 0; i < totalSteps; i++) {
+    running *= (1 - betas[i]);
+    alphaBars.push(running);
+  }
+
+  let forwardXt = null;
+  if (x0 !== null && forwardNoise !== null) {
+    const ab = alphaBars[t];
+    forwardXt = Math.sqrt(ab) * x0 + Math.sqrt(1 - ab) * forwardNoise;
+  }
+
+  const betaT = betas[t];
+  const alphaT = 1 - betaT;
+  const alphaBarT = alphaBars[t];
   const inner = xt - (betaT / Math.sqrt(1 - alphaBarT)) * epsTheta;
-  return inner / Math.sqrt(alphaT);
+  const mu = inner / Math.sqrt(alphaT);
+  let reverseXt = mu;
+  if (t > 0) reverseXt = mu + Math.sqrt(betaT) * zNoise;
+
+  return { betas, alphaBars, forwardXt, reverseXt };
 }`,
-    explanation: 'The posterior mean directs the reverse Markov step, shifting the latent toward a high-density area of clean data.',
+    explanation: 'The posterior mean points the latent toward higher-density regions of the data distribution.',
   },
   {
     id: 'diff-reverse-denoise-step',
     stepLabel: '73.4',
     group: 'Denoised reverse step',
     title: 'DDPM Complete Denoising Step',
-    concept: 'To sample x_{t-1} from x_t, we calculate the posterior mean. If t > 0, we add scaled random noise zNoise ~ N(0, I) to maintain stochastic variety: x_{t-1} = mu_t + sqrt(beta_t) * zNoise. If t = 0, no noise is added.',
-    objective: 'Implement the full reverse step, adding noise only if t > 0.',
+    concept: 'For t > 0 the reverse step adds sqrt(beta_t) * zNoise to the posterior mean; at t = 0 it returns the mean alone.',
+    objective: 'Inside ddpmSamplingStep, add sampling noise to reverseXt when t > 0.',
     difficulty: 'challenge',
     starterCode: `/**
- * Performs one full step of DDPM reverse denoising, returning the sampled x_{t-1}.
- * @param {number} xt - Corrupted latent at timestep t.
- * @param {number} epsTheta - Predicted noise.
- * @param {number} t - Current timestep index (T-1 down to 0).
- * @param {number} alphaT - Alpha at timestep t.
- * @param {number} betaT - Beta at timestep t.
- * @param {number} alphaBarT - Cumulative alpha product at timestep t.
- * @param {number} zNoise - Random Gaussian noise sample.
- * @returns {number} The denoised latent value x_{t-1}.
+ * Runs one DDPM sampling kernel step: build schedule, optional forward diffuse, reverse denoise sample.
+ * @param {number} xt - Noisy latent at timestep t (reverse path input).
+ * @param {number} epsTheta - Predicted noise from the denoiser network.
+ * @param {number} t - Current timestep index.
+ * @param {number} totalSteps - Number of diffusion steps T.
+ * @param {number} betaStart - Starting beta value.
+ * @param {number} betaEnd - Ending beta value.
+ * @param {number} zNoise - Gaussian noise for reverse sampling when t > 0.
+ * @param {number|null} x0 - Clean value for forward diffuse tests (null skips forward branch).
+ * @param {number|null} forwardNoise - Noise paired with x0 for forward diffuse tests.
+ * @returns {{ betas: number[], alphaBars: number[], forwardXt: number|null, reverseXt: number }} Schedule and sample outputs.
  */
-function ddpmReverseStep(xt, epsTheta, t, alphaT, betaT, alphaBarT, zNoise) {
-  // TODO: Compute posterior mean. If t > 0, add zNoise scaled by sqrt(betaT). Return results.
-  return 0;
+function ddpmSamplingStep(xt, epsTheta, t, totalSteps, betaStart, betaEnd, zNoise, x0, forwardNoise) {
+  const betas = [];
+  if (totalSteps <= 1) betas.push(betaStart);
+  else {
+    const step = (betaEnd - betaStart) / (totalSteps - 1);
+    for (let i = 0; i < totalSteps; i++) betas.push(betaStart + i * step);
+  }
+
+  const alphaBars = [];
+  let running = 1;
+  for (let i = 0; i < totalSteps; i++) {
+    running *= (1 - betas[i]);
+    alphaBars.push(running);
+  }
+
+  let forwardXt = null;
+  if (x0 !== null && forwardNoise !== null) {
+    const ab = alphaBars[t];
+    forwardXt = Math.sqrt(ab) * x0 + Math.sqrt(1 - ab) * forwardNoise;
+  }
+
+  const betaT = betas[t];
+  const alphaT = 1 - betaT;
+  const alphaBarT = alphaBars[t];
+  const inner = xt - (betaT / Math.sqrt(1 - alphaBarT)) * epsTheta;
+  const mu = inner / Math.sqrt(alphaT);
+  let reverseXt = mu;
+  // TODO: if t > 0, add Math.sqrt(betaT) * zNoise to reverseXt.
+
+  return { betas, alphaBars, forwardXt, reverseXt };
 }`,
     testCode: `const results = [];
 function approxEqual(a, b, tol = 1e-5) { return Math.abs(a - b) <= tol; }
 function check(name, actual, expected) {
   results.push({ name, actual, expected, passed: approxEqual(actual, expected) });
 }
-// xt = 1.2, epsTheta = 0.5, t = 5, alphaT = 0.96, betaT = 0.04, alphaBarT = 0.64, zNoise = 0.1
-// mu = 1.190724. Noise addition: sqrt(0.04) * 0.1 = 0.2 * 0.1 = 0.02.
-// Total: 1.190724 + 0.02 = 1.210724
-check('reverse step t > 0 with noise', ddpmReverseStep(1.2, 0.5, 5, 0.96, 0.04, 0.64, 0.1), 1.210724);
-// t = 0 -> no noise added. Total should be mu = 1.190724
-check('reverse step t = 0 no noise', ddpmReverseStep(1.2, 0.5, 0, 0.96, 0.04, 0.64, 0.1), 1.190724);
+const noisy = ddpmSamplingStep(1.2, 0.5, 4, 10, 0.0001, 0.02, 0.1, null, null);
+check('reverse with noise', noisy.reverseXt, 1.184866);
+const final = ddpmSamplingStep(1.2, 0.5, 0, 10, 0.0001, 0.02, 0.1, null, null);
+check('reverse without noise at t=0', final.reverseXt, 1.195060);
 return results;`,
     hints: [
-      'First calculate the posterior mean: mu = (xt - (betaT / Math.sqrt(1 - alphaBarT)) * epsTheta) / Math.sqrt(alphaT).',
-      'Check if t > 0. If so, return mu + Math.sqrt(betaT) * zNoise.',
-      'Otherwise (t === 0), return mu directly.',
+      'Start from mu = reverseXt.',
+      'Add Math.sqrt(betaT) * zNoise only when t > 0.',
     ],
     solution: `/**
- * Performs one full step of DDPM reverse denoising, returning the sampled x_{t-1}.
- * @param {number} xt - Corrupted latent at timestep t.
- * @param {number} epsTheta - Predicted noise.
- * @param {number} t - Current timestep index (T-1 down to 0).
- * @param {number} alphaT - Alpha at timestep t.
- * @param {number} betaT - Beta at timestep t.
- * @param {number} alphaBarT - Cumulative alpha product at timestep t.
- * @param {number} zNoise - Random Gaussian noise sample.
- * @returns {number} The denoised latent value x_{t-1}.
+ * Runs one DDPM sampling kernel step: build schedule, optional forward diffuse, reverse denoise sample.
+ * @param {number} xt - Noisy latent at timestep t (reverse path input).
+ * @param {number} epsTheta - Predicted noise from the denoiser network.
+ * @param {number} t - Current timestep index.
+ * @param {number} totalSteps - Number of diffusion steps T.
+ * @param {number} betaStart - Starting beta value.
+ * @param {number} betaEnd - Ending beta value.
+ * @param {number} zNoise - Gaussian noise for reverse sampling when t > 0.
+ * @param {number|null} x0 - Clean value for forward diffuse tests (null skips forward branch).
+ * @param {number|null} forwardNoise - Noise paired with x0 for forward diffuse tests.
+ * @returns {{ betas: number[], alphaBars: number[], forwardXt: number|null, reverseXt: number }} Schedule and sample outputs.
  */
-function ddpmReverseStep(xt, epsTheta, t, alphaT, betaT, alphaBarT, zNoise) {
+function ddpmSamplingStep(xt, epsTheta, t, totalSteps, betaStart, betaEnd, zNoise, x0, forwardNoise) {
+  const betas = [];
+  if (totalSteps <= 1) betas.push(betaStart);
+  else {
+    const step = (betaEnd - betaStart) / (totalSteps - 1);
+    for (let i = 0; i < totalSteps; i++) betas.push(betaStart + i * step);
+  }
+
+  const alphaBars = [];
+  let running = 1;
+  for (let i = 0; i < totalSteps; i++) {
+    running *= (1 - betas[i]);
+    alphaBars.push(running);
+  }
+
+  let forwardXt = null;
+  if (x0 !== null && forwardNoise !== null) {
+    const ab = alphaBars[t];
+    forwardXt = Math.sqrt(ab) * x0 + Math.sqrt(1 - ab) * forwardNoise;
+  }
+
+  const betaT = betas[t];
+  const alphaT = 1 - betaT;
+  const alphaBarT = alphaBars[t];
   const inner = xt - (betaT / Math.sqrt(1 - alphaBarT)) * epsTheta;
   const mu = inner / Math.sqrt(alphaT);
-  if (t > 0) {
-    return mu + Math.sqrt(betaT) * zNoise;
-  }
-  return mu;
+  let reverseXt = mu;
+  if (t > 0) reverseXt = mu + Math.sqrt(betaT) * zNoise;
+
+  return { betas, alphaBars, forwardXt, reverseXt };
 }`,
-    explanation: 'Adding random variance during early sampling steps represents Langevin dynamics, helping the model escape local modes and produce diverse images.',
+    explanation: 'Stochastic reverse steps maintain sample diversity while the t = 0 step returns a deterministic denoised value.',
   },
 
   // --- classifier-free-guidance ---

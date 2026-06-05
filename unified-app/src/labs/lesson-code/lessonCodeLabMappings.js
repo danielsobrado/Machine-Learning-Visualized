@@ -175,13 +175,40 @@ export const LESSON_GROUP_MAPPINGS = {
   'grouped-query-attention': { source: 'transformer', groups: ['KV head index', 'Repeat/broadcast rule'] },
   'kv-cache': { source: 'transformer', groups: ['Cache append', 'Sequence slicing', 'Cached cross-attention', 'Autoregressive generation step'] },
   'flash-attention': { source: 'transformer', groups: ['Row max update', 'Running sum'] },
-  'spec-sparse-attention': { source: 'transformer', groups: ['Speculative decode step'] },
-  'turboquant': { source: 'transformer', groups: ['TurboQuant compression'] },
-  'efficient-inference-compression-track': { source: 'transformer', groups: ['Dequantized dot product'] },
+  'spec-sparse-attention': {
+    source: 'transformer',
+    groups: [
+      'Draft prefix length',
+      'Criticality average',
+      'Top-k block selection',
+      'KV blocks skipped',
+      'Effective KV rows read',
+    ],
+  },
+  'turboquant': {
+    source: 'transformer',
+    groups: [
+      'Cache memory formula',
+      'Nearest codebook entry',
+      'Dequant reconstruction',
+      'Dot-product error',
+      'Compression ratio',
+    ],
+  },
+  'efficient-inference-compression-track': {
+    source: 'transformer',
+    groups: ['Shape guard', 'INT8 dot', 'Dequant fuse', 'Per-channel scale'],
+  },
   'bert': { source: 'transformer', groups: ['80-10-10 masking rule', 'Bidirectional attention mask', 'MLM cross-entropy loss', 'BERT MLM step'] },
-  'moe': { source: 'transformer', groups: ['MoE routing'] },
+  'moe': {
+    source: 'transformer',
+    groups: ['Softmax gate', 'Top-k pick', 'Load per expert', 'Weighted combine'],
+  },
   'fine-tuning': { source: 'transformer', groups: ['Alpha scaling', 'Effective delta add'] },
-  'native-sparse-attention': { source: 'transformer', groups: ['Sparse block attention'] },
+  'native-sparse-attention': {
+    source: 'transformer',
+    groups: ['Block grid', 'Top-k blocks', 'Mask scatter', 'Effective attention region'],
+  },
   'recommender-systems-ranking-track': { source: 'eval', groups: ['Dot score', 'Pairwise hinge'] },
   'llm-training-objectives': {
     source: 'lm',
@@ -276,7 +303,10 @@ export const LESSON_GROUP_MAPPINGS = {
   'pagerank': { source: 'algo', groups: ['Out-link normalize', 'Damping teleport'] },
 
   // Diffusion Models
-  'diffusion-basics': { source: 'diffusion', groups: ['Forward diffusion'] },
+  'diffusion-basics': {
+    source: 'diffusion',
+    groups: ['Noise scale', 'Alpha bar', 'Forward sample', 'Signal-to-noise ratio'],
+  },
   'diffusion-sampling': { source: 'diffusion', groups: ['Beta scheduling', 'Forward noise scheduler', 'Posterior mean estimation', 'Denoised reverse step'] },
   'classifier-free-guidance': { source: 'diffusion', groups: ['scale mix'] },
   'unet-vs-dit': { source: 'diffusion', groups: ['skip concat', 'patch tokens'] },

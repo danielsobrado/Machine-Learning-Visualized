@@ -1882,212 +1882,465 @@ return results;`,
     stepLabel: '8.1',
     group: 'Cache append',
     title: 'KV Cache Append Step',
-    concept: 'Autoregressive models generate tokens one by one. To avoid recomputing Key (K) and Value (V) projections of previous tokens, we append the current token’s Key and Value vectors to a persistent KV cache.',
-    objective: 'Append the new key vector to the keyCache array and the new value vector to the valueCache array, and return the updated cache sizes.',
+    concept: 'Autoregressive decoding appends each new token Key and Value projection to persistent caches so past tokens are never recomputed.',
+    objective: 'Inside decodeKVCacheStep, append the projected k and v vectors to keyCache and valueCache.',
     difficulty: 'warmup',
     starterCode: `/**
- * Appends the current token's Key and Value vectors to the historical cache.
- * @param {number[][]} keyCache - The accumulated Key vectors cache.
- * @param {number[][]} valueCache - The accumulated Value vectors cache.
- * @param {number[]} newK - New Key vector for the current token.
- * @param {number[]} newV - New Value vector for the current token.
- * @returns {[number, number]} The new cache lengths [keyCacheLength, valueCacheLength].
+ * Runs one autoregressive decode step: project x to Q/K/V, append to cache, attend over history.
+ * @param {number[]} x - Current token embedding of size dModel.
+ * @param {number[][]} Wq - Query weights [headDim, dModel].
+ * @param {number[][]} Wk - Key weights [headDim, dModel].
+ * @param {number[][]} Wv - Value weights [headDim, dModel].
+ * @param {number[][]} keyCache - Historical keys updated in place.
+ * @param {number[][]} valueCache - Historical values updated in place.
+ * @returns {number[]} Attention output vector of size headDim.
  */
-function appendKVCache(keyCache, valueCache, newK, newV) {
-  // TODO: Append newK to keyCache and newV to valueCache
-  return [keyCache.length, valueCache.length];
+function decodeKVCacheStep(x, Wq, Wk, Wv, keyCache, valueCache) {
+  const dModel = x.length;
+  const headDim = Wq.length;
+  const q = Array(headDim).fill(0);
+  const k = Array(headDim).fill(0);
+  const v = Array(headDim).fill(0);
+
+  for (let i = 0; i < headDim; i++) {
+    for (let j = 0; j < dModel; j++) {
+      q[i] += Wq[i][j] * x[j];
+      k[i] += Wk[i][j] * x[j];
+      v[i] += Wv[i][j] * x[j];
+    }
+  }
+
+  // TODO: append k to keyCache and v to valueCache.
+
+  const n = keyCache.length;
+  const scale = 1 / Math.sqrt(headDim);
+  const output = Array(headDim).fill(0);
+  if (n === 0) return output;
+
+  const scores = [];
+  for (let j = 0; j < n; j++) {
+    let dot = 0;
+    for (let m = 0; m < headDim; m++) {
+      dot += q[m] * keyCache[j][m];
+    }
+    scores.push(dot * scale);
+  }
+
+  const maxScore = Math.max(...scores);
+  const exps = scores.map((s) => Math.exp(s - maxScore));
+  const sumExp = exps.reduce((sum, val) => sum + val, 0);
+  const weights = exps.map((e) => e / sumExp);
+
+  for (let j = 0; j < n; j++) {
+    for (let m = 0; m < headDim; m++) {
+      output[m] += weights[j] * valueCache[j][m];
+    }
+  }
+
+  return output;
 }`,
     testCode: `const results = [];
-function sameArray(a, b) { return JSON.stringify(a) === JSON.stringify(b); }
 function check(name, actual, expected) {
-  results.push({ name, actual: JSON.stringify(actual), expected: JSON.stringify(expected), passed: sameArray(actual, expected) });
+  results.push({ name, actual, expected, passed: Object.is(actual, expected) });
 }
-const kC = [[1.0, -1.0]];
-const vC = [[0.5, 2.0]];
-check('append standard', appendKVCache(kC, vC, [2.0, 3.0], [-1.0, 0.0]), [2, 2]);
-check('verify key cache contents', kC[1], [2.0, 3.0]);
-check('verify value cache contents', vC[1], [-1.0, 0.0]);
-check('verify initial contents remain', kC[0], [1.0, -1.0]);
-check('multiple appends count', appendKVCache(kC, vC, [0, 0], [1, 1]), [3, 3]);
+const x = [1, 0];
+const W = [[1, 0], [0, 1]];
+const kC = [];
+const vC = [];
+decodeKVCacheStep(x, W, W, W, kC, vC);
+check('cache length after append', kC.length, 1);
+check('key stored', JSON.stringify(kC[0]), JSON.stringify([1, 0]));
+check('value stored', JSON.stringify(vC[0]), JSON.stringify([1, 0]));
 return results;`,
     hints: [
-      'Use keyCache.push(newK) to append the key vector.',
-      'Use valueCache.push(newV) to append the value vector.',
+      'Use keyCache.push(k) after projection.',
+      'Use valueCache.push(v) as well.',
+      'The attention code below reads the updated cache length.',
     ],
     solution: `/**
- * Appends the current token's Key and Value vectors to the historical cache.
- * @param {number[][]} keyCache - The accumulated Key vectors cache.
- * @param {number[][]} valueCache - The accumulated Value vectors cache.
- * @param {number[]} newK - New Key vector for the current token.
- * @param {number[]} newV - New Value vector for the current token.
- * @returns {[number, number]} The new cache lengths [keyCacheLength, valueCacheLength].
+ * Runs one autoregressive decode step: project x to Q/K/V, append to cache, attend over history.
+ * @param {number[]} x - Current token embedding of size dModel.
+ * @param {number[][]} Wq - Query weights [headDim, dModel].
+ * @param {number[][]} Wk - Key weights [headDim, dModel].
+ * @param {number[][]} Wv - Value weights [headDim, dModel].
+ * @param {number[][]} keyCache - Historical keys updated in place.
+ * @param {number[][]} valueCache - Historical values updated in place.
+ * @returns {number[]} Attention output vector of size headDim.
  */
-function appendKVCache(keyCache, valueCache, newK, newV) {
-  keyCache.push(newK);
-  valueCache.push(newV);
-  return [keyCache.length, valueCache.length];
+function decodeKVCacheStep(x, Wq, Wk, Wv, keyCache, valueCache) {
+  const dModel = x.length;
+  const headDim = Wq.length;
+  const q = Array(headDim).fill(0);
+  const k = Array(headDim).fill(0);
+  const v = Array(headDim).fill(0);
+
+  for (let i = 0; i < headDim; i++) {
+    for (let j = 0; j < dModel; j++) {
+      q[i] += Wq[i][j] * x[j];
+      k[i] += Wk[i][j] * x[j];
+      v[i] += Wv[i][j] * x[j];
+    }
+  }
+
+  keyCache.push(k);
+  valueCache.push(v);
+
+  const n = keyCache.length;
+  const scale = 1 / Math.sqrt(headDim);
+  const output = Array(headDim).fill(0);
+  if (n === 0) return output;
+
+  const scores = [];
+  for (let j = 0; j < n; j++) {
+    let dot = 0;
+    for (let m = 0; m < headDim; m++) {
+      dot += q[m] * keyCache[j][m];
+    }
+    scores.push(dot * scale);
+  }
+
+  const maxScore = Math.max(...scores);
+  const exps = scores.map((s) => Math.exp(s - maxScore));
+  const sumExp = exps.reduce((sum, val) => sum + val, 0);
+  const weights = exps.map((e) => e / sumExp);
+
+  for (let j = 0; j < n; j++) {
+    for (let m = 0; m < headDim; m++) {
+      output[m] += weights[j] * valueCache[j][m];
+    }
+  }
+
+  return output;
 }`,
-    explanation: 'Appending new projections to a running list reduces generation latency since past states are never recomputed.',
+    explanation: 'Caching keys and values is what makes autoregressive generation linear in history instead of quadratic.',
   },
   {
     id: 'kv-cache-slicing',
     stepLabel: '8.2',
     group: 'Sequence slicing',
-    title: 'KV Cache Sequence Slicing',
-    concept: 'During autoregressive generation, we may need to slice the key/value cache up to a specific token index context size, and scale queries for scaled dot-product attention: scale = 1 / sqrt(headDim).',
-    objective: 'Slice the Key cache up to seqLen (exclusive) and return the sliced keys and attention scale.',
+    title: 'Scaled Dot-Product Attention Scale',
+    concept: 'Scaled dot-product attention divides logits by sqrt(headDim) so dot products stay well-conditioned as head size grows.',
+    objective: 'Inside decodeKVCacheStep, compute scale = 1 / Math.sqrt(headDim) before building attention scores.',
     difficulty: 'core',
     starterCode: `/**
- * Retrieves cached Key vectors up to the active sequence length and computes attention scale.
- * @param {number[][]} keyCache - The full Key cache array.
- * @param {number} seqLen - The current active sequence length.
- * @param {number} headDim - Dimensionality of each attention head.
- * @returns {{ keys: number[][], scale: number }} Slicing results and attention scale.
+ * Runs one autoregressive decode step: project x to Q/K/V, append to cache, attend over history.
+ * @param {number[]} x - Current token embedding of size dModel.
+ * @param {number[][]} Wq - Query weights [headDim, dModel].
+ * @param {number[][]} Wk - Key weights [headDim, dModel].
+ * @param {number[][]} Wv - Value weights [headDim, dModel].
+ * @param {number[][]} keyCache - Historical keys updated in place.
+ * @param {number[][]} valueCache - Historical values updated in place.
+ * @returns {number[]} Attention output vector of size headDim.
  */
-function prepareAttentionInputs(keyCache, seqLen, headDim) {
-  // TODO: Slice keyCache up to seqLen (exclusive) and compute scale 1 / Math.sqrt(headDim)
-  return { keys: [], scale: 0 };
+function decodeKVCacheStep(x, Wq, Wk, Wv, keyCache, valueCache) {
+  const dModel = x.length;
+  const headDim = Wq.length;
+  const q = Array(headDim).fill(0);
+  const k = Array(headDim).fill(0);
+  const v = Array(headDim).fill(0);
+
+  for (let i = 0; i < headDim; i++) {
+    for (let j = 0; j < dModel; j++) {
+      q[i] += Wq[i][j] * x[j];
+      k[i] += Wk[i][j] * x[j];
+      v[i] += Wv[i][j] * x[j];
+    }
+  }
+
+  keyCache.push(k);
+  valueCache.push(v);
+
+  const n = keyCache.length;
+  let scale = 0;
+  // TODO: set scale to 1 / Math.sqrt(headDim).
+
+  const output = Array(headDim).fill(0);
+  if (n === 0) return output;
+
+  const scores = [];
+  for (let j = 0; j < n; j++) {
+    let dot = 0;
+    for (let m = 0; m < headDim; m++) {
+      dot += q[m] * keyCache[j][m];
+    }
+    scores.push(dot * scale);
+  }
+
+  const maxScore = Math.max(...scores);
+  const exps = scores.map((s) => Math.exp(s - maxScore));
+  const sumExp = exps.reduce((sum, val) => sum + val, 0);
+  const weights = exps.map((e) => e / sumExp);
+
+  for (let j = 0; j < n; j++) {
+    for (let m = 0; m < headDim; m++) {
+      output[m] += weights[j] * valueCache[j][m];
+    }
+  }
+
+  return output;
 }`,
     testCode: `const results = [];
-function approxEqual(a, b, tol = 1e-5) { return Math.abs(a - b) <= tol; }
-function sameArray(a, b) { return JSON.stringify(a) === JSON.stringify(b); }
+function approxEqual(a, b, tol = 1e-4) { return Math.abs(a - b) <= tol; }
 function check(name, actual, expected) {
-  results.push({ name, actual: JSON.stringify(actual), expected: JSON.stringify(expected), passed: sameArray(actual, expected) });
+  results.push({ name, actual, expected, passed: approxEqual(actual, expected) });
 }
-const kC = [[1, 2], [3, 4], [5, 6], [7, 8]];
-const out1 = prepareAttentionInputs(kC, 2, 4);
-check('keys slice len 2', out1.keys, [[1, 2], [3, 4]]);
-results.push({ name: 'scale check 4', actual: out1.scale, expected: 0.5, passed: approxEqual(out1.scale, 0.5) });
-const out2 = prepareAttentionInputs(kC, 4, 16);
-check('keys slice len 4', out2.keys, [[1, 2], [3, 4], [5, 6], [7, 8]]);
-results.push({ name: 'scale check 16', actual: out2.scale, expected: 0.25, passed: approxEqual(out2.scale, 0.25) });
+const x = [1, 0];
+const W = [[1, 0], [0, 1]];
+const out = decodeKVCacheStep(x, W, W, W, [[0, 1]], [[5, 5]]);
+check('scale affects softmax blend', out[0], 2.320954);
 return results;`,
     hints: [
-      'Use keyCache.slice(0, seqLen) to extract active history keys.',
-      'Compute scale = 1 / Math.sqrt(headDim).',
+      'Use Math.sqrt(headDim) in the denominator.',
+      'scale = 1 / Math.sqrt(headDim).',
+      'Multiply each raw dot product by scale when building scores.',
     ],
     solution: `/**
- * Retrieves cached Key vectors up to the active sequence length and computes attention scale.
- * @param {number[][]} keyCache - The full Key cache array.
- * @param {number} seqLen - The current active sequence length.
- * @param {number} headDim - Dimensionality of each attention head.
- * @returns {{ keys: number[][], scale: number }} Slicing results and attention scale.
+ * Runs one autoregressive decode step: project x to Q/K/V, append to cache, attend over history.
+ * @param {number[]} x - Current token embedding of size dModel.
+ * @param {number[][]} Wq - Query weights [headDim, dModel].
+ * @param {number[][]} Wk - Key weights [headDim, dModel].
+ * @param {number[][]} Wv - Value weights [headDim, dModel].
+ * @param {number[][]} keyCache - Historical keys updated in place.
+ * @param {number[][]} valueCache - Historical values updated in place.
+ * @returns {number[]} Attention output vector of size headDim.
  */
-function prepareAttentionInputs(keyCache, seqLen, headDim) {
-  const keys = keyCache.slice(0, seqLen);
+function decodeKVCacheStep(x, Wq, Wk, Wv, keyCache, valueCache) {
+  const dModel = x.length;
+  const headDim = Wq.length;
+  const q = Array(headDim).fill(0);
+  const k = Array(headDim).fill(0);
+  const v = Array(headDim).fill(0);
+
+  for (let i = 0; i < headDim; i++) {
+    for (let j = 0; j < dModel; j++) {
+      q[i] += Wq[i][j] * x[j];
+      k[i] += Wk[i][j] * x[j];
+      v[i] += Wv[i][j] * x[j];
+    }
+  }
+
+  keyCache.push(k);
+  valueCache.push(v);
+
+  const n = keyCache.length;
   const scale = 1 / Math.sqrt(headDim);
-  return { keys, scale };
+  const output = Array(headDim).fill(0);
+  if (n === 0) return output;
+
+  const scores = [];
+  for (let j = 0; j < n; j++) {
+    let dot = 0;
+    for (let m = 0; m < headDim; m++) {
+      dot += q[m] * keyCache[j][m];
+    }
+    scores.push(dot * scale);
+  }
+
+  const maxScore = Math.max(...scores);
+  const exps = scores.map((s) => Math.exp(s - maxScore));
+  const sumExp = exps.reduce((sum, val) => sum + val, 0);
+  const weights = exps.map((e) => e / sumExp);
+
+  for (let j = 0; j < n; j++) {
+    for (let m = 0; m < headDim; m++) {
+      output[m] += weights[j] * valueCache[j][m];
+    }
+  }
+
+  return output;
 }`,
-    explanation: 'Slicing guarantees that attention values are computed only over valid active history, preventing information leakage from padding or future slots.',
+    explanation: 'The attention scale keeps logits stable so softmax weights remain informative as head dimension grows.',
   },
   {
     id: 'kv-cache-attention-blend',
     stepLabel: '8.3',
     group: 'Cached cross-attention',
     title: 'KV Cache Attention Blending',
-    concept: 'Using the single Query vector of the current token, we calculate similarity logits across all cached Key vectors. We apply Softmax to convert scores to attention weights, and blend the cached Value vectors accordingly.',
-    objective: 'Implement scaled dot-product attention between the query and cached keys/values.',
+    concept: 'Cached attention softmax-normalizes query-key scores and blends value vectors into the output representation for the current token.',
+    objective: 'Inside decodeKVCacheStep, compute softmax weights and blend valueCache into output.',
     difficulty: 'core',
     starterCode: `/**
- * Computes attention output using the current Query vector and cached Keys/Values.
- * @param {number[]} query - Current query vector of size headDim.
- * @param {number[][]} keys - Sliced Key cache.
- * @param {number[][]} values - Sliced Value cache.
- * @param {number} scale - Scaled factor (1 / sqrt(headDim)).
- * @returns {number[]} Blended attention representation of size headDim.
+ * Runs one autoregressive decode step: project x to Q/K/V, append to cache, attend over history.
+ * @param {number[]} x - Current token embedding of size dModel.
+ * @param {number[][]} Wq - Query weights [headDim, dModel].
+ * @param {number[][]} Wk - Key weights [headDim, dModel].
+ * @param {number[][]} Wv - Value weights [headDim, dModel].
+ * @param {number[][]} keyCache - Historical keys updated in place.
+ * @param {number[][]} valueCache - Historical values updated in place.
+ * @returns {number[]} Attention output vector of size headDim.
  */
-function computeCachedAttention(query, keys, values, scale) {
-  // TODO: Compute dot products, apply softmax, and blend values.
-  return [];
+function decodeKVCacheStep(x, Wq, Wk, Wv, keyCache, valueCache) {
+  const dModel = x.length;
+  const headDim = Wq.length;
+  const q = Array(headDim).fill(0);
+  const k = Array(headDim).fill(0);
+  const v = Array(headDim).fill(0);
+
+  for (let i = 0; i < headDim; i++) {
+    for (let j = 0; j < dModel; j++) {
+      q[i] += Wq[i][j] * x[j];
+      k[i] += Wk[i][j] * x[j];
+      v[i] += Wv[i][j] * x[j];
+    }
+  }
+
+  keyCache.push(k);
+  valueCache.push(v);
+
+  const n = keyCache.length;
+  const scale = 1 / Math.sqrt(headDim);
+  const output = Array(headDim).fill(0);
+  if (n === 0) return output;
+
+  const scores = [];
+  for (let j = 0; j < n; j++) {
+    let dot = 0;
+    for (let m = 0; m < headDim; m++) {
+      dot += q[m] * keyCache[j][m];
+    }
+    scores.push(dot * scale);
+  }
+
+  // TODO: softmax scores into weights and blend valueCache rows into output.
+
+  return output;
 }`,
     testCode: `const results = [];
-function approxEqual(a, b, tol = 1e-4) { return Math.abs(a - b) <= tol; }
+function approxEqual(a, b, tol = 1e-3) { return Math.abs(a - b) <= tol; }
 function approxArray(a, b) { return a.length === b.length && a.every((v, i) => approxEqual(v, b[i])); }
 function check(name, actual, expected) {
   results.push({ name, actual: JSON.stringify(actual), expected: JSON.stringify(expected), passed: approxArray(actual, expected) });
 }
-const q = [1.0, 0.0];
-const k = [[1.0, 0.0], [0.0, 1.0]];
-const v = [[10.0, 20.0], [30.0, 40.0]];
-// scores: q . k0 = 1.0, q . k1 = 0.0. Scale = 1.0. Logits: [1.0, 0.0]
-// exp(logits): [2.71828, 1.0]. Sum: 3.71828. Softmax: [0.731058, 0.268941]
-// output: 0.731058 * [10, 20] + 0.268941 * [30, 40]
-// output_x = 7.31058 + 8.06823 = 15.3788
-// output_y = 14.62116 + 10.75764 = 25.3788
-check('blend attention output', computeCachedAttention(q, k, v, 1.0), [15.3788, 25.3788]);
-check('orthogonal identical query', computeCachedAttention([0.0, 2.0], [[0, 1], [1, 0]], [[5, 5], [10, 10]], 0.5), [6.3447, 6.3447]);
+const qx = [1, 0];
+const W = [[1, 0], [0, 1]];
+check('attention blend', decodeKVCacheStep(qx, W, W, W, [[1, 0], [0, 1]], [[10, 20], [30, 40]]), [10.345507, 15.933274]);
 return results;`,
     hints: [
-      'Compute raw dot products for each key: query[d] * keys[j][d] summed over dimensions.',
-      'Multiply raw score by scale to get logits.',
-      'Softmax: subtract max logit for numerical stability, exponentiate, divide by sum.',
-      'Blend: accumulate softmax[j] * values[j][d] for each output dimension.',
+      'Subtract max score before exponentiating for numerical stability.',
+      'Normalize exponentials to get softmax weights.',
+      'Accumulate weights[j] * valueCache[j][m] into output[m].',
     ],
     solution: `/**
- * Computes attention output using the current Query vector and cached Keys/Values.
- * @param {number[]} query - Current query vector of size headDim.
- * @param {number[][]} keys - Sliced Key cache.
- * @param {number[][]} values - Sliced Value cache.
- * @param {number} scale - Scaled factor (1 / sqrt(headDim)).
- * @returns {number[]} Blended attention representation of size headDim.
+ * Runs one autoregressive decode step: project x to Q/K/V, append to cache, attend over history.
+ * @param {number[]} x - Current token embedding of size dModel.
+ * @param {number[][]} Wq - Query weights [headDim, dModel].
+ * @param {number[][]} Wk - Key weights [headDim, dModel].
+ * @param {number[][]} Wv - Value weights [headDim, dModel].
+ * @param {number[][]} keyCache - Historical keys updated in place.
+ * @param {number[][]} valueCache - Historical values updated in place.
+ * @returns {number[]} Attention output vector of size headDim.
  */
-function computeCachedAttention(query, keys, values, scale) {
-  const n = keys.length;
-  const d = query.length;
-  if (n === 0) return Array(d).fill(0);
-  
+function decodeKVCacheStep(x, Wq, Wk, Wv, keyCache, valueCache) {
+  const dModel = x.length;
+  const headDim = Wq.length;
+  const q = Array(headDim).fill(0);
+  const k = Array(headDim).fill(0);
+  const v = Array(headDim).fill(0);
+
+  for (let i = 0; i < headDim; i++) {
+    for (let j = 0; j < dModel; j++) {
+      q[i] += Wq[i][j] * x[j];
+      k[i] += Wk[i][j] * x[j];
+      v[i] += Wv[i][j] * x[j];
+    }
+  }
+
+  keyCache.push(k);
+  valueCache.push(v);
+
+  const n = keyCache.length;
+  const scale = 1 / Math.sqrt(headDim);
+  const output = Array(headDim).fill(0);
+  if (n === 0) return output;
+
   const scores = [];
   for (let j = 0; j < n; j++) {
     let dot = 0;
-    for (let k = 0; k < d; k++) {
-      dot += query[k] * keys[j][k];
+    for (let m = 0; m < headDim; m++) {
+      dot += q[m] * keyCache[j][m];
     }
     scores.push(dot * scale);
   }
-  
+
   const maxScore = Math.max(...scores);
-  const exps = scores.map(s => Math.exp(s - maxScore));
+  const exps = scores.map((s) => Math.exp(s - maxScore));
   const sumExp = exps.reduce((sum, val) => sum + val, 0);
-  const weights = exps.map(e => e / sumExp);
-  
-  const output = Array(d).fill(0);
+  const weights = exps.map((e) => e / sumExp);
+
   for (let j = 0; j < n; j++) {
-    for (let k = 0; k < d; k++) {
-      output[k] += weights[j] * values[j][k];
+    for (let m = 0; m < headDim; m++) {
+      output[m] += weights[j] * valueCache[j][m];
     }
   }
+
   return output;
 }`,
-    explanation: 'Cached attention matches the single query of the generated token with all past keys, avoiding full sequence self-attention scaling costs.',
+    explanation: 'Softmax blending turns cached keys and values into the contextual representation for the current query token.',
   },
   {
     id: 'kv-cache-generation',
     stepLabel: '8.4',
     group: 'Autoregressive generation step',
     title: 'Autoregressive KV Cache Generation',
-    concept: 'Putting it all together, a model generates a new token by: projecting the token embedding x to Query, Key, and Value vectors; appending Key and Value to the cache; and performing cached attention over the active history.',
-    objective: 'Implement the full generation step: project input, update cache, and blend attention outputs.',
+    concept: 'A full decode step projects the token embedding to Q/K/V, appends K and V to the cache, and runs scaled attention over all cached history.',
+    objective: 'Inside decodeKVCacheStep, implement the matrix-vector projections for q, k, and v from x.',
     difficulty: 'challenge',
     starterCode: `/**
- * Processes a single token generation step, updating the KV cache and producing attention output.
- * @param {number[]} x - Input token embedding of size dModel.
- * @param {number[][]} Wq - Query weight matrix of size [headDim, dModel].
- * @param {number[][]} Wk - Key weight matrix of size [headDim, dModel].
- * @param {number[][]} Wv - Value weight matrix of size [headDim, dModel].
- * @param {number[][]} keyCache - Historical Key cache to update in-place.
- * @param {number[][]} valueCache - Historical Value cache to update in-place.
- * @returns {number[]} Attention output vector for the generated token.
+ * Runs one autoregressive decode step: project x to Q/K/V, append to cache, attend over history.
+ * @param {number[]} x - Current token embedding of size dModel.
+ * @param {number[][]} Wq - Query weights [headDim, dModel].
+ * @param {number[][]} Wk - Key weights [headDim, dModel].
+ * @param {number[][]} Wv - Value weights [headDim, dModel].
+ * @param {number[][]} keyCache - Historical keys updated in place.
+ * @param {number[][]} valueCache - Historical values updated in place.
+ * @returns {number[]} Attention output vector of size headDim.
  */
 function decodeKVCacheStep(x, Wq, Wk, Wv, keyCache, valueCache) {
-  // TODO: Project x to Q, K, V. Append K and V in-place. Compute scaled attention and return.
-  return [];
+  const dModel = x.length;
+  const headDim = Wq.length;
+  const q = Array(headDim).fill(0);
+  const k = Array(headDim).fill(0);
+  const v = Array(headDim).fill(0);
+
+  for (let i = 0; i < headDim; i++) {
+    for (let j = 0; j < dModel; j++) {
+      // TODO: accumulate q[i], k[i], and v[i] from x[j] and the weight rows.
+    }
+  }
+
+  keyCache.push(k);
+  valueCache.push(v);
+
+  const n = keyCache.length;
+  const scale = 1 / Math.sqrt(headDim);
+  const output = Array(headDim).fill(0);
+  if (n === 0) return output;
+
+  const scores = [];
+  for (let j = 0; j < n; j++) {
+    let dot = 0;
+    for (let m = 0; m < headDim; m++) {
+      dot += q[m] * keyCache[j][m];
+    }
+    scores.push(dot * scale);
+  }
+
+  const maxScore = Math.max(...scores);
+  const exps = scores.map((s) => Math.exp(s - maxScore));
+  const sumExp = exps.reduce((sum, val) => sum + val, 0);
+  const weights = exps.map((e) => e / sumExp);
+
+  for (let j = 0; j < n; j++) {
+    for (let m = 0; m < headDim; m++) {
+      output[m] += weights[j] * valueCache[j][m];
+    }
+  }
+
+  return output;
 }`,
     testCode: `const results = [];
 function approxEqual(a, b, tol = 1e-4) { return Math.abs(a - b) <= tol; }
-function approxArray(a, b) {
-  if (typeof a === 'number' && typeof b === 'number') return approxEqual(a, b);
-  return a.length === b.length && a.every((v, i) => approxEqual(v, b[i]));
-}
+function approxArray(a, b) { return a.length === b.length && a.every((v, i) => approxEqual(v, b[i])); }
 function check(name, actual, expected) {
   results.push({ name, actual: JSON.stringify(actual), expected: JSON.stringify(expected), passed: approxArray(actual, expected) });
 }
@@ -2097,41 +2350,32 @@ const Wk = [[0.5, 0], [0, 0.5]];
 const Wv = [[2, 0], [0, 2]];
 const kC = [[0.5, 1.0]];
 const vC = [[2.0, 4.0]];
-// q = Wq . x = [1.0, 2.0]
-// k = Wk . x = [0.5, 1.0] -> appended to kC -> kC = [[0.5, 1.0], [0.5, 1.0]]
-// v = Wv . x = [2.0, 4.0] -> appended to vC -> vC = [[2.0, 4.0], [2.0, 4.0]]
-// scale = 1 / sqrt(2) = 0.707106
-// scores: q . k0 = 2.5, q . k1 = 2.5. Logits: [1.7677, 1.7677] -> Softmax: [0.5, 0.5]
-// output: 0.5 * [2, 4] + 0.5 * [2, 4] = [2, 4]
 const out = decodeKVCacheStep(x, Wq, Wk, Wv, kC, vC);
-check('decoding step output', out, [2.0, 4.0]);
-check('decoding step key cache length', kC.length, 2);
-check('decoding step value cache length', vC.length, 2);
+check('full decode output', out, [2.0, 4.0]);
+results.push({ name: 'cache grows', actual: kC.length, expected: 2, passed: kC.length === 2 });
 return results;`,
     hints: [
-      'Project x to q, k, v by computing matrix-vector products (e.g. Wq dot x).',
-      'Append k to keyCache and v to valueCache.',
-      'Slice keyCache and valueCache (all active elements).',
-      'Compute attention using computeCachedAttention logic with scale 1 / Math.sqrt(q.length).',
+      'Each projection is a matrix-vector product: q[i] += Wq[i][j] * x[j].',
+      'Apply the same pattern for k with Wk and v with Wv.',
+      'The cache append and attention code below should remain unchanged.',
     ],
     solution: `/**
- * Processes a single token generation step, updating the KV cache and producing attention output.
- * @param {number[]} x - Input token embedding of size dModel.
- * @param {number[][]} Wq - Query weight matrix of size [headDim, dModel].
- * @param {number[][]} Wk - Key weight matrix of size [headDim, dModel].
- * @param {number[][]} Wv - Value weight matrix of size [headDim, dModel].
- * @param {number[][]} keyCache - Historical Key cache to update in-place.
- * @param {number[][]} valueCache - Historical Value cache to update in-place.
- * @returns {number[]} Attention output vector for the generated token.
+ * Runs one autoregressive decode step: project x to Q/K/V, append to cache, attend over history.
+ * @param {number[]} x - Current token embedding of size dModel.
+ * @param {number[][]} Wq - Query weights [headDim, dModel].
+ * @param {number[][]} Wk - Key weights [headDim, dModel].
+ * @param {number[][]} Wv - Value weights [headDim, dModel].
+ * @param {number[][]} keyCache - Historical keys updated in place.
+ * @param {number[][]} valueCache - Historical values updated in place.
+ * @returns {number[]} Attention output vector of size headDim.
  */
 function decodeKVCacheStep(x, Wq, Wk, Wv, keyCache, valueCache) {
   const dModel = x.length;
   const headDim = Wq.length;
-  
   const q = Array(headDim).fill(0);
   const k = Array(headDim).fill(0);
   const v = Array(headDim).fill(0);
-  
+
   for (let i = 0; i < headDim; i++) {
     for (let j = 0; j < dModel; j++) {
       q[i] += Wq[i][j] * x[j];
@@ -2139,12 +2383,15 @@ function decodeKVCacheStep(x, Wq, Wk, Wv, keyCache, valueCache) {
       v[i] += Wv[i][j] * x[j];
     }
   }
-  
+
   keyCache.push(k);
   valueCache.push(v);
-  
+
   const n = keyCache.length;
   const scale = 1 / Math.sqrt(headDim);
+  const output = Array(headDim).fill(0);
+  if (n === 0) return output;
+
   const scores = [];
   for (let j = 0; j < n; j++) {
     let dot = 0;
@@ -2153,22 +2400,21 @@ function decodeKVCacheStep(x, Wq, Wk, Wv, keyCache, valueCache) {
     }
     scores.push(dot * scale);
   }
-  
+
   const maxScore = Math.max(...scores);
-  const exps = scores.map(s => Math.exp(s - maxScore));
+  const exps = scores.map((s) => Math.exp(s - maxScore));
   const sumExp = exps.reduce((sum, val) => sum + val, 0);
-  const weights = exps.map(e => e / sumExp);
-  
-  const output = Array(headDim).fill(0);
+  const weights = exps.map((e) => e / sumExp);
+
   for (let j = 0; j < n; j++) {
     for (let m = 0; m < headDim; m++) {
       output[m] += weights[j] * valueCache[j][m];
     }
   }
-  
+
   return output;
 }`,
-    explanation: 'Integrating projections, caching, and attention steps is what enables scalable autoregressive token generation in modern Transformers.',
+    explanation: 'Projection, cache append, and cached attention together form one autoregressive generation step.',
   },
   {
     id: 'flash-max-update',
@@ -2229,590 +2475,1573 @@ return results;`,
 }`,
     explanation: 'Scaling old sums ensures the Softmax denominators stay mathematically equivalent to standard Softmax while loading in chunks.',
   },
+  // --- spec-sparse-attention ---
   {
-    id: 'speculative-decode-draft-loop',
+    id: 'specsparse-prefix-length',
+    stepLabel: 'SSA.1',
+    group: 'Draft prefix length',
+    title: 'Accepted Draft Prefix',
+    concept: 'SpecSA verification begins by finding how many draft tokens match the target model prefix before the first mismatch.',
+    objective: 'Inside specSparseVerifyStep, compute acceptedPrefix as the longest matching prefix length.',
+    difficulty: 'warmup',
+    starterCode: `/**
+ * Runs one SpecSA sparse verification step: prefix accept, criticality scoring, block selection, IO accounting.
+ * @param {number[]} draftTokens - Tokens proposed by the draft model.
+ * @param {number[]} targetTokens - Tokens from the target verification pass.
+ * @param {number[]} firstLogits - Collect-2-Query first-row scores per KV block.
+ * @param {number[]} bonusLogits - Collect-2-Query bonus-row scores per KV block.
+ * @param {number} topK - Number of critical blocks to read.
+ * @param {number} totalBlocks - Total KV blocks available in cache.
+ * @param {number} tokensPerBlock - Tokens stored in each KV block.
+ * @returns {{ acceptedPrefix: number, criticality: number[], selectedBlocks: number[], blocksSkipped: number, kvRowsRead: number }}
+ */
+function specSparseVerifyStep(draftTokens, targetTokens, firstLogits, bonusLogits, topK, totalBlocks, tokensPerBlock) {
+  let acceptedPrefix = 0;
+  // TODO: increment while draftTokens[acceptedPrefix] === targetTokens[acceptedPrefix].
+
+  const numBlocks = firstLogits.length;
+  const criticality = Array(numBlocks).fill(0);
+  for (let i = 0; i < numBlocks; i++) {
+    criticality[i] = (firstLogits[i] + bonusLogits[i]) / 2;
+  }
+
+  const ranked = criticality.map((score, idx) => ({ idx, score }));
+  ranked.sort((a, b) => b.score - a.score || a.idx - b.idx);
+  const selectedBlocks = ranked.slice(0, topK).map((entry) => entry.idx);
+
+  const blocksSkipped = totalBlocks - selectedBlocks.length;
+  const kvRowsRead = selectedBlocks.length * tokensPerBlock;
+
+  return { acceptedPrefix, criticality, selectedBlocks, blocksSkipped, kvRowsRead };
+}`,
+    testCode: `const results = [];
+function check(name, actual, expected) {
+  results.push({ name, actual, expected, passed: Object.is(actual, expected) });
+}
+check('stops at mismatch', specSparseVerifyStep([1, 2, 9, 4], [1, 2, 3, 4], [0], [0], 1, 1, 1).acceptedPrefix, 2);
+check('full match', specSparseVerifyStep([5, 6, 7], [5, 6, 7], [0], [0], 1, 1, 1).acceptedPrefix, 3);
+check('short target', specSparseVerifyStep([5, 6, 7], [5, 6], [0], [0], 1, 1, 1).acceptedPrefix, 2);
+return results;`,
+    hints: [
+      'Compare tokens at the same index while both arrays have elements.',
+      'Stop at the first unequal token or when either sequence ends.',
+      'Use a while loop that checks draftTokens[acceptedPrefix] === targetTokens[acceptedPrefix].',
+    ],
+    solution: `/**
+ * Runs one SpecSA sparse verification step: prefix accept, criticality scoring, block selection, IO accounting.
+ * @param {number[]} draftTokens - Tokens proposed by the draft model.
+ * @param {number[]} targetTokens - Tokens from the target verification pass.
+ * @param {number[]} firstLogits - Collect-2-Query first-row scores per KV block.
+ * @param {number[]} bonusLogits - Collect-2-Query bonus-row scores per KV block.
+ * @param {number} topK - Number of critical blocks to read.
+ * @param {number} totalBlocks - Total KV blocks available in cache.
+ * @param {number} tokensPerBlock - Tokens stored in each KV block.
+ * @returns {{ acceptedPrefix: number, criticality: number[], selectedBlocks: number[], blocksSkipped: number, kvRowsRead: number }}
+ */
+function specSparseVerifyStep(draftTokens, targetTokens, firstLogits, bonusLogits, topK, totalBlocks, tokensPerBlock) {
+  let acceptedPrefix = 0;
+  while (
+    acceptedPrefix < draftTokens.length
+    && acceptedPrefix < targetTokens.length
+    && draftTokens[acceptedPrefix] === targetTokens[acceptedPrefix]
+  ) {
+    acceptedPrefix += 1;
+  }
+
+  const numBlocks = firstLogits.length;
+  const criticality = Array(numBlocks).fill(0);
+  for (let i = 0; i < numBlocks; i++) {
+    criticality[i] = (firstLogits[i] + bonusLogits[i]) / 2;
+  }
+
+  const ranked = criticality.map((score, idx) => ({ idx, score }));
+  ranked.sort((a, b) => b.score - a.score || a.idx - b.idx);
+  const selectedBlocks = ranked.slice(0, topK).map((entry) => entry.idx);
+
+  const blocksSkipped = totalBlocks - selectedBlocks.length;
+  const kvRowsRead = selectedBlocks.length * tokensPerBlock;
+
+  return { acceptedPrefix, criticality, selectedBlocks, blocksSkipped, kvRowsRead };
+}`,
+    explanation: 'Prefix acceptance tells SpecSA how many draft tokens can be committed before sparse KV verification runs.',
+  },
+  {
+    id: 'specsparse-criticality-avg',
+    stepLabel: 'SSA.2',
+    group: 'Criticality average',
+    title: 'Collect-2-Query Criticality',
+    concept: 'SpecSA averages Collect-2-Query first and bonus logits per block to estimate which KV regions matter most.',
+    objective: 'Inside specSparseVerifyStep, set criticality[i] to the average of firstLogits[i] and bonusLogits[i].',
+    difficulty: 'core',
+    starterCode: `/**
+ * Runs one SpecSA sparse verification step: prefix accept, criticality scoring, block selection, IO accounting.
+ * @param {number[]} draftTokens - Tokens proposed by the draft model.
+ * @param {number[]} targetTokens - Tokens from the target verification pass.
+ * @param {number[]} firstLogits - Collect-2-Query first-row scores per KV block.
+ * @param {number[]} bonusLogits - Collect-2-Query bonus-row scores per KV block.
+ * @param {number} topK - Number of critical blocks to read.
+ * @param {number} totalBlocks - Total KV blocks available in cache.
+ * @param {number} tokensPerBlock - Tokens stored in each KV block.
+ * @returns {{ acceptedPrefix: number, criticality: number[], selectedBlocks: number[], blocksSkipped: number, kvRowsRead: number }}
+ */
+function specSparseVerifyStep(draftTokens, targetTokens, firstLogits, bonusLogits, topK, totalBlocks, tokensPerBlock) {
+  let acceptedPrefix = 0;
+  while (
+    acceptedPrefix < draftTokens.length
+    && acceptedPrefix < targetTokens.length
+    && draftTokens[acceptedPrefix] === targetTokens[acceptedPrefix]
+  ) {
+    acceptedPrefix += 1;
+  }
+
+  const numBlocks = firstLogits.length;
+  const criticality = Array(numBlocks).fill(0);
+  for (let i = 0; i < numBlocks; i++) {
+    // TODO: criticality[i] = average of firstLogits[i] and bonusLogits[i].
+  }
+
+  const ranked = criticality.map((score, idx) => ({ idx, score }));
+  ranked.sort((a, b) => b.score - a.score || a.idx - b.idx);
+  const selectedBlocks = ranked.slice(0, topK).map((entry) => entry.idx);
+
+  const blocksSkipped = totalBlocks - selectedBlocks.length;
+  const kvRowsRead = selectedBlocks.length * tokensPerBlock;
+
+  return { acceptedPrefix, criticality, selectedBlocks, blocksSkipped, kvRowsRead };
+}`,
+    testCode: `const results = [];
+function approxEqual(a, b, tol = 1e-5) { return Math.abs(a - b) <= tol; }
+function sameArray(a, b) { return a.length === b.length && a.every((v, i) => approxEqual(v, b[i])); }
+function check(name, actual, expected) {
+  results.push({ name, actual: JSON.stringify(actual), expected: JSON.stringify(expected), passed: sameArray(actual, expected) });
+}
+check('averages logits', specSparseVerifyStep([], [], [1, 5, 2, 0], [1, 1, 6, 0], 1, 4, 1).criticality, [1, 3, 4, 0]);
+return results;`,
+    hints: [
+      'Add the two logits and divide by 2.',
+      'Process every block index from 0 to numBlocks - 1.',
+      'criticality[i] = (firstLogits[i] + bonusLogits[i]) / 2;',
+    ],
+    solution: `/**
+ * Runs one SpecSA sparse verification step: prefix accept, criticality scoring, block selection, IO accounting.
+ * @param {number[]} draftTokens - Tokens proposed by the draft model.
+ * @param {number[]} targetTokens - Tokens from the target verification pass.
+ * @param {number[]} firstLogits - Collect-2-Query first-row scores per KV block.
+ * @param {number[]} bonusLogits - Collect-2-Query bonus-row scores per KV block.
+ * @param {number} topK - Number of critical blocks to read.
+ * @param {number} totalBlocks - Total KV blocks available in cache.
+ * @param {number} tokensPerBlock - Tokens stored in each KV block.
+ * @returns {{ acceptedPrefix: number, criticality: number[], selectedBlocks: number[], blocksSkipped: number, kvRowsRead: number }}
+ */
+function specSparseVerifyStep(draftTokens, targetTokens, firstLogits, bonusLogits, topK, totalBlocks, tokensPerBlock) {
+  let acceptedPrefix = 0;
+  while (
+    acceptedPrefix < draftTokens.length
+    && acceptedPrefix < targetTokens.length
+    && draftTokens[acceptedPrefix] === targetTokens[acceptedPrefix]
+  ) {
+    acceptedPrefix += 1;
+  }
+
+  const numBlocks = firstLogits.length;
+  const criticality = Array(numBlocks).fill(0);
+  for (let i = 0; i < numBlocks; i++) {
+    criticality[i] = (firstLogits[i] + bonusLogits[i]) / 2;
+  }
+
+  const ranked = criticality.map((score, idx) => ({ idx, score }));
+  ranked.sort((a, b) => b.score - a.score || a.idx - b.idx);
+  const selectedBlocks = ranked.slice(0, topK).map((entry) => entry.idx);
+
+  const blocksSkipped = totalBlocks - selectedBlocks.length;
+  const kvRowsRead = selectedBlocks.length * tokensPerBlock;
+
+  return { acceptedPrefix, criticality, selectedBlocks, blocksSkipped, kvRowsRead };
+}`,
+    explanation: 'Averaging both Collect-2-Query rows yields a single criticality score per KV block.',
+  },
+  {
+    id: 'specsparse-topk-blocks',
+    stepLabel: 'SSA.3',
+    group: 'Top-k block selection',
+    title: 'Select Critical KV Blocks',
+    concept: 'SpecSA reads only the top-k blocks ranked by criticality instead of the full KV cache.',
+    objective: 'Inside specSparseVerifyStep, fill selectedBlocks with the topK highest-criticality block indices (break ties by lower index).',
+    difficulty: 'core',
+    starterCode: `/**
+ * Runs one SpecSA sparse verification step: prefix accept, criticality scoring, block selection, IO accounting.
+ * @param {number[]} draftTokens - Tokens proposed by the draft model.
+ * @param {number[]} targetTokens - Tokens from the target verification pass.
+ * @param {number[]} firstLogits - Collect-2-Query first-row scores per KV block.
+ * @param {number[]} bonusLogits - Collect-2-Query bonus-row scores per KV block.
+ * @param {number} topK - Number of critical blocks to read.
+ * @param {number} totalBlocks - Total KV blocks available in cache.
+ * @param {number} tokensPerBlock - Tokens stored in each KV block.
+ * @returns {{ acceptedPrefix: number, criticality: number[], selectedBlocks: number[], blocksSkipped: number, kvRowsRead: number }}
+ */
+function specSparseVerifyStep(draftTokens, targetTokens, firstLogits, bonusLogits, topK, totalBlocks, tokensPerBlock) {
+  let acceptedPrefix = 0;
+  while (
+    acceptedPrefix < draftTokens.length
+    && acceptedPrefix < targetTokens.length
+    && draftTokens[acceptedPrefix] === targetTokens[acceptedPrefix]
+  ) {
+    acceptedPrefix += 1;
+  }
+
+  const numBlocks = firstLogits.length;
+  const criticality = Array(numBlocks).fill(0);
+  for (let i = 0; i < numBlocks; i++) {
+    criticality[i] = (firstLogits[i] + bonusLogits[i]) / 2;
+  }
+
+  const selectedBlocks = [];
+  // TODO: pick topK block indices with highest criticality; break ties by lower index.
+
+  const blocksSkipped = totalBlocks - selectedBlocks.length;
+  const kvRowsRead = selectedBlocks.length * tokensPerBlock;
+
+  return { acceptedPrefix, criticality, selectedBlocks, blocksSkipped, kvRowsRead };
+}`,
+    testCode: `const results = [];
+function sameArray(a, b) { return a.length === b.length && a.every((v, i) => Object.is(v, b[i])); }
+function check(name, actual, expected) {
+  results.push({ name, actual: JSON.stringify(actual), expected: JSON.stringify(expected), passed: sameArray(actual, expected) });
+}
+check('top two blocks', specSparseVerifyStep([], [], [1, 5, 2, 0], [1, 1, 6, 0], 2, 4, 1).selectedBlocks, [2, 1]);
+check('clamps to available', specSparseVerifyStep([], [], [2, 5], [0, 0], 5, 2, 1).selectedBlocks, [1, 0]);
+return results;`,
+    hints: [
+      'Pair each index with its criticality score, then sort descending by score.',
+      'When scores tie, prefer the smaller block index.',
+      'Take the first topK entries from the sorted list and map back to indices.',
+    ],
+    solution: `/**
+ * Runs one SpecSA sparse verification step: prefix accept, criticality scoring, block selection, IO accounting.
+ * @param {number[]} draftTokens - Tokens proposed by the draft model.
+ * @param {number[]} targetTokens - Tokens from the target verification pass.
+ * @param {number[]} firstLogits - Collect-2-Query first-row scores per KV block.
+ * @param {number[]} bonusLogits - Collect-2-Query bonus-row scores per KV block.
+ * @param {number} topK - Number of critical blocks to read.
+ * @param {number} totalBlocks - Total KV blocks available in cache.
+ * @param {number} tokensPerBlock - Tokens stored in each KV block.
+ * @returns {{ acceptedPrefix: number, criticality: number[], selectedBlocks: number[], blocksSkipped: number, kvRowsRead: number }}
+ */
+function specSparseVerifyStep(draftTokens, targetTokens, firstLogits, bonusLogits, topK, totalBlocks, tokensPerBlock) {
+  let acceptedPrefix = 0;
+  while (
+    acceptedPrefix < draftTokens.length
+    && acceptedPrefix < targetTokens.length
+    && draftTokens[acceptedPrefix] === targetTokens[acceptedPrefix]
+  ) {
+    acceptedPrefix += 1;
+  }
+
+  const numBlocks = firstLogits.length;
+  const criticality = Array(numBlocks).fill(0);
+  for (let i = 0; i < numBlocks; i++) {
+    criticality[i] = (firstLogits[i] + bonusLogits[i]) / 2;
+  }
+
+  const ranked = criticality.map((score, idx) => ({ idx, score }));
+  ranked.sort((a, b) => b.score - a.score || a.idx - b.idx);
+  const selectedBlocks = ranked.slice(0, topK).map((entry) => entry.idx);
+
+  const blocksSkipped = totalBlocks - selectedBlocks.length;
+  const kvRowsRead = selectedBlocks.length * tokensPerBlock;
+
+  return { acceptedPrefix, criticality, selectedBlocks, blocksSkipped, kvRowsRead };
+}`,
+    explanation: 'Top-k block selection is the core sparse read pattern that avoids loading the entire KV cache.',
+  },
+  {
+    id: 'specsparse-blocks-skipped',
+    stepLabel: 'SSA.4',
+    group: 'KV blocks skipped',
+    title: 'KV Blocks Skipped',
+    concept: 'The speedup from SpecSA comes from skipping blocks that were not selected for verification.',
+    objective: 'Inside specSparseVerifyStep, set blocksSkipped to totalBlocks minus the number of selected blocks.',
+    difficulty: 'core',
+    starterCode: `/**
+ * Runs one SpecSA sparse verification step: prefix accept, criticality scoring, block selection, IO accounting.
+ * @param {number[]} draftTokens - Tokens proposed by the draft model.
+ * @param {number[]} targetTokens - Tokens from the target verification pass.
+ * @param {number[]} firstLogits - Collect-2-Query first-row scores per KV block.
+ * @param {number[]} bonusLogits - Collect-2-Query bonus-row scores per KV block.
+ * @param {number} topK - Number of critical blocks to read.
+ * @param {number} totalBlocks - Total KV blocks available in cache.
+ * @param {number} tokensPerBlock - Tokens stored in each KV block.
+ * @returns {{ acceptedPrefix: number, criticality: number[], selectedBlocks: number[], blocksSkipped: number, kvRowsRead: number }}
+ */
+function specSparseVerifyStep(draftTokens, targetTokens, firstLogits, bonusLogits, topK, totalBlocks, tokensPerBlock) {
+  let acceptedPrefix = 0;
+  while (
+    acceptedPrefix < draftTokens.length
+    && acceptedPrefix < targetTokens.length
+    && draftTokens[acceptedPrefix] === targetTokens[acceptedPrefix]
+  ) {
+    acceptedPrefix += 1;
+  }
+
+  const numBlocks = firstLogits.length;
+  const criticality = Array(numBlocks).fill(0);
+  for (let i = 0; i < numBlocks; i++) {
+    criticality[i] = (firstLogits[i] + bonusLogits[i]) / 2;
+  }
+
+  const ranked = criticality.map((score, idx) => ({ idx, score }));
+  ranked.sort((a, b) => b.score - a.score || a.idx - b.idx);
+  const selectedBlocks = ranked.slice(0, topK).map((entry) => entry.idx);
+
+  let blocksSkipped = 0;
+  // TODO: blocksSkipped = totalBlocks - selectedBlocks.length
+
+  const kvRowsRead = selectedBlocks.length * tokensPerBlock;
+
+  return { acceptedPrefix, criticality, selectedBlocks, blocksSkipped, kvRowsRead };
+}`,
+    testCode: `const results = [];
+function check(name, actual, expected) {
+  results.push({ name, actual, expected, passed: Object.is(actual, expected) });
+}
+check('skips unselected', specSparseVerifyStep([], [], [1, 5, 2, 0], [1, 1, 6, 0], 2, 8, 64).blocksSkipped, 6);
+check('reads all when k equals total', specSparseVerifyStep([], [], [2, 5], [0, 0], 2, 2, 10).blocksSkipped, 0);
+return results;`,
+    hints: [
+      'Subtract the number of selected blocks from totalBlocks.',
+      'selectedBlocks.length is the count of blocks actually read.',
+      'blocksSkipped = totalBlocks - selectedBlocks.length;',
+    ],
+    solution: `/**
+ * Runs one SpecSA sparse verification step: prefix accept, criticality scoring, block selection, IO accounting.
+ * @param {number[]} draftTokens - Tokens proposed by the draft model.
+ * @param {number[]} targetTokens - Tokens from the target verification pass.
+ * @param {number[]} firstLogits - Collect-2-Query first-row scores per KV block.
+ * @param {number[]} bonusLogits - Collect-2-Query bonus-row scores per KV block.
+ * @param {number} topK - Number of critical blocks to read.
+ * @param {number} totalBlocks - Total KV blocks available in cache.
+ * @param {number} tokensPerBlock - Tokens stored in each KV block.
+ * @returns {{ acceptedPrefix: number, criticality: number[], selectedBlocks: number[], blocksSkipped: number, kvRowsRead: number }}
+ */
+function specSparseVerifyStep(draftTokens, targetTokens, firstLogits, bonusLogits, topK, totalBlocks, tokensPerBlock) {
+  let acceptedPrefix = 0;
+  while (
+    acceptedPrefix < draftTokens.length
+    && acceptedPrefix < targetTokens.length
+    && draftTokens[acceptedPrefix] === targetTokens[acceptedPrefix]
+  ) {
+    acceptedPrefix += 1;
+  }
+
+  const numBlocks = firstLogits.length;
+  const criticality = Array(numBlocks).fill(0);
+  for (let i = 0; i < numBlocks; i++) {
+    criticality[i] = (firstLogits[i] + bonusLogits[i]) / 2;
+  }
+
+  const ranked = criticality.map((score, idx) => ({ idx, score }));
+  ranked.sort((a, b) => b.score - a.score || a.idx - b.idx);
+  const selectedBlocks = ranked.slice(0, topK).map((entry) => entry.idx);
+
+  let blocksSkipped = 0;
+  blocksSkipped = totalBlocks - selectedBlocks.length;
+
+  const kvRowsRead = selectedBlocks.length * tokensPerBlock;
+
+  return { acceptedPrefix, criticality, selectedBlocks, blocksSkipped, kvRowsRead };
+}`,
+    explanation: 'Blocks skipped quantifies how much KV IO SpecSA avoids compared with dense attention.',
+  },
+  {
+    id: 'specsparse-kv-rows-read',
+    stepLabel: 'SSA.5',
+    group: 'Effective KV rows read',
+    title: 'Effective KV Rows Read',
+    concept: 'Each selected block contributes tokensPerBlock KV rows. Multiplying gives the effective sparse read volume.',
+    objective: 'Inside specSparseVerifyStep, set kvRowsRead to selectedBlocks.length * tokensPerBlock.',
+    difficulty: 'core',
+    starterCode: `/**
+ * Runs one SpecSA sparse verification step: prefix accept, criticality scoring, block selection, IO accounting.
+ * @param {number[]} draftTokens - Tokens proposed by the draft model.
+ * @param {number[]} targetTokens - Tokens from the target verification pass.
+ * @param {number[]} firstLogits - Collect-2-Query first-row scores per KV block.
+ * @param {number[]} bonusLogits - Collect-2-Query bonus-row scores per KV block.
+ * @param {number} topK - Number of critical blocks to read.
+ * @param {number} totalBlocks - Total KV blocks available in cache.
+ * @param {number} tokensPerBlock - Tokens stored in each KV block.
+ * @returns {{ acceptedPrefix: number, criticality: number[], selectedBlocks: number[], blocksSkipped: number, kvRowsRead: number }}
+ */
+function specSparseVerifyStep(draftTokens, targetTokens, firstLogits, bonusLogits, topK, totalBlocks, tokensPerBlock) {
+  let acceptedPrefix = 0;
+  while (
+    acceptedPrefix < draftTokens.length
+    && acceptedPrefix < targetTokens.length
+    && draftTokens[acceptedPrefix] === targetTokens[acceptedPrefix]
+  ) {
+    acceptedPrefix += 1;
+  }
+
+  const numBlocks = firstLogits.length;
+  const criticality = Array(numBlocks).fill(0);
+  for (let i = 0; i < numBlocks; i++) {
+    criticality[i] = (firstLogits[i] + bonusLogits[i]) / 2;
+  }
+
+  const ranked = criticality.map((score, idx) => ({ idx, score }));
+  ranked.sort((a, b) => b.score - a.score || a.idx - b.idx);
+  const selectedBlocks = ranked.slice(0, topK).map((entry) => entry.idx);
+
+  const blocksSkipped = totalBlocks - selectedBlocks.length;
+  let kvRowsRead = 0;
+  // TODO: kvRowsRead = selectedBlocks.length * tokensPerBlock
+
+  return { acceptedPrefix, criticality, selectedBlocks, blocksSkipped, kvRowsRead };
+}`,
+    testCode: `const results = [];
+function check(name, actual, expected) {
+  results.push({ name, actual, expected, passed: Object.is(actual, expected) });
+}
+check('sparse read volume', specSparseVerifyStep([], [], [1, 5, 2, 0], [1, 1, 6, 0], 2, 8, 64).kvRowsRead, 128);
+check('single block', specSparseVerifyStep([], [], [3], [1], 1, 4, 32).kvRowsRead, 32);
+return results;`,
+    hints: [
+      'Multiply the number of selected blocks by tokensPerBlock.',
+      'This counts token rows loaded from KV cache during sparse verification.',
+      'kvRowsRead = selectedBlocks.length * tokensPerBlock;',
+    ],
+    solution: `/**
+ * Runs one SpecSA sparse verification step: prefix accept, criticality scoring, block selection, IO accounting.
+ * @param {number[]} draftTokens - Tokens proposed by the draft model.
+ * @param {number[]} targetTokens - Tokens from the target verification pass.
+ * @param {number[]} firstLogits - Collect-2-Query first-row scores per KV block.
+ * @param {number[]} bonusLogits - Collect-2-Query bonus-row scores per KV block.
+ * @param {number} topK - Number of critical blocks to read.
+ * @param {number} totalBlocks - Total KV blocks available in cache.
+ * @param {number} tokensPerBlock - Tokens stored in each KV block.
+ * @returns {{ acceptedPrefix: number, criticality: number[], selectedBlocks: number[], blocksSkipped: number, kvRowsRead: number }}
+ */
+function specSparseVerifyStep(draftTokens, targetTokens, firstLogits, bonusLogits, topK, totalBlocks, tokensPerBlock) {
+  let acceptedPrefix = 0;
+  while (
+    acceptedPrefix < draftTokens.length
+    && acceptedPrefix < targetTokens.length
+    && draftTokens[acceptedPrefix] === targetTokens[acceptedPrefix]
+  ) {
+    acceptedPrefix += 1;
+  }
+
+  const numBlocks = firstLogits.length;
+  const criticality = Array(numBlocks).fill(0);
+  for (let i = 0; i < numBlocks; i++) {
+    criticality[i] = (firstLogits[i] + bonusLogits[i]) / 2;
+  }
+
+  const ranked = criticality.map((score, idx) => ({ idx, score }));
+  ranked.sort((a, b) => b.score - a.score || a.idx - b.idx);
+  const selectedBlocks = ranked.slice(0, topK).map((entry) => entry.idx);
+
+  const blocksSkipped = totalBlocks - selectedBlocks.length;
+  let kvRowsRead = 0;
+  kvRowsRead = selectedBlocks.length * tokensPerBlock;
+
+  return { acceptedPrefix, criticality, selectedBlocks, blocksSkipped, kvRowsRead };
+}`,
+    explanation: 'Effective KV rows read connects block-level sparsity to the actual memory traffic saved at inference time.',
+  },
+  {
+    id: 'speculative-accept-check',
     stepLabel: '10.1',
-    group: 'Speculative decode step',
-    title: 'Draft token iteration',
-    concept: 'Speculative decoding proposes multiple draft tokens, and we verify them one by one against the target model.',
-    objective: 'Loop over the draftTokens array to process each proposed token.',
+    group: 'Accept/reject rule',
+    title: 'Speculative decoding acceptance check',
+    concept: 'In speculative decoding, the larger target model accepts a token proposed by the draft model with probability min(1, P_target(x)/P_draft(x)).',
+    objective: 'Return true if randVal <= pTarget / pDraft, otherwise false.',
     difficulty: 'warmup',
-    starterCode: `function speculativeDecodeStep(draftTokens, draftProbs, targetProbs, randVals) {
-  const acceptedTokens = [];
-
-  // TODO: Loop over the full length of draftTokens
-  for (let i = 0; i < 0; i++) {
-    let ratio = targetProbs[i] / draftProbs[i];
-    if (randVals[i] <= ratio) {
-      acceptedTokens.push(draftTokens[i]);
-    } else {
-      break;
-    }
-  }
-
-  return acceptedTokens;
+    starterCode: `function acceptDraftToken(pTarget, pDraft, randVal) {
+  // TODO: return whether the token is accepted based on the probability ratio
+  return false;
 }`,
     testCode: `const results = [];
-function sameArray(a, b) { return JSON.stringify(a) === JSON.stringify(b); }
 function check(name, actual, expected) {
-  results.push({ name, actual: JSON.stringify(actual), expected: JSON.stringify(expected), passed: sameArray(actual, expected) });
+  results.push({ name, actual, expected, passed: Object.is(actual, expected) });
 }
-check('accept all', speculativeDecodeStep([5, 9], [0.5, 0.5], [0.8, 0.8], [0.1, 0.2]), [5, 9]);
+check('target higher', acceptDraftToken(0.8, 0.4, 0.9), true); // ratio 2.0 >= 0.9
+check('draft higher below u', acceptDraftToken(0.3, 0.6, 0.4), true); // ratio 0.5 >= 0.4
+check('draft higher above u', acceptDraftToken(0.3, 0.6, 0.7), false); // ratio 0.5 < 0.7
 return results;`,
     hints: [
-      'The loop should iterate while i < draftTokens.length.',
+      'Compute target-to-draft ratio: pTarget / pDraft.',
+      'Check if randVal is less than or equal to this ratio.',
+      'return randVal <= (pTarget / pDraft);',
     ],
-    solution: `function speculativeDecodeStep(draftTokens, draftProbs, targetProbs, randVals) {
-  const acceptedTokens = [];
+    solution: `function acceptDraftToken(pTarget, pDraft, randVal) {
+  return randVal <= (pTarget / pDraft);
+}`,
+    explanation: 'Acceptance sampling allows speculative decoding to maintain the exact distribution of the larger model while accelerating generation.',
+  },
+  // --- turboquant ---
+  {
+    id: 'turboquant-cache-bits',
+    stepLabel: 'TQ.1',
+    group: 'Cache memory formula',
+    title: 'Quantized KV Cache Size',
+    concept: 'TurboQuant stores KV cache at reduced bit width. Total bits scale with layers, tokens, heads, head dimension, and bits per value.',
+    objective: 'Inside turboQuantKVStep, compute cacheBits = layers * tokens * kvHeads * headDim * 2 * bitsPerValue.',
+    difficulty: 'warmup',
+    starterCode: `/**
+ * Runs one TurboQuant KV evaluation step: cache sizing, nearest quantization, reconstruction, dot error, compression ratio.
+ * @param {number[]} query - Query vector for attention score error check.
+ * @param {number[]} originalKey - Original high-precision key vector.
+ * @param {number[]} codebook - Sorted quantization levels for each coordinate.
+ * @param {number} bitsPerValue - Effective bits per stored KV coordinate.
+ * @param {number} layers - Transformer layer count.
+ * @param {number} tokens - Context length in tokens.
+ * @param {number} kvHeads - Number of KV attention heads.
+ * @param {number} headDim - Dimension per KV head.
+ * @returns {{ cacheBits: number, indices: number[], reconstructed: number[], dotError: number, compressionRatio: number, fullCacheBits: number }}
+ */
+function turboQuantKVStep(query, originalKey, codebook, bitsPerValue, layers, tokens, kvHeads, headDim) {
+  const fp16Bits = 16;
+  const fullCacheBits = layers * tokens * kvHeads * headDim * 2 * fp16Bits;
 
-  for (let i = 0; i < draftTokens.length; i++) {
-    let ratio = targetProbs[i] / draftProbs[i];
-    if (randVals[i] <= ratio) {
-      acceptedTokens.push(draftTokens[i]);
-    } else {
-      break;
-    }
+  let cacheBits = 0;
+  // TODO: cacheBits = layers * tokens * kvHeads * headDim * 2 * bitsPerValue
+
+  function dot(a, b) {
+    let sum = 0;
+    for (let i = 0; i < a.length; i++) sum += a[i] * b[i];
+    return sum;
   }
 
-  return acceptedTokens;
+  const d = originalKey.length;
+  const indices = Array(d).fill(0);
+  for (let i = 0; i < d; i++) {
+    let bestIdx = 0;
+    let minDist = Math.abs(originalKey[i] - codebook[0]);
+    for (let j = 1; j < codebook.length; j++) {
+      const dist = Math.abs(originalKey[i] - codebook[j]);
+      if (dist < minDist) {
+        minDist = dist;
+        bestIdx = j;
+      }
+    }
+    indices[i] = bestIdx;
+  }
+
+  const reconstructed = Array(d).fill(0);
+  for (let i = 0; i < d; i++) {
+    reconstructed[i] = codebook[indices[i]];
+  }
+
+  const dotError = Math.abs(dot(query, originalKey) - dot(query, reconstructed));
+  const compressionRatio = fullCacheBits / cacheBits;
+
+  return { cacheBits, indices, reconstructed, dotError, compressionRatio, fullCacheBits };
 }`,
-    explanation: 'Verifying all draft tokens in one step accelerates generation when they are accepted.',
+    testCode: `const results = [];
+function check(name, actual, expected) {
+  results.push({ name, actual, expected, passed: Object.is(actual, expected) });
+}
+check('4-bit cache', turboQuantKVStep([1], [0], [-1, 0, 1], 4, 32, 2048, 8, 128).cacheBits, 536870912);
+check('8-bit cache', turboQuantKVStep([1], [0], [-1, 0, 1], 8, 2, 10, 1, 4).cacheBits, 1280);
+return results;`,
+    hints: [
+      'Multiply layers, tokens, kvHeads, headDim, 2 (K and V), and bitsPerValue.',
+      'The factor 2 accounts for both key and value tensors.',
+      'cacheBits = layers * tokens * kvHeads * headDim * 2 * bitsPerValue;',
+    ],
+    solution: `/**
+ * Runs one TurboQuant KV evaluation step: cache sizing, nearest quantization, reconstruction, dot error, compression ratio.
+ * @param {number[]} query - Query vector for attention score error check.
+ * @param {number[]} originalKey - Original high-precision key vector.
+ * @param {number[]} codebook - Sorted quantization levels for each coordinate.
+ * @param {number} bitsPerValue - Effective bits per stored KV coordinate.
+ * @param {number} layers - Transformer layer count.
+ * @param {number} tokens - Context length in tokens.
+ * @param {number} kvHeads - Number of KV attention heads.
+ * @param {number} headDim - Dimension per KV head.
+ * @returns {{ cacheBits: number, indices: number[], reconstructed: number[], dotError: number, compressionRatio: number, fullCacheBits: number }}
+ */
+function turboQuantKVStep(query, originalKey, codebook, bitsPerValue, layers, tokens, kvHeads, headDim) {
+  const fp16Bits = 16;
+  const fullCacheBits = layers * tokens * kvHeads * headDim * 2 * fp16Bits;
+
+  let cacheBits = 0;
+  cacheBits = layers * tokens * kvHeads * headDim * 2 * bitsPerValue;
+
+  function dot(a, b) {
+    let sum = 0;
+    for (let i = 0; i < a.length; i++) sum += a[i] * b[i];
+    return sum;
+  }
+
+  const d = originalKey.length;
+  const indices = Array(d).fill(0);
+  for (let i = 0; i < d; i++) {
+    let bestIdx = 0;
+    let minDist = Math.abs(originalKey[i] - codebook[0]);
+    for (let j = 1; j < codebook.length; j++) {
+      const dist = Math.abs(originalKey[i] - codebook[j]);
+      if (dist < minDist) {
+        minDist = dist;
+        bestIdx = j;
+      }
+    }
+    indices[i] = bestIdx;
+  }
+
+  const reconstructed = Array(d).fill(0);
+  for (let i = 0; i < d; i++) {
+    reconstructed[i] = codebook[indices[i]];
+  }
+
+  const dotError = Math.abs(dot(query, originalKey) - dot(query, reconstructed));
+  const compressionRatio = fullCacheBits / cacheBits;
+
+  return { cacheBits, indices, reconstructed, dotError, compressionRatio, fullCacheBits };
+}`,
+    explanation: 'KV cache memory dominates long-context inference; TurboQuant shrinks it by storing fewer bits per coordinate.',
   },
   {
-    id: 'speculative-decode-ratio',
-    stepLabel: '10.2',
-    group: 'Speculative decode step',
-    title: 'Acceptance ratio',
-    concept: 'The acceptance ratio compares how likely the target model thinks a token is vs the draft model.',
-    objective: 'Compute target probability divided by draft probability.',
+    id: 'turboquant-nearest-code',
+    stepLabel: 'TQ.2',
+    group: 'Nearest codebook entry',
+    title: 'Nearest Codebook Index',
+    concept: 'Each key coordinate is mapped to the nearest TurboQuant codebook level before index encoding.',
+    objective: 'Inside turboQuantKVStep, update bestIdx when codebook[j] is closer to originalKey[i].',
     difficulty: 'core',
-    starterCode: `function speculativeDecodeStep(draftTokens, draftProbs, targetProbs, randVals) {
-  const acceptedTokens = [];
+    starterCode: `/**
+ * Runs one TurboQuant KV evaluation step: cache sizing, nearest quantization, reconstruction, dot error, compression ratio.
+ * @param {number[]} query - Query vector for attention score error check.
+ * @param {number[]} originalKey - Original high-precision key vector.
+ * @param {number[]} codebook - Sorted quantization levels for each coordinate.
+ * @param {number} bitsPerValue - Effective bits per stored KV coordinate.
+ * @param {number} layers - Transformer layer count.
+ * @param {number} tokens - Context length in tokens.
+ * @param {number} kvHeads - Number of KV attention heads.
+ * @param {number} headDim - Dimension per KV head.
+ * @returns {{ cacheBits: number, indices: number[], reconstructed: number[], dotError: number, compressionRatio: number, fullCacheBits: number }}
+ */
+function turboQuantKVStep(query, originalKey, codebook, bitsPerValue, layers, tokens, kvHeads, headDim) {
+  const fp16Bits = 16;
+  const fullCacheBits = layers * tokens * kvHeads * headDim * 2 * fp16Bits;
+  const cacheBits = layers * tokens * kvHeads * headDim * 2 * bitsPerValue;
 
-  for (let i = 0; i < draftTokens.length; i++) {
-    // TODO: Compute the ratio of targetProbs[i] over draftProbs[i]
-    let ratio = 1.0;
-    
-    if (randVals[i] <= ratio) {
-      acceptedTokens.push(draftTokens[i]);
-    } else {
-      break;
-    }
+  function dot(a, b) {
+    let sum = 0;
+    for (let i = 0; i < a.length; i++) sum += a[i] * b[i];
+    return sum;
   }
 
-  return acceptedTokens;
+  const d = originalKey.length;
+  const indices = Array(d).fill(0);
+  for (let i = 0; i < d; i++) {
+    let bestIdx = 0;
+    let minDist = Math.abs(originalKey[i] - codebook[0]);
+    for (let j = 1; j < codebook.length; j++) {
+      // TODO: update bestIdx and minDist when codebook[j] is closer to originalKey[i].
+    }
+    indices[i] = bestIdx;
+  }
+
+  const reconstructed = Array(d).fill(0);
+  for (let i = 0; i < d; i++) {
+    reconstructed[i] = codebook[indices[i]];
+  }
+
+  const dotError = Math.abs(dot(query, originalKey) - dot(query, reconstructed));
+  const compressionRatio = fullCacheBits / cacheBits;
+
+  return { cacheBits, indices, reconstructed, dotError, compressionRatio, fullCacheBits };
 }`,
     testCode: `const results = [];
-function sameArray(a, b) { return JSON.stringify(a) === JSON.stringify(b); }
+function sameArray(a, b) { return a.length === b.length && a.every((v, i) => Object.is(v, b[i])); }
 function check(name, actual, expected) {
   results.push({ name, actual: JSON.stringify(actual), expected: JSON.stringify(expected), passed: sameArray(actual, expected) });
 }
-check('accept first only', speculativeDecodeStep([5, 9], [0.8, 0.8], [0.8, 0.2], [0.5, 0.5]), [5]);
+check('nearest levels', turboQuantKVStep([1], [0.2, 0.8], [-1, 0, 1], 4, 1, 1, 1, 2).indices, [1, 2]);
+check('negative coord', turboQuantKVStep([1], [-0.9], [-1, 0, 1], 4, 1, 1, 1, 1).indices, [0]);
 return results;`,
     hints: [
-      'Divide targetProbs[i] by draftProbs[i].',
+      'Compute dist = Math.abs(originalKey[i] - codebook[j]).',
+      'Replace bestIdx when dist is strictly less than minDist.',
+      'Update minDist together with bestIdx.',
     ],
-    solution: `function speculativeDecodeStep(draftTokens, draftProbs, targetProbs, randVals) {
-  const acceptedTokens = [];
+    solution: `/**
+ * Runs one TurboQuant KV evaluation step: cache sizing, nearest quantization, reconstruction, dot error, compression ratio.
+ * @param {number[]} query - Query vector for attention score error check.
+ * @param {number[]} originalKey - Original high-precision key vector.
+ * @param {number[]} codebook - Sorted quantization levels for each coordinate.
+ * @param {number} bitsPerValue - Effective bits per stored KV coordinate.
+ * @param {number} layers - Transformer layer count.
+ * @param {number} tokens - Context length in tokens.
+ * @param {number} kvHeads - Number of KV attention heads.
+ * @param {number} headDim - Dimension per KV head.
+ * @returns {{ cacheBits: number, indices: number[], reconstructed: number[], dotError: number, compressionRatio: number, fullCacheBits: number }}
+ */
+function turboQuantKVStep(query, originalKey, codebook, bitsPerValue, layers, tokens, kvHeads, headDim) {
+  const fp16Bits = 16;
+  const fullCacheBits = layers * tokens * kvHeads * headDim * 2 * fp16Bits;
+  const cacheBits = layers * tokens * kvHeads * headDim * 2 * bitsPerValue;
 
-  for (let i = 0; i < draftTokens.length; i++) {
-    let ratio = targetProbs[i] / draftProbs[i];
-    
-    if (randVals[i] <= ratio) {
-      acceptedTokens.push(draftTokens[i]);
-    } else {
-      break;
-    }
+  function dot(a, b) {
+    let sum = 0;
+    for (let i = 0; i < a.length; i++) sum += a[i] * b[i];
+    return sum;
   }
 
-  return acceptedTokens;
+  const d = originalKey.length;
+  const indices = Array(d).fill(0);
+  for (let i = 0; i < d; i++) {
+    let bestIdx = 0;
+    let minDist = Math.abs(originalKey[i] - codebook[0]);
+    for (let j = 1; j < codebook.length; j++) {
+      const dist = Math.abs(originalKey[i] - codebook[j]);
+      if (dist < minDist) {
+        minDist = dist;
+        bestIdx = j;
+      }
+    }
+    indices[i] = bestIdx;
+  }
+
+  const reconstructed = Array(d).fill(0);
+  for (let i = 0; i < d; i++) {
+    reconstructed[i] = codebook[indices[i]];
+  }
+
+  const dotError = Math.abs(dot(query, originalKey) - dot(query, reconstructed));
+  const compressionRatio = fullCacheBits / cacheBits;
+
+  return { cacheBits, indices, reconstructed, dotError, compressionRatio, fullCacheBits };
 }`,
-    explanation: 'If the target model assigns higher probability than the draft model, the ratio is > 1 and acceptance is guaranteed.',
+    explanation: 'Nearest-neighbor quantization picks the codebook entry that minimizes per-coordinate reconstruction error.',
   },
   {
-    id: 'speculative-decode-check',
-    stepLabel: '10.3',
-    group: 'Speculative decode step',
-    title: 'Acceptance check',
-    concept: 'We accept the token if a random value is less than or equal to the acceptance ratio.',
-    objective: 'Accept the token only if randVals[i] <= ratio.',
+    id: 'turboquant-dequant-reconstruct',
+    stepLabel: 'TQ.3',
+    group: 'Dequant reconstruction',
+    title: 'Dequantize Key Vector',
+    concept: 'Stored indices are decoded back to floating-point values by table lookup into the TurboQuant codebook.',
+    objective: 'Inside turboQuantKVStep, set reconstructed[i] = codebook[indices[i]].',
     difficulty: 'core',
-    starterCode: `function speculativeDecodeStep(draftTokens, draftProbs, targetProbs, randVals) {
-  const acceptedTokens = [];
+    starterCode: `/**
+ * Runs one TurboQuant KV evaluation step: cache sizing, nearest quantization, reconstruction, dot error, compression ratio.
+ * @param {number[]} query - Query vector for attention score error check.
+ * @param {number[]} originalKey - Original high-precision key vector.
+ * @param {number[]} codebook - Sorted quantization levels for each coordinate.
+ * @param {number} bitsPerValue - Effective bits per stored KV coordinate.
+ * @param {number} layers - Transformer layer count.
+ * @param {number} tokens - Context length in tokens.
+ * @param {number} kvHeads - Number of KV attention heads.
+ * @param {number} headDim - Dimension per KV head.
+ * @returns {{ cacheBits: number, indices: number[], reconstructed: number[], dotError: number, compressionRatio: number, fullCacheBits: number }}
+ */
+function turboQuantKVStep(query, originalKey, codebook, bitsPerValue, layers, tokens, kvHeads, headDim) {
+  const fp16Bits = 16;
+  const fullCacheBits = layers * tokens * kvHeads * headDim * 2 * fp16Bits;
+  const cacheBits = layers * tokens * kvHeads * headDim * 2 * bitsPerValue;
 
-  for (let i = 0; i < draftTokens.length; i++) {
-    let ratio = targetProbs[i] / draftProbs[i];
-    
-    // TODO: Check if randVals[i] is less than or equal to ratio
-    if (false) {
-      acceptedTokens.push(draftTokens[i]);
-    } else {
-      break;
-    }
+  function dot(a, b) {
+    let sum = 0;
+    for (let i = 0; i < a.length; i++) sum += a[i] * b[i];
+    return sum;
   }
 
-  return acceptedTokens;
+  const d = originalKey.length;
+  const indices = Array(d).fill(0);
+  for (let i = 0; i < d; i++) {
+    let bestIdx = 0;
+    let minDist = Math.abs(originalKey[i] - codebook[0]);
+    for (let j = 1; j < codebook.length; j++) {
+      const dist = Math.abs(originalKey[i] - codebook[j]);
+      if (dist < minDist) {
+        minDist = dist;
+        bestIdx = j;
+      }
+    }
+    indices[i] = bestIdx;
+  }
+
+  const reconstructed = Array(d).fill(0);
+  for (let i = 0; i < d; i++) {
+    // TODO: reconstructed[i] = codebook[indices[i]]
+  }
+
+  const dotError = Math.abs(dot(query, originalKey) - dot(query, reconstructed));
+  const compressionRatio = fullCacheBits / cacheBits;
+
+  return { cacheBits, indices, reconstructed, dotError, compressionRatio, fullCacheBits };
 }`,
     testCode: `const results = [];
-function sameArray(a, b) { return JSON.stringify(a) === JSON.stringify(b); }
+function approxEqual(a, b, tol = 1e-5) { return Math.abs(a - b) <= tol; }
+function sameArray(a, b) { return a.length === b.length && a.every((v, i) => approxEqual(v, b[i])); }
 function check(name, actual, expected) {
   results.push({ name, actual: JSON.stringify(actual), expected: JSON.stringify(expected), passed: sameArray(actual, expected) });
 }
-check('reject first', speculativeDecodeStep([5, 9], [0.8, 0.8], [0.2, 0.8], [0.5, 0.5]), []);
+check('lookup reconstruction', turboQuantKVStep([1], [0.2], [-1, 0, 1], 4, 1, 1, 1, 1).reconstructed, [0]);
+check('multi dim', turboQuantKVStep([1], [0.2, -0.9], [-1, 0, 1], 4, 1, 1, 1, 2).reconstructed, [0, -1]);
 return results;`,
     hints: [
-      'Compare randVals[i] <= ratio.',
+      'Each stored index points to one codebook level.',
+      'Lookup is a direct array read: codebook[indices[i]].',
+      'Assign inside the loop over dimensions.',
     ],
-    solution: `function speculativeDecodeStep(draftTokens, draftProbs, targetProbs, randVals) {
-  const acceptedTokens = [];
+    solution: `/**
+ * Runs one TurboQuant KV evaluation step: cache sizing, nearest quantization, reconstruction, dot error, compression ratio.
+ * @param {number[]} query - Query vector for attention score error check.
+ * @param {number[]} originalKey - Original high-precision key vector.
+ * @param {number[]} codebook - Sorted quantization levels for each coordinate.
+ * @param {number} bitsPerValue - Effective bits per stored KV coordinate.
+ * @param {number} layers - Transformer layer count.
+ * @param {number} tokens - Context length in tokens.
+ * @param {number} kvHeads - Number of KV attention heads.
+ * @param {number} headDim - Dimension per KV head.
+ * @returns {{ cacheBits: number, indices: number[], reconstructed: number[], dotError: number, compressionRatio: number, fullCacheBits: number }}
+ */
+function turboQuantKVStep(query, originalKey, codebook, bitsPerValue, layers, tokens, kvHeads, headDim) {
+  const fp16Bits = 16;
+  const fullCacheBits = layers * tokens * kvHeads * headDim * 2 * fp16Bits;
+  const cacheBits = layers * tokens * kvHeads * headDim * 2 * bitsPerValue;
 
-  for (let i = 0; i < draftTokens.length; i++) {
-    let ratio = targetProbs[i] / draftProbs[i];
-    
-    if (randVals[i] <= ratio) {
-      acceptedTokens.push(draftTokens[i]);
-    } else {
-      break;
-    }
+  function dot(a, b) {
+    let sum = 0;
+    for (let i = 0; i < a.length; i++) sum += a[i] * b[i];
+    return sum;
   }
 
-  return acceptedTokens;
+  const d = originalKey.length;
+  const indices = Array(d).fill(0);
+  for (let i = 0; i < d; i++) {
+    let bestIdx = 0;
+    let minDist = Math.abs(originalKey[i] - codebook[0]);
+    for (let j = 1; j < codebook.length; j++) {
+      const dist = Math.abs(originalKey[i] - codebook[j]);
+      if (dist < minDist) {
+        minDist = dist;
+        bestIdx = j;
+      }
+    }
+    indices[i] = bestIdx;
+  }
+
+  const reconstructed = Array(d).fill(0);
+  for (let i = 0; i < d; i++) {
+    reconstructed[i] = codebook[indices[i]];
+  }
+
+  const dotError = Math.abs(dot(query, originalKey) - dot(query, reconstructed));
+  const compressionRatio = fullCacheBits / cacheBits;
+
+  return { cacheBits, indices, reconstructed, dotError, compressionRatio, fullCacheBits };
 }`,
-    explanation: 'This sampling strategy perfectly maintains the target model distribution.',
+    explanation: 'Dequant reconstruction turns compact indices back into approximate key vectors for attention.',
   },
   {
-    id: 'speculative-decode-full',
-    stepLabel: '10.4',
-    group: 'Speculative decode step',
-    title: 'Full Speculative Decode Step',
-    concept: 'At the first rejection, the draft sequence is broken, and we must stop accepting further tokens.',
-    objective: 'Push to acceptedTokens on success, or break the loop on failure.',
+    id: 'turboquant-dot-error',
+    stepLabel: 'TQ.4',
+    group: 'Dot-product error',
+    title: 'Attention Score Error',
+    concept: 'Quantization quality is measured by how much q·k changes after keys are reconstructed from codes.',
+    objective: 'Inside turboQuantKVStep, set dotError to |dot(query, originalKey) - dot(query, reconstructed)|.',
     difficulty: 'core',
-    starterCode: `function speculativeDecodeStep(draftTokens, draftProbs, targetProbs, randVals) {
-  const acceptedTokens = [];
+    starterCode: `/**
+ * Runs one TurboQuant KV evaluation step: cache sizing, nearest quantization, reconstruction, dot error, compression ratio.
+ * @param {number[]} query - Query vector for attention score error check.
+ * @param {number[]} originalKey - Original high-precision key vector.
+ * @param {number[]} codebook - Sorted quantization levels for each coordinate.
+ * @param {number} bitsPerValue - Effective bits per stored KV coordinate.
+ * @param {number} layers - Transformer layer count.
+ * @param {number} tokens - Context length in tokens.
+ * @param {number} kvHeads - Number of KV attention heads.
+ * @param {number} headDim - Dimension per KV head.
+ * @returns {{ cacheBits: number, indices: number[], reconstructed: number[], dotError: number, compressionRatio: number, fullCacheBits: number }}
+ */
+function turboQuantKVStep(query, originalKey, codebook, bitsPerValue, layers, tokens, kvHeads, headDim) {
+  const fp16Bits = 16;
+  const fullCacheBits = layers * tokens * kvHeads * headDim * 2 * fp16Bits;
+  const cacheBits = layers * tokens * kvHeads * headDim * 2 * bitsPerValue;
 
-  for (let i = 0; i < draftTokens.length; i++) {
-    let ratio = targetProbs[i] / draftProbs[i];
-    
-    if (randVals[i] <= ratio) {
-      // TODO: Push the accepted token draftTokens[i]
-      
-    } else {
-      // TODO: Break the loop on first rejection
-      
-    }
+  function dot(a, b) {
+    let sum = 0;
+    for (let i = 0; i < a.length; i++) sum += a[i] * b[i];
+    return sum;
   }
 
-  return acceptedTokens;
+  const d = originalKey.length;
+  const indices = Array(d).fill(0);
+  for (let i = 0; i < d; i++) {
+    let bestIdx = 0;
+    let minDist = Math.abs(originalKey[i] - codebook[0]);
+    for (let j = 1; j < codebook.length; j++) {
+      const dist = Math.abs(originalKey[i] - codebook[j]);
+      if (dist < minDist) {
+        minDist = dist;
+        bestIdx = j;
+      }
+    }
+    indices[i] = bestIdx;
+  }
+
+  const reconstructed = Array(d).fill(0);
+  for (let i = 0; i < d; i++) {
+    reconstructed[i] = codebook[indices[i]];
+  }
+
+  let dotError = 0;
+  // TODO: dotError = absolute difference between dot(query, originalKey) and dot(query, reconstructed)
+
+  const compressionRatio = fullCacheBits / cacheBits;
+
+  return { cacheBits, indices, reconstructed, dotError, compressionRatio, fullCacheBits };
 }`,
     testCode: `const results = [];
-function sameArray(a, b) { return JSON.stringify(a) === JSON.stringify(b); }
+function approxEqual(a, b, tol = 1e-5) { return Math.abs(a - b) <= tol; }
 function check(name, actual, expected) {
-  results.push({ name, actual: JSON.stringify(actual), expected: JSON.stringify(expected), passed: sameArray(actual, expected) });
+  results.push({ name, actual, expected, passed: approxEqual(actual, expected) });
 }
-check('full sequence', speculativeDecodeStep([1, 2, 3], [0.5, 0.5, 0.8], [0.6, 0.2, 0.9], [0.4, 0.6, 0.1]), [1]);
+check('score error', turboQuantKVStep([1, 0], [2, 3], [-1, 0, 1], 4, 1, 1, 1, 2).dotError, 1);
+check('exact reconstruction', turboQuantKVStep([1, 2], [1, 2], [-1, 0, 1, 2], 4, 1, 1, 1, 2).dotError, 0);
 return results;`,
     hints: [
-      'Use acceptedTokens.push(draftTokens[i]);',
-      'Use the break; statement in the else block.',
+      'Use the local dot helper on query with originalKey and reconstructed.',
+      'Take the absolute value of the difference.',
+      'dotError = Math.abs(dot(query, originalKey) - dot(query, reconstructed));',
     ],
-    solution: `function speculativeDecodeStep(draftTokens, draftProbs, targetProbs, randVals) {
-  const acceptedTokens = [];
+    solution: `/**
+ * Runs one TurboQuant KV evaluation step: cache sizing, nearest quantization, reconstruction, dot error, compression ratio.
+ * @param {number[]} query - Query vector for attention score error check.
+ * @param {number[]} originalKey - Original high-precision key vector.
+ * @param {number[]} codebook - Sorted quantization levels for each coordinate.
+ * @param {number} bitsPerValue - Effective bits per stored KV coordinate.
+ * @param {number} layers - Transformer layer count.
+ * @param {number} tokens - Context length in tokens.
+ * @param {number} kvHeads - Number of KV attention heads.
+ * @param {number} headDim - Dimension per KV head.
+ * @returns {{ cacheBits: number, indices: number[], reconstructed: number[], dotError: number, compressionRatio: number, fullCacheBits: number }}
+ */
+function turboQuantKVStep(query, originalKey, codebook, bitsPerValue, layers, tokens, kvHeads, headDim) {
+  const fp16Bits = 16;
+  const fullCacheBits = layers * tokens * kvHeads * headDim * 2 * fp16Bits;
+  const cacheBits = layers * tokens * kvHeads * headDim * 2 * bitsPerValue;
 
-  for (let i = 0; i < draftTokens.length; i++) {
-    let ratio = targetProbs[i] / draftProbs[i];
-    
-    if (randVals[i] <= ratio) {
-      acceptedTokens.push(draftTokens[i]);
-    } else {
-      break;
-    }
+  function dot(a, b) {
+    let sum = 0;
+    for (let i = 0; i < a.length; i++) sum += a[i] * b[i];
+    return sum;
   }
 
-  return acceptedTokens;
+  const d = originalKey.length;
+  const indices = Array(d).fill(0);
+  for (let i = 0; i < d; i++) {
+    let bestIdx = 0;
+    let minDist = Math.abs(originalKey[i] - codebook[0]);
+    for (let j = 1; j < codebook.length; j++) {
+      const dist = Math.abs(originalKey[i] - codebook[j]);
+      if (dist < minDist) {
+        minDist = dist;
+        bestIdx = j;
+      }
+    }
+    indices[i] = bestIdx;
+  }
+
+  const reconstructed = Array(d).fill(0);
+  for (let i = 0; i < d; i++) {
+    reconstructed[i] = codebook[indices[i]];
+  }
+
+  let dotError = 0;
+  dotError = Math.abs(dot(query, originalKey) - dot(query, reconstructed));
+
+  const compressionRatio = fullCacheBits / cacheBits;
+
+  return { cacheBits, indices, reconstructed, dotError, compressionRatio, fullCacheBits };
 }`,
-    explanation: 'The loop breaking ensures we only ever decode valid prefixes that align with the target distribution.',
+    explanation: 'Dot-product error links quantization noise directly to attention score drift during inference.',
   },
   {
-    id: 'turboquant-range',
+    id: 'turboquant-compression-ratio',
+    stepLabel: 'TQ.5',
+    group: 'Compression ratio',
+    title: 'KV Cache Compression Ratio',
+    concept: 'Compression ratio compares full FP16 KV storage against TurboQuant bit-packed storage.',
+    objective: 'Inside turboQuantKVStep, set compressionRatio = fullCacheBits / cacheBits.',
+    difficulty: 'core',
+    starterCode: `/**
+ * Runs one TurboQuant KV evaluation step: cache sizing, nearest quantization, reconstruction, dot error, compression ratio.
+ * @param {number[]} query - Query vector for attention score error check.
+ * @param {number[]} originalKey - Original high-precision key vector.
+ * @param {number[]} codebook - Sorted quantization levels for each coordinate.
+ * @param {number} bitsPerValue - Effective bits per stored KV coordinate.
+ * @param {number} layers - Transformer layer count.
+ * @param {number} tokens - Context length in tokens.
+ * @param {number} kvHeads - Number of KV attention heads.
+ * @param {number} headDim - Dimension per KV head.
+ * @returns {{ cacheBits: number, indices: number[], reconstructed: number[], dotError: number, compressionRatio: number, fullCacheBits: number }}
+ */
+function turboQuantKVStep(query, originalKey, codebook, bitsPerValue, layers, tokens, kvHeads, headDim) {
+  const fp16Bits = 16;
+  const fullCacheBits = layers * tokens * kvHeads * headDim * 2 * fp16Bits;
+  const cacheBits = layers * tokens * kvHeads * headDim * 2 * bitsPerValue;
+
+  function dot(a, b) {
+    let sum = 0;
+    for (let i = 0; i < a.length; i++) sum += a[i] * b[i];
+    return sum;
+  }
+
+  const d = originalKey.length;
+  const indices = Array(d).fill(0);
+  for (let i = 0; i < d; i++) {
+    let bestIdx = 0;
+    let minDist = Math.abs(originalKey[i] - codebook[0]);
+    for (let j = 1; j < codebook.length; j++) {
+      const dist = Math.abs(originalKey[i] - codebook[j]);
+      if (dist < minDist) {
+        minDist = dist;
+        bestIdx = j;
+      }
+    }
+    indices[i] = bestIdx;
+  }
+
+  const reconstructed = Array(d).fill(0);
+  for (let i = 0; i < d; i++) {
+    reconstructed[i] = codebook[indices[i]];
+  }
+
+  const dotError = Math.abs(dot(query, originalKey) - dot(query, reconstructed));
+  let compressionRatio = 0;
+  // TODO: compressionRatio = fullCacheBits / cacheBits
+
+  return { cacheBits, indices, reconstructed, dotError, compressionRatio, fullCacheBits };
+}`,
+    testCode: `const results = [];
+function approxEqual(a, b, tol = 1e-5) { return Math.abs(a - b) <= tol; }
+function check(name, actual, expected) {
+  results.push({ name, actual, expected, passed: approxEqual(actual, expected) });
+}
+check('4-bit vs fp16', turboQuantKVStep([1], [0], [-1, 0, 1], 4, 32, 2048, 8, 128).compressionRatio, 4);
+check('8-bit vs fp16', turboQuantKVStep([1], [0], [-1, 0, 1], 8, 1, 1, 1, 1).compressionRatio, 2);
+return results;`,
+    hints: [
+      'Divide full FP16 cache bits by quantized cache bits.',
+      'Fewer bits per value yields a larger compression ratio.',
+      'compressionRatio = fullCacheBits / cacheBits;',
+    ],
+    solution: `/**
+ * Runs one TurboQuant KV evaluation step: cache sizing, nearest quantization, reconstruction, dot error, compression ratio.
+ * @param {number[]} query - Query vector for attention score error check.
+ * @param {number[]} originalKey - Original high-precision key vector.
+ * @param {number[]} codebook - Sorted quantization levels for each coordinate.
+ * @param {number} bitsPerValue - Effective bits per stored KV coordinate.
+ * @param {number} layers - Transformer layer count.
+ * @param {number} tokens - Context length in tokens.
+ * @param {number} kvHeads - Number of KV attention heads.
+ * @param {number} headDim - Dimension per KV head.
+ * @returns {{ cacheBits: number, indices: number[], reconstructed: number[], dotError: number, compressionRatio: number, fullCacheBits: number }}
+ */
+function turboQuantKVStep(query, originalKey, codebook, bitsPerValue, layers, tokens, kvHeads, headDim) {
+  const fp16Bits = 16;
+  const fullCacheBits = layers * tokens * kvHeads * headDim * 2 * fp16Bits;
+  const cacheBits = layers * tokens * kvHeads * headDim * 2 * bitsPerValue;
+
+  function dot(a, b) {
+    let sum = 0;
+    for (let i = 0; i < a.length; i++) sum += a[i] * b[i];
+    return sum;
+  }
+
+  const d = originalKey.length;
+  const indices = Array(d).fill(0);
+  for (let i = 0; i < d; i++) {
+    let bestIdx = 0;
+    let minDist = Math.abs(originalKey[i] - codebook[0]);
+    for (let j = 1; j < codebook.length; j++) {
+      const dist = Math.abs(originalKey[i] - codebook[j]);
+      if (dist < minDist) {
+        minDist = dist;
+        bestIdx = j;
+      }
+    }
+    indices[i] = bestIdx;
+  }
+
+  const reconstructed = Array(d).fill(0);
+  for (let i = 0; i < d; i++) {
+    reconstructed[i] = codebook[indices[i]];
+  }
+
+  const dotError = Math.abs(dot(query, originalKey) - dot(query, reconstructed));
+  let compressionRatio = 0;
+  compressionRatio = fullCacheBits / cacheBits;
+
+  return { cacheBits, indices, reconstructed, dotError, compressionRatio, fullCacheBits };
+}`,
+    explanation: 'Compression ratio summarizes the memory win from TurboQuant relative to dense FP16 KV caches.',
+  },
+  {
+    id: 'quantize-find-nearest',
     stepLabel: '11.1',
-    group: 'TurboQuant compression',
-    title: 'Quantization Range',
-    concept: 'Quantization scales float values into integer bins. The first step is finding the float range.',
-    objective: 'Compute the min and max of the tensor.',
+    group: 'Nearest codebook entry',
+    title: 'Nearest quantization level',
+    concept: 'Quantization compresses values by mapping floats to the nearest predefined codebook scale level.',
+    objective: 'Find the index in codebook levels that minimizes absolute distance to value.',
     difficulty: 'warmup',
-    starterCode: `function quantizeTensor(tensor, bits) {
-  const qMax = (1 << bits) - 1;
+    starterCode: `function nearestQuantizationIndex(value, levels) {
+  let bestIdx = 0;
+  let minDist = Math.abs(value - levels[0]);
   
-  // TODO: Find Math.min and Math.max of the tensor array
-  let min = 0;
-  let max = 1;
-  if (min === max) max = min + 1e-5;
-  
-  const scale = (max - min) / qMax;
-  const zeroPoint = Math.round(min / scale);
-  
-  const quantized = [];
-  for (let i = 0; i < tensor.length; i++) {
-    quantized.push(Math.round(tensor[i] / scale) - zeroPoint);
+  for (let i = 1; i < levels.length; i++) {
+    // TODO: update bestIdx if levels[i] is closer to value
   }
   
-  return quantized;
+  return bestIdx;
 }`,
     testCode: `const results = [];
-function sameArray(a, b) { return JSON.stringify(a) === JSON.stringify(b); }
 function check(name, actual, expected) {
-  results.push({ name, actual: JSON.stringify(actual), expected: JSON.stringify(expected), passed: sameArray(actual, expected) });
+  results.push({ name, actual, expected, passed: Object.is(actual, expected) });
 }
-check('quantize range 2-bit', quantizeTensor([0.0, 0.5, 1.0], 2), [0, 2, 3]);
+check('quantize near 0.2', nearestQuantizationIndex(0.2, [-1, 0, 1]), 1); // 0 is nearest
+check('quantize near 0.8', nearestQuantizationIndex(0.8, [-1, 0, 1]), 2); // 1 is nearest
 return results;`,
     hints: [
-      'Use Math.min(...tensor) and Math.max(...tensor).',
+      'Calculate distance using Math.abs(value - levels[i]).',
+      'If this distance is less than minDist, update bestIdx and minDist.',
     ],
-    solution: `function quantizeTensor(tensor, bits) {
-  const qMax = (1 << bits) - 1;
+    solution: `function nearestQuantizationIndex(value, levels) {
+  let bestIdx = 0;
+  let minDist = Math.abs(value - levels[0]);
   
-  let min = Math.min(...tensor);
-  let max = Math.max(...tensor);
-  if (min === max) max = min + 1e-5;
-  
-  const scale = (max - min) / qMax;
-  const zeroPoint = Math.round(min / scale);
-  
-  const quantized = [];
-  for (let i = 0; i < tensor.length; i++) {
-    quantized.push(Math.round(tensor[i] / scale) - zeroPoint);
+  for (let i = 1; i < levels.length; i++) {
+    const dist = Math.abs(value - levels[i]);
+    if (dist < minDist) {
+      minDist = dist;
+      bestIdx = i;
+    }
   }
   
-  return quantized;
+  return bestIdx;
 }`,
-    explanation: 'The full float range is mapped entirely into the available integer quantization buckets.',
+    explanation: 'Mapping floating-point weights to indexes of codebook levels compresses neural networks with minimal loss of accuracy.',
+  },
+  // --- efficient-inference-compression-track ---
+  {
+    id: 'quantmatmul-shape-guard',
+    stepLabel: 'EIC.1',
+    group: 'Shape guard',
+    title: 'Quantized Dot Shape Check',
+    concept: 'Quantized matmul kernels must reject mismatched vector lengths before INT8 accumulation.',
+    objective: 'Inside quantizedMatmulStep, return valid: false when a.length !== b.length.',
+    difficulty: 'warmup',
+    starterCode: `/**
+ * Runs one quantized dot-product step: validate shapes, INT8 accumulate, apply per-channel or global scales.
+ * @param {number[]} a - Quantized INT8 vector A.
+ * @param {number[]} b - Quantized INT8 vector B.
+ * @param {number|number[]} scaleA - Global scale or per-channel scales for A.
+ * @param {number|number[]} scaleB - Global scale or per-channel scales for B.
+ * @returns {{ valid: boolean, intDot: number, scaled: number }} Validation flag and dot outputs.
+ */
+function quantizedMatmulStep(a, b, scaleA, scaleB) {
+  if (a.length !== b.length) {
+    // TODO: return invalid result with zeroed outputs.
+    return { valid: true, intDot: 0, scaled: 0 };
+  }
+
+  let intDot = 0;
+  for (let i = 0; i < a.length; i++) {
+    intDot += a[i] * b[i];
+  }
+
+  let scaled = 0;
+  if (Array.isArray(scaleA) && Array.isArray(scaleB)) {
+    for (let i = 0; i < a.length; i++) {
+      scaled += a[i] * b[i] * scaleA[i] * scaleB[i];
+    }
+  } else {
+    scaled = intDot * scaleA * scaleB;
+  }
+
+  return { valid: true, intDot, scaled };
+}`,
+    testCode: `const results = [];
+function check(name, actual, expected) {
+  results.push({ name, actual, expected, passed: Object.is(actual, expected) });
+}
+check('mismatch rejected', quantizedMatmulStep([1, 2], [3], 0.1, 0.1).valid, false);
+check('match accepted', quantizedMatmulStep([1, 2], [3, 4], 0.1, 0.1).valid, true);
+check('empty vectors valid', quantizedMatmulStep([], [], 1, 1).valid, true);
+return results;`,
+    hints: [
+      'When lengths differ, return valid: false immediately.',
+      'Set intDot and scaled to 0 for invalid inputs.',
+      'Only run accumulation when a.length === b.length.',
+    ],
+    solution: `/**
+ * Runs one quantized dot-product step: validate shapes, INT8 accumulate, apply per-channel or global scales.
+ * @param {number[]} a - Quantized INT8 vector A.
+ * @param {number[]} b - Quantized INT8 vector B.
+ * @param {number|number[]} scaleA - Global scale or per-channel scales for A.
+ * @param {number|number[]} scaleB - Global scale or per-channel scales for B.
+ * @returns {{ valid: boolean, intDot: number, scaled: number }} Validation flag and dot outputs.
+ */
+function quantizedMatmulStep(a, b, scaleA, scaleB) {
+  if (a.length !== b.length) {
+    return { valid: false, intDot: 0, scaled: 0 };
+  }
+
+  let intDot = 0;
+  for (let i = 0; i < a.length; i++) {
+    intDot += a[i] * b[i];
+  }
+
+  let scaled = 0;
+  if (Array.isArray(scaleA) && Array.isArray(scaleB)) {
+    for (let i = 0; i < a.length; i++) {
+      scaled += a[i] * b[i] * scaleA[i] * scaleB[i];
+    }
+  } else {
+    scaled = intDot * scaleA * scaleB;
+  }
+
+  return { valid: true, intDot, scaled };
+}`,
+    explanation: 'Shape guards prevent silent wrong answers when compressed weight layouts do not align.',
   },
   {
-    id: 'turboquant-scale',
-    stepLabel: '11.2',
-    group: 'TurboQuant compression',
-    title: 'Scale Factor',
-    concept: 'The scale factor maps the float range (max - min) to the integer range (qMax).',
-    objective: 'Compute the scale by dividing the float range by qMax.',
+    id: 'quantmatmul-int8-dot',
+    stepLabel: 'EIC.2',
+    group: 'INT8 dot',
+    title: 'INT8 Dot Accumulation',
+    concept: 'Efficient inference kernels accumulate dot products in integer arithmetic before any dequantization.',
+    objective: 'Inside quantizedMatmulStep, compute intDot as the sum of element-wise products a[i] * b[i].',
     difficulty: 'core',
-    starterCode: `function quantizeTensor(tensor, bits) {
-  const qMax = (1 << bits) - 1;
-  
-  let min = Math.min(...tensor);
-  let max = Math.max(...tensor);
-  if (min === max) max = min + 1e-5;
-  
-  // TODO: Compute scale = (max - min) / qMax
-  const scale = 1.0;
-  const zeroPoint = Math.round(min / scale);
-  
-  const quantized = [];
-  for (let i = 0; i < tensor.length; i++) {
-    quantized.push(Math.round(tensor[i] / scale) - zeroPoint);
+    starterCode: `/**
+ * Runs one quantized dot-product step: validate shapes, INT8 accumulate, apply per-channel or global scales.
+ * @param {number[]} a - Quantized INT8 vector A.
+ * @param {number[]} b - Quantized INT8 vector B.
+ * @param {number|number[]} scaleA - Global scale or per-channel scales for A.
+ * @param {number|number[]} scaleB - Global scale or per-channel scales for B.
+ * @returns {{ valid: boolean, intDot: number, scaled: number }} Validation flag and dot outputs.
+ */
+function quantizedMatmulStep(a, b, scaleA, scaleB) {
+  if (a.length !== b.length) {
+    return { valid: false, intDot: 0, scaled: 0 };
   }
-  
-  return quantized;
+
+  let intDot = 0;
+  for (let i = 0; i < a.length; i++) {
+    // TODO: accumulate a[i] * b[i] into intDot.
+  }
+
+  let scaled = 0;
+  if (Array.isArray(scaleA) && Array.isArray(scaleB)) {
+    for (let i = 0; i < a.length; i++) {
+      scaled += a[i] * b[i] * scaleA[i] * scaleB[i];
+    }
+  } else {
+    scaled = intDot * scaleA * scaleB;
+  }
+
+  return { valid: true, intDot, scaled };
 }`,
     testCode: `const results = [];
-function sameArray(a, b) { return JSON.stringify(a) === JSON.stringify(b); }
 function check(name, actual, expected) {
-  results.push({ name, actual: JSON.stringify(actual), expected: JSON.stringify(expected), passed: sameArray(actual, expected) });
+  results.push({ name, actual, expected, passed: Object.is(actual, expected) });
 }
-check('quantize scale 2-bit', quantizeTensor([-1.0, 0.0, 2.0], 2), [0, 1, 3]);
+check('integer dot', quantizedMatmulStep([10, -5, 3], [2, 4, 1], 1, 1).intDot, 10 * 2 + (-5) * 4 + 3 * 1);
+check('negative products', quantizedMatmulStep([-2, 7], [5, -1], 1, 1).intDot, -17);
 return results;`,
     hints: [
-      'The float distance is (max - min). Divide this by qMax.',
+      'Multiply matching indices and add into intDot inside the loop.',
+      'INT8 values are still numbers in JavaScript — accumulate normally.',
+      'intDot += a[i] * b[i];',
     ],
-    solution: `function quantizeTensor(tensor, bits) {
-  const qMax = (1 << bits) - 1;
-  
-  let min = Math.min(...tensor);
-  let max = Math.max(...tensor);
-  if (min === max) max = min + 1e-5;
-  
-  const scale = (max - min) / qMax;
-  const zeroPoint = Math.round(min / scale);
-  
-  const quantized = [];
-  for (let i = 0; i < tensor.length; i++) {
-    quantized.push(Math.round(tensor[i] / scale) - zeroPoint);
+    solution: `/**
+ * Runs one quantized dot-product step: validate shapes, INT8 accumulate, apply per-channel or global scales.
+ * @param {number[]} a - Quantized INT8 vector A.
+ * @param {number[]} b - Quantized INT8 vector B.
+ * @param {number|number[]} scaleA - Global scale or per-channel scales for A.
+ * @param {number|number[]} scaleB - Global scale or per-channel scales for B.
+ * @returns {{ valid: boolean, intDot: number, scaled: number }} Validation flag and dot outputs.
+ */
+function quantizedMatmulStep(a, b, scaleA, scaleB) {
+  if (a.length !== b.length) {
+    return { valid: false, intDot: 0, scaled: 0 };
   }
-  
-  return quantized;
+
+  let intDot = 0;
+  for (let i = 0; i < a.length; i++) {
+    intDot += a[i] * b[i];
+  }
+
+  let scaled = 0;
+  if (Array.isArray(scaleA) && Array.isArray(scaleB)) {
+    for (let i = 0; i < a.length; i++) {
+      scaled += a[i] * b[i] * scaleA[i] * scaleB[i];
+    }
+  } else {
+    scaled = intDot * scaleA * scaleB;
+  }
+
+  return { valid: true, intDot, scaled };
 }`,
-    explanation: 'The scale dictates exactly how much precision is stored per quantization bin.',
+    explanation: 'Integer accumulation is the fast path; dequantization happens only after the dot is complete.',
   },
   {
-    id: 'turboquant-zeropoint',
-    stepLabel: '11.3',
-    group: 'TurboQuant compression',
-    title: 'Zero Point',
-    concept: 'The zero point aligns the lowest float value (min) with the integer 0.',
-    objective: 'Compute the zero point by dividing min by scale and rounding it.',
+    id: 'quantmatmul-dequant-fuse',
+    stepLabel: 'EIC.3',
+    group: 'Dequant fuse',
+    title: 'Fused Global Dequantization',
+    concept: 'When scales are scalar per tensor, hardware fuses dequant as intDot * scaleA * scaleB after the INT8 dot.',
+    objective: 'Inside quantizedMatmulStep, when scales are numbers, set scaled = intDot * scaleA * scaleB.',
     difficulty: 'core',
-    starterCode: `function quantizeTensor(tensor, bits) {
-  const qMax = (1 << bits) - 1;
-  
-  let min = Math.min(...tensor);
-  let max = Math.max(...tensor);
-  if (min === max) max = min + 1e-5;
-  
-  const scale = (max - min) / qMax;
-  
-  // TODO: Compute zeroPoint = Math.round(min / scale)
-  const zeroPoint = 0;
-  
-  const quantized = [];
-  for (let i = 0; i < tensor.length; i++) {
-    quantized.push(Math.round(tensor[i] / scale) - zeroPoint);
+    starterCode: `/**
+ * Runs one quantized dot-product step: validate shapes, INT8 accumulate, apply per-channel or global scales.
+ * @param {number[]} a - Quantized INT8 vector A.
+ * @param {number[]} b - Quantized INT8 vector B.
+ * @param {number|number[]} scaleA - Global scale or per-channel scales for A.
+ * @param {number|number[]} scaleB - Global scale or per-channel scales for B.
+ * @returns {{ valid: boolean, intDot: number, scaled: number }} Validation flag and dot outputs.
+ */
+function quantizedMatmulStep(a, b, scaleA, scaleB) {
+  if (a.length !== b.length) {
+    return { valid: false, intDot: 0, scaled: 0 };
   }
-  
-  return quantized;
+
+  let intDot = 0;
+  for (let i = 0; i < a.length; i++) {
+    intDot += a[i] * b[i];
+  }
+
+  let scaled = 0;
+  if (Array.isArray(scaleA) && Array.isArray(scaleB)) {
+    for (let i = 0; i < a.length; i++) {
+      scaled += a[i] * b[i] * scaleA[i] * scaleB[i];
+    }
+  } else {
+    // TODO: scaled = intDot * scaleA * scaleB
+  }
+
+  return { valid: true, intDot, scaled };
 }`,
     testCode: `const results = [];
-function sameArray(a, b) { return JSON.stringify(a) === JSON.stringify(b); }
+function approxEqual(a, b, tol = 1e-5) { return Math.abs(a - b) <= tol; }
 function check(name, actual, expected) {
-  results.push({ name, actual: JSON.stringify(actual), expected: JSON.stringify(expected), passed: sameArray(actual, expected) });
+  results.push({ name, actual, expected, passed: approxEqual(actual, expected) });
 }
-check('quantize zeropoint', quantizeTensor([10.0, 11.0, 13.0], 2), [0, 1, 3]);
+check('fused global scale', quantizedMatmulStep([10, -5], [20, 30], 0.1, 0.05).scaled, 0.25);
+check('unit scales', quantizedMatmulStep([3, 4], [5, 6], 1, 1).scaled, 39);
 return results;`,
     hints: [
-      'Divide min by scale.',
-      'Use Math.round() to ensure the zeroPoint is an integer.',
+      'Use the else branch for scalar scaleA and scaleB.',
+      'Multiply intDot by both scales once.',
+      'scaled = intDot * scaleA * scaleB;',
     ],
-    solution: `function quantizeTensor(tensor, bits) {
-  const qMax = (1 << bits) - 1;
-  
-  let min = Math.min(...tensor);
-  let max = Math.max(...tensor);
-  if (min === max) max = min + 1e-5;
-  
-  const scale = (max - min) / qMax;
-  const zeroPoint = Math.round(min / scale);
-  
-  const quantized = [];
-  for (let i = 0; i < tensor.length; i++) {
-    quantized.push(Math.round(tensor[i] / scale) - zeroPoint);
+    solution: `/**
+ * Runs one quantized dot-product step: validate shapes, INT8 accumulate, apply per-channel or global scales.
+ * @param {number[]} a - Quantized INT8 vector A.
+ * @param {number[]} b - Quantized INT8 vector B.
+ * @param {number|number[]} scaleA - Global scale or per-channel scales for A.
+ * @param {number|number[]} scaleB - Global scale or per-channel scales for B.
+ * @returns {{ valid: boolean, intDot: number, scaled: number }} Validation flag and dot outputs.
+ */
+function quantizedMatmulStep(a, b, scaleA, scaleB) {
+  if (a.length !== b.length) {
+    return { valid: false, intDot: 0, scaled: 0 };
   }
-  
-  return quantized;
+
+  let intDot = 0;
+  for (let i = 0; i < a.length; i++) {
+    intDot += a[i] * b[i];
+  }
+
+  let scaled = 0;
+  if (Array.isArray(scaleA) && Array.isArray(scaleB)) {
+    for (let i = 0; i < a.length; i++) {
+      scaled += a[i] * b[i] * scaleA[i] * scaleB[i];
+    }
+  } else {
+    scaled = intDot * scaleA * scaleB;
+  }
+
+  return { valid: true, intDot, scaled };
 }`,
-    explanation: 'By using an asymmetric zero point, we can quantize ranges that are not centered perfectly around zero without losing fidelity.',
+    explanation: 'Fusing global scales after INT8 matmul avoids per-element float work during accumulation.',
   },
   {
-    id: 'turboquant-full',
-    stepLabel: '11.4',
-    group: 'TurboQuant compression',
-    title: 'Quantize Elements',
-    concept: 'Each tensor element is scaled and shifted by the zero point to fit in the integer range.',
-    objective: 'Quantize each element to Math.round(tensor[i] / scale) - zeroPoint.',
+    id: 'quantmatmul-per-channel',
+    stepLabel: 'EIC.4',
+    group: 'Per-channel scale',
+    title: 'Per-Channel Dequantization',
+    concept: 'Per-channel quantization stores a scale per row or column, applying scaleA[i] * scaleB[i] per product.',
+    objective: 'Inside quantizedMatmulStep, when scales are arrays, sum a[i] * b[i] * scaleA[i] * scaleB[i].',
     difficulty: 'core',
-    starterCode: `function quantizeTensor(tensor, bits) {
-  const qMax = (1 << bits) - 1;
-  
-  let min = Math.min(...tensor);
-  let max = Math.max(...tensor);
-  if (min === max) max = min + 1e-5;
-  
-  const scale = (max - min) / qMax;
-  const zeroPoint = Math.round(min / scale);
-  
-  const quantized = [];
-  for (let i = 0; i < tensor.length; i++) {
-    // TODO: Push quantized value Math.round(tensor[i] / scale) - zeroPoint
-    quantized.push(tensor[i]);
+    starterCode: `/**
+ * Runs one quantized dot-product step: validate shapes, INT8 accumulate, apply per-channel or global scales.
+ * @param {number[]} a - Quantized INT8 vector A.
+ * @param {number[]} b - Quantized INT8 vector B.
+ * @param {number|number[]} scaleA - Global scale or per-channel scales for A.
+ * @param {number|number[]} scaleB - Global scale or per-channel scales for B.
+ * @returns {{ valid: boolean, intDot: number, scaled: number }} Validation flag and dot outputs.
+ */
+function quantizedMatmulStep(a, b, scaleA, scaleB) {
+  if (a.length !== b.length) {
+    return { valid: false, intDot: 0, scaled: 0 };
   }
-  
-  return quantized;
+
+  let intDot = 0;
+  for (let i = 0; i < a.length; i++) {
+    intDot += a[i] * b[i];
+  }
+
+  let scaled = 0;
+  if (Array.isArray(scaleA) && Array.isArray(scaleB)) {
+    for (let i = 0; i < a.length; i++) {
+      // TODO: add a[i] * b[i] * scaleA[i] * scaleB[i] to scaled.
+    }
+  } else {
+    scaled = intDot * scaleA * scaleB;
+  }
+
+  return { valid: true, intDot, scaled };
 }`,
     testCode: `const results = [];
-function sameArray(a, b) { return JSON.stringify(a) === JSON.stringify(b); }
+function approxEqual(a, b, tol = 1e-5) { return Math.abs(a - b) <= tol; }
 function check(name, actual, expected) {
-  results.push({ name, actual: JSON.stringify(actual), expected: JSON.stringify(expected), passed: sameArray(actual, expected) });
+  results.push({ name, actual, expected, passed: approxEqual(actual, expected) });
 }
-check('quantize full', quantizeTensor([0.0, 1.0, 3.0], 2), [0, 1, 3]);
+check('per-channel fuse', quantizedMatmulStep([10, 5], [2, 4], [0.1, 0.2], [0.5, 0.25]).scaled, 10 * 2 * 0.1 * 0.5 + 5 * 4 * 0.2 * 0.25);
+check('uniform channel scales', quantizedMatmulStep([3, 1], [2, 8], [0.5, 0.5], [2, 2]).scaled, 14);
 return results;`,
     hints: [
-      'Divide the element by scale.',
-      'Round it, then subtract the zeroPoint.',
+      'Each index carries its own scale pair.',
+      'Accumulate scaled partial products in the array branch.',
+      'scaled += a[i] * b[i] * scaleA[i] * scaleB[i];',
     ],
-    solution: `function quantizeTensor(tensor, bits) {
-  const qMax = (1 << bits) - 1;
-  
-  let min = Math.min(...tensor);
-  let max = Math.max(...tensor);
-  if (min === max) max = min + 1e-5;
-  
-  const scale = (max - min) / qMax;
-  const zeroPoint = Math.round(min / scale);
-  
-  const quantized = [];
-  for (let i = 0; i < tensor.length; i++) {
-    quantized.push(Math.round(tensor[i] / scale) - zeroPoint);
+    solution: `/**
+ * Runs one quantized dot-product step: validate shapes, INT8 accumulate, apply per-channel or global scales.
+ * @param {number[]} a - Quantized INT8 vector A.
+ * @param {number[]} b - Quantized INT8 vector B.
+ * @param {number|number[]} scaleA - Global scale or per-channel scales for A.
+ * @param {number|number[]} scaleB - Global scale or per-channel scales for B.
+ * @returns {{ valid: boolean, intDot: number, scaled: number }} Validation flag and dot outputs.
+ */
+function quantizedMatmulStep(a, b, scaleA, scaleB) {
+  if (a.length !== b.length) {
+    return { valid: false, intDot: 0, scaled: 0 };
   }
-  
-  return quantized;
+
+  let intDot = 0;
+  for (let i = 0; i < a.length; i++) {
+    intDot += a[i] * b[i];
+  }
+
+  let scaled = 0;
+  if (Array.isArray(scaleA) && Array.isArray(scaleB)) {
+    for (let i = 0; i < a.length; i++) {
+      scaled += a[i] * b[i] * scaleA[i] * scaleB[i];
+    }
+  } else {
+    scaled = intDot * scaleA * scaleB;
+  }
+
+  return { valid: true, intDot, scaled };
 }`,
-    explanation: 'The resulting array contains integers only, requiring far less memory while preserving the general distribution of weights.',
+    explanation: 'Per-channel scales recover accuracy when different weight channels need different dynamic ranges.',
   },
   {
-    id: 'dequant-dot-loop',
+    id: 'quantized-dot-scale',
     stepLabel: '13.1',
-    group: 'Dequantized dot product',
-    title: 'Integer Dot Product Loop',
-    concept: 'Integer matrix multiplication is fundamentally faster than float math. The first step is executing the raw integer dot product.',
-    objective: 'Accumulate the product of qA[i] and qB[i] into intDot.',
-    difficulty: 'warmup',
-    starterCode: `function dequantizedDotProduct(qA, qB, scaleA, scaleB) {
-  let intDot = 0;
-  for (let i = 0; i < qA.length; i++) {
-    // TODO: Accumulate qA[i] * qB[i] into intDot
-    
-  }
-  return intDot * scaleA * scaleB;
-}`,
-    testCode: `const results = [];
-function check(name, actual, expected) {
-  results.push({ name, actual, expected, passed: Math.abs(actual - expected) < 1e-5 });
-}
-check('integer dot scale', dequantizedDotProduct([10, 2], [5, 4], 1.0, 1.0), 58);
-return results;`,
-    hints: [
-      'Use the += operator.',
-      'Multiply qA[i] by qB[i].',
-    ],
-    solution: `function dequantizedDotProduct(qA, qB, scaleA, scaleB) {
-  let intDot = 0;
-  for (let i = 0; i < qA.length; i++) {
-    intDot += qA[i] * qB[i];
-  }
-  return intDot * scaleA * scaleB;
-}`,
-    explanation: 'This inner loop happens natively on tensor cores at extreme speeds.',
-  },
-  {
-    id: 'dequant-dot-scalea',
-    stepLabel: '13.2',
-    group: 'Dequantized dot product',
-    title: 'Scale by A',
-    concept: 'To restore the float value, we must multiply by the scale factor of vector A.',
-    objective: 'Multiply the integer sum by scaleA.',
+    group: 'Dequant fuse',
+    title: 'Scale quantized dot product',
+    concept: 'To speed up execution, hardware performs dot products in INT8 and then scales the output back to FLOAT using per-channel scale factors.',
+    objective: 'Compute integer dot product of a and b, then scale the result by scaleA * scaleB.',
     difficulty: 'core',
-    starterCode: `function dequantizedDotProduct(qA, qB, scaleA, scaleB) {
+    starterCode: `function quantizedDotScale(a, b, scaleA, scaleB) {
   let intDot = 0;
-  for (let i = 0; i < qA.length; i++) {
-    intDot += qA[i] * qB[i];
+  for (let i = 0; i < a.length; i++) {
+    intDot += a[i] * b[i];
   }
-  // TODO: Return intDot scaled by scaleA (ignore scaleB for now)
+  // TODO: return intDot multiplied by the combined scales
   return 0;
 }`,
     testCode: `const results = [];
-function check(name, actual, expected) {
-  results.push({ name, actual, expected, passed: Math.abs(actual - expected) < 1e-5 });
+function approxEqual(a, b, tol = 1e-5) {
+  return Math.abs(a - b) <= tol;
 }
-check('scale A only', dequantizedDotProduct([10, 2], [5, 4], 0.1, 1.0), 5.8);
+function check(name, actual, expected) {
+  results.push({ name, actual, expected, passed: approxEqual(actual, expected) });
+}
+check('scale quantized dot', quantizedDotScale([10, -5], [20, 30], 0.1, 0.05), 0.25);
 return results;`,
     hints: [
-      'Return intDot * scaleA.',
+      'Multiply intDot by scaleA.',
+      'Then multiply by scaleB.',
+      'return intDot * scaleA * scaleB;',
     ],
-    solution: `function dequantizedDotProduct(qA, qB, scaleA, scaleB) {
+    solution: `function quantizedDotScale(a, b, scaleA, scaleB) {
   let intDot = 0;
-  for (let i = 0; i < qA.length; i++) {
-    intDot += qA[i] * qB[i];
-  }
-  return intDot * scaleA;
-}`,
-    explanation: 'A tensor scaled down by a factor needs to be scaled up by that exact same factor to restore magnitude.',
-  },
-  {
-    id: 'dequant-dot-scaleb',
-    stepLabel: '13.3',
-    group: 'Dequantized dot product',
-    title: 'Scale by B',
-    concept: 'Both vectors were quantized, so both scale factors must be applied to the dot product.',
-    objective: 'Multiply the integer sum by both scaleA and scaleB.',
-    difficulty: 'core',
-    starterCode: `function dequantizedDotProduct(qA, qB, scaleA, scaleB) {
-  let intDot = 0;
-  for (let i = 0; i < qA.length; i++) {
-    intDot += qA[i] * qB[i];
-  }
-  // TODO: Return intDot scaled by scaleA and scaleB
-  return 0;
-}`,
-    testCode: `const results = [];
-function check(name, actual, expected) {
-  results.push({ name, actual, expected, passed: Math.abs(actual - expected) < 1e-5 });
-}
-check('scale A and B', dequantizedDotProduct([10, 2], [5, 4], 0.1, 0.5), 2.9);
-return results;`,
-    hints: [
-      'Return intDot * scaleA * scaleB.',
-    ],
-    solution: `function dequantizedDotProduct(qA, qB, scaleA, scaleB) {
-  let intDot = 0;
-  for (let i = 0; i < qA.length; i++) {
-    intDot += qA[i] * qB[i];
+  for (let i = 0; i < a.length; i++) {
+    intDot += a[i] * b[i];
   }
   return intDot * scaleA * scaleB;
 }`,
-    explanation: 'Because dot product is linear: sum(A*sA * B*sB) = sum(A*B) * sA * sB. The scales factor out perfectly!',
-  },
-  {
-    id: 'dequant-dot-full',
-    stepLabel: '13.4',
-    group: 'Dequantized dot product',
-    title: 'Full Dequantized Dot Product',
-    concept: 'Fusing the dequantization scales natively into the dot product hardware path eliminates the need for expensive memory lookups.',
-    objective: 'Implement the complete dequantized dot product.',
-    difficulty: 'core',
-    starterCode: `function dequantizedDotProduct(qA, qB, scaleA, scaleB) {
-  let intDot = 0;
-  for (let i = 0; i < qA.length; i++) {
-    intDot += qA[i] * qB[i];
-  }
-  // TODO: Return the fully scaled float result
-  return intDot;
-}`,
-    testCode: `const results = [];
-function check(name, actual, expected) {
-  results.push({ name, actual, expected, passed: Math.abs(actual - expected) < 1e-5 });
-}
-check('full dequant', dequantizedDotProduct([10, -5], [20, 30], 0.1, 0.05), 0.25);
-return results;`,
-    hints: [
-      'Multiply intDot by scaleA and scaleB.',
-    ],
-    solution: `function dequantizedDotProduct(qA, qB, scaleA, scaleB) {
-  let intDot = 0;
-  for (let i = 0; i < qA.length; i++) {
-    intDot += qA[i] * qB[i];
-  }
-  return intDot * scaleA * scaleB;
-}`,
-    explanation: 'This entire operation forms the basis of all modern quantized LLM inference engines like vLLM and llama.cpp.',
+    explanation: 'Fusing scales after matrix operations reduces floating-point overhead.',
   },
   {
     id: 'bert-mlm-masking',
     stepLabel: '14.1',
     group: '80-10-10 masking rule',
     title: 'BERT MLM 80/10/10 Masking Rule',
-    concept: 'BERT randomly masks 15% of selected tokens. Out of these, 80% are replaced with the special [MASK] token (103), 10% are replaced with a random vocabulary token, and 10% remain unchanged.',
-    objective: 'Implement the 80/10/10 token corruption rule for the selected mask indices.',
+    concept: 'BERT corrupts 15% of selected tokens using 80% [MASK], 10% random replacement, and 10% unchanged tokens.',
+    objective: 'Inside bertMlmStep, apply the 80/10/10 rule on maskIndices using randVals and randTokens.',
     difficulty: 'warmup',
     starterCode: `/**
- * Applies the BERT 80/10/10 MLM masking rule to selected token indices.
- * @param {number[]} tokens - Array of input token IDs.
- * @param {number[]} maskIndices - Selected indices to apply masking to.
- * @param {number[]} randVals - Pre-sampled random probabilities in [0, 1) corresponding to each mask index.
- * @param {number[]} randTokens - Pre-sampled random token IDs to use for the 10% random replacement.
- * @returns {number[]} The corrupted tokens array.
+ * Runs one BERT MLM training step: corrupt tokens, build mask, compute loss and predictions.
+ * @param {number[]} tokens - Input token IDs.
+ * @param {number[]} labels - Ground-truth label IDs.
+ * @param {number[]} maskIndices - Positions selected for MLM corruption.
+ * @param {number[]} randVals - Uniform values in [0,1) for 80/10/10 decisions.
+ * @param {number[]} randTokens - Random vocab IDs for the 10% replacement branch.
+ * @param {number[][]} logits - Vocabulary logits [seqLen, vocabSize].
+ * @returns {{ corrupted: number[], attnMask: number[][], loss: number, predictions: number[] }} Step outputs.
  */
-function applyMLMMasking(tokens, maskIndices, randVals, randTokens) {
-  const output = [...tokens];
-  // TODO: Implement the 80% [MASK] (103), 10% random, 10% unchanged rule
-  return output;
+function bertMlmStep(tokens, labels, maskIndices, randVals, randTokens, logits) {
+  const corrupted = [...tokens];
+  // TODO: apply 80% mask token 103, 10% random token, 10% unchanged on maskIndices.
+
+  const seqLen = tokens.length;
+  const attnMask = Array.from({ length: seqLen }, () => Array(seqLen).fill(0));
+  for (let i = 0; i < seqLen; i++) {
+    for (let j = 0; j < seqLen; j++) {
+      if (tokens[i] !== 0 && tokens[j] !== 0) attnMask[i][j] = 1;
+    }
+  }
+
+  const predictions = logits.map((row) => {
+    let maxIdx = 0;
+    for (let j = 1; j < row.length; j++) {
+      if (row[j] > row[maxIdx]) maxIdx = j;
+    }
+    return maxIdx;
+  });
+
+  let loss = 0;
+  if (maskIndices.length > 0) {
+    for (let m = 0; m < maskIndices.length; m++) {
+      const idx = maskIndices[m];
+      const row = logits[idx];
+      const target = labels[idx];
+      const maxLogit = Math.max(...row);
+      const exps = row.map((l) => Math.exp(l - maxLogit));
+      const sumExp = exps.reduce((s, v) => s + v, 0);
+      loss -= Math.log(exps[target] / sumExp);
+    }
+    loss /= maskIndices.length;
+  }
+
+  return { corrupted, attnMask, loss, predictions };
 }`,
     testCode: `const results = [];
 function sameArray(a, b) { return JSON.stringify(a) === JSON.stringify(b); }
@@ -2820,181 +4049,359 @@ function check(name, actual, expected) {
   results.push({ name, actual: JSON.stringify(actual), expected: JSON.stringify(expected), passed: sameArray(actual, expected) });
 }
 const tokens = [10, 20, 30, 40, 50];
-// randVals[0] = 0.5 (< 0.8) -> mask (103)
-// randVals[1] = 0.85 (>= 0.8 && < 0.9) -> random replacement (randTokens[1] = 99)
-// randVals[2] = 0.95 (>= 0.9) -> keep unchanged (30 remains 30)
-check('mlm masking mixed', applyMLMMasking(tokens, [0, 1, 2], [0.5, 0.85, 0.95], [5, 99, 12]), [103, 99, 30, 40, 50]);
-check('all mask', applyMLMMasking(tokens, [3, 4], [0.1, 0.7], [22, 23]), [10, 20, 30, 103, 103]);
-check('all random', applyMLMMasking(tokens, [0, 1], [0.88, 0.81], [404, 505]), [404, 505, 30, 40, 50]);
-check('all unchanged', applyMLMMasking(tokens, [1, 2], [0.99, 0.91], [404, 505]), [10, 20, 30, 40, 50]);
+const logits = tokens.map(() => [0, 0]);
+const out = bertMlmStep(tokens, tokens, [0, 1, 2], [0.5, 0.85, 0.95], [5, 99, 12], logits);
+check('80-10-10 corruption', out.corrupted, [103, 99, 30, 40, 50]);
 return results;`,
     hints: [
-      'Loop over each index in maskIndices.',
-      'Check randVals[i]. If it is < 0.8, replace output[idx] with 103.',
-      'If it is >= 0.8 and < 0.9, replace output[idx] with randTokens[i].',
-      'Otherwise (>= 0.9), leave output[idx] unchanged.',
+      'randVals[i] < 0.8 means replace with token 103.',
+      'Between 0.8 and 0.9 use randTokens[i].',
+      'Otherwise leave corrupted[idx] unchanged.',
     ],
     solution: `/**
- * Applies the BERT 80/10/10 MLM masking rule to selected token indices.
- * @param {number[]} tokens - Array of input token IDs.
- * @param {number[]} maskIndices - Selected indices to apply masking to.
- * @param {number[]} randVals - Pre-sampled random probabilities in [0, 1) corresponding to each mask index.
- * @param {number[]} randTokens - Pre-sampled random token IDs to use for the 10% random replacement.
- * @returns {number[]} The corrupted tokens array.
+ * Runs one BERT MLM training step: corrupt tokens, build mask, compute loss and predictions.
+ * @param {number[]} tokens - Input token IDs.
+ * @param {number[]} labels - Ground-truth label IDs.
+ * @param {number[]} maskIndices - Positions selected for MLM corruption.
+ * @param {number[]} randVals - Uniform values in [0,1) for 80/10/10 decisions.
+ * @param {number[]} randTokens - Random vocab IDs for the 10% replacement branch.
+ * @param {number[][]} logits - Vocabulary logits [seqLen, vocabSize].
+ * @returns {{ corrupted: number[], attnMask: number[][], loss: number, predictions: number[] }} Step outputs.
  */
-function applyMLMMasking(tokens, maskIndices, randVals, randTokens) {
-  const output = [...tokens];
+function bertMlmStep(tokens, labels, maskIndices, randVals, randTokens, logits) {
+  const corrupted = [...tokens];
   for (let i = 0; i < maskIndices.length; i++) {
     const idx = maskIndices[i];
-    const rVal = randVals[i];
-    if (rVal < 0.8) {
-      output[idx] = 103; // [MASK]
-    } else if (rVal < 0.9) {
-      output[idx] = randTokens[i]; // Random replacement
+    const r = randVals[i];
+    if (r < 0.8) {
+      corrupted[idx] = 103;
+    } else if (r < 0.9) {
+      corrupted[idx] = randTokens[i];
     }
-    // Else leave unchanged
   }
-  return output;
+
+  const seqLen = tokens.length;
+  const attnMask = Array.from({ length: seqLen }, () => Array(seqLen).fill(0));
+  for (let i = 0; i < seqLen; i++) {
+    for (let j = 0; j < seqLen; j++) {
+      if (tokens[i] !== 0 && tokens[j] !== 0) attnMask[i][j] = 1;
+    }
+  }
+
+  const predictions = logits.map((row) => {
+    let maxIdx = 0;
+    for (let j = 1; j < row.length; j++) {
+      if (row[j] > row[maxIdx]) maxIdx = j;
+    }
+    return maxIdx;
+  });
+
+  let loss = 0;
+  if (maskIndices.length > 0) {
+    for (let m = 0; m < maskIndices.length; m++) {
+      const idx = maskIndices[m];
+      const row = logits[idx];
+      const target = labels[idx];
+      const maxLogit = Math.max(...row);
+      const exps = row.map((l) => Math.exp(l - maxLogit));
+      const sumExp = exps.reduce((s, v) => s + v, 0);
+      loss -= Math.log(exps[target] / sumExp);
+    }
+    loss /= maskIndices.length;
+  }
+
+  return { corrupted, attnMask, loss, predictions };
 }`,
-    explanation: 'The 80/10/10 rule ensures the model maintains a representation for the actual input tokens while learning context for masked ones, preventing mismatch between training and inference.',
+    explanation: '80/10/10 corruption teaches BERT to recover tokens from masks while still seeing the original token sometimes at train time.',
   },
   {
     id: 'bert-bidirectional-mask',
     stepLabel: '14.2',
     group: 'Bidirectional attention mask',
     title: 'BERT Bidirectional Attention Mask',
-    concept: 'BERT leverages bidirectional context by allowing all tokens to attend to each other. However, special padding tokens (ID 0) must be masked out to prevent them from influencing the representation.',
-    objective: 'Construct a 2D attention mask matrix where mask[i][j] = 1 if neither token i nor token j is a padding token (0), otherwise 0.',
+    concept: 'BERT attends bidirectionally, but padding tokens (ID 0) must be blocked from both attending and being attended to.',
+    objective: 'Inside bertMlmStep, set attnMask[i][j] = 1 only when neither token i nor j is padding.',
     difficulty: 'core',
     starterCode: `/**
- * Constructs a bidirectional attention mask where padding tokens (ID 0) cannot be attended to.
- * @param {number[]} tokens - Array of input token IDs.
- * @returns {number[][]} A 2D attention mask matrix of size [seqLen, seqLen].
+ * Runs one BERT MLM training step: corrupt tokens, build mask, compute loss and predictions.
+ * @param {number[]} tokens - Input token IDs.
+ * @param {number[]} labels - Ground-truth label IDs.
+ * @param {number[]} maskIndices - Positions selected for MLM corruption.
+ * @param {number[]} randVals - Uniform values in [0,1) for 80/10/10 decisions.
+ * @param {number[]} randTokens - Random vocab IDs for the 10% replacement branch.
+ * @param {number[][]} logits - Vocabulary logits [seqLen, vocabSize].
+ * @returns {{ corrupted: number[], attnMask: number[][], loss: number, predictions: number[] }} Step outputs.
  */
-function getBidirectionalMask(tokens) {
-  const n = tokens.length;
-  const mask = Array.from({ length: n }, () => Array(n).fill(0));
-  // TODO: Fill mask[i][j] = 1 if neither tokens[i] nor tokens[j] is 0
-  return mask;
+function bertMlmStep(tokens, labels, maskIndices, randVals, randTokens, logits) {
+  const corrupted = [...tokens];
+  for (let i = 0; i < maskIndices.length; i++) {
+    const idx = maskIndices[i];
+    const r = randVals[i];
+    if (r < 0.8) corrupted[idx] = 103;
+    else if (r < 0.9) corrupted[idx] = randTokens[i];
+  }
+
+  const seqLen = tokens.length;
+  const attnMask = Array.from({ length: seqLen }, () => Array(seqLen).fill(0));
+  // TODO: fill attnMask[i][j] = 1 when tokens[i] !== 0 && tokens[j] !== 0.
+
+  const predictions = logits.map((row) => {
+    let maxIdx = 0;
+    for (let j = 1; j < row.length; j++) {
+      if (row[j] > row[maxIdx]) maxIdx = j;
+    }
+    return maxIdx;
+  });
+
+  let loss = 0;
+  if (maskIndices.length > 0) {
+    for (let m = 0; m < maskIndices.length; m++) {
+      const idx = maskIndices[m];
+      const row = logits[idx];
+      const target = labels[idx];
+      const maxLogit = Math.max(...row);
+      const exps = row.map((l) => Math.exp(l - maxLogit));
+      const sumExp = exps.reduce((s, v) => s + v, 0);
+      loss -= Math.log(exps[target] / sumExp);
+    }
+    loss /= maskIndices.length;
+  }
+
+  return { corrupted, attnMask, loss, predictions };
 }`,
     testCode: `const results = [];
 function sameArray(a, b) { return JSON.stringify(a) === JSON.stringify(b); }
 function check(name, actual, expected) {
   results.push({ name, actual: JSON.stringify(actual), expected: JSON.stringify(expected), passed: sameArray(actual, expected) });
 }
-check('mask no padding', getBidirectionalMask([10, 20]), [[1, 1], [1, 1]]);
-check('mask with padding', getBidirectionalMask([10, 20, 0]), [[1, 1, 0], [1, 1, 0], [0, 0, 0]]);
-check('all padding fallback', getBidirectionalMask([0, 0]), [[0, 0], [0, 0]]);
+const logits = [[0, 0], [0, 0], [0, 0]];
+const out = bertMlmStep([10, 20, 0], [0, 1, 0], [], [], [], logits);
+check('padding blocked', out.attnMask, [[1, 1, 0], [1, 1, 0], [0, 0, 0]]);
 return results;`,
     hints: [
-      'Iterate i from 0 to n-1 and j from 0 to n-1.',
-      'Set mask[i][j] = (tokens[i] !== 0 && tokens[j] !== 0) ? 1 : 0;',
+      'Loop over every pair (i, j).',
+      'Set mask entry to 1 only when both tokens are non-zero.',
     ],
     solution: `/**
- * Constructs a bidirectional attention mask where padding tokens (ID 0) cannot be attended to.
- * @param {number[]} tokens - Array of input token IDs.
- * @returns {number[][]} A 2D attention mask matrix of size [seqLen, seqLen].
+ * Runs one BERT MLM training step: corrupt tokens, build mask, compute loss and predictions.
+ * @param {number[]} tokens - Input token IDs.
+ * @param {number[]} labels - Ground-truth label IDs.
+ * @param {number[]} maskIndices - Positions selected for MLM corruption.
+ * @param {number[]} randVals - Uniform values in [0,1) for 80/10/10 decisions.
+ * @param {number[]} randTokens - Random vocab IDs for the 10% replacement branch.
+ * @param {number[][]} logits - Vocabulary logits [seqLen, vocabSize].
+ * @returns {{ corrupted: number[], attnMask: number[][], loss: number, predictions: number[] }} Step outputs.
  */
-function getBidirectionalMask(tokens) {
-  const n = tokens.length;
-  const mask = Array.from({ length: n }, () => Array(n).fill(0));
-  for (let i = 0; i < n; i++) {
-    for (let j = 0; j < n; j++) {
-      if (tokens[i] !== 0 && tokens[j] !== 0) {
-        mask[i][j] = 1;
-      }
+function bertMlmStep(tokens, labels, maskIndices, randVals, randTokens, logits) {
+  const corrupted = [...tokens];
+  for (let i = 0; i < maskIndices.length; i++) {
+    const idx = maskIndices[i];
+    const r = randVals[i];
+    if (r < 0.8) corrupted[idx] = 103;
+    else if (r < 0.9) corrupted[idx] = randTokens[i];
+  }
+
+  const seqLen = tokens.length;
+  const attnMask = Array.from({ length: seqLen }, () => Array(seqLen).fill(0));
+  for (let i = 0; i < seqLen; i++) {
+    for (let j = 0; j < seqLen; j++) {
+      if (tokens[i] !== 0 && tokens[j] !== 0) attnMask[i][j] = 1;
     }
   }
-  return mask;
+
+  const predictions = logits.map((row) => {
+    let maxIdx = 0;
+    for (let j = 1; j < row.length; j++) {
+      if (row[j] > row[maxIdx]) maxIdx = j;
+    }
+    return maxIdx;
+  });
+
+  let loss = 0;
+  if (maskIndices.length > 0) {
+    for (let m = 0; m < maskIndices.length; m++) {
+      const idx = maskIndices[m];
+      const row = logits[idx];
+      const target = labels[idx];
+      const maxLogit = Math.max(...row);
+      const exps = row.map((l) => Math.exp(l - maxLogit));
+      const sumExp = exps.reduce((s, v) => s + v, 0);
+      loss -= Math.log(exps[target] / sumExp);
+    }
+    loss /= maskIndices.length;
+  }
+
+  return { corrupted, attnMask, loss, predictions };
 }`,
-    explanation: 'Excluding padding tokens from the attention mask prevents the model from wasting computational capacity on inactive sequence filler.',
+    explanation: 'Padding masks stop inactive positions from polluting bidirectional context.',
   },
   {
     id: 'bert-mlm-loss',
     stepLabel: '14.3',
     group: 'MLM cross-entropy loss',
     title: 'BERT MLM Cross-Entropy Loss',
-    concept: 'The Masked Language Modeling loss is calculated by taking the average cross-entropy loss only over the masked/corrupted token positions, ignoring all uncorrupted labels.',
-    objective: 'Compute the average cross-entropy loss over the masked indices.',
+    concept: 'MLM loss averages cross-entropy only at masked positions, ignoring uncorrupted tokens.',
+    objective: 'Inside bertMlmStep, compute average cross-entropy loss over maskIndices.',
     difficulty: 'core',
     starterCode: `/**
- * Computes BERT Masked Language Modeling loss over masked token indices.
- * @param {number[][]} logits - Prediction logits of size [seqLen, vocabSize].
- * @param {number[]} labels - Ground truth labels of size [seqLen].
- * @param {number[]} maskIndices - Indices of the masked/corrupted tokens.
- * @returns {number} The average loss over the masked tokens.
+ * Runs one BERT MLM training step: corrupt tokens, build mask, compute loss and predictions.
+ * @param {number[]} tokens - Input token IDs.
+ * @param {number[]} labels - Ground-truth label IDs.
+ * @param {number[]} maskIndices - Positions selected for MLM corruption.
+ * @param {number[]} randVals - Uniform values in [0,1) for 80/10/10 decisions.
+ * @param {number[]} randTokens - Random vocab IDs for the 10% replacement branch.
+ * @param {number[][]} logits - Vocabulary logits [seqLen, vocabSize].
+ * @returns {{ corrupted: number[], attnMask: number[][], loss: number, predictions: number[] }} Step outputs.
  */
-function computeMLMLoss(logits, labels, maskIndices) {
-  // TODO: Compute cross-entropy loss only at maskIndices.
-  return 0;
+function bertMlmStep(tokens, labels, maskIndices, randVals, randTokens, logits) {
+  const corrupted = [...tokens];
+  for (let i = 0; i < maskIndices.length; i++) {
+    const idx = maskIndices[i];
+    const r = randVals[i];
+    if (r < 0.8) corrupted[idx] = 103;
+    else if (r < 0.9) corrupted[idx] = randTokens[i];
+  }
+
+  const seqLen = tokens.length;
+  const attnMask = Array.from({ length: seqLen }, () => Array(seqLen).fill(0));
+  for (let i = 0; i < seqLen; i++) {
+    for (let j = 0; j < seqLen; j++) {
+      if (tokens[i] !== 0 && tokens[j] !== 0) attnMask[i][j] = 1;
+    }
+  }
+
+  const predictions = logits.map((row) => {
+    let maxIdx = 0;
+    for (let j = 1; j < row.length; j++) {
+      if (row[j] > row[maxIdx]) maxIdx = j;
+    }
+    return maxIdx;
+  });
+
+  let loss = 0;
+  // TODO: average cross-entropy loss over maskIndices using stable softmax on logits[idx].
+
+  return { corrupted, attnMask, loss, predictions };
 }`,
     testCode: `const results = [];
 function approxEqual(a, b, tol = 1e-4) { return Math.abs(a - b) <= tol; }
 function check(name, actual, expected) {
   results.push({ name, actual, expected, passed: approxEqual(actual, expected) });
 }
-const logits = [
-  [2.0, 0.0],
-  [0.0, 2.0],
-  [1.0, 1.0]
-];
-const labels = [0, 1, 0];
-// Softmax for pos 0: exp(2)/sum = 7.389 / 8.389 = 0.880797 -> -log(0.880797) = 0.126928
-// Softmax for pos 2: exp(1)/sum = 2.718 / 5.436 = 0.5 -> -log(0.5) = 0.693147
-// Avg loss over [0, 2] = (0.126928 + 0.693147) / 2 = 0.410037
-check('mlm loss calculations', computeMLMLoss(logits, labels, [0, 2]), 0.410037);
+const logits = [[2, 0], [0, 2], [1, 1]];
+const out = bertMlmStep([1, 2, 3], [0, 1, 0], [0, 2], [0.1, 0.1], [9, 9], logits);
+check('mlm loss average', out.loss, 0.410037);
 return results;`,
     hints: [
-      'Initialize totalLoss = 0.',
-      'Loop over each index in maskIndices.',
-      'For index idx, compute softmax over logits[idx]: exponentiate each value, divide by their sum.',
-      'Add -Math.log(softmax[targetLabel]) to totalLoss, then divide by maskIndices.length.',
+      'For each masked index, softmax the logit row stably.',
+      'Accumulate -log(prob[target]) and divide by maskIndices.length.',
     ],
     solution: `/**
- * Computes BERT Masked Language Modeling loss over masked token indices.
- * @param {number[][]} logits - Prediction logits of size [seqLen, vocabSize].
- * @param {number[]} labels - Ground truth labels of size [seqLen].
- * @param {number[]} maskIndices - Indices of the masked/corrupted tokens.
- * @returns {number} The average loss over the masked tokens.
+ * Runs one BERT MLM training step: corrupt tokens, build mask, compute loss and predictions.
+ * @param {number[]} tokens - Input token IDs.
+ * @param {number[]} labels - Ground-truth label IDs.
+ * @param {number[]} maskIndices - Positions selected for MLM corruption.
+ * @param {number[]} randVals - Uniform values in [0,1) for 80/10/10 decisions.
+ * @param {number[]} randTokens - Random vocab IDs for the 10% replacement branch.
+ * @param {number[][]} logits - Vocabulary logits [seqLen, vocabSize].
+ * @returns {{ corrupted: number[], attnMask: number[][], loss: number, predictions: number[] }} Step outputs.
  */
-function computeMLMLoss(logits, labels, maskIndices) {
-  if (maskIndices.length === 0) return 0;
-  let totalLoss = 0;
+function bertMlmStep(tokens, labels, maskIndices, randVals, randTokens, logits) {
+  const corrupted = [...tokens];
   for (let i = 0; i < maskIndices.length; i++) {
     const idx = maskIndices[i];
-    const logitRow = logits[idx];
-    const targetLabel = labels[idx];
-    
-    const maxLogit = Math.max(...logitRow);
-    const exps = logitRow.map(l => Math.exp(l - maxLogit));
-    const sumExp = exps.reduce((sum, v) => sum + v, 0);
-    const prob = exps[targetLabel] / sumExp;
-    
-    totalLoss -= Math.log(prob);
+    const r = randVals[i];
+    if (r < 0.8) corrupted[idx] = 103;
+    else if (r < 0.9) corrupted[idx] = randTokens[i];
   }
-  return totalLoss / maskIndices.length;
+
+  const seqLen = tokens.length;
+  const attnMask = Array.from({ length: seqLen }, () => Array(seqLen).fill(0));
+  for (let i = 0; i < seqLen; i++) {
+    for (let j = 0; j < seqLen; j++) {
+      if (tokens[i] !== 0 && tokens[j] !== 0) attnMask[i][j] = 1;
+    }
+  }
+
+  const predictions = logits.map((row) => {
+    let maxIdx = 0;
+    for (let j = 1; j < row.length; j++) {
+      if (row[j] > row[maxIdx]) maxIdx = j;
+    }
+    return maxIdx;
+  });
+
+  let loss = 0;
+  if (maskIndices.length > 0) {
+    for (let m = 0; m < maskIndices.length; m++) {
+      const idx = maskIndices[m];
+      const row = logits[idx];
+      const target = labels[idx];
+      const maxLogit = Math.max(...row);
+      const exps = row.map((l) => Math.exp(l - maxLogit));
+      const sumExp = exps.reduce((s, v) => s + v, 0);
+      loss -= Math.log(exps[target] / sumExp);
+    }
+    loss /= maskIndices.length;
+  }
+
+  return { corrupted, attnMask, loss, predictions };
 }`,
-    explanation: 'Restricting the loss function solely to masked positions guides the network parameters to optimize bidirectional context decoding.',
+    explanation: 'Restricting loss to masked positions is what makes BERT learn to reconstruct context rather than copy visible tokens.',
   },
   {
     id: 'bert-mlm-forward',
     stepLabel: '14.4',
     group: 'BERT MLM step',
     title: 'Complete BERT MLM Forward Step',
-    concept: 'A full BERT MLM training step integrates bidirectional attention masking, predicting tokens via logits, and calculating losses over masked indexes.',
-    objective: 'Implement the full training forward pass logic: compile the predictions and average loss.',
+    concept: 'A complete BERT MLM step returns corrupted inputs, bidirectional mask, masked loss, and argmax predictions from logits.',
+    objective: 'Inside bertMlmStep, compute argmax predictions for every sequence position.',
     difficulty: 'challenge',
     starterCode: `/**
- * Computes a single forward training step for BERT MLM.
+ * Runs one BERT MLM training step: corrupt tokens, build mask, compute loss and predictions.
  * @param {number[]} tokens - Input token IDs.
- * @param {number[]} labels - Ground-truth label token IDs.
- * @param {number[]} maskIndices - Selected masked token indices.
- * @param {number[][]} logits - Pre-calculated vocab logits of size [seqLen, vocabSize].
- * @returns {{ loss: number, predictions: number[] }} Average loss and predicted token IDs.
+ * @param {number[]} labels - Ground-truth label IDs.
+ * @param {number[]} maskIndices - Positions selected for MLM corruption.
+ * @param {number[]} randVals - Uniform values in [0,1) for 80/10/10 decisions.
+ * @param {number[]} randTokens - Random vocab IDs for the 10% replacement branch.
+ * @param {number[][]} logits - Vocabulary logits [seqLen, vocabSize].
+ * @returns {{ corrupted: number[], attnMask: number[][], loss: number, predictions: number[] }} Step outputs.
  */
-function bertMLMStep(tokens, labels, maskIndices, logits) {
-  // TODO: Build bidirectional mask, compute MLM loss, and return loss and argmax prediction list.
-  return { loss: 0, predictions: [] };
+function bertMlmStep(tokens, labels, maskIndices, randVals, randTokens, logits) {
+  const corrupted = [...tokens];
+  for (let i = 0; i < maskIndices.length; i++) {
+    const idx = maskIndices[i];
+    const r = randVals[i];
+    if (r < 0.8) corrupted[idx] = 103;
+    else if (r < 0.9) corrupted[idx] = randTokens[i];
+  }
+
+  const seqLen = tokens.length;
+  const attnMask = Array.from({ length: seqLen }, () => Array(seqLen).fill(0));
+  for (let i = 0; i < seqLen; i++) {
+    for (let j = 0; j < seqLen; j++) {
+      if (tokens[i] !== 0 && tokens[j] !== 0) attnMask[i][j] = 1;
+    }
+  }
+
+  const predictions = [];
+  // TODO: for each logits row, push the argmax vocab index.
+
+  let loss = 0;
+  if (maskIndices.length > 0) {
+    for (let m = 0; m < maskIndices.length; m++) {
+      const idx = maskIndices[m];
+      const row = logits[idx];
+      const target = labels[idx];
+      const maxLogit = Math.max(...row);
+      const exps = row.map((l) => Math.exp(l - maxLogit));
+      const sumExp = exps.reduce((s, v) => s + v, 0);
+      loss -= Math.log(exps[target] / sumExp);
+    }
+    loss /= maskIndices.length;
+  }
+
+  return { corrupted, attnMask, loss, predictions };
 }`,
     testCode: `const results = [];
 function approxEqual(a, b, tol = 1e-4) { return Math.abs(a - b) <= tol; }
@@ -3002,257 +4409,501 @@ function sameArray(a, b) { return JSON.stringify(a) === JSON.stringify(b); }
 function check(name, actual, expected) {
   results.push({ name, actual: JSON.stringify(actual), expected: JSON.stringify(expected), passed: sameArray(actual.predictions, expected.predictions) && approxEqual(actual.loss, expected.loss) });
 }
-const tokens = [10, 20, 0];
-const labels = [0, 1, 0];
-const logits = [
-  [2.0, 0.0],
-  [0.0, 2.0],
-  [1.0, 1.0]
-];
-check('full bert mlm step', bertMLMStep(tokens, labels, [0, 1], logits), { loss: 0.126928, predictions: [0, 1, 0] });
+const logits = [[2, 0], [0, 2], [1, 1]];
+const out = bertMlmStep([10, 20, 0], [0, 1, 0], [0, 1], [0.1, 0.1], [9, 9], logits);
+check('full bert step', out, { predictions: [0, 1, 0], loss: 0.126928 });
 return results;`,
     hints: [
-      'Call getBidirectionalMask(tokens) to check active tokens (this exercise validates mask structure internally).',
-      'Compute predictions: for each logit row, find the index of the maximum logit (argmax).',
-      'Calculate MLM loss over maskIndices using the computeMLMLoss logic.',
-      'Return { loss, predictions }.',
+      'Scan each logit row for the maximum value index.',
+      'Push that argmax index into predictions.',
     ],
     solution: `/**
- * Computes a single forward training step for BERT MLM.
+ * Runs one BERT MLM training step: corrupt tokens, build mask, compute loss and predictions.
  * @param {number[]} tokens - Input token IDs.
- * @param {number[]} labels - Ground-truth label token IDs.
- * @param {number[]} maskIndices - Selected masked token indices.
- * @param {number[][]} logits - Pre-calculated vocab logits of size [seqLen, vocabSize].
- * @returns {{ loss: number, predictions: number[] }} Average loss and predicted token IDs.
+ * @param {number[]} labels - Ground-truth label IDs.
+ * @param {number[]} maskIndices - Positions selected for MLM corruption.
+ * @param {number[]} randVals - Uniform values in [0,1) for 80/10/10 decisions.
+ * @param {number[]} randTokens - Random vocab IDs for the 10% replacement branch.
+ * @param {number[][]} logits - Vocabulary logits [seqLen, vocabSize].
+ * @returns {{ corrupted: number[], attnMask: number[][], loss: number, predictions: number[] }} Step outputs.
  */
-function bertMLMStep(tokens, labels, maskIndices, logits) {
-  // Bidirectional mask construction verification
+function bertMlmStep(tokens, labels, maskIndices, randVals, randTokens, logits) {
+  const corrupted = [...tokens];
+  for (let i = 0; i < maskIndices.length; i++) {
+    const idx = maskIndices[i];
+    const r = randVals[i];
+    if (r < 0.8) corrupted[idx] = 103;
+    else if (r < 0.9) corrupted[idx] = randTokens[i];
+  }
+
   const seqLen = tokens.length;
-  const mask = Array.from({ length: seqLen }, () => Array(seqLen).fill(0));
+  const attnMask = Array.from({ length: seqLen }, () => Array(seqLen).fill(0));
   for (let i = 0; i < seqLen; i++) {
     for (let j = 0; j < seqLen; j++) {
-      if (tokens[i] !== 0 && tokens[j] !== 0) mask[i][j] = 1;
+      if (tokens[i] !== 0 && tokens[j] !== 0) attnMask[i][j] = 1;
     }
   }
-  
-  // Argmax predictions
-  const predictions = [];
-  for (let i = 0; i < seqLen; i++) {
-    const logitRow = logits[i];
+
+  const predictions = logits.map((row) => {
     let maxIdx = 0;
-    for (let j = 1; j < logitRow.length; j++) {
-      if (logitRow[j] > logitRow[maxIdx]) maxIdx = j;
+    for (let j = 1; j < row.length; j++) {
+      if (row[j] > row[maxIdx]) maxIdx = j;
     }
-    predictions.push(maxIdx);
+    return maxIdx;
+  });
+
+  let loss = 0;
+  if (maskIndices.length > 0) {
+    for (let m = 0; m < maskIndices.length; m++) {
+      const idx = maskIndices[m];
+      const row = logits[idx];
+      const target = labels[idx];
+      const maxLogit = Math.max(...row);
+      const exps = row.map((l) => Math.exp(l - maxLogit));
+      const sumExp = exps.reduce((s, v) => s + v, 0);
+      loss -= Math.log(exps[target] / sumExp);
+    }
+    loss /= maskIndices.length;
   }
-  
-  // Loss
-  let totalLoss = 0;
-  const count = maskIndices.length;
-  for (let i = 0; i < count; i++) {
-    const idx = maskIndices[i];
-    const logitRow = logits[idx];
-    const targetLabel = labels[idx];
-    
-    const maxLogit = Math.max(...logitRow);
-    const exps = logitRow.map(l => Math.exp(l - maxLogit));
-    const sumExp = exps.reduce((sum, v) => sum + v, 0);
-    const prob = exps[targetLabel] / sumExp;
-    
-    totalLoss -= Math.log(prob);
-  }
-  const loss = count > 0 ? totalLoss / count : 0;
-  
-  return { loss, predictions };
+
+  return { corrupted, attnMask, loss, predictions };
 }`,
-    explanation: 'Integrating attention masks, label recovery loss, and vocab projections forms the complete execution flow of BERT training.',
+    explanation: 'Returning corruption, mask, loss, and predictions together mirrors one BERT MLM training forward pass.',
   },
+  // --- moe ---
   {
-    id: 'moe-router-map',
-    stepLabel: '15.1',
-    group: 'MoE routing',
-    title: 'Object Mapping',
-    concept: 'Mixture of Experts routes tokens to the top-k experts. The first step is attaching the original index to each logit so we do not lose it when sorting.',
-    objective: 'Map the array of logits into an array of objects: { val: logit, idx: original_index }.',
+    id: 'moe-softmax-gate',
+    stepLabel: 'MoE.1',
+    group: 'Softmax gate',
+    title: 'Router Softmax Gate',
+    concept: 'MoE routers convert raw expert logits into routing probabilities with a numerically stable softmax.',
+    objective: 'Inside moeRouterStep, fill gateProbs with softmax(logits).',
     difficulty: 'warmup',
-    starterCode: `function moeRouter(logits, k) {
-  // TODO: Map logits to an array of objects with 'val' and 'idx'
-  const indexed = [];
-  for (let i = 0; i < logits.length; i++) {
-    indexed.push({ val: 0, idx: 0 });
+    starterCode: `/**
+ * Runs one MoE router step: softmax gate, top-k routing, load tally, weighted expert combine.
+ * @param {number[]} logits - Raw router logits per expert.
+ * @param {number} k - Number of experts to activate per token.
+ * @param {number[][]} expertOutputs - Expert output vectors indexed by expert id.
+ * @param {number[]} batchAssignments - Flat list of expert ids chosen across the batch (for load counts).
+ * @returns {{ gateProbs: number[], topExperts: number[], topWeights: number[], loadCounts: number[], combined: number[] }}
+ */
+function moeRouterStep(logits, k, expertOutputs, batchAssignments) {
+  const maxLogit = Math.max(...logits);
+  const exps = logits.map((l) => Math.exp(l - maxLogit));
+  const sumExp = exps.reduce((s, v) => s + v, 0);
+  const gateProbs = [];
+  // TODO: push exps[i] / sumExp into gateProbs for each expert.
+
+  const ranked = gateProbs.map((p, idx) => ({ idx, p }));
+  ranked.sort((a, b) => b.p - a.p || a.idx - b.idx);
+  const topExperts = ranked.slice(0, k).map((entry) => entry.idx);
+
+  let weightSum = 0;
+  const topWeights = topExperts.map((idx) => gateProbs[idx]);
+  for (const w of topWeights) weightSum += w;
+  for (let i = 0; i < topWeights.length; i++) topWeights[i] /= weightSum;
+
+  const loadCounts = Array(logits.length).fill(0);
+  for (const expertIdx of batchAssignments) loadCounts[expertIdx] += 1;
+
+  const dim = expertOutputs[0].length;
+  const combined = Array(dim).fill(0);
+  for (let i = 0; i < topExperts.length; i++) {
+    const expertIdx = topExperts[i];
+    const weight = topWeights[i];
+    for (let d = 0; d < dim; d++) combined[d] += weight * expertOutputs[expertIdx][d];
   }
 
-  indexed.sort((a, b) => b.val - a.val);
-  const topK = [];
-  for (let i = 0; i < k; i++) {
-    topK.push(indexed[i].idx);
+  return { gateProbs, topExperts, topWeights, loadCounts, combined };
+}`,
+    testCode: `const results = [];
+function approxEqual(a, b, tol = 1e-5) { return Math.abs(a - b) <= tol; }
+function sameArray(a, b) { return a.length === b.length && a.every((v, i) => approxEqual(v, b[i])); }
+function check(name, actual, expected) {
+  results.push({ name, actual: JSON.stringify(actual), expected: JSON.stringify(expected), passed: sameArray(actual, expected) });
+}
+const experts = [[1], [0], [0]];
+check('softmax gate', moeRouterStep([0, 1, 0], 1, experts, []).gateProbs, [0.211942594, 0.576117915, 0.211942594]);
+check('probabilities sum to one', moeRouterStep([2, 1, 3], 2, experts, []).gateProbs.reduce((s, v) => s + v, 0), 1);
+return results;`,
+    hints: [
+      'Subtract maxLogit before exp for stability (already done in exps).',
+      'Divide each exponential by sumExp.',
+      'gateProbs.push(exps[i] / sumExp);',
+    ],
+    solution: `/**
+ * Runs one MoE router step: softmax gate, top-k routing, load tally, weighted expert combine.
+ * @param {number[]} logits - Raw router logits per expert.
+ * @param {number} k - Number of experts to activate per token.
+ * @param {number[][]} expertOutputs - Expert output vectors indexed by expert id.
+ * @param {number[]} batchAssignments - Flat list of expert ids chosen across the batch (for load counts).
+ * @returns {{ gateProbs: number[], topExperts: number[], topWeights: number[], loadCounts: number[], combined: number[] }}
+ */
+function moeRouterStep(logits, k, expertOutputs, batchAssignments) {
+  const maxLogit = Math.max(...logits);
+  const exps = logits.map((l) => Math.exp(l - maxLogit));
+  const sumExp = exps.reduce((s, v) => s + v, 0);
+  const gateProbs = [];
+  for (let i = 0; i < logits.length; i++) gateProbs.push(exps[i] / sumExp);
+
+  const ranked = gateProbs.map((p, idx) => ({ idx, p }));
+  ranked.sort((a, b) => b.p - a.p || a.idx - b.idx);
+  const topExperts = ranked.slice(0, k).map((entry) => entry.idx);
+
+  let weightSum = 0;
+  const topWeights = topExperts.map((idx) => gateProbs[idx]);
+  for (const w of topWeights) weightSum += w;
+  for (let i = 0; i < topWeights.length; i++) topWeights[i] /= weightSum;
+
+  const loadCounts = Array(logits.length).fill(0);
+  for (const expertIdx of batchAssignments) loadCounts[expertIdx] += 1;
+
+  const dim = expertOutputs[0].length;
+  const combined = Array(dim).fill(0);
+  for (let i = 0; i < topExperts.length; i++) {
+    const expertIdx = topExperts[i];
+    const weight = topWeights[i];
+    for (let d = 0; d < dim; d++) combined[d] += weight * expertOutputs[expertIdx][d];
   }
-  return topK;
+
+  return { gateProbs, topExperts, topWeights, loadCounts, combined };
+}`,
+    explanation: 'Softmax gate probabilities determine which experts compete for each token.',
+  },
+  {
+    id: 'moe-topk-pick',
+    stepLabel: 'MoE.2',
+    group: 'Top-k pick',
+    title: 'Top-k Expert Selection',
+    concept: 'MoE layers route each token to the k experts with the highest gate probabilities.',
+    objective: 'Inside moeRouterStep, fill topExperts with the k highest gateProbs indices (tie-break lower index).',
+    difficulty: 'core',
+    starterCode: `/**
+ * Runs one MoE router step: softmax gate, top-k routing, load tally, weighted expert combine.
+ * @param {number[]} logits - Raw router logits per expert.
+ * @param {number} k - Number of experts to activate per token.
+ * @param {number[][]} expertOutputs - Expert output vectors indexed by expert id.
+ * @param {number[]} batchAssignments - Flat list of expert ids chosen across the batch (for load counts).
+ * @returns {{ gateProbs: number[], topExperts: number[], topWeights: number[], loadCounts: number[], combined: number[] }}
+ */
+function moeRouterStep(logits, k, expertOutputs, batchAssignments) {
+  const maxLogit = Math.max(...logits);
+  const exps = logits.map((l) => Math.exp(l - maxLogit));
+  const sumExp = exps.reduce((s, v) => s + v, 0);
+  const gateProbs = [];
+  for (let i = 0; i < logits.length; i++) gateProbs.push(exps[i] / sumExp);
+
+  const topExperts = [];
+  // TODO: select k expert indices with highest gateProbs; break ties by lower index.
+
+  let weightSum = 0;
+  const topWeights = topExperts.map((idx) => gateProbs[idx]);
+  for (const w of topWeights) weightSum += w;
+  for (let i = 0; i < topWeights.length; i++) topWeights[i] /= weightSum;
+
+  const loadCounts = Array(logits.length).fill(0);
+  for (const expertIdx of batchAssignments) loadCounts[expertIdx] += 1;
+
+  const dim = expertOutputs[0].length;
+  const combined = Array(dim).fill(0);
+  for (let i = 0; i < topExperts.length; i++) {
+    const expertIdx = topExperts[i];
+    const weight = topWeights[i];
+    for (let d = 0; d < dim; d++) combined[d] += weight * expertOutputs[expertIdx][d];
+  }
+
+  return { gateProbs, topExperts, topWeights, loadCounts, combined };
 }`,
     testCode: `const results = [];
 function sameArray(a, b) { return JSON.stringify(a) === JSON.stringify(b); }
 function check(name, actual, expected) {
   results.push({ name, actual: JSON.stringify(actual), expected: JSON.stringify(expected), passed: sameArray(actual, expected) });
 }
-check('map objects', moeRouter([0.2, 0.8, 0.1, 0.9], 2), [3, 1]);
+const experts = [[0], [0], [0], [0]];
+check('top-2 experts', moeRouterStep([0.2, 0.8, 0.1, 0.9], 2, experts, []).topExperts, [3, 1]);
+check('top-1 expert', moeRouterStep([1, 3, 2], 1, [[1], [2], [3]], []).topExperts, [1]);
 return results;`,
     hints: [
-      'Use indexed.push({ val: logits[i], idx: i }).',
+      'Pair each probability with its expert index, then sort descending.',
+      'When probabilities tie, prefer the smaller expert index.',
+      'Take the first k indices from the sorted list.',
     ],
-    solution: `function moeRouter(logits, k) {
-  const indexed = [];
-  for (let i = 0; i < logits.length; i++) {
-    indexed.push({ val: logits[i], idx: i });
+    solution: `/**
+ * Runs one MoE router step: softmax gate, top-k routing, load tally, weighted expert combine.
+ * @param {number[]} logits - Raw router logits per expert.
+ * @param {number} k - Number of experts to activate per token.
+ * @param {number[][]} expertOutputs - Expert output vectors indexed by expert id.
+ * @param {number[]} batchAssignments - Flat list of expert ids chosen across the batch (for load counts).
+ * @returns {{ gateProbs: number[], topExperts: number[], topWeights: number[], loadCounts: number[], combined: number[] }}
+ */
+function moeRouterStep(logits, k, expertOutputs, batchAssignments) {
+  const maxLogit = Math.max(...logits);
+  const exps = logits.map((l) => Math.exp(l - maxLogit));
+  const sumExp = exps.reduce((s, v) => s + v, 0);
+  const gateProbs = [];
+  for (let i = 0; i < logits.length; i++) gateProbs.push(exps[i] / sumExp);
+
+  const ranked = gateProbs.map((p, idx) => ({ idx, p }));
+  ranked.sort((a, b) => b.p - a.p || a.idx - b.idx);
+  const topExperts = ranked.slice(0, k).map((entry) => entry.idx);
+
+  let weightSum = 0;
+  const topWeights = topExperts.map((idx) => gateProbs[idx]);
+  for (const w of topWeights) weightSum += w;
+  for (let i = 0; i < topWeights.length; i++) topWeights[i] /= weightSum;
+
+  const loadCounts = Array(logits.length).fill(0);
+  for (const expertIdx of batchAssignments) loadCounts[expertIdx] += 1;
+
+  const dim = expertOutputs[0].length;
+  const combined = Array(dim).fill(0);
+  for (let i = 0; i < topExperts.length; i++) {
+    const expertIdx = topExperts[i];
+    const weight = topWeights[i];
+    for (let d = 0; d < dim; d++) combined[d] += weight * expertOutputs[expertIdx][d];
   }
 
-  indexed.sort((a, b) => b.val - a.val);
-  const topK = [];
-  for (let i = 0; i < k; i++) {
-    topK.push(indexed[i].idx);
-  }
-  return topK;
+  return { gateProbs, topExperts, topWeights, loadCounts, combined };
 }`,
-    explanation: 'By binding the score to its original expert index, we can safely reorder the array.',
+    explanation: 'Top-k routing keeps compute sparse while still allowing multiple experts per token.',
   },
   {
-    id: 'moe-router-sort',
-    stepLabel: '15.2',
-    group: 'MoE routing',
-    title: 'Sort Descending',
-    concept: 'We must sort the experts from highest routing score to lowest.',
-    objective: 'Sort the indexed array descending based on the val property.',
+    id: 'moe-load-counts',
+    stepLabel: 'MoE.3',
+    group: 'Load per expert',
+    title: 'Expert Load Counts',
+    concept: 'Load-balancing monitors how many tokens each expert receives across a batch.',
+    objective: 'Inside moeRouterStep, increment loadCounts[expertIdx] for every entry in batchAssignments.',
     difficulty: 'core',
-    starterCode: `function moeRouter(logits, k) {
-  const indexed = [];
-  for (let i = 0; i < logits.length; i++) {
-    indexed.push({ val: logits[i], idx: i });
+    starterCode: `/**
+ * Runs one MoE router step: softmax gate, top-k routing, load tally, weighted expert combine.
+ * @param {number[]} logits - Raw router logits per expert.
+ * @param {number} k - Number of experts to activate per token.
+ * @param {number[][]} expertOutputs - Expert output vectors indexed by expert id.
+ * @param {number[]} batchAssignments - Flat list of expert ids chosen across the batch (for load counts).
+ * @returns {{ gateProbs: number[], topExperts: number[], topWeights: number[], loadCounts: number[], combined: number[] }}
+ */
+function moeRouterStep(logits, k, expertOutputs, batchAssignments) {
+  const maxLogit = Math.max(...logits);
+  const exps = logits.map((l) => Math.exp(l - maxLogit));
+  const sumExp = exps.reduce((s, v) => s + v, 0);
+  const gateProbs = [];
+  for (let i = 0; i < logits.length; i++) gateProbs.push(exps[i] / sumExp);
+
+  const ranked = gateProbs.map((p, idx) => ({ idx, p }));
+  ranked.sort((a, b) => b.p - a.p || a.idx - b.idx);
+  const topExperts = ranked.slice(0, k).map((entry) => entry.idx);
+
+  let weightSum = 0;
+  const topWeights = topExperts.map((idx) => gateProbs[idx]);
+  for (const w of topWeights) weightSum += w;
+  for (let i = 0; i < topWeights.length; i++) topWeights[i] /= weightSum;
+
+  const loadCounts = Array(logits.length).fill(0);
+  // TODO: for each expertIdx in batchAssignments, increment loadCounts[expertIdx].
+
+  const dim = expertOutputs[0].length;
+  const combined = Array(dim).fill(0);
+  for (let i = 0; i < topExperts.length; i++) {
+    const expertIdx = topExperts[i];
+    const weight = topWeights[i];
+    for (let d = 0; d < dim; d++) combined[d] += weight * expertOutputs[expertIdx][d];
   }
 
-  // TODO: Sort the indexed array descending by val
-  indexed.sort((a, b) => 0);
-
-  const topK = [];
-  for (let i = 0; i < k; i++) {
-    topK.push(indexed[i].idx);
-  }
-  return topK;
+  return { gateProbs, topExperts, topWeights, loadCounts, combined };
 }`,
     testCode: `const results = [];
 function sameArray(a, b) { return JSON.stringify(a) === JSON.stringify(b); }
 function check(name, actual, expected) {
   results.push({ name, actual: JSON.stringify(actual), expected: JSON.stringify(expected), passed: sameArray(actual, expected) });
 }
-check('sort descending', moeRouter([0.2, 0.8, 0.1, 0.9], 2), [3, 1]);
+const experts = [[0], [0], [0], [0]];
+check('batch load tally', moeRouterStep([0, 0, 0, 0], 1, experts, [3, 1, 3, 0]).loadCounts, [1, 1, 0, 2]);
+check('empty batch', moeRouterStep([1, 2], 1, [[0], [0]], []).loadCounts, [0, 0]);
 return results;`,
     hints: [
-      'Return b.val - a.val in the sort callback.',
+      'Each batchAssignments entry is one expert dispatch.',
+      'Increment the counter at that expert index.',
+      'loadCounts[expertIdx] += 1;',
     ],
-    solution: `function moeRouter(logits, k) {
-  const indexed = [];
-  for (let i = 0; i < logits.length; i++) {
-    indexed.push({ val: logits[i], idx: i });
+    solution: `/**
+ * Runs one MoE router step: softmax gate, top-k routing, load tally, weighted expert combine.
+ * @param {number[]} logits - Raw router logits per expert.
+ * @param {number} k - Number of experts to activate per token.
+ * @param {number[][]} expertOutputs - Expert output vectors indexed by expert id.
+ * @param {number[]} batchAssignments - Flat list of expert ids chosen across the batch (for load counts).
+ * @returns {{ gateProbs: number[], topExperts: number[], topWeights: number[], loadCounts: number[], combined: number[] }}
+ */
+function moeRouterStep(logits, k, expertOutputs, batchAssignments) {
+  const maxLogit = Math.max(...logits);
+  const exps = logits.map((l) => Math.exp(l - maxLogit));
+  const sumExp = exps.reduce((s, v) => s + v, 0);
+  const gateProbs = [];
+  for (let i = 0; i < logits.length; i++) gateProbs.push(exps[i] / sumExp);
+
+  const ranked = gateProbs.map((p, idx) => ({ idx, p }));
+  ranked.sort((a, b) => b.p - a.p || a.idx - b.idx);
+  const topExperts = ranked.slice(0, k).map((entry) => entry.idx);
+
+  let weightSum = 0;
+  const topWeights = topExperts.map((idx) => gateProbs[idx]);
+  for (const w of topWeights) weightSum += w;
+  for (let i = 0; i < topWeights.length; i++) topWeights[i] /= weightSum;
+
+  const loadCounts = Array(logits.length).fill(0);
+  for (const expertIdx of batchAssignments) loadCounts[expertIdx] += 1;
+
+  const dim = expertOutputs[0].length;
+  const combined = Array(dim).fill(0);
+  for (let i = 0; i < topExperts.length; i++) {
+    const expertIdx = topExperts[i];
+    const weight = topWeights[i];
+    for (let d = 0; d < dim; d++) combined[d] += weight * expertOutputs[expertIdx][d];
   }
 
-  indexed.sort((a, b) => b.val - a.val);
-
-  const topK = [];
-  for (let i = 0; i < k; i++) {
-    topK.push(indexed[i].idx);
-  }
-  return topK;
+  return { gateProbs, topExperts, topWeights, loadCounts, combined };
 }`,
-    explanation: 'Sorting the small array of experts (usually 8, 16, or 64) is highly efficient.',
+    explanation: 'Tracking per-expert load reveals imbalance that hurts throughput and triggers auxiliary losses.',
   },
   {
-    id: 'moe-router-extract',
-    stepLabel: '15.3',
-    group: 'MoE routing',
-    title: 'Extract Indices',
-    concept: 'After sorting, the best experts are at the front. We just need their indices.',
-    objective: 'Push the original index of the i-th best expert into the topK array.',
+    id: 'moe-weighted-combine',
+    stepLabel: 'MoE.4',
+    group: 'Weighted combine',
+    title: 'Weighted Expert Output',
+    concept: 'MoE output is the weighted sum of selected expert transforms, using renormalized gate weights.',
+    objective: 'Inside moeRouterStep, accumulate combined[d] += topWeights[i] * expertOutputs[topExperts[i]][d].',
     difficulty: 'core',
-    starterCode: `function moeRouter(logits, k) {
-  const indexed = [];
-  for (let i = 0; i < logits.length; i++) {
-    indexed.push({ val: logits[i], idx: i });
+    starterCode: `/**
+ * Runs one MoE router step: softmax gate, top-k routing, load tally, weighted expert combine.
+ * @param {number[]} logits - Raw router logits per expert.
+ * @param {number} k - Number of experts to activate per token.
+ * @param {number[][]} expertOutputs - Expert output vectors indexed by expert id.
+ * @param {number[]} batchAssignments - Flat list of expert ids chosen across the batch (for load counts).
+ * @returns {{ gateProbs: number[], topExperts: number[], topWeights: number[], loadCounts: number[], combined: number[] }}
+ */
+function moeRouterStep(logits, k, expertOutputs, batchAssignments) {
+  const maxLogit = Math.max(...logits);
+  const exps = logits.map((l) => Math.exp(l - maxLogit));
+  const sumExp = exps.reduce((s, v) => s + v, 0);
+  const gateProbs = [];
+  for (let i = 0; i < logits.length; i++) gateProbs.push(exps[i] / sumExp);
+
+  const ranked = gateProbs.map((p, idx) => ({ idx, p }));
+  ranked.sort((a, b) => b.p - a.p || a.idx - b.idx);
+  const topExperts = ranked.slice(0, k).map((entry) => entry.idx);
+
+  let weightSum = 0;
+  const topWeights = topExperts.map((idx) => gateProbs[idx]);
+  for (const w of topWeights) weightSum += w;
+  for (let i = 0; i < topWeights.length; i++) topWeights[i] /= weightSum;
+
+  const loadCounts = Array(logits.length).fill(0);
+  for (const expertIdx of batchAssignments) loadCounts[expertIdx] += 1;
+
+  const dim = expertOutputs[0].length;
+  const combined = Array(dim).fill(0);
+  for (let i = 0; i < topExperts.length; i++) {
+    const expertIdx = topExperts[i];
+    const weight = topWeights[i];
+    for (let d = 0; d < dim; d++) {
+      // TODO: add weight * expertOutputs[expertIdx][d] into combined[d].
+    }
   }
 
-  indexed.sort((a, b) => b.val - a.val);
+  return { gateProbs, topExperts, topWeights, loadCounts, combined };
+}`,
+    testCode: `const results = [];
+function approxArray(a, b, tol = 1e-5) {
+  return a.length === b.length && a.every((v, i) => Math.abs(v - b[i]) <= tol);
+}
+function check(name, actual, expected) {
+  results.push({ name, actual: JSON.stringify(actual), expected: JSON.stringify(expected), passed: approxArray(actual, expected) });
+}
+const experts = [[1, 0], [0, 1], [2, 2]];
+check('weighted mix', moeRouterStep([1, 1, -10], 2, [[1, 0], [0, 1], [9, 9]], []).combined, [0.5, 0.5]);
+check('single expert', moeRouterStep([5, 1], 1, [[3, 4], [10, 10]], []).combined, [3, 4]);
+return results;`,
+    hints: [
+      'Loop over selected experts and output dimensions.',
+      'Multiply each expert vector by its renormalized gate weight.',
+      'combined[d] += weight * expertOutputs[expertIdx][d];',
+    ],
+    solution: `/**
+ * Runs one MoE router step: softmax gate, top-k routing, load tally, weighted expert combine.
+ * @param {number[]} logits - Raw router logits per expert.
+ * @param {number} k - Number of experts to activate per token.
+ * @param {number[][]} expertOutputs - Expert output vectors indexed by expert id.
+ * @param {number[]} batchAssignments - Flat list of expert ids chosen across the batch (for load counts).
+ * @returns {{ gateProbs: number[], topExperts: number[], topWeights: number[], loadCounts: number[], combined: number[] }}
+ */
+function moeRouterStep(logits, k, expertOutputs, batchAssignments) {
+  const maxLogit = Math.max(...logits);
+  const exps = logits.map((l) => Math.exp(l - maxLogit));
+  const sumExp = exps.reduce((s, v) => s + v, 0);
+  const gateProbs = [];
+  for (let i = 0; i < logits.length; i++) gateProbs.push(exps[i] / sumExp);
 
+  const ranked = gateProbs.map((p, idx) => ({ idx, p }));
+  ranked.sort((a, b) => b.p - a.p || a.idx - b.idx);
+  const topExperts = ranked.slice(0, k).map((entry) => entry.idx);
+
+  let weightSum = 0;
+  const topWeights = topExperts.map((idx) => gateProbs[idx]);
+  for (const w of topWeights) weightSum += w;
+  for (let i = 0; i < topWeights.length; i++) topWeights[i] /= weightSum;
+
+  const loadCounts = Array(logits.length).fill(0);
+  for (const expertIdx of batchAssignments) loadCounts[expertIdx] += 1;
+
+  const dim = expertOutputs[0].length;
+  const combined = Array(dim).fill(0);
+  for (let i = 0; i < topExperts.length; i++) {
+    const expertIdx = topExperts[i];
+    const weight = topWeights[i];
+    for (let d = 0; d < dim; d++) combined[d] += weight * expertOutputs[expertIdx][d];
+  }
+
+  return { gateProbs, topExperts, topWeights, loadCounts, combined };
+}`,
+    explanation: 'Weighted combination merges specialist expert outputs back into the shared residual stream.',
+  },
+  {
+    id: 'moe-topk-indices',
+    stepLabel: '15.1',
+    group: 'Top-k pick',
+    title: 'MoE router top-k selection',
+    concept: 'Mixture of Experts routes tokens to the top-k experts with the highest routing scores.',
+    objective: 'Select indices of the top k routing values.',
+    difficulty: 'core',
+    starterCode: `function getTopKExperts(logits, k) {
+  const indexed = logits.map((val, idx) => ({ val, idx }));
+  indexed.sort((a, b) => b.val - a.val);
+  
   const topK = [];
   for (let i = 0; i < k; i++) {
-    // TODO: Push the idx of the element at indexed[i]
+    // TODO: push the index of the i-th best expert to topK array
     topK.push(0);
   }
   return topK;
 }`,
     testCode: `const results = [];
-function sameArray(a, b) { return JSON.stringify(a) === JSON.stringify(b); }
+function sameArray(a, b) {
+  return JSON.stringify(a) === JSON.stringify(b);
+}
 function check(name, actual, expected) {
   results.push({ name, actual: JSON.stringify(actual), expected: JSON.stringify(expected), passed: sameArray(actual, expected) });
 }
-check('extract indices', moeRouter([0.2, 0.8, 0.1, 0.9], 2), [3, 1]);
+check('top-2 experts', getTopKExperts([0.2, 0.8, 0.1, 0.9], 2), [3, 1]); // indexes 3 and 1
 return results;`,
     hints: [
-      'Push indexed[i].idx into the topK array.',
+      'The sorted elements are inside the indexed array.',
+      'The index of the i-th element is indexed[i].idx.',
+      'topK[i] = indexed[i].idx;',
     ],
-    solution: `function moeRouter(logits, k) {
-  const indexed = [];
-  for (let i = 0; i < logits.length; i++) {
-    indexed.push({ val: logits[i], idx: i });
-  }
-
+    solution: `function getTopKExperts(logits, k) {
+  const indexed = logits.map((val, idx) => ({ val, idx }));
   indexed.sort((a, b) => b.val - a.val);
-
-  const topK = [];
-  for (let i = 0; i < k; i++) {
-    topK.push(indexed[i].idx);
-  }
-  return topK;
-}`,
-    explanation: 'These indices tell the GPU exactly which feed-forward network modules to execute for this token.',
-  },
-  {
-    id: 'moe-router-full',
-    stepLabel: '15.4',
-    group: 'MoE routing',
-    title: 'Full MoE Routing',
-    concept: 'The complete MoE router takes raw routing logits and distills them into the chosen expert pathways.',
-    objective: 'Implement the full expert routing algorithm.',
-    difficulty: 'core',
-    starterCode: `function moeRouter(logits, k) {
-  const indexed = [];
-  for (let i = 0; i < logits.length; i++) {
-    indexed.push({ val: logits[i], idx: i });
-  }
-
-  indexed.sort((a, b) => b.val - a.val);
-
-  const topK = [];
-  for (let i = 0; i < k; i++) {
-    // TODO: Push the chosen idx
-    
-  }
-  return topK;
-}`,
-    testCode: `const results = [];
-function sameArray(a, b) { return JSON.stringify(a) === JSON.stringify(b); }
-function check(name, actual, expected) {
-  results.push({ name, actual: JSON.stringify(actual), expected: JSON.stringify(expected), passed: sameArray(actual, expected) });
-}
-check('full routing', moeRouter([0.5, 0.1, 0.8, 0.4], 2), [2, 0]);
-return results;`,
-    hints: [
-      'Access indexed[i].idx.',
-    ],
-    solution: `function moeRouter(logits, k) {
-  const indexed = [];
-  for (let i = 0; i < logits.length; i++) {
-    indexed.push({ val: logits[i], idx: i });
-  }
-
-  indexed.sort((a, b) => b.val - a.val);
-
+  
   const topK = [];
   for (let i = 0; i < k; i++) {
     topK.push(indexed[i].idx);
@@ -3327,183 +4978,387 @@ return results;`,
 }`,
     explanation: 'Low-rank updates are computed in parallel to base weights and added at output, leaving baseline weights frozen.',
   },
+  // --- native-sparse-attention ---
   {
-    id: 'sparse-block-loop',
-    stepLabel: '18.1',
-    group: 'Sparse block attention',
-    title: 'Active Block Loop',
-    concept: 'Native Sparse Attention restricts queries to attend only to selected key blocks. The first step is looping only over the active blocks.',
-    objective: 'Iterate over the activeBlockIndices array.',
+    id: 'nsa-block-grid',
+    stepLabel: 'NSA.1',
+    group: 'Block grid',
+    title: 'Sequence Block Grid',
+    concept: 'Native Sparse Attention partitions the sequence into fixed-size blocks; the final block may be shorter.',
+    objective: 'Inside sparseBlockMaskStep, fill blockRanges with half-open intervals [start, end) covering seqLen.',
     difficulty: 'warmup',
-    starterCode: `function computeSparseAttention(qBlock, kBlocks, activeBlockIndices) {
-  const outputs = [];
-  
-  // TODO: Loop over the activeBlockIndices array length
-  for (let i = 0; i < 0; i++) {
-    const kIdx = activeBlockIndices[i];
-    const kBlock = kBlocks[kIdx];
-    outputs.push(qBlock * kBlock); // Mock attention compute
+    starterCode: `/**
+ * Runs one NSA block-selection step: tile sequence, pick top blocks, scatter attended tokens, count region.
+ * @param {number} seqLen - Total sequence length.
+ * @param {number} blockSize - Tokens per block (last block may be shorter).
+ * @param {number[]} blockScores - Importance score per block.
+ * @param {number} topK - Number of key blocks to keep.
+ * @returns {{ numBlocks: number, blockRanges: number[][], topBlocks: number[], attendedTokens: number[], effectiveRegion: number }}
+ */
+function sparseBlockMaskStep(seqLen, blockSize, blockScores, topK) {
+  const numBlocks = Math.ceil(seqLen / blockSize);
+  const blockRanges = [];
+  // TODO: push [start, end) ranges that cover [0, seqLen) in steps of blockSize.
+
+  const ranked = blockScores.map((score, idx) => ({ idx, score }));
+  ranked.sort((a, b) => b.score - a.score || a.idx - b.idx);
+  const topBlocks = ranked.slice(0, topK).map((entry) => entry.idx);
+
+  const attendedTokens = [];
+  const sortedBlocks = [...topBlocks].sort((a, b) => a - b);
+  for (const blockId of sortedBlocks) {
+    const [start, end] = blockRanges[blockId];
+    for (let t = start; t < end; t++) attendedTokens.push(t);
   }
-  
-  return outputs;
+
+  const effectiveRegion = attendedTokens.length * seqLen;
+
+  return { numBlocks, blockRanges, topBlocks, attendedTokens, effectiveRegion };
 }`,
     testCode: `const results = [];
 function sameArray(a, b) { return JSON.stringify(a) === JSON.stringify(b); }
 function check(name, actual, expected) {
   results.push({ name, actual: JSON.stringify(actual), expected: JSON.stringify(expected), passed: sameArray(actual, expected) });
 }
-check('loop bounds', computeSparseAttention(2.0, [1.0, 2.0, 3.0, 4.0], [0, 3]), [2.0, 8.0]);
+check('block ranges', sparseBlockMaskStep(10, 4, [0, 0, 0], 1).blockRanges, [[0, 4], [4, 8], [8, 10]]);
+check('num blocks', sparseBlockMaskStep(10, 4, [0, 0, 0], 1).numBlocks, 3);
+check('exact fit', sparseBlockMaskStep(8, 4, [0, 0], 1).blockRanges, [[0, 4], [4, 8]]);
 return results;`,
     hints: [
-      'The loop should run while i < activeBlockIndices.length.',
+      'Walk start from 0 while start < seqLen.',
+      'Each end is min(start + blockSize, seqLen).',
+      'Push [start, end) then set start = end.',
     ],
-    solution: `function computeSparseAttention(qBlock, kBlocks, activeBlockIndices) {
-  const outputs = [];
-  
-  for (let i = 0; i < activeBlockIndices.length; i++) {
-    const kIdx = activeBlockIndices[i];
-    const kBlock = kBlocks[kIdx];
-    outputs.push(qBlock * kBlock);
+    solution: `/**
+ * Runs one NSA block-selection step: tile sequence, pick top blocks, scatter attended tokens, count region.
+ * @param {number} seqLen - Total sequence length.
+ * @param {number} blockSize - Tokens per block (last block may be shorter).
+ * @param {number[]} blockScores - Importance score per block.
+ * @param {number} topK - Number of key blocks to keep.
+ * @returns {{ numBlocks: number, blockRanges: number[][], topBlocks: number[], attendedTokens: number[], effectiveRegion: number }}
+ */
+function sparseBlockMaskStep(seqLen, blockSize, blockScores, topK) {
+  const numBlocks = Math.ceil(seqLen / blockSize);
+  const blockRanges = [];
+  let start = 0;
+  while (start < seqLen) {
+    const end = Math.min(start + blockSize, seqLen);
+    blockRanges.push([start, end]);
+    start = end;
   }
-  
-  return outputs;
+
+  const ranked = blockScores.map((score, idx) => ({ idx, score }));
+  ranked.sort((a, b) => b.score - a.score || a.idx - b.idx);
+  const topBlocks = ranked.slice(0, topK).map((entry) => entry.idx);
+
+  const attendedTokens = [];
+  const sortedBlocks = [...topBlocks].sort((a, b) => a - b);
+  for (const blockId of sortedBlocks) {
+    const [rangeStart, rangeEnd] = blockRanges[blockId];
+    for (let t = rangeStart; t < rangeEnd; t++) attendedTokens.push(t);
+  }
+
+  const effectiveRegion = attendedTokens.length * seqLen;
+
+  return { numBlocks, blockRanges, topBlocks, attendedTokens, effectiveRegion };
 }`,
-    explanation: 'By strictly looping over active blocks, we skip O(N^2) dense operations entirely.',
+    explanation: 'Block tiling is the first step in NSA: attention sparsity is defined over blocks, not individual token pairs upfront.',
   },
   {
-    id: 'sparse-block-fetch',
-    stepLabel: '18.2',
-    group: 'Sparse block attention',
-    title: 'Fetch Key Block',
-    concept: 'We use the active index to dynamically gather the corresponding key block from memory.',
-    objective: 'Fetch the correct block from the kBlocks array.',
+    id: 'nsa-topk-blocks',
+    stepLabel: 'NSA.2',
+    group: 'Top-k blocks',
+    title: 'Top-k Block Selection',
+    concept: 'NSA scores each block (for example with compressed keys) and keeps only the top-k blocks for fine attention.',
+    objective: 'Inside sparseBlockMaskStep, fill topBlocks with the k highest blockScores indices.',
     difficulty: 'core',
-    starterCode: `function computeSparseAttention(qBlock, kBlocks, activeBlockIndices) {
-  const outputs = [];
-  
-  for (let i = 0; i < activeBlockIndices.length; i++) {
-    const kIdx = activeBlockIndices[i];
-    // TODO: Assign the corresponding block from kBlocks to kBlock
-    const kBlock = 1.0;
-    
-    outputs.push(qBlock * kBlock);
+    starterCode: `/**
+ * Runs one NSA block-selection step: tile sequence, pick top blocks, scatter attended tokens, count region.
+ * @param {number} seqLen - Total sequence length.
+ * @param {number} blockSize - Tokens per block (last block may be shorter).
+ * @param {number[]} blockScores - Importance score per block.
+ * @param {number} topK - Number of key blocks to keep.
+ * @returns {{ numBlocks: number, blockRanges: number[][], topBlocks: number[], attendedTokens: number[], effectiveRegion: number }}
+ */
+function sparseBlockMaskStep(seqLen, blockSize, blockScores, topK) {
+  const numBlocks = Math.ceil(seqLen / blockSize);
+  const blockRanges = [];
+  let start = 0;
+  while (start < seqLen) {
+    const end = Math.min(start + blockSize, seqLen);
+    blockRanges.push([start, end]);
+    start = end;
   }
-  
-  return outputs;
+
+  const topBlocks = [];
+  // TODO: pick topK block indices with highest blockScores; break ties by lower index.
+
+  const attendedTokens = [];
+  const sortedBlocks = [...topBlocks].sort((a, b) => a - b);
+  for (const blockId of sortedBlocks) {
+    const [rangeStart, rangeEnd] = blockRanges[blockId];
+    for (let t = rangeStart; t < rangeEnd; t++) attendedTokens.push(t);
+  }
+
+  const effectiveRegion = attendedTokens.length * seqLen;
+
+  return { numBlocks, blockRanges, topBlocks, attendedTokens, effectiveRegion };
 }`,
     testCode: `const results = [];
 function sameArray(a, b) { return JSON.stringify(a) === JSON.stringify(b); }
 function check(name, actual, expected) {
   results.push({ name, actual: JSON.stringify(actual), expected: JSON.stringify(expected), passed: sameArray(actual, expected) });
 }
-check('fetch block', computeSparseAttention(2.0, [1.0, 2.0, 3.0, 4.0], [0, 3]), [2.0, 8.0]);
+check('top blocks', sparseBlockMaskStep(16, 4, [0.1, 4.0, 2.0, 9.0], 2).topBlocks, [3, 1]);
+check('clamp k', sparseBlockMaskStep(8, 4, [2, 5], 5).topBlocks, [1, 0]);
 return results;`,
     hints: [
-      'Index into the kBlocks array using kIdx.',
+      'Pair each score with its block index and sort descending.',
+      'Break equal scores by choosing the smaller block index.',
+      'Slice the first topK entries and map to indices.',
     ],
-    solution: `function computeSparseAttention(qBlock, kBlocks, activeBlockIndices) {
-  const outputs = [];
-  
-  for (let i = 0; i < activeBlockIndices.length; i++) {
-    const kIdx = activeBlockIndices[i];
-    const kBlock = kBlocks[kIdx];
-    
-    outputs.push(qBlock * kBlock);
+    solution: `/**
+ * Runs one NSA block-selection step: tile sequence, pick top blocks, scatter attended tokens, count region.
+ * @param {number} seqLen - Total sequence length.
+ * @param {number} blockSize - Tokens per block (last block may be shorter).
+ * @param {number[]} blockScores - Importance score per block.
+ * @param {number} topK - Number of key blocks to keep.
+ * @returns {{ numBlocks: number, blockRanges: number[][], topBlocks: number[], attendedTokens: number[], effectiveRegion: number }}
+ */
+function sparseBlockMaskStep(seqLen, blockSize, blockScores, topK) {
+  const numBlocks = Math.ceil(seqLen / blockSize);
+  const blockRanges = [];
+  let start = 0;
+  while (start < seqLen) {
+    const end = Math.min(start + blockSize, seqLen);
+    blockRanges.push([start, end]);
+    start = end;
   }
-  
-  return outputs;
+
+  const ranked = blockScores.map((score, idx) => ({ idx, score }));
+  ranked.sort((a, b) => b.score - a.score || a.idx - b.idx);
+  const topBlocks = ranked.slice(0, topK).map((entry) => entry.idx);
+
+  const attendedTokens = [];
+  const sortedBlocks = [...topBlocks].sort((a, b) => a - b);
+  for (const blockId of sortedBlocks) {
+    const [rangeStart, rangeEnd] = blockRanges[blockId];
+    for (let t = rangeStart; t < rangeEnd; t++) attendedTokens.push(t);
+  }
+
+  const effectiveRegion = attendedTokens.length * seqLen;
+
+  return { numBlocks, blockRanges, topBlocks, attendedTokens, effectiveRegion };
 }`,
-    explanation: 'This gather operation brings only the necessary data from VRAM into the streaming multiprocessors.',
+    explanation: 'Top-k block selection is where NSA trades full quadratic attention for a sparse key subset.',
   },
   {
-    id: 'sparse-block-compute',
-    stepLabel: '18.3',
-    group: 'Sparse block attention',
-    title: 'Mock Attention Compute',
-    concept: 'Once the blocks are loaded, the standard attention mechanism proceeds, but strictly within the block boundaries.',
-    objective: 'Multiply the qBlock by the kBlock to mock the attention interaction.',
+    id: 'nsa-mask-scatter',
+    stepLabel: 'NSA.3',
+    group: 'Mask scatter',
+    title: 'Scatter Attended Token Indices',
+    concept: 'Selected blocks expand into the concrete key token indices that sparse attention is allowed to read.',
+    objective: 'Inside sparseBlockMaskStep, append every token index from each selected block into attendedTokens.',
     difficulty: 'core',
-    starterCode: `function computeSparseAttention(qBlock, kBlocks, activeBlockIndices) {
-  const outputs = [];
-  
-  for (let i = 0; i < activeBlockIndices.length; i++) {
-    const kIdx = activeBlockIndices[i];
-    const kBlock = kBlocks[kIdx];
-    
-    // TODO: Push qBlock * kBlock to outputs
-    outputs.push(0);
+    starterCode: `/**
+ * Runs one NSA block-selection step: tile sequence, pick top blocks, scatter attended tokens, count region.
+ * @param {number} seqLen - Total sequence length.
+ * @param {number} blockSize - Tokens per block (last block may be shorter).
+ * @param {number[]} blockScores - Importance score per block.
+ * @param {number} topK - Number of key blocks to keep.
+ * @returns {{ numBlocks: number, blockRanges: number[][], topBlocks: number[], attendedTokens: number[], effectiveRegion: number }}
+ */
+function sparseBlockMaskStep(seqLen, blockSize, blockScores, topK) {
+  const numBlocks = Math.ceil(seqLen / blockSize);
+  const blockRanges = [];
+  let start = 0;
+  while (start < seqLen) {
+    const end = Math.min(start + blockSize, seqLen);
+    blockRanges.push([start, end]);
+    start = end;
   }
-  
-  return outputs;
+
+  const ranked = blockScores.map((score, idx) => ({ idx, score }));
+  ranked.sort((a, b) => b.score - a.score || a.idx - b.idx);
+  const topBlocks = ranked.slice(0, topK).map((entry) => entry.idx);
+
+  const attendedTokens = [];
+  const sortedBlocks = [...topBlocks].sort((a, b) => a - b);
+  for (const blockId of sortedBlocks) {
+    const [rangeStart, rangeEnd] = blockRanges[blockId];
+    // TODO: push each token index from rangeStart (inclusive) to rangeEnd (exclusive).
+  }
+
+  const effectiveRegion = attendedTokens.length * seqLen;
+
+  return { numBlocks, blockRanges, topBlocks, attendedTokens, effectiveRegion };
 }`,
     testCode: `const results = [];
 function sameArray(a, b) { return JSON.stringify(a) === JSON.stringify(b); }
 function check(name, actual, expected) {
   results.push({ name, actual: JSON.stringify(actual), expected: JSON.stringify(expected), passed: sameArray(actual, expected) });
 }
-check('compute mock attention', computeSparseAttention(3.0, [1.0, 2.0, 3.0, 4.0], [1, 2]), [6.0, 9.0]);
+check('expand blocks', sparseBlockMaskStep(15, 4, [0, 9, 0, 8], 2).attendedTokens, [4, 5, 6, 7, 12, 13, 14]);
+check('single short block', sparseBlockMaskStep(5, 4, [1, 10], 1).attendedTokens, [4]);
 return results;`,
     hints: [
-      'Multiply qBlock and kBlock together.',
+      'Process selected blocks in ascending order for stable token lists.',
+      'Each block range is half-open: include start, exclude end.',
+      'attendedTokens.push(t) for t in [rangeStart, rangeEnd).',
     ],
-    solution: `function computeSparseAttention(qBlock, kBlocks, activeBlockIndices) {
-  const outputs = [];
-  
-  for (let i = 0; i < activeBlockIndices.length; i++) {
-    const kIdx = activeBlockIndices[i];
-    const kBlock = kBlocks[kIdx];
-    
-    outputs.push(qBlock * kBlock);
+    solution: `/**
+ * Runs one NSA block-selection step: tile sequence, pick top blocks, scatter attended tokens, count region.
+ * @param {number} seqLen - Total sequence length.
+ * @param {number} blockSize - Tokens per block (last block may be shorter).
+ * @param {number[]} blockScores - Importance score per block.
+ * @param {number} topK - Number of key blocks to keep.
+ * @returns {{ numBlocks: number, blockRanges: number[][], topBlocks: number[], attendedTokens: number[], effectiveRegion: number }}
+ */
+function sparseBlockMaskStep(seqLen, blockSize, blockScores, topK) {
+  const numBlocks = Math.ceil(seqLen / blockSize);
+  const blockRanges = [];
+  let start = 0;
+  while (start < seqLen) {
+    const end = Math.min(start + blockSize, seqLen);
+    blockRanges.push([start, end]);
+    start = end;
   }
-  
-  return outputs;
+
+  const ranked = blockScores.map((score, idx) => ({ idx, score }));
+  ranked.sort((a, b) => b.score - a.score || a.idx - b.idx);
+  const topBlocks = ranked.slice(0, topK).map((entry) => entry.idx);
+
+  const attendedTokens = [];
+  const sortedBlocks = [...topBlocks].sort((a, b) => a - b);
+  for (const blockId of sortedBlocks) {
+    const [rangeStart, rangeEnd] = blockRanges[blockId];
+    for (let t = rangeStart; t < rangeEnd; t++) attendedTokens.push(t);
+  }
+
+  const effectiveRegion = attendedTokens.length * seqLen;
+
+  return { numBlocks, blockRanges, topBlocks, attendedTokens, effectiveRegion };
 }`,
-    explanation: 'In reality, this is a FlashAttention block computation, but the fundamental block-wise interaction is the same.',
+    explanation: 'Mask scatter turns block-level sparsity into the exact token columns attention may use.',
   },
   {
-    id: 'sparse-block-full',
-    stepLabel: '18.4',
-    group: 'Sparse block attention',
-    title: 'Full Sparse Block Attention',
-    concept: 'Native sparse attention allows million-token context windows by completely ignoring the vast majority of inactive keys.',
-    objective: 'Implement the full sparse block routing algorithm.',
+    id: 'nsa-effective-region',
+    stepLabel: 'NSA.4',
+    group: 'Effective attention region',
+    title: 'Effective Attention Region',
+    concept: 'The effective sparse region size is the number of attended key tokens times query positions (seqLen).',
+    objective: 'Inside sparseBlockMaskStep, set effectiveRegion = attendedTokens.length * seqLen.',
     difficulty: 'core',
-    starterCode: `function computeSparseAttention(qBlock, kBlocks, activeBlockIndices) {
-  const outputs = [];
-  
-  for (let i = 0; i < activeBlockIndices.length; i++) {
-    const kIdx = activeBlockIndices[i];
-    const kBlock = kBlocks[kIdx];
-    
-    // TODO: Compute and push the mock attention interaction
-    
+    starterCode: `/**
+ * Runs one NSA block-selection step: tile sequence, pick top blocks, scatter attended tokens, count region.
+ * @param {number} seqLen - Total sequence length.
+ * @param {number} blockSize - Tokens per block (last block may be shorter).
+ * @param {number[]} blockScores - Importance score per block.
+ * @param {number} topK - Number of key blocks to keep.
+ * @returns {{ numBlocks: number, blockRanges: number[][], topBlocks: number[], attendedTokens: number[], effectiveRegion: number }}
+ */
+function sparseBlockMaskStep(seqLen, blockSize, blockScores, topK) {
+  const numBlocks = Math.ceil(seqLen / blockSize);
+  const blockRanges = [];
+  let start = 0;
+  while (start < seqLen) {
+    const end = Math.min(start + blockSize, seqLen);
+    blockRanges.push([start, end]);
+    start = end;
   }
-  
-  return outputs;
+
+  const ranked = blockScores.map((score, idx) => ({ idx, score }));
+  ranked.sort((a, b) => b.score - a.score || a.idx - b.idx);
+  const topBlocks = ranked.slice(0, topK).map((entry) => entry.idx);
+
+  const attendedTokens = [];
+  const sortedBlocks = [...topBlocks].sort((a, b) => a - b);
+  for (const blockId of sortedBlocks) {
+    const [rangeStart, rangeEnd] = blockRanges[blockId];
+    for (let t = rangeStart; t < rangeEnd; t++) attendedTokens.push(t);
+  }
+
+  let effectiveRegion = 0;
+  // TODO: effectiveRegion = attendedTokens.length * seqLen
+
+  return { numBlocks, blockRanges, topBlocks, attendedTokens, effectiveRegion };
 }`,
     testCode: `const results = [];
-function sameArray(a, b) { return JSON.stringify(a) === JSON.stringify(b); }
 function check(name, actual, expected) {
-  results.push({ name, actual: JSON.stringify(actual), expected: JSON.stringify(expected), passed: sameArray(actual, expected) });
+  results.push({ name, actual, expected, passed: Object.is(actual, expected) });
 }
-check('full sparse attention', computeSparseAttention(5.0, [1.0, 2.0, 3.0, 4.0], [3]), [20.0]);
+check('sparse region', sparseBlockMaskStep(15, 4, [0, 9, 0, 8], 2).effectiveRegion, 6 * 15);
+check('full block pick', sparseBlockMaskStep(8, 4, [10, 1], 1).effectiveRegion, 4 * 8);
+check('beats dense pair count sanity', sparseBlockMaskStep(100, 10, [5, 9, 1, 2, 3, 4, 5, 6, 7, 8], 2).effectiveRegion < 100 * 100, true);
 return results;`,
     hints: [
-      'Push qBlock * kBlock to the outputs array.',
+      'attendedTokens.length counts selected key tokens.',
+      'Multiply by seqLen query positions for total allowed pairs.',
+      'effectiveRegion = attendedTokens.length * seqLen;',
     ],
-    solution: `function computeSparseAttention(qBlock, kBlocks, activeBlockIndices) {
-  const outputs = [];
-  
-  for (let i = 0; i < activeBlockIndices.length; i++) {
-    const kIdx = activeBlockIndices[i];
-    const kBlock = kBlocks[kIdx];
-    
-    outputs.push(qBlock * kBlock);
+    solution: `/**
+ * Runs one NSA block-selection step: tile sequence, pick top blocks, scatter attended tokens, count region.
+ * @param {number} seqLen - Total sequence length.
+ * @param {number} blockSize - Tokens per block (last block may be shorter).
+ * @param {number[]} blockScores - Importance score per block.
+ * @param {number} topK - Number of key blocks to keep.
+ * @returns {{ numBlocks: number, blockRanges: number[][], topBlocks: number[], attendedTokens: number[], effectiveRegion: number }}
+ */
+function sparseBlockMaskStep(seqLen, blockSize, blockScores, topK) {
+  const numBlocks = Math.ceil(seqLen / blockSize);
+  const blockRanges = [];
+  let start = 0;
+  while (start < seqLen) {
+    const end = Math.min(start + blockSize, seqLen);
+    blockRanges.push([start, end]);
+    start = end;
   }
-  
-  return outputs;
+
+  const ranked = blockScores.map((score, idx) => ({ idx, score }));
+  ranked.sort((a, b) => b.score - a.score || a.idx - b.idx);
+  const topBlocks = ranked.slice(0, topK).map((entry) => entry.idx);
+
+  const attendedTokens = [];
+  const sortedBlocks = [...topBlocks].sort((a, b) => a - b);
+  for (const blockId of sortedBlocks) {
+    const [rangeStart, rangeEnd] = blockRanges[blockId];
+    for (let t = rangeStart; t < rangeEnd; t++) attendedTokens.push(t);
+  }
+
+  let effectiveRegion = 0;
+  effectiveRegion = attendedTokens.length * seqLen;
+
+  return { numBlocks, blockRanges, topBlocks, attendedTokens, effectiveRegion };
 }`,
-    explanation: 'Routing queries to specific key blocks creates a sparse attention pattern that cleanly handles ultra-long context lengths.',
+    explanation: 'Effective region size shows how much less work sparse block attention does versus dense seqLen squared.',
+  },
+  {
+    id: 'sparse-block-attention-check',
+    stepLabel: '18.1',
+    group: 'Block grid',
+    title: 'Sparse block check',
+    concept: 'Native Sparse Attention restricts queries to attend only to selected key blocks, saving massive quadratic compute.',
+    objective: 'Return true if activeBlocks array contains kBlock index, otherwise false.',
+    difficulty: 'warmup',
+    starterCode: `function isBlockAttended(kBlock, activeBlocks) {
+  // TODO: return whether kBlock is inside activeBlocks array
+  return false;
+}`,
+    testCode: `const results = [];
+function check(name, actual, expected) {
+  results.push({ name, actual, expected, passed: Object.is(actual, expected) });
+}
+check('block active', isBlockAttended(2, [0, 2, 5]), true);
+check('block inactive', isBlockAttended(3, [0, 2, 5]), false);
+return results;`,
+    hints: [
+      'Use the .includes() method on arrays.',
+      'return activeBlocks.includes(kBlock);',
+    ],
+    solution: `function isBlockAttended(kBlock, activeBlocks) {
+  return activeBlocks.includes(kBlock);
+}`,
+    explanation: 'Hashing or routing queries to specific key blocks creates a sparse attention pattern that handles long context lengths.',
   },
 ];
 

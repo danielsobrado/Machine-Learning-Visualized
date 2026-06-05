@@ -5,362 +5,448 @@ export const NLP_CODE_LABS = [
     stepLabel: '1.1',
     group: 'Similarity score',
     title: 'Vector Similarity Score',
-    concept: 'Word2Vec represents words as dense vectors. The similarity between a target center word and a context word is measured using the dot product of their embedding vectors.',
-    objective: 'Implement the vector dot product of two arrays, returning the scalar sum.',
+    concept: 'Skip-gram negative sampling compares center and context embeddings with a dot product. That score drives both the positive likelihood and every negative sample term.',
+    objective: 'Inside skipGramTrainStep, compute the positive dot product posScore between vCenter and vContext.',
     difficulty: 'warmup',
     starterCode: `/**
- * Computes the dot product of two word vectors.
- * @param {number[]} a - First vector.
- * @param {number[]} b - Second vector.
- * @returns {number} The scalar dot product.
+ * Runs one Skip-gram negative-sampling training step: loss, gradients, in-place vector updates.
+ * @param {number[]} vCenter - Center word embedding (mutated in place on later steps).
+ * @param {number[]} vContext - True context embedding (mutated in place on later steps).
+ * @param {number[][]} vNegatives - Negative noise embeddings (mutated in place on later steps).
+ * @param {number} lr - Learning rate applied to gradient updates.
+ * @returns {{ loss: number, posScore: number }} Total loss and positive dot product.
  */
-function dot(a, b) {
-  // TODO: Calculate dot product of a and b
-  return 0;
+function skipGramTrainStep(vCenter, vContext, vNegatives, lr) {
+  const d = vCenter.length;
+  let posScore = 0;
+  for (let i = 0; i < d; i++) {
+    // TODO: accumulate vCenter[i] * vContext[i] into posScore.
+    posScore += 0;
+  }
+
+  const sigmoid = (x) => 1 / (1 + Math.exp(-x));
+  let loss = -Math.log(sigmoid(posScore));
+
+  for (let j = 0; j < vNegatives.length; j++) {
+    let negScore = 0;
+    for (let i = 0; i < d; i++) {
+      negScore += vCenter[i] * vNegatives[j][i];
+    }
+    loss -= Math.log(sigmoid(-negScore));
+  }
+
+  return { loss, posScore };
 }`,
     testCode: `const results = [];
+function approxEqual(a, b, tol = 1e-5) { return Math.abs(a - b) <= tol; }
 function check(name, actual, expected) {
-  results.push({ name, actual, expected, passed: Object.is(actual, expected) });
+  results.push({ name, actual, expected, passed: approxEqual(actual, expected) });
 }
-check('dot product 2D', dot([1, 2], [3, 4]), 11);
-check('dot product zeros', dot([0, 0], [1, 2]), 0);
-check('dot product negative', dot([1, -1], [2, 3]), -1);
-check('higher dimensional dot', dot([0.5, -1.0, 2.0], [2.0, 4.0, 1.5]), 0);
-check('empty vectors fallback', dot([], []), 0);
+check('orthogonal vectors', skipGramTrainStep([1, 0], [0, 1], [[0, 1]], 0.1).posScore, 0);
+check('aligned vectors', skipGramTrainStep([2, 3], [4, 5], [], 0.1).posScore, 23);
+check('negative dot', skipGramTrainStep([1, -1], [2, 3], [], 0.1).posScore, -1);
 return results;`,
     hints: [
-      'Iterate from 0 to a.length.',
-      'Multiply a[i] by b[i] and accumulate in a running sum variable.',
+      'Multiply matching indices and accumulate into posScore.',
+      'Use posScore += vCenter[i] * vContext[i].',
+      'The dot product is the sum of element-wise products.',
     ],
     solution: `/**
- * Computes the dot product of two word vectors.
- * @param {number[]} a - First vector.
- * @param {number[]} b - Second vector.
- * @returns {number} The scalar dot product.
+ * Runs one Skip-gram negative-sampling training step: loss, gradients, in-place vector updates.
+ * @param {number[]} vCenter - Center word embedding (mutated in place on later steps).
+ * @param {number[]} vContext - True context embedding (mutated in place on later steps).
+ * @param {number[][]} vNegatives - Negative noise embeddings (mutated in place on later steps).
+ * @param {number} lr - Learning rate applied to gradient updates.
+ * @returns {{ loss: number, posScore: number }} Total loss and positive dot product.
  */
-function dot(a, b) {
-  let sum = 0;
-  for (let i = 0; i < a.length; i++) {
-    sum += a[i] * b[i];
+function skipGramTrainStep(vCenter, vContext, vNegatives, lr) {
+  const d = vCenter.length;
+  let posScore = 0;
+  for (let i = 0; i < d; i++) {
+    posScore += vCenter[i] * vContext[i];
   }
-  return sum;
+
+  const sigmoid = (x) => 1 / (1 + Math.exp(-x));
+  let loss = -Math.log(sigmoid(posScore));
+
+  for (let j = 0; j < vNegatives.length; j++) {
+    let negScore = 0;
+    for (let i = 0; i < d; i++) {
+      negScore += vCenter[i] * vNegatives[j][i];
+    }
+    loss -= Math.log(sigmoid(-negScore));
+  }
+
+  return { loss, posScore };
 }`,
-    explanation: 'A larger dot product indicates that two vectors are aligned in space, representing high semantic similarity.',
+    explanation: 'The positive dot product measures how aligned the center and context embeddings already are before the gradient update.',
   },
   {
     id: 'word2vec-sigmoid-prob',
     stepLabel: '1.2',
     group: 'Sigmoid activation',
     title: 'Word2Vec Sigmoid Probabilities',
-    concept: 'Word2Vec uses the sigmoid function to map raw similarity dot products to probability scores in [0, 1]: P(positive) = sigmoid(vContext . vCenter) and P(negative) = sigmoid(-vNeg . vCenter).',
-    objective: 'Compute the sigmoid activation function.',
+    concept: 'Word2Vec maps dot products to probabilities with sigmoid. The positive pair uses sigmoid(posScore); negatives use sigmoid(-negScore).',
+    objective: 'Inside skipGramTrainStep, compute the positive loss term -log(sigmoid(posScore)).',
     difficulty: 'warmup',
     starterCode: `/**
- * Computes the sigmoid activation function: 1 / (1 + exp(-x)).
- * @param {number} x - Input scalar.
- * @returns {number} Activated probability in (0, 1).
+ * Runs one Skip-gram negative-sampling training step: loss, gradients, in-place vector updates.
+ * @param {number[]} vCenter - Center word embedding (mutated in place on later steps).
+ * @param {number[]} vContext - True context embedding (mutated in place on later steps).
+ * @param {number[][]} vNegatives - Negative noise embeddings (mutated in place on later steps).
+ * @param {number} lr - Learning rate applied to gradient updates.
+ * @returns {{ loss: number, posScore: number }} Total loss and positive dot product.
  */
-function sigmoid(x) {
-  // TODO: Compute sigmoid of x
-  return 0;
+function skipGramTrainStep(vCenter, vContext, vNegatives, lr) {
+  const d = vCenter.length;
+  let posScore = 0;
+  for (let i = 0; i < d; i++) {
+    posScore += vCenter[i] * vContext[i];
+  }
+
+  const sigmoid = (x) => 1 / (1 + Math.exp(-x));
+  let loss = 0;
+  // TODO: set loss to the positive pair term -Math.log(sigmoid(posScore)).
+
+  for (let j = 0; j < vNegatives.length; j++) {
+    let negScore = 0;
+    for (let i = 0; i < d; i++) {
+      negScore += vCenter[i] * vNegatives[j][i];
+    }
+    loss -= Math.log(sigmoid(-negScore));
+  }
+
+  return { loss, posScore };
 }`,
     testCode: `const results = [];
-function approxEqual(a, b, tolerance = 1e-5) { return Math.abs(a - b) <= tolerance; }
+function approxEqual(a, b, tol = 1e-4) { return Math.abs(a - b) <= tol; }
 function check(name, actual, expected) {
   results.push({ name, actual, expected, passed: approxEqual(actual, expected) });
 }
-check('sigmoid zero', sigmoid(0), 0.5);
-check('sigmoid positive score', sigmoid(2.0), 0.880797);
-check('sigmoid negative score', sigmoid(-2.0), 0.119202);
-check('sigmoid large positive', sigmoid(10.0), 0.999954);
-check('sigmoid large negative', sigmoid(-10.0), 0.000045);
+check('zero score positive loss', skipGramTrainStep([0, 0], [0, 0], [], 0.1).loss, 0.693147);
+check('aligned positive loss', skipGramTrainStep([1, 0], [1, 0], [], 0.1).loss, 0.313262);
+check('opposite positive loss', skipGramTrainStep([1, 0], [-1, 0], [], 0.1).loss, 1.313262);
 return results;`,
     hints: [
-      'Use Math.exp(-x) to calculate e^(-x).',
-      'The formula is: 1 / (1 + Math.exp(-x)).',
+      'Apply sigmoid to posScore before taking the log.',
+      'The positive term is -Math.log(sigmoid(posScore)).',
+      'Negative terms are handled in the loop below.',
     ],
     solution: `/**
- * Computes the sigmoid activation function: 1 / (1 + exp(-x)).
- * @param {number} x - Input scalar.
- * @returns {number} Activated probability in (0, 1).
+ * Runs one Skip-gram negative-sampling training step: loss, gradients, in-place vector updates.
+ * @param {number[]} vCenter - Center word embedding (mutated in place on later steps).
+ * @param {number[]} vContext - True context embedding (mutated in place on later steps).
+ * @param {number[][]} vNegatives - Negative noise embeddings (mutated in place on later steps).
+ * @param {number} lr - Learning rate applied to gradient updates.
+ * @returns {{ loss: number, posScore: number }} Total loss and positive dot product.
  */
-function sigmoid(x) {
-  return 1 / (1 + Math.exp(-x));
+function skipGramTrainStep(vCenter, vContext, vNegatives, lr) {
+  const d = vCenter.length;
+  let posScore = 0;
+  for (let i = 0; i < d; i++) {
+    posScore += vCenter[i] * vContext[i];
+  }
+
+  const sigmoid = (x) => 1 / (1 + Math.exp(-x));
+  let loss = -Math.log(sigmoid(posScore));
+
+  for (let j = 0; j < vNegatives.length; j++) {
+    let negScore = 0;
+    for (let i = 0; i < d; i++) {
+      negScore += vCenter[i] * vNegatives[j][i];
+    }
+    loss -= Math.log(sigmoid(-negScore));
+  }
+
+  return { loss, posScore };
 }`,
-    explanation: 'The sigmoid function squashes any real value into a probability, allowing gradient descent to adjust embedding directions.',
+    explanation: 'Sigmoid turns similarity scores into probabilities so gradient descent can push positive pairs together.',
   },
   {
     id: 'word2vec-loss',
     stepLabel: '1.3',
     group: 'Positive pair likelihood',
     title: 'Word2Vec Negative Sampling Loss',
-    concept: 'The negative sampling loss minimizes the negative log-probability of the true context word and negative samples: Loss = -log(sigmoid(vCenter . vContext)) - sum(log(sigmoid(-vCenter . vNeg))).',
-    objective: 'Implement the total loss computation given center, context, and negative vectors.',
+    concept: 'The full negative-sampling objective adds the positive log-likelihood term to every negative noise sample: -log(sigmoid(-negScore)).',
+    objective: 'Inside skipGramTrainStep, subtract each negative sample log-likelihood from loss inside the negative loop.',
     difficulty: 'core',
     starterCode: `/**
- * Computes the total negative sampling loss for a context-target pair and negative noise samples.
- * @param {number[]} vCenter - Center word vector.
- * @param {number[]} vContext - True context word vector.
- * @param {number[][]} vNegatives - Array of negative noise word vectors.
- * @returns {number} The total loss scalar.
+ * Runs one Skip-gram negative-sampling training step: loss, gradients, in-place vector updates.
+ * @param {number[]} vCenter - Center word embedding (mutated in place on later steps).
+ * @param {number[]} vContext - True context embedding (mutated in place on later steps).
+ * @param {number[][]} vNegatives - Negative noise embeddings (mutated in place on later steps).
+ * @param {number} lr - Learning rate applied to gradient updates.
+ * @returns {{ loss: number, posScore: number }} Total loss and positive dot product.
  */
-function word2vecLoss(vCenter, vContext, vNegatives) {
-  function dot(a, b) {
-    let s = 0;
-    for (let i = 0; i < a.length; i++) s += a[i] * b[i];
-    return s;
+function skipGramTrainStep(vCenter, vContext, vNegatives, lr) {
+  const d = vCenter.length;
+  let posScore = 0;
+  for (let i = 0; i < d; i++) {
+    posScore += vCenter[i] * vContext[i];
   }
-  function sigmoid(x) {
-    return 1 / (1 + Math.exp(-x));
+
+  const sigmoid = (x) => 1 / (1 + Math.exp(-x));
+  let loss = -Math.log(sigmoid(posScore));
+
+  for (let j = 0; j < vNegatives.length; j++) {
+    let negScore = 0;
+    for (let i = 0; i < d; i++) {
+      negScore += vCenter[i] * vNegatives[j][i];
+    }
+    // TODO: subtract Math.log(sigmoid(-negScore)) from loss for this negative sample.
   }
-  
-  // TODO: Compute and return the total negative sampling loss
-  return 0;
+
+  return { loss, posScore };
 }`,
     testCode: `const results = [];
-function approxEqual(a, b, tolerance = 1e-5) { return Math.abs(a - b) <= tolerance; }
+function approxEqual(a, b, tol = 1e-4) { return Math.abs(a - b) <= tol; }
 function check(name, actual, expected) {
   results.push({ name, actual, expected, passed: approxEqual(actual, expected) });
 }
-check('loss orthogonal standard', word2vecLoss([1, 0], [0, 1], [[0, 1]]), 1.386294);
-check('loss aligned positive', word2vecLoss([1, 0], [1, 0], [[0, 1], [0, -1]]), 1.699566);
-check('loss opposite context', word2vecLoss([1, 0], [-1, 0], [[0, 1]]), 2.006409);
-check('multiple negatives', word2vecLoss([0.5, 0.5], [0.5, 0.5], [[-0.5, -0.5], [0.0, 1.0]]), 1.922231);
-check('zero vector check', word2vecLoss([0, 0], [0, 0], [[0, 0]]), 1.386294);
+check('single negative', skipGramTrainStep([1, 0], [0, 1], [[0, 1]], 0.1).loss, 1.386294);
+check('aligned with negatives', skipGramTrainStep([1, 0], [1, 0], [[0, 1], [0, -1]], 0.1).loss, 1.699566);
+check('multiple negatives', skipGramTrainStep([0.5, 0.5], [0.5, 0.5], [[-0.5, -0.5], [0, 1]], 0.1).loss, 1.922231);
 return results;`,
     hints: [
-      'Calculate positive dot product and its sigmoid. Compute positive loss: -Math.log(sigmoid(posDot)).',
-      'Loop over negative vectors. For each, calculate negative dot product, its sigmoid using -negDot, and subtract Math.log(sigmoid(-negDot)) from loss.',
-      'Return the sum of positive and negative losses.',
+      'Each negative contributes -log(sigmoid(-negScore)).',
+      'Subtract that term from loss inside the loop.',
+      'Keep the positive term computed before the loop.',
     ],
     solution: `/**
- * Computes the total negative sampling loss for a context-target pair and negative noise samples.
- * @param {number[]} vCenter - Center word vector.
- * @param {number[]} vContext - True context word vector.
- * @param {number[][]} vNegatives - Array of negative noise word vectors.
- * @returns {number} The total loss scalar.
+ * Runs one Skip-gram negative-sampling training step: loss, gradients, in-place vector updates.
+ * @param {number[]} vCenter - Center word embedding (mutated in place on later steps).
+ * @param {number[]} vContext - True context embedding (mutated in place on later steps).
+ * @param {number[][]} vNegatives - Negative noise embeddings (mutated in place on later steps).
+ * @param {number} lr - Learning rate applied to gradient updates.
+ * @returns {{ loss: number, posScore: number }} Total loss and positive dot product.
  */
-function word2vecLoss(vCenter, vContext, vNegatives) {
-  function dot(a, b) {
-    let s = 0;
-    for (let i = 0; i < a.length; i++) s += a[i] * b[i];
-    return s;
+function skipGramTrainStep(vCenter, vContext, vNegatives, lr) {
+  const d = vCenter.length;
+  let posScore = 0;
+  for (let i = 0; i < d; i++) {
+    posScore += vCenter[i] * vContext[i];
   }
-  function sigmoid(x) {
-    return 1 / (1 + Math.exp(-x));
-  }
-  
-  const posScore = dot(vCenter, vContext);
+
+  const sigmoid = (x) => 1 / (1 + Math.exp(-x));
   let loss = -Math.log(sigmoid(posScore));
-  
-  for (let i = 0; i < vNegatives.length; i++) {
-    const negScore = dot(vCenter, vNegatives[i]);
+
+  for (let j = 0; j < vNegatives.length; j++) {
+    let negScore = 0;
+    for (let i = 0; i < d; i++) {
+      negScore += vCenter[i] * vNegatives[j][i];
+    }
     loss -= Math.log(sigmoid(-negScore));
   }
-  
-  return loss;
+
+  return { loss, posScore };
 }`,
-    explanation: 'Minimizing this loss maximizes target-context alignment and pushes unrelated words apart in vector space.',
+    explanation: 'Negative samples push unrelated words apart while the positive term pulls the true context closer.',
   },
   {
     id: 'word2vec-gradients',
     stepLabel: '1.4',
     group: 'Negative sample loss',
-    title: 'Word2Vec Parameter Gradients',
-    concept: 'To update embeddings, we calculate parameter gradients. Grad(vContext) = (sigmoid(vContext . vCenter) - 1) * vCenter. Grad(vNeg_i) = sigmoid(vNeg_i . vCenter) * vCenter. Grad(vCenter) = (sigmoid(vContext . vCenter) - 1) * vContext + sum(sigmoid(vNeg_i . vCenter) * vNeg_i).',
-    objective: 'Compute the gradients for the center, context, and negative vectors.',
+    title: 'Word2Vec Context Gradient',
+    concept: 'The gradient for the context vector is (sigmoid(posScore) - 1) * vCenter. Applying it with learning rate lr updates vContext in place.',
+    objective: 'Inside skipGramTrainStep, compute gradContext and apply the lr update to vContext after loss is computed.',
     difficulty: 'core',
     starterCode: `/**
- * Calculates gradients of the negative sampling loss for all input vectors.
- * @param {number[]} vCenter - Center word vector.
- * @param {number[]} vContext - True context word vector.
- * @param {number[][]} vNegatives - Array of negative noise word vectors.
- * @returns {{ gradCenter: number[], gradContext: number[], gradNegatives: number[][] }} The gradients.
+ * Runs one Skip-gram negative-sampling training step: loss, gradients, in-place vector updates.
+ * @param {number[]} vCenter - Center word embedding (mutated in place on later steps).
+ * @param {number[]} vContext - True context embedding (mutated in place on later steps).
+ * @param {number[][]} vNegatives - Negative noise embeddings (mutated in place on later steps).
+ * @param {number} lr - Learning rate applied to gradient updates.
+ * @returns {{ loss: number, posScore: number }} Total loss and positive dot product.
  */
-function getGradients(vCenter, vContext, vNegatives) {
-  function dot(a, b) {
-    let s = 0;
-    for (let i = 0; i < a.length; i++) s += a[i] * b[i];
-    return s;
-  }
-  function sigmoid(x) {
-    return 1 / (1 + Math.exp(-x));
-  }
-  
+function skipGramTrainStep(vCenter, vContext, vNegatives, lr) {
   const d = vCenter.length;
-  const gradCenter = Array(d).fill(0);
-  const gradContext = Array(d).fill(0);
-  const gradNegatives = vNegatives.map(() => Array(d).fill(0));
-  
-  // TODO: Compute the gradients and return them in the structure.
-  return { gradCenter, gradContext, gradNegatives };
+  let posScore = 0;
+  for (let i = 0; i < d; i++) {
+    posScore += vCenter[i] * vContext[i];
+  }
+
+  const sigmoid = (x) => 1 / (1 + Math.exp(-x));
+  let loss = -Math.log(sigmoid(posScore));
+
+  for (let j = 0; j < vNegatives.length; j++) {
+    let negScore = 0;
+    for (let i = 0; i < d; i++) {
+      negScore += vCenter[i] * vNegatives[j][i];
+    }
+    loss -= Math.log(sigmoid(-negScore));
+  }
+
+  const posProb = sigmoid(posScore);
+  for (let i = 0; i < d; i++) {
+    // TODO: update vContext[i] -= lr * (posProb - 1) * vCenter[i].
+  }
+
+  return { loss, posScore };
 }`,
     testCode: `const results = [];
-function approxEqual(a, b, tolerance = 1e-4) { return Math.abs(a - b) <= tolerance; }
+function approxEqual(a, b, tol = 1e-4) { return Math.abs(a - b) <= tol; }
 function approxArray(a, b) { return a.length === b.length && a.every((v, i) => approxEqual(v, b[i])); }
 function check(name, actual, expected) {
   results.push({ name, actual: JSON.stringify(actual), expected: JSON.stringify(expected), passed: approxArray(actual, expected) });
 }
-const grads = getGradients([1, 0], [0, 1], [[0, 1]]);
-check('center gradient', grads.gradCenter, [0.0, 0.0]);
-check('context gradient', grads.gradContext, [-0.5, 0.0]);
-check('negative gradient 0', grads.gradNegatives[0], [0.5, 0.0]);
+const ctx = [0.5, -0.5];
+skipGramTrainStep([1, 0], ctx, [[0, 1]], 0.1);
+check('context gradient update', ctx, [0.537754, -0.5]);
 return results;`,
     hints: [
-      'Calculate posSig = sigmoid(dot(vCenter, vContext)).',
-      'For each context vector dimension, gradContext[i] = (posSig - 1) * vCenter[i].',
-      'For each negative vector, calculate negSig = sigmoid(dot(vCenter, vNeg)). For each dimension, gradNeg[j][i] = negSig * vCenter[i].',
-      'Finally, for each dimension, gradCenter[i] = (posSig - 1) * vContext[i] + sum(negSig * vNeg_j[i]).',
+      'The context gradient scale is (sigmoid(posScore) - 1).',
+      'Multiply that scale by vCenter[i] for each dimension.',
+      'Subtract lr times the gradient from vContext[i].',
     ],
     solution: `/**
- * Calculates gradients of the negative sampling loss for all input vectors.
- * @param {number[]} vCenter - Center word vector.
- * @param {number[]} vContext - True context word vector.
- * @param {number[][]} vNegatives - Array of negative noise word vectors.
- * @returns {{ gradCenter: number[], gradContext: number[], gradNegatives: number[][] }} The gradients.
+ * Runs one Skip-gram negative-sampling training step: loss, gradients, in-place vector updates.
+ * @param {number[]} vCenter - Center word embedding (mutated in place on later steps).
+ * @param {number[]} vContext - True context embedding (mutated in place on later steps).
+ * @param {number[][]} vNegatives - Negative noise embeddings (mutated in place on later steps).
+ * @param {number} lr - Learning rate applied to gradient updates.
+ * @returns {{ loss: number, posScore: number }} Total loss and positive dot product.
  */
-function getGradients(vCenter, vContext, vNegatives) {
-  function dot(a, b) {
-    let s = 0;
-    for (let i = 0; i < a.length; i++) s += a[i] * b[i];
-    return s;
-  }
-  function sigmoid(x) {
-    return 1 / (1 + Math.exp(-x));
-  }
-  
+function skipGramTrainStep(vCenter, vContext, vNegatives, lr) {
   const d = vCenter.length;
-  const gradCenter = Array(d).fill(0);
-  const gradContext = Array(d).fill(0);
-  const gradNegatives = vNegatives.map(() => Array(d).fill(0));
-  
-  const posSig = sigmoid(dot(vCenter, vContext));
+  let posScore = 0;
   for (let i = 0; i < d; i++) {
-    gradContext[i] = (posSig - 1) * vCenter[i];
+    posScore += vCenter[i] * vContext[i];
   }
-  
+
+  const sigmoid = (x) => 1 / (1 + Math.exp(-x));
+  let loss = -Math.log(sigmoid(posScore));
+
   for (let j = 0; j < vNegatives.length; j++) {
-    const negSig = sigmoid(dot(vCenter, vNegatives[j]));
+    let negScore = 0;
     for (let i = 0; i < d; i++) {
-      gradNegatives[j][i] = negSig * vCenter[i];
+      negScore += vCenter[i] * vNegatives[j][i];
     }
+    loss -= Math.log(sigmoid(-negScore));
   }
-  
+
+  const posProb = sigmoid(posScore);
   for (let i = 0; i < d; i++) {
-    let sumNegGrad = 0;
-    for (let j = 0; j < vNegatives.length; j++) {
-      const negSig = sigmoid(dot(vCenter, vNegatives[j]));
-      sumNegGrad += negSig * vNegatives[j][i];
-    }
-    gradCenter[i] = (posSig - 1) * vContext[i] + sumNegGrad;
+    vContext[i] -= lr * (posProb - 1) * vCenter[i];
   }
-  
-  return { gradCenter, gradContext, gradNegatives };
+
+  return { loss, posScore };
 }`,
-    explanation: 'Parameter gradients reflect direction of steepest error increase. Backpropagating these values lets the optimizer improve word embeddings.',
+    explanation: 'Updating vContext first shows how the positive pair gradient nudges the context embedding toward the center word.',
   },
   {
-    id: 'word2vec-gradient-update',
+    id: 'word2vec-update-step',
     stepLabel: '1.5',
     group: 'Skip-gram gradient update',
-    title: 'Word2Vec Parameter Gradient Update',
-    concept: 'With loss gradients computed, we perform stochastic gradient descent updates in the opposite direction of the gradients: Vector = Vector - learningRate * Gradient.',
-    objective: 'Apply the parameter update steps in-place on the center, context, and negative vectors.',
+    title: 'Full Skip-Gram Training Step',
+    concept: 'A complete Skip-gram step also updates vCenter and every negative vector using their respective gradients from the negative-sampling objective.',
+    objective: 'Inside skipGramTrainStep, finish the center and negative gradient updates after the context update.',
     difficulty: 'challenge',
     starterCode: `/**
- * Updates embedding vectors using computed gradients and a learning rate.
- * @param {number[]} vCenter - Center word vector to update in-place.
- * @param {number[]} vContext - Context word vector to update in-place.
- * @param {number[][]} vNegatives - Array of negative word vectors to update in-place.
- * @param {number} lr - Learning rate.
+ * Runs one Skip-gram negative-sampling training step: loss, gradients, in-place vector updates.
+ * @param {number[]} vCenter - Center word embedding (mutated in place on later steps).
+ * @param {number[]} vContext - True context embedding (mutated in place on later steps).
+ * @param {number[][]} vNegatives - Negative noise embeddings (mutated in place on later steps).
+ * @param {number} lr - Learning rate applied to gradient updates.
+ * @returns {{ loss: number, posScore: number }} Total loss and positive dot product.
  */
-function updateWord2Vec(vCenter, vContext, vNegatives, lr) {
-  function dot(a, b) {
-    let s = 0;
-    for (let i = 0; i < a.length; i++) s += a[i] * b[i];
-    return s;
+function skipGramTrainStep(vCenter, vContext, vNegatives, lr) {
+  const d = vCenter.length;
+  let posScore = 0;
+  for (let i = 0; i < d; i++) {
+    posScore += vCenter[i] * vContext[i];
   }
-  function sigmoid(x) {
-    return 1 / (1 + Math.exp(-x));
+
+  const sigmoid = (x) => 1 / (1 + Math.exp(-x));
+  let loss = -Math.log(sigmoid(posScore));
+
+  const negScores = [];
+  for (let j = 0; j < vNegatives.length; j++) {
+    let negScore = 0;
+    for (let i = 0; i < d; i++) {
+      negScore += vCenter[i] * vNegatives[j][i];
+    }
+    negScores.push(negScore);
+    loss -= Math.log(sigmoid(-negScore));
   }
-  
-  // TODO: Compute gradients and subtract (lr * gradient) in-place from each vector.
+
+  const posProb = sigmoid(posScore);
+  for (let i = 0; i < d; i++) {
+    vContext[i] -= lr * (posProb - 1) * vCenter[i];
+  }
+
+  // TODO: update vCenter using the positive context gradient plus every negative contribution.
+
+  return { loss, posScore };
 }`,
     testCode: `const results = [];
-function approxEqual(a, b, tolerance = 1e-4) { return Math.abs(a - b) <= tolerance; }
-function approxArray(a, b) { return a.length === b.length && a.every((v, i) => approxEqual(v, b[i])); }
+function approxEqual(a, b, tol = 1e-3) { return Math.abs(a - b) <= tol; }
 function check(name, actual, expected) {
-  results.push({ name, actual: JSON.stringify(actual), expected: JSON.stringify(expected), passed: approxArray(actual, expected) });
+  results.push({ name, actual, expected, passed: approxEqual(actual, expected) });
 }
-const vc = [1.0, 0.0];
-const vx = [0.0, 1.0];
-const vn = [[0.0, 1.0]];
-updateWord2Vec(vc, vx, vn, 0.1);
-check('vc update', vc, [1.0, 0.0]);
-check('vx update', vx, [0.05, 1.0]);
-check('vn update', vn[0], [-0.05, 1.0]);
+const center = [1, 0];
+const context = [0, 1];
+const neg = [[0, 1]];
+const out = skipGramTrainStep(center, context, neg, 0.05);
+check('full step loss', out.loss, 1.386294);
+check('center moved toward context', center[0] > 1, true);
+check('negative adjusted', neg[0][0] < 0, true);
 return results;`,
     hints: [
-      'Call the helper logic to compute gradients: gradCenter, gradContext, gradNegatives.',
-      'Subtract (lr * gradCenter[i]) from vCenter[i] for all dimensions.',
-      'Subtract (lr * gradContext[i]) from vContext[i] for all dimensions.',
-      'Subtract (lr * gradNegatives[j][i]) from vNegatives[j][i] for all negatives and dimensions.',
+      'Center gradient starts with (posProb - 1) * vContext.',
+      'Add sigmoid(negScore) * vNegatives[j] for each negative sample.',
+      'Subtract lr times the accumulated gradient from each vCenter[i]. Also update each negative vector with lr * sigmoid(negScore) * vCenter.',
     ],
     solution: `/**
- * Updates embedding vectors using computed gradients and a learning rate.
- * @param {number[]} vCenter - Center word vector to update in-place.
- * @param {number[]} vContext - Context word vector to update in-place.
- * @param {number[][]} vNegatives - Array of negative word vectors to update in-place.
- * @param {number} lr - Learning rate.
+ * Runs one Skip-gram negative-sampling training step: loss, gradients, in-place vector updates.
+ * @param {number[]} vCenter - Center word embedding (mutated in place on later steps).
+ * @param {number[]} vContext - True context embedding (mutated in place on later steps).
+ * @param {number[][]} vNegatives - Negative noise embeddings (mutated in place on later steps).
+ * @param {number} lr - Learning rate applied to gradient updates.
+ * @returns {{ loss: number, posScore: number }} Total loss and positive dot product.
  */
-function updateWord2Vec(vCenter, vContext, vNegatives, lr) {
-  function dot(a, b) {
-    let s = 0;
-    for (let i = 0; i < a.length; i++) s += a[i] * b[i];
-    return s;
-  }
-  function sigmoid(x) {
-    return 1 / (1 + Math.exp(-x));
-  }
-  
+function skipGramTrainStep(vCenter, vContext, vNegatives, lr) {
   const d = vCenter.length;
-  const posSig = sigmoid(dot(vCenter, vContext));
-  const gradContext = Array(d).fill(0);
-  const gradCenter = Array(d).fill(0);
-  const gradNegatives = vNegatives.map(() => Array(d).fill(0));
-  
+  let posScore = 0;
   for (let i = 0; i < d; i++) {
-    gradContext[i] = (posSig - 1) * vCenter[i];
+    posScore += vCenter[i] * vContext[i];
   }
-  
+
+  const sigmoid = (x) => 1 / (1 + Math.exp(-x));
+  let loss = -Math.log(sigmoid(posScore));
+
+  const negScores = [];
   for (let j = 0; j < vNegatives.length; j++) {
-    const negSig = sigmoid(dot(vCenter, vNegatives[j]));
+    let negScore = 0;
     for (let i = 0; i < d; i++) {
-      gradNegatives[j][i] = negSig * vCenter[i];
+      negScore += vCenter[i] * vNegatives[j][i];
     }
+    negScores.push(negScore);
+    loss -= Math.log(sigmoid(-negScore));
   }
-  
+
+  const posProb = sigmoid(posScore);
   for (let i = 0; i < d; i++) {
-    let sumNegGrad = 0;
-    for (let j = 0; j < vNegatives.length; j++) {
-      const negSig = sigmoid(dot(vCenter, vNegatives[j]));
-      sumNegGrad += negSig * vNegatives[j][i];
-    }
-    gradCenter[i] = (posSig - 1) * vContext[i] + sumNegGrad;
+    vContext[i] -= lr * (posProb - 1) * vCenter[i];
   }
-  
+
+  const gradCenter = Array(d).fill(0);
+  for (let i = 0; i < d; i++) {
+    gradCenter[i] = (posProb - 1) * vContext[i];
+  }
+  for (let j = 0; j < vNegatives.length; j++) {
+    const negProb = sigmoid(negScores[j]);
+    for (let i = 0; i < d; i++) {
+      gradCenter[i] += negProb * vNegatives[j][i];
+      vNegatives[j][i] -= lr * negProb * vCenter[i];
+    }
+  }
   for (let i = 0; i < d; i++) {
     vCenter[i] -= lr * gradCenter[i];
-    vContext[i] -= lr * gradContext[i];
   }
-  
-  for (let j = 0; j < vNegatives.length; j++) {
-    for (let i = 0; i < d; i++) {
-      vNegatives[j][i] -= lr * gradNegatives[j][i];
-    }
-  }
+
+  return { loss, posScore };
 }`,
-    explanation: 'Updating vectors incrementally using gradient updates completes one training step of the Skip-gram negative sampling model.',
+    explanation: 'Completing center and negative updates finishes one stochastic Skip-gram negative-sampling training step.',
   },
 
   // --- GLOVE ---
