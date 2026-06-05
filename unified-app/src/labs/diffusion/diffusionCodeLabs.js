@@ -3,62 +3,184 @@ export const DIFFUSION_CODE_LABS = [
   {
     id: 'diff-beta-schedule',
     stepLabel: '72.1',
-    group: 'Noise scale',
+    group: 'Forward diffusion',
     title: 'Linear Beta Schedule',
-    concept: 'Diffusion models inject noise sequentially according to variance schedule parameters beta_t.',
-    objective: 'Compute beta_t for step t (0-indexed) under a linear schedule from beta_min to beta_max over T total steps.',
+    concept: 'Diffusion models inject noise sequentially according to variance schedule parameters beta_i.',
+    objective: 'Compute beta_i for step i under a linear schedule from betaMin to betaMax over totalSteps.',
     difficulty: 'warmup',
-    starterCode: `function getBeta(t, totalSteps, betaMin, betaMax) {
-  // TODO: compute beta_t = betaMin + (t / (totalSteps - 1)) * (betaMax - betaMin)
-  return 0;
-}`,
-    testCode: `const results = [];
-function approxEqual(a, b, tol = 1e-5) {
-  return Math.abs(a - b) <= tol;
-}
-function check(name, actual, expected) {
-  results.push({ name, actual, expected, passed: approxEqual(actual, expected) });
-}
-check('beta step 0', getBeta(0, 11, 0.1, 0.2), 0.1);
-check('beta mid step', getBeta(5, 11, 0.1, 0.2), 0.15);
-check('beta end step', getBeta(10, 11, 0.1, 0.2), 0.2);
-return results;`,
-    hints: [
-      'Scale the difference (betaMax - betaMin) by the fraction t / (totalSteps - 1).',
-      'Add betaMin to the result.',
-    ],
-    solution: `function getBeta(t, totalSteps, betaMin, betaMax) {
-  return betaMin + (t / (totalSteps - 1)) * (betaMax - betaMin);
-}`,
-    explanation: 'A variance schedule controls the noise injection rate, fading structural features gradually.',
-  },
-  {
-    id: 'diff-forward-sample',
-    stepLabel: '72.2',
-    group: 'Alpha bar',
-    title: 'Forward Diffusion Sample',
-    concept: 'The forward process samples x_t directly from x_0: x_t = sqrt(alpha_bar_t) * x_0 + sqrt(1 - alpha_bar_t) * noise.',
-    objective: 'Generate the noisy sample x_t at step t.',
-    difficulty: 'core',
-    starterCode: `function forwardDiffuse(x0, noise, alphaBarT) {
-  // TODO: return sqrt(alphaBarT) * x0 + sqrt(1 - alphaBarT) * noise
-  return 0;
+    starterCode: `function forwardDiffusionSample(x0, t, totalSteps, betaMin, betaMax, noise) {
+  let alphaBarT = 1.0;
+  
+  for (let i = 0; i <= t; i++) {
+    // TODO: Compute beta_i = betaMin + (i / (totalSteps - 1)) * (betaMax - betaMin)
+    const beta_i = 0.0;
+    
+    const alpha_i = 1.0 - beta_i;
+    alphaBarT *= alpha_i;
+  }
+  
+  return Math.sqrt(alphaBarT) * x0 + Math.sqrt(1 - alphaBarT) * noise;
 }`,
     testCode: `const results = [];
 function approxEqual(a, b, tol = 1e-5) { return Math.abs(a - b) <= tol; }
 function check(name, actual, expected) {
   results.push({ name, actual, expected, passed: approxEqual(actual, expected) });
 }
-check('forward diffuse step', forwardDiffuse(1.5, -0.8, 0.64), 0.72); // 0.8*1.5 + 0.6*-0.8 = 1.2 - 0.48 = 0.72
+check('forward beta step', forwardDiffusionSample(1.0, 1, 3, 0.1, 0.5, 0.0), 0.793725);
+return results;`,
+    hints: [
+      'Scale (betaMax - betaMin) by the fraction i / (totalSteps - 1).',
+      'Add betaMin to the result.',
+    ],
+    solution: `function forwardDiffusionSample(x0, t, totalSteps, betaMin, betaMax, noise) {
+  let alphaBarT = 1.0;
+  
+  for (let i = 0; i <= t; i++) {
+    const beta_i = betaMin + (i / (totalSteps - 1)) * (betaMax - betaMin);
+    
+    const alpha_i = 1.0 - beta_i;
+    alphaBarT *= alpha_i;
+  }
+  
+  return Math.sqrt(alphaBarT) * x0 + Math.sqrt(1 - alphaBarT) * noise;
+}`,
+    explanation: 'A variance schedule controls the noise injection rate, fading structural features gradually.',
+  },
+  {
+    id: 'diff-alpha-computation',
+    stepLabel: '72.2',
+    group: 'Forward diffusion',
+    title: 'Alpha computation',
+    concept: 'Alpha represents the fraction of the original signal retained at each step.',
+    objective: 'Compute alpha_i as 1.0 minus beta_i.',
+    difficulty: 'core',
+    starterCode: `function forwardDiffusionSample(x0, t, totalSteps, betaMin, betaMax, noise) {
+  let alphaBarT = 1.0;
+  
+  for (let i = 0; i <= t; i++) {
+    const beta_i = betaMin + (i / (totalSteps - 1)) * (betaMax - betaMin);
+    
+    // TODO: Compute alpha_i = 1.0 - beta_i
+    const alpha_i = 1.0;
+    
+    alphaBarT *= alpha_i;
+  }
+  
+  return Math.sqrt(alphaBarT) * x0 + Math.sqrt(1 - alphaBarT) * noise;
+}`,
+    testCode: `const results = [];
+function approxEqual(a, b, tol = 1e-5) { return Math.abs(a - b) <= tol; }
+function check(name, actual, expected) {
+  results.push({ name, actual, expected, passed: approxEqual(actual, expected) });
+}
+check('forward alpha step', forwardDiffusionSample(1.0, 1, 3, 0.1, 0.5, 0.0), 0.793725);
+return results;`,
+    hints: [
+      'Subtract beta_i from 1.0.',
+    ],
+    solution: `function forwardDiffusionSample(x0, t, totalSteps, betaMin, betaMax, noise) {
+  let alphaBarT = 1.0;
+  
+  for (let i = 0; i <= t; i++) {
+    const beta_i = betaMin + (i / (totalSteps - 1)) * (betaMax - betaMin);
+    
+    const alpha_i = 1.0 - beta_i;
+    
+    alphaBarT *= alpha_i;
+  }
+  
+  return Math.sqrt(alphaBarT) * x0 + Math.sqrt(1 - alphaBarT) * noise;
+}`,
+    explanation: 'Subtracting the noise variance gives us the signal retention coefficient.',
+  },
+  {
+    id: 'diff-alpha-bar',
+    stepLabel: '72.3',
+    group: 'Forward diffusion',
+    title: 'Cumulative Alpha',
+    concept: 'Alpha bar is the cumulative product of alphas from step 0 up to step t.',
+    objective: 'Multiply alphaBarT by alpha_i.',
+    difficulty: 'core',
+    starterCode: `function forwardDiffusionSample(x0, t, totalSteps, betaMin, betaMax, noise) {
+  let alphaBarT = 1.0;
+  
+  for (let i = 0; i <= t; i++) {
+    const beta_i = betaMin + (i / (totalSteps - 1)) * (betaMax - betaMin);
+    const alpha_i = 1.0 - beta_i;
+    
+    // TODO: Multiply alphaBarT by alpha_i
+    
+  }
+  
+  return Math.sqrt(alphaBarT) * x0 + Math.sqrt(1 - alphaBarT) * noise;
+}`,
+    testCode: `const results = [];
+function approxEqual(a, b, tol = 1e-5) { return Math.abs(a - b) <= tol; }
+function check(name, actual, expected) {
+  results.push({ name, actual, expected, passed: approxEqual(actual, expected) });
+}
+check('forward alpha bar', forwardDiffusionSample(1.0, 1, 3, 0.1, 0.5, 0.0), 0.793725);
+return results;`,
+    hints: [
+      'Use the *= operator to accumulate the product.',
+    ],
+    solution: `function forwardDiffusionSample(x0, t, totalSteps, betaMin, betaMax, noise) {
+  let alphaBarT = 1.0;
+  
+  for (let i = 0; i <= t; i++) {
+    const beta_i = betaMin + (i / (totalSteps - 1)) * (betaMax - betaMin);
+    const alpha_i = 1.0 - beta_i;
+    
+    alphaBarT *= alpha_i;
+  }
+  
+  return Math.sqrt(alphaBarT) * x0 + Math.sqrt(1 - alphaBarT) * noise;
+}`,
+    explanation: 'The cumulative product gives the total signal retained after sequentially passing through all t noise layers.',
+  },
+  {
+    id: 'diff-forward-sample',
+    stepLabel: '72.4',
+    group: 'Forward diffusion',
+    title: 'Forward Diffusion Sample',
+    concept: 'The forward process samples x_t directly from x_0: x_t = sqrt(alpha_bar_t) * x_0 + sqrt(1 - alpha_bar_t) * noise.',
+    objective: 'Generate and return the noisy sample x_t at step t.',
+    difficulty: 'core',
+    starterCode: `function forwardDiffusionSample(x0, t, totalSteps, betaMin, betaMax, noise) {
+  let alphaBarT = 1.0;
+  
+  for (let i = 0; i <= t; i++) {
+    const beta_i = betaMin + (i / (totalSteps - 1)) * (betaMax - betaMin);
+    const alpha_i = 1.0 - beta_i;
+    alphaBarT *= alpha_i;
+  }
+  
+  // TODO: return sqrt(alphaBarT) * x0 + sqrt(1 - alphaBarT) * noise
+  return 0.0;
+}`,
+    testCode: `const results = [];
+function approxEqual(a, b, tol = 1e-5) { return Math.abs(a - b) <= tol; }
+function check(name, actual, expected) {
+  results.push({ name, actual, expected, passed: approxEqual(actual, expected) });
+}
+check('forward diffuse sample', forwardDiffusionSample(1.5, 1, 3, 0.1, 0.5, -0.8), 0.703966);
 return results;`,
     hints: [
       'Use Math.sqrt to get the square root of alphaBarT and (1 - alphaBarT).',
       'Multiply the roots by x0 and noise respectively, then sum them.',
     ],
-    solution: `function forwardDiffuse(x0, noise, alphaBarT) {
+    solution: `function forwardDiffusionSample(x0, t, totalSteps, betaMin, betaMax, noise) {
+  let alphaBarT = 1.0;
+  
+  for (let i = 0; i <= t; i++) {
+    const beta_i = betaMin + (i / (totalSteps - 1)) * (betaMax - betaMin);
+    const alpha_i = 1.0 - beta_i;
+    alphaBarT *= alpha_i;
+  }
+  
   return Math.sqrt(alphaBarT) * x0 + Math.sqrt(1 - alphaBarT) * noise;
 }`,
-    explanation: 'Closed-form forward sampling allows training the denoiser network at arbitrary time steps without recurrent unrolling.',
+    explanation: 'Closed-form forward sampling avoids having to simulate thousands of forward steps just to fetch training data.',
   },
 
   // --- diffusion-sampling ---

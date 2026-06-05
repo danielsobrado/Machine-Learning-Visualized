@@ -2230,79 +2230,431 @@ return results;`,
     explanation: 'Scaling old sums ensures the Softmax denominators stay mathematically equivalent to standard Softmax while loading in chunks.',
   },
   {
-    id: 'speculative-accept-check',
+    id: 'speculative-decode-draft-loop',
     stepLabel: '10.1',
-    group: 'Accept/reject rule',
-    title: 'Speculative decoding acceptance check',
-    concept: 'In speculative decoding, the larger target model accepts a token proposed by the draft model with probability min(1, P_target(x)/P_draft(x)).',
-    objective: 'Return true if randVal <= pTarget / pDraft, otherwise false.',
+    group: 'Speculative decode step',
+    title: 'Draft token iteration',
+    concept: 'Speculative decoding proposes multiple draft tokens, and we verify them one by one against the target model.',
+    objective: 'Loop over the draftTokens array to process each proposed token.',
     difficulty: 'warmup',
-    starterCode: `function acceptDraftToken(pTarget, pDraft, randVal) {
-  // TODO: return whether the token is accepted based on the probability ratio
-  return false;
-}`,
-    testCode: `const results = [];
-function check(name, actual, expected) {
-  results.push({ name, actual, expected, passed: Object.is(actual, expected) });
-}
-check('target higher', acceptDraftToken(0.8, 0.4, 0.9), true); // ratio 2.0 >= 0.9
-check('draft higher below u', acceptDraftToken(0.3, 0.6, 0.4), true); // ratio 0.5 >= 0.4
-check('draft higher above u', acceptDraftToken(0.3, 0.6, 0.7), false); // ratio 0.5 < 0.7
-return results;`,
-    hints: [
-      'Compute target-to-draft ratio: pTarget / pDraft.',
-      'Check if randVal is less than or equal to this ratio.',
-      'return randVal <= (pTarget / pDraft);',
-    ],
-    solution: `function acceptDraftToken(pTarget, pDraft, randVal) {
-  return randVal <= (pTarget / pDraft);
-}`,
-    explanation: 'Acceptance sampling allows speculative decoding to maintain the exact distribution of the larger model while accelerating generation.',
-  },
-  {
-    id: 'quantize-find-nearest',
-    stepLabel: '11.1',
-    group: 'Nearest codebook entry',
-    title: 'Nearest quantization level',
-    concept: 'Quantization compresses values by mapping floats to the nearest predefined codebook scale level.',
-    objective: 'Find the index in codebook levels that minimizes absolute distance to value.',
-    difficulty: 'warmup',
-    starterCode: `function nearestQuantizationIndex(value, levels) {
-  let bestIdx = 0;
-  let minDist = Math.abs(value - levels[0]);
-  
-  for (let i = 1; i < levels.length; i++) {
-    // TODO: update bestIdx if levels[i] is closer to value
-  }
-  
-  return bestIdx;
-}`,
-    testCode: `const results = [];
-function check(name, actual, expected) {
-  results.push({ name, actual, expected, passed: Object.is(actual, expected) });
-}
-check('quantize near 0.2', nearestQuantizationIndex(0.2, [-1, 0, 1]), 1); // 0 is nearest
-check('quantize near 0.8', nearestQuantizationIndex(0.8, [-1, 0, 1]), 2); // 1 is nearest
-return results;`,
-    hints: [
-      'Calculate distance using Math.abs(value - levels[i]).',
-      'If this distance is less than minDist, update bestIdx and minDist.',
-    ],
-    solution: `function nearestQuantizationIndex(value, levels) {
-  let bestIdx = 0;
-  let minDist = Math.abs(value - levels[0]);
-  
-  for (let i = 1; i < levels.length; i++) {
-    const dist = Math.abs(value - levels[i]);
-    if (dist < minDist) {
-      minDist = dist;
-      bestIdx = i;
+    starterCode: `function speculativeDecodeStep(draftTokens, draftProbs, targetProbs, randVals) {
+  const acceptedTokens = [];
+
+  // TODO: Loop over the full length of draftTokens
+  for (let i = 0; i < 0; i++) {
+    let ratio = targetProbs[i] / draftProbs[i];
+    if (randVals[i] <= ratio) {
+      acceptedTokens.push(draftTokens[i]);
+    } else {
+      break;
     }
   }
-  
-  return bestIdx;
+
+  return acceptedTokens;
 }`,
-    explanation: 'Mapping floating-point weights to indexes of codebook levels compresses neural networks with minimal loss of accuracy.',
+    testCode: `const results = [];
+function sameArray(a, b) { return JSON.stringify(a) === JSON.stringify(b); }
+function check(name, actual, expected) {
+  results.push({ name, actual: JSON.stringify(actual), expected: JSON.stringify(expected), passed: sameArray(actual, expected) });
+}
+check('accept all', speculativeDecodeStep([5, 9], [0.5, 0.5], [0.8, 0.8], [0.1, 0.2]), [5, 9]);
+return results;`,
+    hints: [
+      'The loop should iterate while i < draftTokens.length.',
+    ],
+    solution: `function speculativeDecodeStep(draftTokens, draftProbs, targetProbs, randVals) {
+  const acceptedTokens = [];
+
+  for (let i = 0; i < draftTokens.length; i++) {
+    let ratio = targetProbs[i] / draftProbs[i];
+    if (randVals[i] <= ratio) {
+      acceptedTokens.push(draftTokens[i]);
+    } else {
+      break;
+    }
+  }
+
+  return acceptedTokens;
+}`,
+    explanation: 'Verifying all draft tokens in one step accelerates generation when they are accepted.',
+  },
+  {
+    id: 'speculative-decode-ratio',
+    stepLabel: '10.2',
+    group: 'Speculative decode step',
+    title: 'Acceptance ratio',
+    concept: 'The acceptance ratio compares how likely the target model thinks a token is vs the draft model.',
+    objective: 'Compute target probability divided by draft probability.',
+    difficulty: 'core',
+    starterCode: `function speculativeDecodeStep(draftTokens, draftProbs, targetProbs, randVals) {
+  const acceptedTokens = [];
+
+  for (let i = 0; i < draftTokens.length; i++) {
+    // TODO: Compute the ratio of targetProbs[i] over draftProbs[i]
+    let ratio = 1.0;
+    
+    if (randVals[i] <= ratio) {
+      acceptedTokens.push(draftTokens[i]);
+    } else {
+      break;
+    }
+  }
+
+  return acceptedTokens;
+}`,
+    testCode: `const results = [];
+function sameArray(a, b) { return JSON.stringify(a) === JSON.stringify(b); }
+function check(name, actual, expected) {
+  results.push({ name, actual: JSON.stringify(actual), expected: JSON.stringify(expected), passed: sameArray(actual, expected) });
+}
+check('accept first only', speculativeDecodeStep([5, 9], [0.8, 0.8], [0.8, 0.2], [0.5, 0.5]), [5]);
+return results;`,
+    hints: [
+      'Divide targetProbs[i] by draftProbs[i].',
+    ],
+    solution: `function speculativeDecodeStep(draftTokens, draftProbs, targetProbs, randVals) {
+  const acceptedTokens = [];
+
+  for (let i = 0; i < draftTokens.length; i++) {
+    let ratio = targetProbs[i] / draftProbs[i];
+    
+    if (randVals[i] <= ratio) {
+      acceptedTokens.push(draftTokens[i]);
+    } else {
+      break;
+    }
+  }
+
+  return acceptedTokens;
+}`,
+    explanation: 'If the target model assigns higher probability than the draft model, the ratio is > 1 and acceptance is guaranteed.',
+  },
+  {
+    id: 'speculative-decode-check',
+    stepLabel: '10.3',
+    group: 'Speculative decode step',
+    title: 'Acceptance check',
+    concept: 'We accept the token if a random value is less than or equal to the acceptance ratio.',
+    objective: 'Accept the token only if randVals[i] <= ratio.',
+    difficulty: 'core',
+    starterCode: `function speculativeDecodeStep(draftTokens, draftProbs, targetProbs, randVals) {
+  const acceptedTokens = [];
+
+  for (let i = 0; i < draftTokens.length; i++) {
+    let ratio = targetProbs[i] / draftProbs[i];
+    
+    // TODO: Check if randVals[i] is less than or equal to ratio
+    if (false) {
+      acceptedTokens.push(draftTokens[i]);
+    } else {
+      break;
+    }
+  }
+
+  return acceptedTokens;
+}`,
+    testCode: `const results = [];
+function sameArray(a, b) { return JSON.stringify(a) === JSON.stringify(b); }
+function check(name, actual, expected) {
+  results.push({ name, actual: JSON.stringify(actual), expected: JSON.stringify(expected), passed: sameArray(actual, expected) });
+}
+check('reject first', speculativeDecodeStep([5, 9], [0.8, 0.8], [0.2, 0.8], [0.5, 0.5]), []);
+return results;`,
+    hints: [
+      'Compare randVals[i] <= ratio.',
+    ],
+    solution: `function speculativeDecodeStep(draftTokens, draftProbs, targetProbs, randVals) {
+  const acceptedTokens = [];
+
+  for (let i = 0; i < draftTokens.length; i++) {
+    let ratio = targetProbs[i] / draftProbs[i];
+    
+    if (randVals[i] <= ratio) {
+      acceptedTokens.push(draftTokens[i]);
+    } else {
+      break;
+    }
+  }
+
+  return acceptedTokens;
+}`,
+    explanation: 'This sampling strategy perfectly maintains the target model distribution.',
+  },
+  {
+    id: 'speculative-decode-full',
+    stepLabel: '10.4',
+    group: 'Speculative decode step',
+    title: 'Full Speculative Decode Step',
+    concept: 'At the first rejection, the draft sequence is broken, and we must stop accepting further tokens.',
+    objective: 'Push to acceptedTokens on success, or break the loop on failure.',
+    difficulty: 'core',
+    starterCode: `function speculativeDecodeStep(draftTokens, draftProbs, targetProbs, randVals) {
+  const acceptedTokens = [];
+
+  for (let i = 0; i < draftTokens.length; i++) {
+    let ratio = targetProbs[i] / draftProbs[i];
+    
+    if (randVals[i] <= ratio) {
+      // TODO: Push the accepted token draftTokens[i]
+      
+    } else {
+      // TODO: Break the loop on first rejection
+      
+    }
+  }
+
+  return acceptedTokens;
+}`,
+    testCode: `const results = [];
+function sameArray(a, b) { return JSON.stringify(a) === JSON.stringify(b); }
+function check(name, actual, expected) {
+  results.push({ name, actual: JSON.stringify(actual), expected: JSON.stringify(expected), passed: sameArray(actual, expected) });
+}
+check('full sequence', speculativeDecodeStep([1, 2, 3], [0.5, 0.5, 0.8], [0.6, 0.2, 0.9], [0.4, 0.6, 0.1]), [1]);
+return results;`,
+    hints: [
+      'Use acceptedTokens.push(draftTokens[i]);',
+      'Use the break; statement in the else block.',
+    ],
+    solution: `function speculativeDecodeStep(draftTokens, draftProbs, targetProbs, randVals) {
+  const acceptedTokens = [];
+
+  for (let i = 0; i < draftTokens.length; i++) {
+    let ratio = targetProbs[i] / draftProbs[i];
+    
+    if (randVals[i] <= ratio) {
+      acceptedTokens.push(draftTokens[i]);
+    } else {
+      break;
+    }
+  }
+
+  return acceptedTokens;
+}`,
+    explanation: 'The loop breaking ensures we only ever decode valid prefixes that align with the target distribution.',
+  },
+  {
+    id: 'turboquant-range',
+    stepLabel: '11.1',
+    group: 'TurboQuant compression',
+    title: 'Quantization Range',
+    concept: 'Quantization scales float values into integer bins. The first step is finding the float range.',
+    objective: 'Compute the min and max of the tensor.',
+    difficulty: 'warmup',
+    starterCode: `function quantizeTensor(tensor, bits) {
+  const qMax = (1 << bits) - 1;
+  
+  // TODO: Find Math.min and Math.max of the tensor array
+  let min = 0;
+  let max = 1;
+  if (min === max) max = min + 1e-5;
+  
+  const scale = (max - min) / qMax;
+  const zeroPoint = Math.round(min / scale);
+  
+  const quantized = [];
+  for (let i = 0; i < tensor.length; i++) {
+    quantized.push(Math.round(tensor[i] / scale) - zeroPoint);
+  }
+  
+  return quantized;
+}`,
+    testCode: `const results = [];
+function sameArray(a, b) { return JSON.stringify(a) === JSON.stringify(b); }
+function check(name, actual, expected) {
+  results.push({ name, actual: JSON.stringify(actual), expected: JSON.stringify(expected), passed: sameArray(actual, expected) });
+}
+check('quantize range 2-bit', quantizeTensor([0.0, 0.5, 1.0], 2), [0, 2, 3]);
+return results;`,
+    hints: [
+      'Use Math.min(...tensor) and Math.max(...tensor).',
+    ],
+    solution: `function quantizeTensor(tensor, bits) {
+  const qMax = (1 << bits) - 1;
+  
+  let min = Math.min(...tensor);
+  let max = Math.max(...tensor);
+  if (min === max) max = min + 1e-5;
+  
+  const scale = (max - min) / qMax;
+  const zeroPoint = Math.round(min / scale);
+  
+  const quantized = [];
+  for (let i = 0; i < tensor.length; i++) {
+    quantized.push(Math.round(tensor[i] / scale) - zeroPoint);
+  }
+  
+  return quantized;
+}`,
+    explanation: 'The full float range is mapped entirely into the available integer quantization buckets.',
+  },
+  {
+    id: 'turboquant-scale',
+    stepLabel: '11.2',
+    group: 'TurboQuant compression',
+    title: 'Scale Factor',
+    concept: 'The scale factor maps the float range (max - min) to the integer range (qMax).',
+    objective: 'Compute the scale by dividing the float range by qMax.',
+    difficulty: 'core',
+    starterCode: `function quantizeTensor(tensor, bits) {
+  const qMax = (1 << bits) - 1;
+  
+  let min = Math.min(...tensor);
+  let max = Math.max(...tensor);
+  if (min === max) max = min + 1e-5;
+  
+  // TODO: Compute scale = (max - min) / qMax
+  const scale = 1.0;
+  const zeroPoint = Math.round(min / scale);
+  
+  const quantized = [];
+  for (let i = 0; i < tensor.length; i++) {
+    quantized.push(Math.round(tensor[i] / scale) - zeroPoint);
+  }
+  
+  return quantized;
+}`,
+    testCode: `const results = [];
+function sameArray(a, b) { return JSON.stringify(a) === JSON.stringify(b); }
+function check(name, actual, expected) {
+  results.push({ name, actual: JSON.stringify(actual), expected: JSON.stringify(expected), passed: sameArray(actual, expected) });
+}
+check('quantize scale 2-bit', quantizeTensor([-1.0, 0.0, 2.0], 2), [0, 1, 3]);
+return results;`,
+    hints: [
+      'The float distance is (max - min). Divide this by qMax.',
+    ],
+    solution: `function quantizeTensor(tensor, bits) {
+  const qMax = (1 << bits) - 1;
+  
+  let min = Math.min(...tensor);
+  let max = Math.max(...tensor);
+  if (min === max) max = min + 1e-5;
+  
+  const scale = (max - min) / qMax;
+  const zeroPoint = Math.round(min / scale);
+  
+  const quantized = [];
+  for (let i = 0; i < tensor.length; i++) {
+    quantized.push(Math.round(tensor[i] / scale) - zeroPoint);
+  }
+  
+  return quantized;
+}`,
+    explanation: 'The scale dictates exactly how much precision is stored per quantization bin.',
+  },
+  {
+    id: 'turboquant-zeropoint',
+    stepLabel: '11.3',
+    group: 'TurboQuant compression',
+    title: 'Zero Point',
+    concept: 'The zero point aligns the lowest float value (min) with the integer 0.',
+    objective: 'Compute the zero point by dividing min by scale and rounding it.',
+    difficulty: 'core',
+    starterCode: `function quantizeTensor(tensor, bits) {
+  const qMax = (1 << bits) - 1;
+  
+  let min = Math.min(...tensor);
+  let max = Math.max(...tensor);
+  if (min === max) max = min + 1e-5;
+  
+  const scale = (max - min) / qMax;
+  
+  // TODO: Compute zeroPoint = Math.round(min / scale)
+  const zeroPoint = 0;
+  
+  const quantized = [];
+  for (let i = 0; i < tensor.length; i++) {
+    quantized.push(Math.round(tensor[i] / scale) - zeroPoint);
+  }
+  
+  return quantized;
+}`,
+    testCode: `const results = [];
+function sameArray(a, b) { return JSON.stringify(a) === JSON.stringify(b); }
+function check(name, actual, expected) {
+  results.push({ name, actual: JSON.stringify(actual), expected: JSON.stringify(expected), passed: sameArray(actual, expected) });
+}
+check('quantize zeropoint', quantizeTensor([10.0, 11.0, 13.0], 2), [0, 1, 3]);
+return results;`,
+    hints: [
+      'Divide min by scale.',
+      'Use Math.round() to ensure the zeroPoint is an integer.',
+    ],
+    solution: `function quantizeTensor(tensor, bits) {
+  const qMax = (1 << bits) - 1;
+  
+  let min = Math.min(...tensor);
+  let max = Math.max(...tensor);
+  if (min === max) max = min + 1e-5;
+  
+  const scale = (max - min) / qMax;
+  const zeroPoint = Math.round(min / scale);
+  
+  const quantized = [];
+  for (let i = 0; i < tensor.length; i++) {
+    quantized.push(Math.round(tensor[i] / scale) - zeroPoint);
+  }
+  
+  return quantized;
+}`,
+    explanation: 'By using an asymmetric zero point, we can quantize ranges that are not centered perfectly around zero without losing fidelity.',
+  },
+  {
+    id: 'turboquant-full',
+    stepLabel: '11.4',
+    group: 'TurboQuant compression',
+    title: 'Quantize Elements',
+    concept: 'Each tensor element is scaled and shifted by the zero point to fit in the integer range.',
+    objective: 'Quantize each element to Math.round(tensor[i] / scale) - zeroPoint.',
+    difficulty: 'core',
+    starterCode: `function quantizeTensor(tensor, bits) {
+  const qMax = (1 << bits) - 1;
+  
+  let min = Math.min(...tensor);
+  let max = Math.max(...tensor);
+  if (min === max) max = min + 1e-5;
+  
+  const scale = (max - min) / qMax;
+  const zeroPoint = Math.round(min / scale);
+  
+  const quantized = [];
+  for (let i = 0; i < tensor.length; i++) {
+    // TODO: Push quantized value Math.round(tensor[i] / scale) - zeroPoint
+    quantized.push(tensor[i]);
+  }
+  
+  return quantized;
+}`,
+    testCode: `const results = [];
+function sameArray(a, b) { return JSON.stringify(a) === JSON.stringify(b); }
+function check(name, actual, expected) {
+  results.push({ name, actual: JSON.stringify(actual), expected: JSON.stringify(expected), passed: sameArray(actual, expected) });
+}
+check('quantize full', quantizeTensor([0.0, 1.0, 3.0], 2), [0, 1, 3]);
+return results;`,
+    hints: [
+      'Divide the element by scale.',
+      'Round it, then subtract the zeroPoint.',
+    ],
+    solution: `function quantizeTensor(tensor, bits) {
+  const qMax = (1 << bits) - 1;
+  
+  let min = Math.min(...tensor);
+  let max = Math.max(...tensor);
+  if (min === max) max = min + 1e-5;
+  
+  const scale = (max - min) / qMax;
+  const zeroPoint = Math.round(min / scale);
+  
+  const quantized = [];
+  for (let i = 0; i < tensor.length; i++) {
+    quantized.push(Math.round(tensor[i] / scale) - zeroPoint);
+  }
+  
+  return quantized;
+}`,
+    explanation: 'The resulting array contains integers only, requiring far less memory while preserving the general distribution of weights.',
   },
   {
     id: 'quantized-dot-scale',

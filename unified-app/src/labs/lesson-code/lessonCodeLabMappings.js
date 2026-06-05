@@ -175,8 +175,8 @@ export const LESSON_GROUP_MAPPINGS = {
   'grouped-query-attention': { source: 'transformer', groups: ['KV head index', 'Repeat/broadcast rule'] },
   'kv-cache': { source: 'transformer', groups: ['Cache append', 'Sequence slicing', 'Cached cross-attention', 'Autoregressive generation step'] },
   'flash-attention': { source: 'transformer', groups: ['Row max update', 'Running sum'] },
-  'spec-sparse-attention': { source: 'transformer', groups: ['Accept/reject rule'] },
-  'turboquant': { source: 'transformer', groups: ['Nearest codebook entry'] },
+  'spec-sparse-attention': { source: 'transformer', groups: ['Speculative decode step'] },
+  'turboquant': { source: 'transformer', groups: ['TurboQuant compression'] },
   'efficient-inference-compression-track': { source: 'transformer', groups: ['Dequant fuse'] },
   'bert': { source: 'transformer', groups: ['80-10-10 masking rule', 'Bidirectional attention mask', 'MLM cross-entropy loss', 'BERT MLM step'] },
   'moe': { source: 'transformer', groups: ['Top-k pick'] },
@@ -276,7 +276,7 @@ export const LESSON_GROUP_MAPPINGS = {
   'pagerank': { source: 'algo', groups: ['Out-link normalize', 'Damping teleport'] },
 
   // Diffusion Models
-  'diffusion-basics': { source: 'diffusion', groups: ['Noise scale', 'Alpha bar'] },
+  'diffusion-basics': { source: 'diffusion', groups: ['Forward diffusion'] },
   'diffusion-sampling': { source: 'diffusion', groups: ['Beta scheduling', 'Forward noise scheduler', 'Posterior mean estimation', 'Denoised reverse step'] },
   'classifier-free-guidance': { source: 'diffusion', groups: ['scale mix'] },
   'unet-vs-dit': { source: 'diffusion', groups: ['skip concat', 'patch tokens'] },
