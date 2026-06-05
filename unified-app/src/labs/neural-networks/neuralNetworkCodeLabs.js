@@ -3787,8 +3787,127 @@ return results;`,
     explanation: 'Minimizing reconstruction loss ensures the latent space captures all necessary information to rebuild the input.',
   },
   {
-    id: 'vae-kl-divergence',
+    id: 'vae-kl-divergence-std',
     stepLabel: 'VAE.3',
+    group: 'KL closed form',
+    title: 'Standard Deviation Recovery',
+    concept: 'VAEs predict log-variance (logvar) for numerical stability. We first convert this to standard deviation.',
+    objective: 'Compute std by taking the exponent of half the logvar.',
+    difficulty: 'warmup',
+    starterCode: `function vaeStep(x, xHat, mu, logvar, eps) {
+  // TODO: calculate std = exp(0.5 * logvar)
+  const std = 1.0;
+  
+  const z = mu;
+  const reconLoss = 0;
+  const klLoss = 0;
+  const elbo = 0;
+  return { z, reconLoss, klLoss, elbo };
+}`,
+    testCode: `const results = [];
+function check(name, actual, expected) {
+  results.push({ name, actual, expected, passed: Math.abs(actual - expected) < 1e-5 });
+}
+const res = vaeStep(0, 0, 0, -1.0, 0); 
+check('std recovery', Math.exp(0.5 * -1.0), 0.6065306);
+return results;`,
+    hints: [
+      'std = Math.exp(0.5 * logvar);',
+    ],
+    solution: `function vaeStep(x, xHat, mu, logvar, eps) {
+  const std = Math.exp(0.5 * logvar);
+  
+  const z = mu;
+  const reconLoss = 0;
+  const klLoss = 0;
+  const elbo = 0;
+  return { z, reconLoss, klLoss, elbo };
+}`,
+    explanation: 'logvar = 2 * log(std). Multiplying by 0.5 undoes the square, and exp() undoes the logarithm.',
+  },
+  {
+    id: 'vae-kl-divergence-reparam',
+    stepLabel: 'VAE.4',
+    group: 'KL closed form',
+    title: 'Reparameterization Trick',
+    concept: 'To allow gradients to flow backwards through a random sampling process, we shift and scale a random Gaussian noise vector eps.',
+    objective: 'Compute the sampled latent vector z.',
+    difficulty: 'warmup',
+    starterCode: `function vaeStep(x, xHat, mu, logvar, eps) {
+  const std = Math.exp(0.5 * logvar);
+  
+  // TODO: compute z = mu + std * eps
+  const z = mu;
+  
+  const reconLoss = 0;
+  const klLoss = 0;
+  const elbo = 0;
+  return { z, reconLoss, klLoss, elbo };
+}`,
+    testCode: `const results = [];
+function check(name, actual, expected) {
+  results.push({ name, actual, expected, passed: Math.abs(actual - expected) < 1e-5 });
+}
+const res = vaeStep(0, 0, 1.0, -1.0, 0.5); 
+check('z sample', res.z, 1.0 + Math.exp(-0.5) * 0.5);
+return results;`,
+    hints: [
+      'z = mu + std * eps;',
+    ],
+    solution: `function vaeStep(x, xHat, mu, logvar, eps) {
+  const std = Math.exp(0.5 * logvar);
+  const z = mu + std * eps;
+  
+  const reconLoss = 0;
+  const klLoss = 0;
+  const elbo = 0;
+  return { z, reconLoss, klLoss, elbo };
+}`,
+    explanation: 'By decoupling the randomness (eps) from the predicted parameters (mu, std), the network can be trained via backpropagation.',
+  },
+  {
+    id: 'vae-kl-divergence-recon',
+    stepLabel: 'VAE.5',
+    group: 'KL closed form',
+    title: 'Reconstruction Loss',
+    concept: 'The VAE must learn to reconstruct the original input from the compressed latent space.',
+    objective: 'Compute the squared error between x and xHat.',
+    difficulty: 'warmup',
+    starterCode: `function vaeStep(x, xHat, mu, logvar, eps) {
+  const std = Math.exp(0.5 * logvar);
+  const z = mu + std * eps;
+  
+  // TODO: compute squared error (x - xHat)^2
+  const reconLoss = 0;
+  
+  const klLoss = 0;
+  const elbo = 0;
+  return { z, reconLoss, klLoss, elbo };
+}`,
+    testCode: `const results = [];
+function check(name, actual, expected) {
+  results.push({ name, actual, expected, passed: Math.abs(actual - expected) < 1e-5 });
+}
+const res = vaeStep(2.0, 1.5, 0, 0, 0); 
+check('recon loss', res.reconLoss, 0.25);
+return results;`,
+    hints: [
+      'reconLoss = (x - xHat) * (x - xHat);',
+    ],
+    solution: `function vaeStep(x, xHat, mu, logvar, eps) {
+  const std = Math.exp(0.5 * logvar);
+  const z = mu + std * eps;
+  const reconLoss = (x - xHat) * (x - xHat);
+  
+  const klLoss = 0;
+  const elbo = 0;
+  return { z, reconLoss, klLoss, elbo };
+}`,
+    explanation: 'Minimizing reconstruction loss ensures the latent space captures all necessary information to rebuild the input.',
+  },
+  {
+    id: 'vae-kl-divergence',
+    stepLabel: 'VAE.6',
     group: 'KL closed form',
     title: 'KL Divergence',
     concept: 'The KL divergence regularizer forces the latent distribution to match a standard Normal distribution (mean 0, variance 1).',
