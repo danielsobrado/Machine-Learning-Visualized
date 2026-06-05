@@ -4520,7 +4520,8 @@ function moeRouterStep(logits, k, expertOutputs, batchAssignments) {
 function approxEqual(a, b, tol = 1e-5) { return Math.abs(a - b) <= tol; }
 function sameArray(a, b) { return a.length === b.length && a.every((v, i) => approxEqual(v, b[i])); }
 function check(name, actual, expected) {
-  results.push({ name, actual: JSON.stringify(actual), expected: JSON.stringify(expected), passed: sameArray(actual, expected) });
+  const passed = Array.isArray(actual) ? sameArray(actual, expected) : approxEqual(actual, expected);
+  results.push({ name, actual: JSON.stringify(actual), expected: JSON.stringify(expected), passed });
 }
 const experts = [[1], [0], [0]];
 check('softmax gate', moeRouterStep([0, 1, 0], 1, experts, []).gateProbs, [0.211942594, 0.576117915, 0.211942594]);
@@ -5287,7 +5288,7 @@ function sparseBlockMaskStep(seqLen, blockSize, blockScores, topK) {
 function check(name, actual, expected) {
   results.push({ name, actual, expected, passed: Object.is(actual, expected) });
 }
-check('sparse region', sparseBlockMaskStep(15, 4, [0, 9, 0, 8], 2).effectiveRegion, 6 * 15);
+check('sparse region', sparseBlockMaskStep(15, 4, [0, 9, 0, 8], 2).effectiveRegion, 7 * 15);
 check('full block pick', sparseBlockMaskStep(8, 4, [10, 1], 1).effectiveRegion, 4 * 8);
 check('beats dense pair count sanity', sparseBlockMaskStep(100, 10, [5, 9, 1, 2, 3, 4, 5, 6, 7, 8], 2).effectiveRegion < 100 * 100, true);
 return results;`,

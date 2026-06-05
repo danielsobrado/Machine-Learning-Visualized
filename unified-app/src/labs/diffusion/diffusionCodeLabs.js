@@ -132,7 +132,8 @@ function diffusionBasicsStep(x0, noise, t, totalSteps, betaMin, betaMax) {
 function approxEqual(a, b, tol = 1e-5) { return Math.abs(a - b) <= tol; }
 function sameArray(a, b) { return a.length === b.length && a.every((v, i) => approxEqual(v, b[i])); }
 function check(name, actual, expected) {
-  results.push({ name, actual: JSON.stringify(actual), expected: JSON.stringify(expected), passed: sameArray(actual, expected) });
+  const passed = Array.isArray(actual) ? sameArray(actual, expected) : approxEqual(actual, expected);
+  results.push({ name, actual: JSON.stringify(actual), expected: JSON.stringify(expected), passed });
 }
 const out = diffusionBasicsStep(1, 0, 2, 3, 0.1, 0.3);
 check('alpha bars', out.alphaBars, [0.9, 0.9 * 0.8, 0.9 * 0.8 * 0.7]);
@@ -820,142 +821,174 @@ function ddpmSamplingStep(xt, epsTheta, t, totalSteps, betaStart, betaEnd, zNois
 
   // --- classifier-free-guidance ---
   {
-    id: 'cfg-combine-direction',
-    stepLabel: '74.1',
-    group: 'scale mix',
-    title: 'Guidance Direction',
-    concept: 'Classifier-Free Guidance extrapolates predictions away from unconditioned outputs. First, we find the direction vector between the conditional and unconditional predictions.',
-    objective: 'Compute the guidance direction: epsCond - epsUncond.',
+    id: 'cfg-uncond-branch',
+    stepLabel: 'CFG.1',
+    group: 'Uncond branch',
+    title: 'Unconditional Generation',
+    concept: 'Classifier-Free Guidance blends a conditional and an unconditional prediction. If the scale is 0, we simply return the unconditional prediction.',
+    objective: 'Implement the unconditional branch when scale is 0.',
     difficulty: 'warmup',
-    starterCode: `function cfgCombine(epsCond, epsUncond, scale) {
-  // TODO: compute guidance direction
-  const direction = 0;
+    starterCode: `/**
+ * Runs one CFG denoise step on a noise prediction (scalar).
+ * @param {number} epsCond - Conditional noise prediction.
+ * @param {number} epsUncond - Unconditional noise prediction.
+ * @param {number} scale - Guidance scale s (1 = no extra guidance, 0 = fully uncond).
+ * @returns {{ guided: number, delta: number }}
+ */
+function cfgGuidanceStep(epsCond, epsUncond, scale) {
+  // TODO: if scale is 0, return the unconditional prediction (and a delta of 0)
   
-  const scaledDirection = scale * direction;
-  return epsUncond + scaledDirection;
+  const delta = epsCond - epsUncond;
+  const guided = epsUncond + scale * delta;
+  return { guided, delta };
 }`,
     testCode: `const results = [];
 function check(name, actual, expected) {
   results.push({ name, actual, expected, passed: Math.abs(actual - expected) < 1e-5 });
 }
-check('scale factor 3.0', cfgCombine(0.8, 0.2, 3.0), 2.0);
+const res = cfgGuidanceStep(0.8, 0.2, 0);
+check('guided equals uncond', res.guided, 0.2);
+check('delta is 0', res.delta, 0);
 return results;`,
     hints: [
-      'Subtract epsUncond from epsCond.',
+      'Check if scale === 0.',
+      'Return { guided: epsUncond, delta: 0 }.',
     ],
-    solution: `function cfgCombine(epsCond, epsUncond, scale) {
-  const direction = epsCond - epsUncond;
+    solution: `function cfgGuidanceStep(epsCond, epsUncond, scale) {
+  if (scale === 0) {
+    return { guided: epsUncond, delta: 0 };
+  }
   
-  const scaledDirection = scale * direction;
-  return epsUncond + scaledDirection;
+  const delta = epsCond - epsUncond;
+  const guided = epsUncond + scale * delta;
+  return { guided, delta };
 }`,
-    explanation: 'The direction vector points away from the generic unconditioned output toward the specific prompt-aligned output.',
+    explanation: 'A scale of 0 completely ignores the text prompt, generating an unguided image.',
   },
   {
-    id: 'cfg-combine-scaled',
-    stepLabel: '74.2',
-    group: 'scale mix',
+    id: 'cfg-cond-branch',
+    stepLabel: 'CFG.2',
+    group: 'Cond branch',
+    title: 'Standard Generation',
+    concept: "If the scale is exactly 1, we don't apply any extra guidance amplification. We simply use the conditional prediction.",
+    objective: 'Implement the conditional branch when scale is 1.',
+    difficulty: 'warmup',
+    starterCode: `function cfgGuidanceStep(epsCond, epsUncond, scale) {
+  if (scale === 0) {
+    return { guided: epsUncond, delta: 0 };
+  }
+  
+  // TODO: if scale is 1, return the conditional prediction
+  
+  const delta = epsCond - epsUncond;
+  const guided = epsUncond + scale * delta;
+  return { guided, delta };
+}`,
+    testCode: `const results = [];
+function check(name, actual, expected) {
+  results.push({ name, actual, expected, passed: Math.abs(actual - expected) < 1e-5 });
+}
+const res = cfgGuidanceStep(0.8, 0.2, 1);
+check('guided equals cond', res.guided, 0.8);
+check('delta equals difference', res.delta, 0.6);
+return results;`,
+    hints: [
+      'Check if scale === 1.',
+      'Return { guided: epsCond, delta: epsCond - epsUncond }.',
+    ],
+    solution: `function cfgGuidanceStep(epsCond, epsUncond, scale) {
+  if (scale === 0) {
+    return { guided: epsUncond, delta: 0 };
+  }
+  
+  if (scale === 1) {
+    return { guided: epsCond, delta: epsCond - epsUncond };
+  }
+  
+  const delta = epsCond - epsUncond;
+  const guided = epsUncond + scale * delta;
+  return { guided, delta };
+}`,
+    explanation: 'A scale of 1 means standard diffusion generation without over-amplifying the text conditioning.',
+  },
+  {
+    id: 'cfg-scale-mix',
+    stepLabel: 'CFG.3',
+    group: 'Scale mix',
     title: 'Guidance Amplification',
-    concept: 'We amplify the guidance direction by multiplying it by the guidance scale (usually > 1.0).',
-    objective: 'Compute the scaled direction: scale * direction.',
+    concept: 'The true power of CFG comes from setting the scale > 1. We calculate the direction pointing from unconditional to conditional, and amplify it.',
+    objective: 'Compute the guided prediction using the CFG formula: epsUncond + scale * (epsCond - epsUncond).',
     difficulty: 'core',
-    starterCode: `function cfgCombine(epsCond, epsUncond, scale) {
-  const direction = epsCond - epsUncond;
+    starterCode: `function cfgGuidanceStep(epsCond, epsUncond, scale) {
+  if (scale === 0) return { guided: epsUncond, delta: 0 };
+  if (scale === 1) return { guided: epsCond, delta: epsCond - epsUncond };
   
-  // TODO: compute the scaled direction
-  const scaledDirection = 0;
+  // TODO: compute delta and guided prediction
+  const delta = 0;
+  const guided = 0;
   
-  return epsUncond + scaledDirection;
+  return { guided, delta };
 }`,
     testCode: `const results = [];
 function check(name, actual, expected) {
   results.push({ name, actual, expected, passed: Math.abs(actual - expected) < 1e-5 });
 }
-check('scale factor 3.0', cfgCombine(0.8, 0.2, 3.0), 2.0);
+const res = cfgGuidanceStep(0.8, 0.2, 3.0);
+check('guided is amplified', res.guided, 2.0);
+check('delta is correct', res.delta, 0.6);
 return results;`,
     hints: [
-      'Multiply direction by scale.',
+      'Compute delta = epsCond - epsUncond.',
+      'Compute guided = epsUncond + scale * delta.',
     ],
-    solution: `function cfgCombine(epsCond, epsUncond, scale) {
-  const direction = epsCond - epsUncond;
+    solution: `function cfgGuidanceStep(epsCond, epsUncond, scale) {
+  if (scale === 0) return { guided: epsUncond, delta: 0 };
+  if (scale === 1) return { guided: epsCond, delta: epsCond - epsUncond };
   
-  const scaledDirection = scale * direction;
+  const delta = epsCond - epsUncond;
+  const guided = epsUncond + scale * delta;
   
-  return epsUncond + scaledDirection;
+  return { guided, delta };
 }`,
-    explanation: 'A scale greater than 1 forces the model to strongly favor the conditioning signal over the unconditioned prior.',
+    explanation: 'By pushing the prediction further away from the unconditional baseline, the model generates images that are much more strongly aligned with the text prompt.',
   },
   {
-    id: 'cfg-combine-baseline',
-    stepLabel: '74.3',
-    group: 'scale mix',
-    title: 'Unconditioned Baseline',
-    concept: 'The extrapolated direction is anchored back onto the unconditioned baseline prediction to form the final noise estimate.',
-    objective: 'Identify the unconditioned baseline to add to the scaled direction.',
+    id: 'cfg-zero-identity',
+    stepLabel: 'CFG.4',
+    group: 'Zero-scale identity',
+    title: 'Mathematical Identity',
+    concept: 'The branches for scale 0 and scale 1 are actually mathematically redundant! If we just evaluate the core formula for scale 0, it gives the exact same result.',
+    objective: 'Verify that the core formula inherently handles the scale 0 and 1 cases.',
     difficulty: 'warmup',
-    starterCode: `function cfgCombine(epsCond, epsUncond, scale) {
-  const direction = epsCond - epsUncond;
-  const scaledDirection = scale * direction;
+    starterCode: `function cfgGuidanceStep(epsCond, epsUncond, scale) {
+  // Notice we removed the special case branches
+  const delta = epsCond - epsUncond;
+  const guided = epsUncond + scale * delta;
   
-  // TODO: set the baseline to epsUncond
-  const baseline = 0;
-  
-  return baseline + scaledDirection;
+  // TODO: Just return the result to prove the math works everywhere
+  return { guided: 0, delta: 0 };
 }`,
     testCode: `const results = [];
 function check(name, actual, expected) {
   results.push({ name, actual, expected, passed: Math.abs(actual - expected) < 1e-5 });
 }
-check('scale factor 3.0', cfgCombine(0.8, 0.2, 3.0), 2.0);
+const res0 = cfgGuidanceStep(0.8, 0.2, 0.0);
+check('scale 0 guided', res0.guided, 0.2);
+check('scale 0 delta', res0.delta, 0.6);
+
+const res1 = cfgGuidanceStep(0.8, 0.2, 1.0);
+check('scale 1 guided', res1.guided, 0.8);
 return results;`,
     hints: [
-      'Set baseline equal to epsUncond.',
+      'Return { guided, delta } directly.',
     ],
-    solution: `function cfgCombine(epsCond, epsUncond, scale) {
-  const direction = epsCond - epsUncond;
-  const scaledDirection = scale * direction;
+    solution: `function cfgGuidanceStep(epsCond, epsUncond, scale) {
+  const delta = epsCond - epsUncond;
+  const guided = epsUncond + scale * delta;
   
-  const baseline = epsUncond;
-  
-  return baseline + scaledDirection;
+  return { guided, delta };
 }`,
-    explanation: 'The unconditioned prediction provides the base structural noise, while the scaled direction steers the semantics.',
-  },
-  {
-    id: 'cfg-combine-full',
-    stepLabel: '74.4',
-    group: 'scale mix',
-    title: 'Full CFG Combination',
-    concept: 'The final guided noise prediction vector is the combination of the baseline and the scaled direction.',
-    objective: 'Add the baseline and scaled direction together to return the full CFG result.',
-    difficulty: 'core',
-    starterCode: `function cfgCombine(epsCond, epsUncond, scale) {
-  const direction = epsCond - epsUncond;
-  const scaledDirection = scale * direction;
-  const baseline = epsUncond;
-  
-  // TODO: add baseline and scaledDirection
-  return 0;
-}`,
-    testCode: `const results = [];
-function check(name, actual, expected) {
-  results.push({ name, actual, expected, passed: Math.abs(actual - expected) < 1e-5 });
-}
-check('scale factor 3.0', cfgCombine(0.8, 0.2, 3.0), 2.0);
-check('scale factor 1.0', cfgCombine(0.8, 0.2, 1.0), 0.8);
-check('scale factor 0.0', cfgCombine(0.8, 0.2, 0.0), 0.2);
-return results;`,
-    hints: [
-      'Return baseline + scaledDirection.',
-    ],
-    solution: `function cfgCombine(epsCond, epsUncond, scale) {
-  const direction = epsCond - epsUncond;
-  const scaledDirection = scale * direction;
-  const baseline = epsUncond;
-  
-  return baseline + scaledDirection;
-}`,
-    explanation: 'Guidance scales greater than 1 amplify the influence of conditioning signals, boosting text alignment and image contrast.',
+    explanation: 'The CFG formula epsUncond + scale * (epsCond - epsUncond) gracefully handles all scale values natively. The branches were just pedagogical steps!',
   },
 
   // --- unet-vs-dit ---
@@ -1062,15 +1095,113 @@ return results;`,
 
   // --- sd3-overview ---
   {
-    id: 'sd3-latent-dims',
+    id: 'sd3-latent-dims-w',
     stepLabel: '76.1',
+    group: 'VAE downscale',
+    title: 'SD3 Latent Width Calculation',
+    concept: 'Stable Diffusion 3 downsamples images by a factor of 8 during VAE encoding. First, we compute the latent width.',
+    objective: 'Divide the pixel width by the spatial compression factor (8).',
+    difficulty: 'warmup',
+    starterCode: `function getSd3LatentShape(width, height) {
+  // TODO: calculate the latent width
+  const wLat = 0;
+  
+  return [wLat, 0];
+}`,
+    testCode: `const results = [];
+function check(name, actual, expected) {
+  results.push({ name, actual: JSON.stringify(actual), expected: JSON.stringify(expected), passed: JSON.stringify(actual) === JSON.stringify(expected) });
+}
+check('512 width', getSd3LatentShape(512, 512), [64, 0]);
+return results;`,
+    hints: [
+      'Divide width by 8.',
+    ],
+    solution: `function getSd3LatentShape(width, height) {
+  const wLat = width / 8;
+  return [wLat, 0];
+}`,
+    explanation: 'The latent dimension is significantly smaller, making it easier for the network to process spatial features.',
+  },
+  {
+    id: 'sd3-latent-dims-h',
+    stepLabel: '76.2',
+    group: 'VAE downscale',
+    title: 'SD3 Latent Height Calculation',
+    concept: 'Next, we compute the latent height using the same downscale factor of 8.',
+    objective: 'Divide the pixel height by 8.',
+    difficulty: 'warmup',
+    starterCode: `function getSd3LatentShape(width, height) {
+  const wLat = width / 8;
+  
+  // TODO: calculate the latent height
+  const hLat = 0;
+  
+  return [wLat, hLat];
+}`,
+    testCode: `const results = [];
+function check(name, actual, expected) {
+  results.push({ name, actual: JSON.stringify(actual), expected: JSON.stringify(expected), passed: JSON.stringify(actual) === JSON.stringify(expected) });
+}
+check('512x512 resolution', getSd3LatentShape(512, 512), [64, 64]);
+return results;`,
+    hints: [
+      'Divide height by 8.',
+    ],
+    solution: `function getSd3LatentShape(width, height) {
+  const wLat = width / 8;
+  const hLat = height / 8;
+  
+  return [wLat, hLat];
+}`,
+    explanation: 'Both width and height are compressed independently by the VAE.',
+  },
+  {
+    id: 'sd3-latent-dims-array',
+    stepLabel: '76.3',
+    group: 'VAE downscale',
+    title: 'Array Construction',
+    concept: 'We store the resulting downscaled dimensions in a shape array.',
+    objective: 'Construct the array holding the width and height.',
+    difficulty: 'warmup',
+    starterCode: `function getSd3LatentShape(width, height) {
+  const wLat = width / 8;
+  const hLat = height / 8;
+  
+  // TODO: Create an array with the two dimensions
+  const shape = [];
+  
+  return shape;
+}`,
+    testCode: `const results = [];
+function check(name, actual, expected) {
+  results.push({ name, actual: JSON.stringify(actual), expected: JSON.stringify(expected), passed: JSON.stringify(actual) === JSON.stringify(expected) });
+}
+check('512x512 resolution', getSd3LatentShape(512, 512), [64, 64]);
+return results;`,
+    hints: [
+      'Use [wLat, hLat].',
+    ],
+    solution: `function getSd3LatentShape(width, height) {
+  const wLat = width / 8;
+  const hLat = height / 8;
+  
+  const shape = [wLat, hLat];
+  
+  return shape;
+}`,
+    explanation: 'The shape array represents the spatial footprint of the latent representation.',
+  },
+  {
+    id: 'sd3-latent-dims',
+    stepLabel: '76.4',
     group: 'VAE downscale',
     title: 'SD3 Latent Shape Calculation',
     concept: 'Stable Diffusion 3 downsamples images by a factor of 8 during VAE encoding: H_lat = H / 8, W_lat = W / 8.',
-    objective: 'Compute VAE latent dimension sizes.',
-    difficulty: 'warmup',
+    objective: 'Optimize the function to return the downscaled dimensions directly.',
+    difficulty: 'core',
     starterCode: `function getSd3LatentShape(width, height) {
-  // TODO: divide width and height by 8, return [wLat, hLat]
+  // TODO: divide width and height by 8, return [wLat, hLat] in one line
   return [0, 0];
 }`,
     testCode: `const results = [];
@@ -1148,13 +1279,105 @@ return results;`,
 
   // --- diffusion-vae ---
   {
-    id: 'vae-latent-scaling',
+    id: 'vae-latent-scaling-factor',
     stepLabel: '78.1',
     group: 'encode scale',
-    title: 'VAE Latent Scaling',
+    title: 'Scale Factor Definition',
     concept: 'Latent vectors are scaled to ensure training stability and match unit-variance Gaussian distributions.',
-    objective: 'Apply the standard scaling factor (e.g. 0.18215) to visual latent representation values.',
+    objective: 'Define the standard SD scaling factor of 0.18215.',
     difficulty: 'warmup',
+    starterCode: `function scaleLatent(val) {
+  // TODO: Define the constant factor 0.18215
+  const factor = 1.0;
+  
+  return val;
+}`,
+    testCode: `const results = [];
+function approxEqual(a, b, tol = 1e-5) { return Math.abs(a - b) <= tol; }
+function check(name, actual, expected) {
+  results.push({ name, actual, expected, passed: approxEqual(actual, expected) });
+}
+check('identity', scaleLatent(5.0), 5.0);
+return results;`,
+    hints: [
+      'Set factor to 0.18215.',
+    ],
+    solution: `function scaleLatent(val) {
+  const factor = 0.18215;
+  return val;
+}`,
+    explanation: 'The factor is empirically determined during VAE pre-training to enforce unit variance across the latent space.',
+  },
+  {
+    id: 'vae-latent-scaling-multiply',
+    stepLabel: '78.2',
+    group: 'encode scale',
+    title: 'Latent Scaling Application',
+    concept: 'We multiply the raw latent values by the scaling factor.',
+    objective: 'Multiply the latent val by the scaling factor.',
+    difficulty: 'warmup',
+    starterCode: `function scaleLatent(val) {
+  const factor = 0.18215;
+  
+  // TODO: scale the latent value by multiplying it with the factor
+  const scaled = val;
+  
+  return scaled;
+}`,
+    testCode: `const results = [];
+function approxEqual(a, b, tol = 1e-5) { return Math.abs(a - b) <= tol; }
+function check(name, actual, expected) {
+  results.push({ name, actual, expected, passed: approxEqual(actual, expected) });
+}
+check('standard scale', scaleLatent(5.0), 0.91075);
+return results;`,
+    hints: [
+      'scaled = val * factor;',
+    ],
+    solution: `function scaleLatent(val) {
+  const factor = 0.18215;
+  
+  const scaled = val * factor;
+  
+  return scaled;
+}`,
+    explanation: 'Multiplying by the scale factor adjusts the standard deviation of the latents.',
+  },
+  {
+    id: 'vae-latent-scaling-return',
+    stepLabel: '78.3',
+    group: 'encode scale',
+    title: 'Optimized Latent Scaling',
+    concept: 'We can supply the factor as a default argument and perform the multiplication inline.',
+    objective: 'Return val multiplied by factor directly.',
+    difficulty: 'warmup',
+    starterCode: `function scaleLatent(val, factor = 0.18215) {
+  // TODO: return the multiplied value directly
+  return val;
+}`,
+    testCode: `const results = [];
+function approxEqual(a, b, tol = 1e-5) { return Math.abs(a - b) <= tol; }
+function check(name, actual, expected) {
+  results.push({ name, actual, expected, passed: approxEqual(actual, expected) });
+}
+check('standard scale', scaleLatent(5.0), 0.91075);
+return results;`,
+    hints: [
+      'return val * factor;',
+    ],
+    solution: `function scaleLatent(val, factor = 0.18215) {
+  return val * factor;
+}`,
+    explanation: 'This clean abstraction allows us to scale latents easily without hardcoding the factor inside the logic.',
+  },
+  {
+    id: 'vae-latent-scaling',
+    stepLabel: '78.4',
+    group: 'encode scale',
+    title: 'VAE Latent Scaling',
+    concept: 'Scaling coordinates avoids vanishing activation magnitudes, preserving gradients across deep blocks.',
+    objective: 'Apply the standard scaling factor (e.g. 0.18215) to visual latent representation values.',
+    difficulty: 'core',
     starterCode: `function scaleLatent(val, factor = 0.18215) {
   // TODO: return val multiplied by factor
   return 0;
@@ -1267,12 +1490,96 @@ return results;`,
 
   // --- clip-encoder ---
   {
-    id: 'clip-l2-norm',
+    id: 'clip-l2-norm-sumsq',
     stepLabel: '80.1',
     group: 'L2 normalize',
-    title: 'CLIP Vector L2 Normalization',
-    concept: 'CLIP maps text and image embeddings to a shared latent space, normalizing vectors to lie on a unit hypersphere.',
-    objective: 'Compute the L2 normalized vector: v / ||v||.',
+    title: 'Sum of Squares',
+    concept: 'CLIP maps text and image embeddings to a shared latent space. To compute L2 normalization, we first find the sum of squared elements.',
+    objective: 'Accumulate the square of each element in the vector.',
+    difficulty: 'warmup',
+    starterCode: `function l2Normalize(vec) {
+  let sumSq = 0;
+  
+  for (let i = 0; i < vec.length; i++) {
+    // TODO: add the square of vec[i] to sumSq
+    sumSq += 0;
+  }
+  
+  return vec;
+}`,
+    testCode: `const results = [];
+function sameArr(a, b, tol = 1e-5) {
+  return a.every((v, i) => Math.abs(v - b[i]) <= tol);
+}
+function check(name, actual, expected) {
+  results.push({ name, actual: JSON.stringify(actual), expected: JSON.stringify(expected), passed: sameArr(actual, expected) });
+}
+check('no op yet', l2Normalize([3.0, 4.0]), [3.0, 4.0]);
+return results;`,
+    hints: [
+      'sumSq += vec[i] * vec[i];',
+    ],
+    solution: `function l2Normalize(vec) {
+  let sumSq = 0;
+  
+  for (let i = 0; i < vec.length; i++) {
+    sumSq += vec[i] * vec[i];
+  }
+  
+  return vec;
+}`,
+    explanation: 'Squaring the elements removes negative signs and emphasizes larger magnitudes.',
+  },
+  {
+    id: 'clip-l2-norm-sqrt',
+    stepLabel: '80.2',
+    group: 'L2 normalize',
+    title: 'L2 Vector Norm',
+    concept: 'The L2 norm (magnitude) is the square root of the sum of squares.',
+    objective: 'Compute the square root of sumSq.',
+    difficulty: 'warmup',
+    starterCode: `function l2Normalize(vec) {
+  let sumSq = 0;
+  for (let i = 0; i < vec.length; i++) {
+    sumSq += vec[i] * vec[i];
+  }
+  
+  // TODO: compute the square root to find the norm
+  const norm = 0;
+  
+  return vec;
+}`,
+    testCode: `const results = [];
+function sameArr(a, b, tol = 1e-5) {
+  return a.every((v, i) => Math.abs(v - b[i]) <= tol);
+}
+function check(name, actual, expected) {
+  results.push({ name, actual: JSON.stringify(actual), expected: JSON.stringify(expected), passed: sameArr(actual, expected) });
+}
+check('no op yet', l2Normalize([3.0, 4.0]), [3.0, 4.0]);
+return results;`,
+    hints: [
+      'const norm = Math.sqrt(sumSq);',
+    ],
+    solution: `function l2Normalize(vec) {
+  let sumSq = 0;
+  for (let i = 0; i < vec.length; i++) {
+    sumSq += vec[i] * vec[i];
+  }
+  
+  const norm = Math.sqrt(sumSq);
+  
+  return vec;
+}`,
+    explanation: 'This represents the geometric length of the vector in high-dimensional space.',
+  },
+  {
+    id: 'clip-l2-norm-div',
+    stepLabel: '80.3',
+    group: 'L2 normalize',
+    title: 'Vector Normalization',
+    concept: 'To project the vector onto a unit hypersphere, we divide each coordinate by the calculated norm.',
+    objective: 'Return a new array where each element is divided by norm.',
     difficulty: 'warmup',
     starterCode: `function l2Normalize(vec) {
   let sumSq = 0;
@@ -1280,9 +1587,8 @@ return results;`,
     sumSq += vec[i] * vec[i];
   }
   const norm = Math.sqrt(sumSq);
-  if (norm === 0) return vec;
   
-  // TODO: divide each vector coordinate by norm and return the normalized array
+  // TODO: map the array, dividing each element x by norm
   return vec;
 }`,
     testCode: `const results = [];
@@ -1295,7 +1601,50 @@ function check(name, actual, expected) {
 check('normalize 2D vector', l2Normalize([3.0, 4.0]), [0.6, 0.8]);
 return results;`,
     hints: [
-      'Map each element coordinate x to x / norm.',
+      'return vec.map(x => x / norm);',
+    ],
+    solution: `function l2Normalize(vec) {
+  let sumSq = 0;
+  for (let i = 0; i < vec.length; i++) {
+    sumSq += vec[i] * vec[i];
+  }
+  const norm = Math.sqrt(sumSq);
+  
+  return vec.map(x => x / norm);
+}`,
+    explanation: 'Now the vector has a length of exactly 1.0, making dot products directly equivalent to cosine similarity.',
+  },
+  {
+    id: 'clip-l2-norm',
+    stepLabel: '80.4',
+    group: 'L2 normalize',
+    title: 'CLIP Vector L2 Normalization',
+    concept: 'We must also add a safeguard to avoid dividing by zero if an empty or zero vector is passed in.',
+    objective: 'Add a check to return vec directly if norm is 0.',
+    difficulty: 'core',
+    starterCode: `function l2Normalize(vec) {
+  let sumSq = 0;
+  for (let i = 0; i < vec.length; i++) {
+    sumSq += vec[i] * vec[i];
+  }
+  const norm = Math.sqrt(sumSq);
+  
+  // TODO: if norm is 0, return vec early
+  
+  return vec.map(x => x / norm);
+}`,
+    testCode: `const results = [];
+function sameArr(a, b, tol = 1e-5) {
+  return a.every((v, i) => Math.abs(v - b[i]) <= tol);
+}
+function check(name, actual, expected) {
+  results.push({ name, actual: JSON.stringify(actual), expected: JSON.stringify(expected), passed: sameArr(actual, expected) });
+}
+check('normalize 2D vector', l2Normalize([3.0, 4.0]), [0.6, 0.8]);
+check('zero vector', l2Normalize([0.0, 0.0]), [0.0, 0.0]);
+return results;`,
+    hints: [
+      'if (norm === 0) return vec;',
     ],
     solution: `function l2Normalize(vec) {
   let sumSq = 0;
@@ -1311,12 +1660,110 @@ return results;`,
 
   // --- t5-encoder ---
   {
-    id: 't5-pad-attention-mask',
+    id: 't5-pad-attention-mask-init',
     stepLabel: '81.1',
     group: 'pad mask',
+    title: 'Mask Array Initialization',
+    concept: 'T5 text encoders block attention to padding tokens by constructing boolean masks. We start with an empty array.',
+    objective: 'Create and return an empty mask array.',
+    difficulty: 'warmup',
+    starterCode: `function getAttentionMask(tokenIds, padId) {
+  // TODO: initialize and return an empty mask array
+  return null;
+}`,
+    testCode: `const results = [];
+function check(name, actual, expected) {
+  results.push({ name, actual: JSON.stringify(actual), expected: JSON.stringify(expected), passed: JSON.stringify(actual) === JSON.stringify(expected) });
+}
+check('init empty', getAttentionMask([42], 0), []);
+return results;`,
+    hints: [
+      'return [];',
+    ],
+    solution: `function getAttentionMask(tokenIds, padId) {
+  const mask = [];
+  return mask;
+}`,
+    explanation: 'The attention mask has the same sequence length as the tokenized text input.',
+  },
+  {
+    id: 't5-pad-attention-mask-loop',
+    stepLabel: '81.2',
+    group: 'pad mask',
+    title: 'Token Iteration',
+    concept: 'We iterate through each token in the token sequence.',
+    objective: 'Create a loop over the tokenIds and append 1 for each token.',
+    difficulty: 'warmup',
+    starterCode: `function getAttentionMask(tokenIds, padId) {
+  const mask = [];
+  
+  // TODO: Loop over tokenIds and push 1 to the mask
+  
+  return mask;
+}`,
+    testCode: `const results = [];
+function check(name, actual, expected) {
+  results.push({ name, actual: JSON.stringify(actual), expected: JSON.stringify(expected), passed: JSON.stringify(actual) === JSON.stringify(expected) });
+}
+check('push ones', getAttentionMask([42, 107], 0), [1, 1]);
+return results;`,
+    hints: [
+      'for (let i = 0; i < tokenIds.length; i++) { mask.push(1); }',
+    ],
+    solution: `function getAttentionMask(tokenIds, padId) {
+  const mask = [];
+  for (let i = 0; i < tokenIds.length; i++) {
+    mask.push(1);
+  }
+  return mask;
+}`,
+    explanation: 'A 1 indicates that the attention mechanism should process this token.',
+  },
+  {
+    id: 't5-pad-attention-mask-cond',
+    stepLabel: '81.3',
+    group: 'pad mask',
+    title: 'Padding Condition',
+    concept: 'If the token matches the padId, it should be masked out with a 0 instead of a 1.',
+    objective: 'Add a condition to push 0 if the token is padId.',
+    difficulty: 'core',
+    starterCode: `function getAttentionMask(tokenIds, padId) {
+  const mask = [];
+  for (let i = 0; i < tokenIds.length; i++) {
+    // TODO: If tokenIds[i] is padId, push 0, else push 1
+    mask.push(1);
+  }
+  return mask;
+}`,
+    testCode: `const results = [];
+function check(name, actual, expected) {
+  results.push({ name, actual: JSON.stringify(actual), expected: JSON.stringify(expected), passed: JSON.stringify(actual) === JSON.stringify(expected) });
+}
+check('mask out padding ID 0', getAttentionMask([42, 107, 0, 0], 0), [1, 1, 0, 0]);
+return results;`,
+    hints: [
+      'if (tokenIds[i] === padId) { mask.push(0); } else { mask.push(1); }',
+    ],
+    solution: `function getAttentionMask(tokenIds, padId) {
+  const mask = [];
+  for (let i = 0; i < tokenIds.length; i++) {
+    if (tokenIds[i] === padId) {
+      mask.push(0);
+    } else {
+      mask.push(1);
+    }
+  }
+  return mask;
+}`,
+    explanation: 'This manual loop explicitly builds the binary padding mask.',
+  },
+  {
+    id: 't5-pad-attention-mask',
+    stepLabel: '81.4',
+    group: 'pad mask',
     title: 'T5 Padding Attention Mask',
-    concept: 'T5 text encoders block attention to padding tokens by constructing boolean masks.',
-    objective: 'Generate a binary attention mask where valid tokens are 1 and pad tokens are 0.',
+    concept: 'We can optimize this into a single mapping operation.',
+    objective: 'Generate a binary attention mask using tokenIds.map.',
     difficulty: 'warmup',
     starterCode: `function getAttentionMask(tokenIds, padId) {
   // TODO: map tokenIds to 1 if token is not padId, otherwise 0
@@ -1339,12 +1786,77 @@ return results;`,
 
   // --- joint-attention ---
   {
-    id: 'joint-attn-concat-seq',
+    id: 'joint-attn-concat-init',
     stepLabel: '82.1',
     group: 'Concat Q',
+    title: 'Array Expansion',
+    concept: "SD3's Joint Attention block concatenates text and image tokens along the sequence dimension. We start by copying the text embeddings.",
+    objective: 'Create a new array containing all elements of textEmbeds.',
+    difficulty: 'warmup',
+    starterCode: `function concatEmbeddings(textEmbeds, imageEmbeds) {
+  // TODO: Create a new array from textEmbeds
+  const joint = [];
+  
+  return joint;
+}`,
+    testCode: `const results = [];
+function check(name, actual, expected) {
+  results.push({ name, actual: JSON.stringify(actual), expected: JSON.stringify(expected), passed: JSON.stringify(actual) === JSON.stringify(expected) });
+}
+check('copy text', concatEmbeddings([[1, 2]], []), [[1, 2]]);
+return results;`,
+    hints: [
+      'Use the spread operator [...textEmbeds].',
+    ],
+    solution: `function concatEmbeddings(textEmbeds, imageEmbeds) {
+  const joint = [...textEmbeds];
+  
+  return joint;
+}`,
+    explanation: 'We must not mutate the original sequence, so we create a new joint sequence array.',
+  },
+  {
+    id: 'joint-attn-concat-loop',
+    stepLabel: '82.2',
+    group: 'Concat Q',
+    title: 'Image Append Loop',
+    concept: 'Next, we append each image token sequentially to the end of the text tokens.',
+    objective: 'Loop through imageEmbeds and push each token to joint.',
+    difficulty: 'warmup',
+    starterCode: `function concatEmbeddings(textEmbeds, imageEmbeds) {
+  const joint = [...textEmbeds];
+  
+  // TODO: Loop over imageEmbeds and push to joint
+  
+  return joint;
+}`,
+    testCode: `const results = [];
+function check(name, actual, expected) {
+  results.push({ name, actual: JSON.stringify(actual), expected: JSON.stringify(expected), passed: JSON.stringify(actual) === JSON.stringify(expected) });
+}
+check('concat sequences', concatEmbeddings([[1, 2]], [[3, 4], [5, 6]]), [[1, 2], [3, 4], [5, 6]]);
+return results;`,
+    hints: [
+      'for (let i = 0; i < imageEmbeds.length; i++) { joint.push(imageEmbeds[i]); }',
+    ],
+    solution: `function concatEmbeddings(textEmbeds, imageEmbeds) {
+  const joint = [...textEmbeds];
+  
+  for (let i = 0; i < imageEmbeds.length; i++) {
+    joint.push(imageEmbeds[i]);
+  }
+  
+  return joint;
+}`,
+    explanation: 'The resulting sequence length is seq_txt + seq_img.',
+  },
+  {
+    id: 'joint-attn-concat-seq',
+    stepLabel: '82.3',
+    group: 'Concat Q',
     title: 'Multimodal Sequence Concatenation',
-    concept: 'SD3\'s Joint Attention block concatenates text and image tokens along the sequence dimension, letting them interact directly.',
-    objective: 'Concatenate text and image token lists into a combined multimodal sequence.',
+    concept: 'We can optimize this significantly using native array concatenation methods.',
+    objective: 'Concatenate text and image token lists into a combined multimodal sequence in one line.',
     difficulty: 'warmup',
     starterCode: `function concatEmbeddings(textEmbeds, imageEmbeds) {
   // textEmbeds and imageEmbeds are arrays of vectors
@@ -1368,140 +1880,206 @@ return results;`,
 
   // --- dit ---
   {
-    id: 'dit-adaln-factor',
-    stepLabel: '83.1',
-    group: 'adaLN scale/shift',
-    title: 'Scale Factor',
-    concept: 'Diffusion Transformers modulate layers using adaptive layer normalization (adaLN). The scale parameter acts as a delta, so the true multiplier is 1 + scale.',
-    objective: 'Compute the true scale multiplier: 1 + scale.',
+    id: 'dit-time-embed',
+    stepLabel: 'DiT.1',
+    group: 'Time embed inject',
+    title: 'Time Embed Injection',
+    concept: 'Diffusion Transformers (DiT) use a time-conditioned embedding (tEmb) to derive per-dimension scale and shift parameters for adaptive Layer Normalization (adaLN).',
+    objective: 'Accept precomputed scale and shift from the time embedding, and return an empty block state.',
     difficulty: 'warmup',
-    starterCode: `function applyAdaLN(x, scale, shift) {
-  // TODO: compute 1 + scale
-  const scaleMultiplier = 0;
+    starterCode: `/**
+ * Runs one DiT block step: time embedding → adaLN modulation → self-attn stub → MLP residual.
+ * @param {number[]} x - Token hidden state.
+ * @param {number[]} scale - adaLN scale from tEmb.
+ * @param {number[]} shift - adaLN shift from tEmb.
+ * @param {number[]} attnOut - Self-attention output.
+ * @param {number[]} mlpOut - MLP output.
+ * @returns {{ modulated: number[], afterAttn: number[], afterMlp: number[] }}
+ */
+function ditBlockStep(x, scale, shift, attnOut, mlpOut) {
+  // TODO: initialize empty arrays for the subsequent steps
+  const modulated = [];
+  const afterAttn = [];
+  const afterMlp = [];
   
-  const scaledX = x * scaleMultiplier;
-  return scaledX + shift;
+  return { modulated, afterAttn, afterMlp };
 }`,
     testCode: `const results = [];
 function check(name, actual, expected) {
-  results.push({ name, actual, expected, passed: Math.abs(actual - expected) < 1e-5 });
+  results.push({ name, actual, expected, passed: Object.is(actual, expected) });
 }
-check('scale and shift positive', applyAdaLN(1.5, 0.2, 0.5), 2.3);
+const res = ditBlockStep([1, 1], [0.1, 0.2], [0.5, 0.5], [0, 0], [0, 0]);
+check('empty initialization', res.modulated.length, 0);
 return results;`,
     hints: [
-      'Add 1 to scale.',
+      'The arrays are already initialized. Just run the test.',
     ],
-    solution: `function applyAdaLN(x, scale, shift) {
-  const scaleMultiplier = 1 + scale;
+    solution: `function ditBlockStep(x, scale, shift, attnOut, mlpOut) {
+  const modulated = [];
+  const afterAttn = [];
+  const afterMlp = [];
   
-  const scaledX = x * scaleMultiplier;
-  return scaledX + shift;
+  return { modulated, afterAttn, afterMlp };
 }`,
-    explanation: 'By treating the predicted scale as a delta centered at zero, the network naturally defaults to identity initialization (multiplier = 1).',
+    explanation: 'In a real implementation, the time embedding is passed through a linear projection to derive these scale and shift vectors dynamically.',
   },
   {
-    id: 'dit-adaln-apply-scale',
-    stepLabel: '83.2',
+    id: 'dit-adaln',
+    stepLabel: 'DiT.2',
     group: 'adaLN scale/shift',
-    title: 'Apply Scaling',
-    concept: 'We apply the scale multiplier directly to the normalized input vector x.',
-    objective: 'Multiply the input x by the scale multiplier.',
+    title: 'Adaptive LayerNorm',
+    concept: 'We apply the adaLN modulation by scaling and shifting the hidden state x using the time-derived parameters.',
+    objective: 'Compute the modulated state: x[i] * (1 + scale[i]) + shift[i].',
     difficulty: 'core',
-    starterCode: `function applyAdaLN(x, scale, shift) {
-  const scaleMultiplier = 1 + scale;
+    starterCode: `function ditBlockStep(x, scale, shift, attnOut, mlpOut) {
+  const modulated = new Array(x.length).fill(0);
   
-  // TODO: multiply x by scaleMultiplier
-  const scaledX = 0;
+  // TODO: apply adaLN scaling and shifting per dimension
+  for (let i = 0; i < x.length; i++) {
+    modulated[i] = 0;
+  }
   
-  return scaledX + shift;
+  const afterAttn = [];
+  const afterMlp = [];
+  
+  return { modulated, afterAttn, afterMlp };
 }`,
     testCode: `const results = [];
 function check(name, actual, expected) {
   results.push({ name, actual, expected, passed: Math.abs(actual - expected) < 1e-5 });
 }
-check('scale and shift positive', applyAdaLN(1.5, 0.2, 0.5), 2.3);
+const res = ditBlockStep([2.0, -1.0], [0.5, 0.2], [0.1, -0.1], [0, 0], [0, 0]);
+check('modulated dim 0', res.modulated[0], 3.1);
+check('modulated dim 1', res.modulated[1], -1.3);
 return results;`,
     hints: [
-      'Compute x * scaleMultiplier.',
+      'Iterate over x using a for loop.',
+      'For each element, multiply x[i] by (1 + scale[i]) and add shift[i].',
     ],
-    solution: `function applyAdaLN(x, scale, shift) {
-  const scaleMultiplier = 1 + scale;
+    solution: `function ditBlockStep(x, scale, shift, attnOut, mlpOut) {
+  const modulated = new Array(x.length).fill(0);
   
-  const scaledX = x * scaleMultiplier;
+  for (let i = 0; i < x.length; i++) {
+    modulated[i] = x[i] * (1 + scale[i]) + shift[i];
+  }
   
-  return scaledX + shift;
+  const afterAttn = [];
+  const afterMlp = [];
+  
+  return { modulated, afterAttn, afterMlp };
 }`,
-    explanation: 'This scaling operation injects the magnitude of the conditioning context (like time embedding) into the feature stream.',
+    explanation: 'By shifting and scaling the activations, the time step conditions the network to denoise properly at that specific noise level.',
   },
   {
-    id: 'dit-adaln-apply-shift',
-    stepLabel: '83.3',
-    group: 'adaLN scale/shift',
-    title: 'Apply Shift',
-    concept: 'The shift parameter acts as a bias offset applied after scaling.',
-    objective: 'Add the shift parameter to the scaled input.',
+    id: 'dit-attn-residual',
+    stepLabel: 'DiT.3',
+    group: 'Self-attn residual',
+    title: 'Attention Residual Connection',
+    concept: 'After calculating self-attention (which we stub here with attnOut), we add a residual connection from the modulated state.',
+    objective: 'Compute the afterAttn state: modulated[i] + attnOut[i].',
     difficulty: 'warmup',
-    starterCode: `function applyAdaLN(x, scale, shift) {
-  const scaleMultiplier = 1 + scale;
-  const scaledX = x * scaleMultiplier;
+    starterCode: `function ditBlockStep(x, scale, shift, attnOut, mlpOut) {
+  const modulated = new Array(x.length).fill(0);
+  for (let i = 0; i < x.length; i++) {
+    modulated[i] = x[i] * (1 + scale[i]) + shift[i];
+  }
   
-  // TODO: add shift to scaledX
-  const shiftedX = 0;
+  const afterAttn = new Array(x.length).fill(0);
+  // TODO: apply the residual connection around attention
+  for (let i = 0; i < x.length; i++) {
+    afterAttn[i] = 0;
+  }
   
-  return shiftedX;
+  const afterMlp = [];
+  
+  return { modulated, afterAttn, afterMlp };
 }`,
     testCode: `const results = [];
 function check(name, actual, expected) {
   results.push({ name, actual, expected, passed: Math.abs(actual - expected) < 1e-5 });
 }
-check('scale and shift positive', applyAdaLN(1.5, 0.2, 0.5), 2.3);
+const res = ditBlockStep([2.0, -1.0], [0.5, 0.2], [0.1, -0.1], [0.5, -0.5], [0, 0]);
+check('afterAttn dim 0', res.afterAttn[0], 3.6);
+check('afterAttn dim 1', res.afterAttn[1], -1.8);
 return results;`,
     hints: [
-      'Compute scaledX + shift.',
+      'Iterate over the elements.',
+      'Set afterAttn[i] to modulated[i] + attnOut[i].',
     ],
-    solution: `function applyAdaLN(x, scale, shift) {
-  const scaleMultiplier = 1 + scale;
-  const scaledX = x * scaleMultiplier;
+    solution: `function ditBlockStep(x, scale, shift, attnOut, mlpOut) {
+  const modulated = new Array(x.length).fill(0);
+  for (let i = 0; i < x.length; i++) {
+    modulated[i] = x[i] * (1 + scale[i]) + shift[i];
+  }
   
-  const shiftedX = scaledX + shift;
+  const afterAttn = new Array(x.length).fill(0);
+  for (let i = 0; i < x.length; i++) {
+    afterAttn[i] = modulated[i] + attnOut[i];
+  }
   
-  return shiftedX;
+  const afterMlp = [];
+  
+  return { modulated, afterAttn, afterMlp };
 }`,
-    explanation: 'The shift biases the mean of the activations based on the conditioning information.',
+    explanation: 'Residual connections ensure smooth gradient flow and allow the network to learn perturbations rather than entirely new states.',
   },
   {
-    id: 'dit-adaln-full',
-    stepLabel: '83.4',
-    group: 'adaLN scale/shift',
-    title: 'Full AdaLN',
-    concept: 'The full AdaLN modulation computes the scaled and shifted activation output.',
-    objective: 'Return the fully modulated feature value.',
-    difficulty: 'core',
-    starterCode: `function applyAdaLN(x, scale, shift) {
-  const scaleMultiplier = 1 + scale;
-  const scaledX = x * scaleMultiplier;
-  const shiftedX = scaledX + shift;
+    id: 'dit-mlp-residual',
+    stepLabel: 'DiT.4',
+    group: 'MLP residual',
+    title: 'MLP Residual Connection',
+    concept: 'The final step of the DiT block adds a residual connection around the Multi-Layer Perceptron (MLP) component.',
+    objective: 'Compute the afterMlp state: afterAttn[i] + mlpOut[i].',
+    difficulty: 'warmup',
+    starterCode: `function ditBlockStep(x, scale, shift, attnOut, mlpOut) {
+  const modulated = new Array(x.length).fill(0);
+  for (let i = 0; i < x.length; i++) {
+    modulated[i] = x[i] * (1 + scale[i]) + shift[i];
+  }
   
-  // TODO: return the shiftedX value
-  return 0;
+  const afterAttn = new Array(x.length).fill(0);
+  for (let i = 0; i < x.length; i++) {
+    afterAttn[i] = modulated[i] + attnOut[i];
+  }
+  
+  const afterMlp = new Array(x.length).fill(0);
+  // TODO: apply the residual connection around the MLP
+  for (let i = 0; i < x.length; i++) {
+    afterMlp[i] = 0;
+  }
+  
+  return { modulated, afterAttn, afterMlp };
 }`,
     testCode: `const results = [];
 function check(name, actual, expected) {
   results.push({ name, actual, expected, passed: Math.abs(actual - expected) < 1e-5 });
 }
-check('scale and shift positive', applyAdaLN(1.5, 0.2, 0.5), 2.3);
-check('scale and shift negative', applyAdaLN(1.5, -0.2, -0.5), 0.7);
+const res = ditBlockStep([2.0, -1.0], [0.5, 0.2], [0.1, -0.1], [0.5, -0.5], [1.0, 2.0]);
+check('afterMlp dim 0', res.afterMlp[0], 4.6);
+check('afterMlp dim 1', res.afterMlp[1], 0.2);
 return results;`,
     hints: [
-      'Return shiftedX.',
+      'Iterate over the elements.',
+      'Set afterMlp[i] to afterAttn[i] + mlpOut[i].',
     ],
-    solution: `function applyAdaLN(x, scale, shift) {
-  const scaleMultiplier = 1 + scale;
-  const scaledX = x * scaleMultiplier;
-  const shiftedX = scaledX + shift;
+    solution: `function ditBlockStep(x, scale, shift, attnOut, mlpOut) {
+  const modulated = new Array(x.length).fill(0);
+  for (let i = 0; i < x.length; i++) {
+    modulated[i] = x[i] * (1 + scale[i]) + shift[i];
+  }
   
-  return shiftedX;
+  const afterAttn = new Array(x.length).fill(0);
+  for (let i = 0; i < x.length; i++) {
+    afterAttn[i] = modulated[i] + attnOut[i];
+  }
+  
+  const afterMlp = new Array(x.length).fill(0);
+  for (let i = 0; i < x.length; i++) {
+    afterMlp[i] = afterAttn[i] + mlpOut[i];
+  }
+  
+  return { modulated, afterAttn, afterMlp };
 }`,
-    explanation: "AdaLN conditioning injects temporal context (like noise level) directly into the transformer's layer normalization channels.",
+    explanation: 'This completes one entire Diffusion Transformer block, incorporating the time conditioning, attention mechanism, and feed-forward MLP.',
   }
 ];

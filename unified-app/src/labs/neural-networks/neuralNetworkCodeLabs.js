@@ -3329,15 +3329,101 @@ return results;`,
     explanation: '2D sliding window dot products extract translation-invariant spatial features from inputs.',
   },
   {
-    id: 'max-pooling-2d-window',
+    id: 'max-pooling-2d-top',
     stepLabel: '33.1',
     group: 'Window max',
-    title: 'Max pooling window selection',
-    concept: 'Max pooling downsamples representations by selecting the maximum value in local sliding windows (e.g. 2x2).',
-    objective: 'Return the maximum value in a 2x2 patch.',
+    title: 'Max pooling top row',
+    concept: "Max pooling downsamples representations by selecting the maximum value in local sliding windows (e.g. 2x2). First, let's look at the top row.",
+    objective: 'Return the maximum value in the top row of a 2x2 patch.',
     difficulty: 'warmup',
     starterCode: `function getPatchMax(patch2x2) {
-  // TODO: find the maximum value in the 2D array patch2x2
+  // TODO: return the maximum value in the top row
+  return 0;
+}`,
+    testCode: `const results = [];
+function check(name, actual, expected) {
+  results.push({ name, actual, expected, passed: Object.is(actual, expected) });
+}
+check('max top row', getPatchMax([[1, 5], [2, 3]]), 5);
+return results;`,
+    hints: [
+      'Use Math.max(patch2x2[0][0], patch2x2[0][1]).',
+    ],
+    solution: `function getPatchMax(patch2x2) {
+  return Math.max(patch2x2[0][0], patch2x2[0][1]);
+}`,
+    explanation: 'Max pooling extracts the strongest activation from each window.',
+  },
+  {
+    id: 'max-pooling-2d-bottom',
+    stepLabel: '33.2',
+    group: 'Window max',
+    title: 'Max pooling bottom row',
+    concept: 'Next, we look at the bottom row of the 2x2 patch.',
+    objective: 'Return the maximum value in the bottom row.',
+    difficulty: 'warmup',
+    starterCode: `function getPatchMax(patch2x2) {
+  const topMax = Math.max(patch2x2[0][0], patch2x2[0][1]);
+  // TODO: return the maximum value in the bottom row
+  return 0;
+}`,
+    testCode: `const results = [];
+function check(name, actual, expected) {
+  results.push({ name, actual, expected, passed: Object.is(actual, expected) });
+}
+check('max bottom row', getPatchMax([[1, 5], [2, 3]]), 3);
+return results;`,
+    hints: [
+      'Use Math.max(patch2x2[1][0], patch2x2[1][1]).',
+    ],
+    solution: `function getPatchMax(patch2x2) {
+  const topMax = Math.max(patch2x2[0][0], patch2x2[0][1]);
+  return Math.max(patch2x2[1][0], patch2x2[1][1]);
+}`,
+    explanation: 'We now have the local maximums for both rows.',
+  },
+  {
+    id: 'max-pooling-2d-global',
+    stepLabel: '33.3',
+    group: 'Window max',
+    title: 'Global patch max',
+    concept: 'Finally, we compare the row maximums to find the global maximum for the patch.',
+    objective: 'Compare topMax and bottomMax and return the largest.',
+    difficulty: 'warmup',
+    starterCode: `function getPatchMax(patch2x2) {
+  const topMax = Math.max(patch2x2[0][0], patch2x2[0][1]);
+  const bottomMax = Math.max(patch2x2[1][0], patch2x2[1][1]);
+  
+  // TODO: return the larger of the two
+  return 0;
+}`,
+    testCode: `const results = [];
+function check(name, actual, expected) {
+  results.push({ name, actual, expected, passed: Object.is(actual, expected) });
+}
+check('max positive', getPatchMax([[1, 5], [2, 3]]), 5);
+return results;`,
+    hints: [
+      'Use Math.max(topMax, bottomMax).',
+    ],
+    solution: `function getPatchMax(patch2x2) {
+  const topMax = Math.max(patch2x2[0][0], patch2x2[0][1]);
+  const bottomMax = Math.max(patch2x2[1][0], patch2x2[1][1]);
+  
+  return Math.max(topMax, bottomMax);
+}`,
+    explanation: 'The global patch maximum is the final output of the 2x2 max pooling operation.',
+  },
+  {
+    id: 'max-pooling-2d-optimized',
+    stepLabel: '33.4',
+    group: 'Window max',
+    title: 'Optimized Max pooling',
+    concept: 'We can write this in a single optimized Math.max call.',
+    objective: 'Condense the operations into a single Math.max.',
+    difficulty: 'core',
+    starterCode: `function getPatchMax(patch2x2) {
+  // TODO: find the maximum value in one line
   return 0;
 }`,
     testCode: `const results = [];
@@ -3348,7 +3434,6 @@ check('max positive', getPatchMax([[1, 5], [2, 3]]), 5);
 check('max negative', getPatchMax([[-1, -5], [-2, -3]]), -1);
 return results;`,
     hints: [
-      'Flatten the 2D array or check all elements manually.',
       'Use Math.max(patch2x2[0][0], patch2x2[0][1], patch2x2[1][0], patch2x2[1][1]).',
     ],
     solution: `function getPatchMax(patch2x2) {
@@ -3357,15 +3442,103 @@ return results;`,
     explanation: 'Max pooling extracts the strongest activation from each window, ensuring model robustness to translation shifts.',
   },
   {
-    id: 'conv-relu-activation',
+    id: 'conv-relu-identity',
     stepLabel: '34.1',
     group: 'ReLU clip',
-    title: 'Conv + ReLU activation',
-    concept: 'A Conv + ReLU layer performs linear convolution and then clips all negative output coordinates to 0.',
-    objective: 'Apply the ReLU activation function: max(0, x).',
+    title: 'Linear Identity Pass',
+    concept: 'Before adding non-linearity, we begin with a simple identity pass that returns the input unchanged.',
+    objective: 'Return the input x unmodified.',
     difficulty: 'warmup',
     starterCode: `function relu(x) {
-  // TODO: return x if x is positive, otherwise 0
+  // TODO: return x
+  return 0;
+}`,
+    testCode: `const results = [];
+function check(name, actual, expected) {
+  results.push({ name, actual, expected, passed: Object.is(actual, expected) });
+}
+check('relu identity', relu(5), 5);
+return results;`,
+    hints: [
+      'Return x.',
+    ],
+    solution: `function relu(x) {
+  return x;
+}`,
+    explanation: 'Without non-linearity, deep networks collapse into a single linear transformation.',
+  },
+  {
+    id: 'conv-relu-conditional',
+    stepLabel: '34.2',
+    group: 'ReLU clip',
+    title: 'Conditional Branch',
+    concept: 'The ReLU function breaks linearity by treating positive and negative values differently.',
+    objective: 'Add an if statement to return x if it is positive.',
+    difficulty: 'warmup',
+    starterCode: `function relu(x) {
+  // TODO: if x > 0 return x, otherwise return 0
+  return x;
+}`,
+    testCode: `const results = [];
+function check(name, actual, expected) {
+  results.push({ name, actual, expected, passed: Object.is(actual, expected) });
+}
+check('relu positive', relu(5), 5);
+check('relu zero', relu(0), 0);
+return results;`,
+    hints: [
+      'if (x > 0) return x;',
+    ],
+    solution: `function relu(x) {
+  if (x > 0) {
+    return x;
+  }
+  return 0;
+}`,
+    explanation: 'The conditional creates a "hinge" at zero, which provides the non-linearity needed to learn complex functions.',
+  },
+  {
+    id: 'conv-relu-negative',
+    stepLabel: '34.3',
+    group: 'ReLU clip',
+    title: 'Negative Clamping',
+    concept: 'If the value is not positive, ReLU clamps it to zero.',
+    objective: 'Ensure negative values return 0.',
+    difficulty: 'warmup',
+    starterCode: `function relu(x) {
+  if (x > 0) {
+    return x;
+  }
+  // TODO: return 0 for negative values
+  return x;
+}`,
+    testCode: `const results = [];
+function check(name, actual, expected) {
+  results.push({ name, actual, expected, passed: Object.is(actual, expected) });
+}
+check('relu negative', relu(-10), 0);
+return results;`,
+    hints: [
+      'Return 0 at the end of the function.',
+    ],
+    solution: `function relu(x) {
+  if (x > 0) {
+    return x;
+  }
+  return 0;
+}`,
+    explanation: 'Zeroing out negative values adds sparsity to the network activations.',
+  },
+  {
+    id: 'conv-relu-activation',
+    stepLabel: '34.4',
+    group: 'ReLU clip',
+    title: 'Conv + ReLU activation',
+    concept: 'We can optimize this logic into a single line using the Math.max function.',
+    objective: 'Apply the ReLU activation function using Math.max(0, x).',
+    difficulty: 'core',
+    starterCode: `function relu(x) {
+  // TODO: return the maximum of 0 and x
   return 0;
 }`,
     testCode: `const results = [];
@@ -3384,13 +3557,122 @@ return results;`,
     explanation: 'ReLU introduces non-linear decision boundaries, enabling neural networks to model non-linear mappings.',
   },
   {
-    id: 'init-he-std',
+    id: 'init-he-inverse-fanin',
     stepLabel: '35.1',
     group: 'He std',
-    title: 'He initialization standard deviation',
-    concept: 'He initialization (Kaiming init) scales random weights to prevent vanishing/exploding gradients in ReLU networks. Std = sqrt(2 / fanIn).',
-    objective: 'Compute the standard deviation for He initialization.',
+    title: 'Inverse Fan-In',
+    concept: 'He initialization scales random weights to prevent vanishing/exploding gradients. First, we compute the inverse fan-in.',
+    objective: 'Compute 1 / fanIn.',
     difficulty: 'warmup',
+    starterCode: `function getHeStd(fanIn) {
+  // TODO: compute the inverse of the fanIn
+  const invFanIn = 0;
+  
+  return invFanIn;
+}`,
+    testCode: `const results = [];
+function approxEqual(a, b, tol = 1e-5) {
+  return Math.abs(a - b) <= tol;
+}
+function check(name, actual, expected) {
+  results.push({ name, actual, expected, passed: approxEqual(actual, expected) });
+}
+check('fanIn 4', getHeStd(4), 0.25);
+return results;`,
+    hints: [
+      'Divide 1 by fanIn.',
+    ],
+    solution: `function getHeStd(fanIn) {
+  const invFanIn = 1 / fanIn;
+  
+  return invFanIn;
+}`,
+    explanation: 'As the number of inputs (fan-in) increases, the variance of the output grows. We divide by fan-in to keep the variance stable.',
+  },
+  {
+    id: 'init-he-variance',
+    stepLabel: '35.2',
+    group: 'He std',
+    title: 'ReLU Variance Scaling',
+    concept: 'Because ReLU throws away exactly half the activations (the negative ones), we must multiply the variance by 2 to compensate.',
+    objective: 'Multiply the inverse fan-in by 2 to get the He variance.',
+    difficulty: 'core',
+    starterCode: `function getHeStd(fanIn) {
+  const invFanIn = 1 / fanIn;
+  
+  // TODO: multiply by 2 to account for ReLU sparsity
+  const variance = 0;
+  
+  return variance;
+}`,
+    testCode: `const results = [];
+function approxEqual(a, b, tol = 1e-5) {
+  return Math.abs(a - b) <= tol;
+}
+function check(name, actual, expected) {
+  results.push({ name, actual, expected, passed: approxEqual(actual, expected) });
+}
+check('fanIn 4 variance', getHeStd(4), 0.5);
+return results;`,
+    hints: [
+      'Multiply invFanIn by 2.',
+    ],
+    solution: `function getHeStd(fanIn) {
+  const invFanIn = 1 / fanIn;
+  
+  const variance = 2 * invFanIn;
+  
+  return variance;
+}`,
+    explanation: 'Without this factor of 2, the variance of the activations would halve at every layer, leading to vanishing gradients.',
+  },
+  {
+    id: 'init-he-std-calc',
+    stepLabel: '35.3',
+    group: 'He std',
+    title: 'Standard Deviation Extraction',
+    concept: 'Initialization functions need the standard deviation, which is the square root of the variance.',
+    objective: 'Compute the standard deviation from the variance.',
+    difficulty: 'warmup',
+    starterCode: `function getHeStd(fanIn) {
+  const invFanIn = 1 / fanIn;
+  const variance = 2 * invFanIn;
+  
+  // TODO: compute the square root of the variance
+  const std = 0;
+  
+  return std;
+}`,
+    testCode: `const results = [];
+function approxEqual(a, b, tol = 1e-5) {
+  return Math.abs(a - b) <= tol;
+}
+function check(name, actual, expected) {
+  results.push({ name, actual, expected, passed: approxEqual(actual, expected) });
+}
+check('fanIn 512 std', getHeStd(512), 0.0625);
+return results;`,
+    hints: [
+      'Use Math.sqrt(variance).',
+    ],
+    solution: `function getHeStd(fanIn) {
+  const invFanIn = 1 / fanIn;
+  const variance = 2 * invFanIn;
+  
+  const std = Math.sqrt(variance);
+  
+  return std;
+}`,
+    explanation: 'The standard deviation defines the spread of the Gaussian distribution from which we will sample the initial weights.',
+  },
+  {
+    id: 'init-he-std',
+    stepLabel: '35.4',
+    group: 'He std',
+    title: 'He initialization standard deviation',
+    concept: 'We can write this cleanly in a single mathematical formula: Math.sqrt(2 / fanIn).',
+    objective: 'Return the He standard deviation directly.',
+    difficulty: 'core',
     starterCode: `function getHeStd(fanIn) {
   // TODO: return standard deviation sqrt(2 / fanIn)
   return 0;
@@ -3414,205 +3696,283 @@ return results;`,
     explanation: 'Scaling weights by He standard deviation maintains constant activation variance across layers.',
   },
   {
-    id: 'vae-kl-mu-sq',
-    stepLabel: '36.1',
-    group: 'KL closed form',
-    title: 'Mean Penalty',
-    concept: 'Variational Autoencoders use a Kullback-Leibler (KL) divergence loss term. The first component penalizes the mean deviating from 0.',
-    objective: 'Compute the square of the mean (mu).',
+    id: 'vae-reparameterize',
+    stepLabel: 'VAE.1',
+    group: 'Reparameterize z',
+    title: 'Reparameterization Trick',
+    concept: 'The reparameterization trick allows gradients to backpropagate through stochastic nodes by shifting the randomness to an auxiliary variable eps.',
+    objective: 'Compute the sampled latent z: z = mu + exp(0.5 * logvar) * eps.',
     difficulty: 'warmup',
-    starterCode: `function vaeKlDivergence(mu, logvar) {
-  // TODO: compute mu squared
-  const muSq = 0;
+    starterCode: `/**
+ * Runs one VAE training step: reparameterize latent, reconstruction MSE, KL divergence, ELBO.
+ * @param {number} x - Original input scalar (or use x[i] in vector loop).
+ * @param {number} xHat - Decoder reconstruction.
+ * @param {number} mu - Latent mean.
+ * @param {number} logvar - Latent log-variance.
+ * @param {number} eps - Standard normal sample for reparameterization.
+ * @returns {{ z: number, reconLoss: number, klLoss: number, elbo: number }}
+ */
+function vaeStep(x, xHat, mu, logvar, eps) {
+  // TODO: compute standard deviation (exp(0.5 * logvar)) and sample z
+  const std = 0;
+  const z = 0;
   
-  const varExp = Math.exp(logvar);
-  const interior = 1 + logvar - muSq - varExp;
-  return -0.5 * interior;
+  const reconLoss = 0;
+  const klLoss = 0;
+  const elbo = 0;
+  return { z, reconLoss, klLoss, elbo };
 }`,
     testCode: `const results = [];
 function check(name, actual, expected) {
   results.push({ name, actual, expected, passed: Math.abs(actual - expected) < 1e-5 });
 }
-check('zero latent stats', vaeKlDivergence(0, 0), 0);
+const res = vaeStep(0, 0, 1.0, 0.0, 2.0); // std = exp(0) = 1. z = 1.0 + 1 * 2.0 = 3.0
+check('z with eps=2', res.z, 3.0);
 return results;`,
     hints: [
-      'Multiply mu by itself: mu * mu.',
+      'Compute std using Math.exp(0.5 * logvar).',
+      'Compute z using mu + std * eps.',
     ],
-    solution: `function vaeKlDivergence(mu, logvar) {
-  const muSq = mu * mu;
+    solution: `function vaeStep(x, xHat, mu, logvar, eps) {
+  const std = Math.exp(0.5 * logvar);
+  const z = mu + std * eps;
   
-  const varExp = Math.exp(logvar);
-  const interior = 1 + logvar - muSq - varExp;
-  return -0.5 * interior;
+  const reconLoss = 0;
+  const klLoss = 0;
+  const elbo = 0;
+  return { z, reconLoss, klLoss, elbo };
 }`,
-    explanation: 'Squaring the mean applies a parabolic penalty that pulls latent vectors toward the origin.',
+    explanation: 'By separating the deterministic mean/variance from the random noise (eps), the network remains fully differentiable.',
   },
   {
-    id: 'vae-kl-var-exp',
-    stepLabel: '36.2',
+    id: 'vae-recon-mse',
+    stepLabel: 'VAE.2',
+    group: 'Reconstruction MSE',
+    title: 'Reconstruction Error',
+    concept: 'The reconstruction loss forces the decoder to accurately recreate the original input from the latent z. We use Mean Squared Error (MSE).',
+    objective: 'Compute the scalar reconstruction loss: (x - xHat)^2.',
+    difficulty: 'warmup',
+    starterCode: `function vaeStep(x, xHat, mu, logvar, eps) {
+  const std = Math.exp(0.5 * logvar);
+  const z = mu + std * eps;
+  
+  // TODO: compute reconstruction MSE
+  const reconLoss = 0;
+  
+  const klLoss = 0;
+  const elbo = 0;
+  return { z, reconLoss, klLoss, elbo };
+}`,
+    testCode: `const results = [];
+function check(name, actual, expected) {
+  results.push({ name, actual, expected, passed: Math.abs(actual - expected) < 1e-5 });
+}
+const res = vaeStep(5.0, 3.0, 0, 0, 0); // (5-3)^2 = 4
+check('recon loss', res.reconLoss, 4.0);
+return results;`,
+    hints: [
+      'Compute the difference x - xHat, then square it.',
+      'Math.pow(x - xHat, 2) or (x - xHat) * (x - xHat).',
+    ],
+    solution: `function vaeStep(x, xHat, mu, logvar, eps) {
+  const std = Math.exp(0.5 * logvar);
+  const z = mu + std * eps;
+  
+  const reconLoss = (x - xHat) * (x - xHat);
+  
+  const klLoss = 0;
+  const elbo = 0;
+  return { z, reconLoss, klLoss, elbo };
+}`,
+    explanation: 'Minimizing reconstruction loss ensures the latent space captures all necessary information to rebuild the input.',
+  },
+  {
+    id: 'vae-kl-divergence',
+    stepLabel: 'VAE.3',
     group: 'KL closed form',
-    title: 'Variance Extraction',
-    concept: 'VAEs output log-variance instead of raw variance for numerical stability. We must exponentiate it to get the true variance.',
-    objective: 'Compute the true variance by exponentiating logvar.',
+    title: 'KL Divergence',
+    concept: 'The KL divergence regularizer forces the latent distribution to match a standard Normal distribution (mean 0, variance 1).',
+    objective: 'Compute the KL loss per dim: -0.5 * (1 + logvar - mu^2 - exp(logvar)).',
     difficulty: 'core',
-    starterCode: `function vaeKlDivergence(mu, logvar) {
-  const muSq = mu * mu;
+    starterCode: `function vaeStep(x, xHat, mu, logvar, eps) {
+  const std = Math.exp(0.5 * logvar);
+  const z = mu + std * eps;
+  const reconLoss = (x - xHat) * (x - xHat);
   
-  // TODO: compute exponential of logvar
-  const varExp = 0;
+  // TODO: compute closed-form KL divergence
+  const klLoss = 0;
   
-  const interior = 1 + logvar - muSq - varExp;
-  return -0.5 * interior;
+  const elbo = 0;
+  return { z, reconLoss, klLoss, elbo };
 }`,
     testCode: `const results = [];
 function check(name, actual, expected) {
   results.push({ name, actual, expected, passed: Math.abs(actual - expected) < 1e-5 });
 }
-check('skewed latent stats', vaeKlDivergence(1.0, -1.0), 0.6839397);
+const res = vaeStep(0, 0, 1.0, -1.0, 0); 
+check('kl divergence', res.klLoss, 0.6839397);
 return results;`,
     hints: [
-      'Use Math.exp(logvar).',
+      'Compute mu * mu and Math.exp(logvar).',
+      'Multiply the entire sum by -0.5.',
     ],
-    solution: `function vaeKlDivergence(mu, logvar) {
-  const muSq = mu * mu;
+    solution: `function vaeStep(x, xHat, mu, logvar, eps) {
+  const std = Math.exp(0.5 * logvar);
+  const z = mu + std * eps;
+  const reconLoss = (x - xHat) * (x - xHat);
   
-  const varExp = Math.exp(logvar);
+  const klLoss = -0.5 * (1 + logvar - mu * mu - Math.exp(logvar));
   
-  const interior = 1 + logvar - muSq - varExp;
-  return -0.5 * interior;
+  const elbo = 0;
+  return { z, reconLoss, klLoss, elbo };
 }`,
-    explanation: 'Exponentiating log-variance guarantees the variance is always positive without needing activation constraints like ReLU.',
+    explanation: 'This closed-form solution only works because we assume the prior is a standard Gaussian.',
   },
   {
-    id: 'vae-kl-var-penalty',
-    stepLabel: '36.3',
-    group: 'KL closed form',
-    title: 'Variance Penalty',
-    concept: 'The variance penalty forces the standard deviation to approach 1.0 (logvar approaches 0).',
-    objective: 'Calculate the variance penalty term: logvar - varExp.',
-    difficulty: 'core',
-    starterCode: `function vaeKlDivergence(mu, logvar) {
-  const muSq = mu * mu;
-  const varExp = Math.exp(logvar);
+    id: 'vae-elbo',
+    stepLabel: 'VAE.4',
+    group: 'Combined ELBO',
+    title: 'Evidence Lower Bound (ELBO)',
+    concept: 'The total VAE loss is derived from the Evidence Lower Bound. The loss to minimize is the sum of reconstruction error and KL divergence.',
+    objective: 'Compute the final loss (negative ELBO): reconLoss + klLoss.',
+    difficulty: 'warmup',
+    starterCode: `function vaeStep(x, xHat, mu, logvar, eps) {
+  const std = Math.exp(0.5 * logvar);
+  const z = mu + std * eps;
+  const reconLoss = (x - xHat) * (x - xHat);
+  const klLoss = -0.5 * (1 + logvar - mu * mu - Math.exp(logvar));
   
-  // TODO: calculate the variance penalty term
-  const varPenalty = 0;
+  // TODO: compute total loss
+  const elbo = 0;
   
-  const interior = 1 - muSq + varPenalty;
-  return -0.5 * interior;
+  return { z, reconLoss, klLoss, elbo };
 }`,
     testCode: `const results = [];
 function check(name, actual, expected) {
   results.push({ name, actual, expected, passed: Math.abs(actual - expected) < 1e-5 });
 }
-check('skewed latent stats', vaeKlDivergence(1.0, -1.0), 0.6839397);
+const res = vaeStep(5.0, 3.0, 1.0, -1.0, 0); // 4.0 + 0.6839397
+check('total loss', res.elbo, 4.6839397);
 return results;`,
     hints: [
-      'Subtract varExp from logvar.',
+      'Add reconLoss and klLoss.',
     ],
-    solution: `function vaeKlDivergence(mu, logvar) {
-  const muSq = mu * mu;
-  const varExp = Math.exp(logvar);
+    solution: `function vaeStep(x, xHat, mu, logvar, eps) {
+  const std = Math.exp(0.5 * logvar);
+  const z = mu + std * eps;
+  const reconLoss = (x - xHat) * (x - xHat);
+  const klLoss = -0.5 * (1 + logvar - mu * mu - Math.exp(logvar));
   
-  const varPenalty = logvar - varExp;
+  const elbo = reconLoss + klLoss;
   
-  const interior = 1 - muSq + varPenalty;
-  return -0.5 * interior;
+  return { z, reconLoss, klLoss, elbo };
 }`,
-    explanation: 'The function (x - e^x) reaches its maximum exactly when x=0, which corresponds to a true variance of 1.0.',
+    explanation: 'By minimizing this joint loss, the VAE balances generating accurate reconstructions with maintaining a smoothly organized latent space.',
   },
   {
-    id: 'vae-kl-interior',
-    stepLabel: '36.4',
-    group: 'KL closed form',
-    title: 'Interior Sum',
-    concept: 'We combine the mean penalty, the variance penalty, and the constant 1 to form the full interior expression.',
-    objective: 'Calculate 1 - muSq + varPenalty.',
-    difficulty: 'core',
-    starterCode: `function vaeKlDivergence(mu, logvar) {
-  const muSq = mu * mu;
-  const varExp = Math.exp(logvar);
-  const varPenalty = logvar - varExp;
-  
-  // TODO: calculate the full interior sum
-  const interior = 0;
-  
-  return -0.5 * interior;
+    id: 'vae-edge-cases',
+    stepLabel: 'VAE.5',
+    group: 'Latent edge cases',
+    title: 'Standard Normal Edge Case',
+    concept: 'When the encoder perfectly matches the prior (mu=0, logvar=0), the KL divergence drops exactly to 0, and z becomes exactly the sampled noise eps.',
+    objective: 'Verify that the function handles the standard normal case correctly.',
+    difficulty: 'warmup',
+    starterCode: `function vaeStep(x, xHat, mu, logvar, eps) {
+  const std = Math.exp(0.5 * logvar);
+  const z = mu + std * eps;
+  const reconLoss = (x - xHat) * (x - xHat);
+  const klLoss = -0.5 * (1 + logvar - mu * mu - Math.exp(logvar));
+  const elbo = reconLoss + klLoss;
+  return { z, reconLoss, klLoss, elbo };
 }`,
     testCode: `const results = [];
 function check(name, actual, expected) {
   results.push({ name, actual, expected, passed: Math.abs(actual - expected) < 1e-5 });
 }
-check('skewed latent stats', vaeKlDivergence(1.0, -1.0), 0.6839397);
+// TODO: call vaeStep with mu=0, logvar=0, and verify klLoss=0 and z=eps
+const res = vaeStep(0, 0, 0.0, 0.0, 2.5);
+check('kl loss is 0', res.klLoss, 0);
+check('z equals eps', res.z, 2.5);
 return results;`,
     hints: [
-      'Compute 1 - muSq + varPenalty.',
+      'The code is already complete! Just run the test to see it pass.',
     ],
-    solution: `function vaeKlDivergence(mu, logvar) {
-  const muSq = mu * mu;
-  const varExp = Math.exp(logvar);
-  const varPenalty = logvar - varExp;
-  
-  const interior = 1 - muSq + varPenalty;
-  
-  return -0.5 * interior;
+    solution: `function vaeStep(x, xHat, mu, logvar, eps) {
+  const std = Math.exp(0.5 * logvar);
+  const z = mu + std * eps;
+  const reconLoss = (x - xHat) * (x - xHat);
+  const klLoss = -0.5 * (1 + logvar - mu * mu - Math.exp(logvar));
+  const elbo = reconLoss + klLoss;
+  return { z, reconLoss, klLoss, elbo };
 }`,
-    explanation: 'When mu=0 and logvar=0, this interior sum evaluates exactly to 0, indicating perfect alignment with a standard Normal.',
+    explanation: 'This proves that a standard Normal distribution incurs zero penalty from the KL divergence term.',
   },
   {
-    id: 'vae-kl-full',
-    stepLabel: '36.5',
-    group: 'KL closed form',
-    title: 'Final KL Loss',
-    concept: 'The complete closed-form KL divergence acts as a regularizer during VAE training.',
-    objective: 'Multiply the interior sum by -0.5 to get the final loss scalar.',
-    difficulty: 'core',
-    starterCode: `function vaeKlDivergence(mu, logvar) {
-  const muSq = mu * mu;
-  const varExp = Math.exp(logvar);
-  const varPenalty = logvar - varExp;
-  const interior = 1 - muSq + varPenalty;
-  
-  // TODO: multiply interior by -0.5 and return
-  return 0;
-}`,
-    testCode: `const results = [];
-function check(name, actual, expected) {
-  results.push({ name, actual, expected, passed: Math.abs(actual - expected) < 1e-5 });
-}
-check('skewed latent stats', vaeKlDivergence(1.0, -1.0), 0.6839397);
-return results;`,
-    hints: [
-      'Return -0.5 * interior.',
-    ],
-    solution: `function vaeKlDivergence(mu, logvar) {
-  const muSq = mu * mu;
-  const varExp = Math.exp(logvar);
-  const varPenalty = logvar - varExp;
-  const interior = 1 - muSq + varPenalty;
-  
-  return -0.5 * interior;
-}`,
-    explanation: 'KL divergence acts as a regularizer, shaping the latent space into a continuous, smooth distribution suitable for generation.',
-  },
-  {
-    id: 'multimodal-llm-project',
+    id: 'multimodal-llm-dot',
     stepLabel: '37.1',
     group: 'Linear project',
-    title: 'Multimodal token projection',
-    concept: 'Multimodal LLMs project visual token embeddings into the text vocabulary hidden space using a learned projection matrix.',
-    objective: 'Compute projection: output[j] = sum of patch[d] * projector[d][j].',
-    difficulty: 'challenge',
+    title: 'Modality Dot Product',
+    concept: 'Multimodal LLMs project visual token embeddings into the text vocabulary hidden space using a learned projection matrix. First, we compute the dot product between the input patch and a single row of the projection matrix.',
+    objective: 'Compute the dot product of patch and projector[j].',
+    difficulty: 'warmup',
     starterCode: `function projectPatch(patch, projector, outDim) {
   const projected = Array(outDim).fill(0);
-  for (let j = 0; j < outDim; j++) {
-    let sum = 0;
-    for (let d = 0; d < patch.length; d++) {
-      // TODO: multiply patch[d] by projector[d][j] and accumulate in sum
-      sum += 0;
-    }
-    projected[j] = sum;
+  
+  const j = 0; // Focus on the first dimension
+  let sum = 0;
+  for (let d = 0; d < patch.length; d++) {
+    // TODO: multiply patch[d] by projector[d][j] and accumulate in sum
+    sum += 0;
   }
+  projected[j] = sum;
+  
+  return projected;
+}`,
+    testCode: `const results = [];
+function sameArray(a, b) {
+  return JSON.stringify(a) === JSON.stringify(b);
+}
+function check(name, actual, expected) {
+  results.push({ name, actual: JSON.stringify(actual), expected: JSON.stringify(expected), passed: sameArray(actual, expected) });
+}
+check('project 2D to 3D first dim', projectPatch([1, 2], [[0.5, 0, 1], [0, 0.5, 2]], 3), [0.5, 0, 0]);
+return results;`,
+    hints: [
+      'sum += patch[d] * projector[d][j];',
+    ],
+    solution: `function projectPatch(patch, projector, outDim) {
+  const projected = Array(outDim).fill(0);
+  
+  const j = 0;
+  let sum = 0;
+  for (let d = 0; d < patch.length; d++) {
+    sum += patch[d] * projector[d][j];
+  }
+  projected[j] = sum;
+  
+  return projected;
+}`,
+    explanation: 'A dot product measures the similarity and maps the spatial patch features into the text embedding space.',
+  },
+  {
+    id: 'multimodal-llm-loop',
+    stepLabel: '37.2',
+    group: 'Linear project',
+    title: 'Matrix Vector Loop',
+    concept: 'We iterate over all output dimensions to perform a full matrix-vector multiplication.',
+    objective: 'Wrap the dot product logic in a loop over j from 0 to outDim.',
+    difficulty: 'core',
+    starterCode: `function projectPatch(patch, projector, outDim) {
+  const projected = Array(outDim).fill(0);
+  
+  // TODO: Loop over j from 0 to outDim
+  let j = 0;
+  let sum = 0;
+  for (let d = 0; d < patch.length; d++) {
+    sum += patch[d] * projector[d][j];
+  }
+  projected[j] = sum;
+  
   return projected;
 }`,
     testCode: `const results = [];
@@ -3625,8 +3985,55 @@ function check(name, actual, expected) {
 check('project 2D to 3D', projectPatch([1, 2], [[0.5, 0, 1], [0, 0.5, 2]], 3), [0.5, 1, 5]);
 return results;`,
     hints: [
-      'Multiply patch[d] by projector[d][j].',
-      'sum += patch[d] * projector[d][j];',
+      'Add a for loop for j.',
+      'for (let j = 0; j < outDim; j++) { ... }',
+    ],
+    solution: `function projectPatch(patch, projector, outDim) {
+  const projected = Array(outDim).fill(0);
+  
+  for (let j = 0; j < outDim; j++) {
+    let sum = 0;
+    for (let d = 0; d < patch.length; d++) {
+      sum += patch[d] * projector[d][j];
+    }
+    projected[j] = sum;
+  }
+  
+  return projected;
+}`,
+    explanation: 'This operation acts as a translator, taking raw visual features and converting them into a language the text model understands.',
+  },
+  {
+    id: 'multimodal-llm-project',
+    stepLabel: '37.3',
+    group: 'Linear project',
+    title: 'Multimodal token projection',
+    concept: 'The full linear projection is the core bridging mechanism connecting distinct modality encoders to a single unified LLM backbone.',
+    objective: 'Finalize and return the projected token.',
+    difficulty: 'challenge',
+    starterCode: `function projectPatch(patch, projector, outDim) {
+  const projected = Array(outDim).fill(0);
+  for (let j = 0; j < outDim; j++) {
+    let sum = 0;
+    for (let d = 0; d < patch.length; d++) {
+      sum += patch[d] * projector[d][j];
+    }
+    projected[j] = sum;
+  }
+  // TODO: return the projected vector
+  return [];
+}`,
+    testCode: `const results = [];
+function sameArray(a, b) {
+  return JSON.stringify(a) === JSON.stringify(b);
+}
+function check(name, actual, expected) {
+  results.push({ name, actual: JSON.stringify(actual), expected: JSON.stringify(expected), passed: sameArray(actual, expected) });
+}
+check('project 2D to 3D', projectPatch([1, 2], [[0.5, 0, 1], [0, 0.5, 2]], 3), [0.5, 1, 5]);
+return results;`,
+    hints: [
+      'Return projected.',
     ],
     solution: `function projectPatch(patch, projector, outDim) {
   const projected = Array(outDim).fill(0);
@@ -3639,6 +4046,6 @@ return results;`,
   }
   return projected;
 }`,
-    explanation: 'A projection layer translates modality-specific embeddings so the baseline LLM transformer layers can process them.',
+    explanation: 'By converting images into text-like embeddings, multimodal models can smoothly alternate between seeing and speaking.',
   },
 ];
