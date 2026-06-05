@@ -4,38 +4,83 @@ export const LINEAR_ALGEBRA_CODE_LABS = [
     stepLabel: '1.1',
     group: 'Dot product',
     title: 'First matching pair',
-    concept: 'A dot product starts by multiplying entries with the same index.',
-    objective: 'Replace one number with the first pair product.',
+    concept: 'A dot product starts by multiplying entries with the same index. The first contribution comes from multiplying the two index-0 entries.',
+    objective: 'Replace one expression with the current aligned pair product inside the full matmul function.',
     difficulty: 'warmup',
-    starterCode: `function firstPairProduct(a, b) {
-  // TODO: replace 0 with the product of the first entries.
-  return 0;
+    starterCode: `/**
+ * Multiply matrix A (m×n) by matrix B (n×p).
+ * @param {number[][]} A - left matrix with m rows and n columns
+ * @param {number[][]} B - right matrix with n rows and p columns
+ * @returns {number[][]} C - result with m rows and p columns
+ */
+function matmul(A, B) {
+  const m = A.length;
+  const n = A[0].length;
+  const p = B[0].length;
+  const C = Array.from({ length: m }, () => Array(p).fill(0));
+
+  for (let i = 0; i < m; i++) {
+    for (let j = 0; j < p; j++) {
+      let sum = 0;
+      for (let k = 0; k < n; k++) {
+        // TODO: replace 0 with the current aligned pair product.
+        sum += 0;
+      }
+      C[i][j] = sum;
+    }
+  }
+
+  return C;
 }`,
     testCode: `const results = [];
+
+function sameMatrix(actual, expected) {
+  return JSON.stringify(actual) === JSON.stringify(expected);
+}
 
 function check(name, actual, expected) {
   results.push({
     name,
-    actual,
-    expected,
-    passed: Object.is(actual, expected),
+    actual: JSON.stringify(actual),
+    expected: JSON.stringify(expected),
+    passed: sameMatrix(actual, expected),
   });
 }
 
-check('first pair in [1, 2] dot [3, 4]', firstPairProduct([1, 2], [3, 4]), 3);
-check('first pair in [0, 5] dot [10, 2]', firstPairProduct([0, 5], [10, 2]), 0);
-check('first pair in [-1, 2] dot [3, 5]', firstPairProduct([-1, 2], [3, 5]), -3);
+check('2x2 product', matmul([[1, 2], [3, 4]], [[5, 6], [7, 8]]), [[19, 22], [43, 50]]);
+check('row-column dot product', matmul([[2, 3]], [[4], [5]]), [[23]]);
 
 return results;`,
     hints: [
-      'Use index 0 for the first entry of each vector.',
-      'The first pair product is a[0] times b[0].',
-      'return a[0] * b[0];',
+      'Each inner-loop step multiplies A[i][k] with B[k][j].',
+      'The row entry and column entry must share the same index k.',
+      'sum += A[i][k] * B[k][j];',
     ],
-    solution: `function firstPairProduct(a, b) {
-  return a[0] * b[0];
+    solution: `/**
+ * Multiply matrix A (m×n) by matrix B (n×p).
+ * @param {number[][]} A - left matrix with m rows and n columns
+ * @param {number[][]} B - right matrix with n rows and p columns
+ * @returns {number[][]} C - result with m rows and p columns
+ */
+function matmul(A, B) {
+  const m = A.length;
+  const n = A[0].length;
+  const p = B[0].length;
+  const C = Array.from({ length: m }, () => Array(p).fill(0));
+
+  for (let i = 0; i < m; i++) {
+    for (let j = 0; j < p; j++) {
+      let sum = 0;
+      for (let k = 0; k < n; k++) {
+        sum += A[i][k] * B[k][j];
+      }
+      C[i][j] = sum;
+    }
+  }
+
+  return C;
 }`,
-    explanation: 'The first contribution to a dot product comes from multiplying the two index-0 entries.',
+    explanation: 'The first contribution to a dot product comes from multiplying aligned entries; inside matmul that rule lives in the innermost loop.',
   },
 
   {
@@ -43,43 +88,84 @@ return results;`,
     stepLabel: '1.2',
     group: 'Dot product',
     title: 'Add two pair products',
-    concept: 'A two-entry dot product adds the first pair product and the second pair product.',
-    objective: 'Replace one expression with the missing second pair product.',
+    concept: 'Before looping, you can add the first two aligned pairs explicitly. The second pair uses index 1 on both sides.',
+    objective: 'Replace one expression with the missing second pair product inside the full matmul function.',
     difficulty: 'warmup',
-    starterCode: `function dot2(a, b) {
-  const first = a[0] * b[0];
-  const second = 0; // TODO: replace 0.
+    starterCode: `/**
+ * Multiply matrix A (m×n) by matrix B (n×p).
+ * @param {number[][]} A - left matrix with m rows and n columns
+ * @param {number[][]} B - right matrix with n rows and p columns
+ * @returns {number[][]} C - result with m rows and p columns
+ */
+function matmul(A, B) {
+  const m = A.length;
+  const n = A[0].length;
+  const p = B[0].length;
+  const C = Array.from({ length: m }, () => Array(p).fill(0));
 
-  return first + second;
+  for (let i = 0; i < m; i++) {
+    for (let j = 0; j < p; j++) {
+      let sum = A[i][0] * B[0][j];
+      // TODO: replace 0 with the second aligned pair product.
+      sum += 0;
+      for (let k = 2; k < n; k++) {
+        sum += A[i][k] * B[k][j];
+      }
+      C[i][j] = sum;
+    }
+  }
+
+  return C;
 }`,
     testCode: `const results = [];
+
+function sameMatrix(actual, expected) {
+  return JSON.stringify(actual) === JSON.stringify(expected);
+}
 
 function check(name, actual, expected) {
   results.push({
     name,
-    actual,
-    expected,
-    passed: Object.is(actual, expected),
+    actual: JSON.stringify(actual),
+    expected: JSON.stringify(expected),
+    passed: sameMatrix(actual, expected),
   });
 }
 
-check('dot2([1, 2], [3, 4])', dot2([1, 2], [3, 4]), 11);
-check('dot2([0, 5], [10, 2])', dot2([0, 5], [10, 2]), 10);
-check('dot2([-1, 2], [3, 5])', dot2([-1, 2], [3, 5]), 7);
+check('3-wide inner dimension', matmul([[1, 2, 3]], [[4, 5], [6, 7], [8, 9]]), [[40, 46]]);
 
 return results;`,
     hints: [
-      'The second pair uses index 1 in both arrays.',
-      'Keep the existing return line. Only fix the value assigned to second.',
-      'const second = a[1] * b[1];',
+      'The second pair also lines up at index 1.',
+      'Use A[i][1] and B[1][j].',
+      'sum += A[i][1] * B[1][j];',
     ],
-    solution: `function dot2(a, b) {
-  const first = a[0] * b[0];
-  const second = a[1] * b[1];
+    solution: `/**
+ * Multiply matrix A (m×n) by matrix B (n×p).
+ * @param {number[][]} A - left matrix with m rows and n columns
+ * @param {number[][]} B - right matrix with n rows and p columns
+ * @returns {number[][]} C - result with m rows and p columns
+ */
+function matmul(A, B) {
+  const m = A.length;
+  const n = A[0].length;
+  const p = B[0].length;
+  const C = Array.from({ length: m }, () => Array(p).fill(0));
 
-  return first + second;
+  for (let i = 0; i < m; i++) {
+    for (let j = 0; j < p; j++) {
+      let sum = A[i][0] * B[0][j];
+      sum += A[i][1] * B[1][j];
+      for (let k = 2; k < n; k++) {
+        sum += A[i][k] * B[k][j];
+      }
+      C[i][j] = sum;
+    }
+  }
+
+  return C;
 }`,
-    explanation: 'A two-entry dot product is a[0] * b[0] plus a[1] * b[1].',
+    explanation: 'Unrolling the first two terms makes the pair pattern visible before the loop generalizes it.',
   },
 
   {
@@ -87,51 +173,86 @@ return results;`,
     stepLabel: '1.3',
     group: 'Dot product',
     title: 'Loop over every pair',
-    concept: 'The loop repeats the same pair-product rule for vectors of any length.',
-    objective: 'Complete the one accumulator update inside the loop.',
+    concept: 'Once you see the pattern, a loop over k accumulates every aligned pair into sum.',
+    objective: 'Replace one bound so the inner loop visits every shared index.',
     difficulty: 'core',
-    starterCode: `function dot(a, b) {
-  let total = 0;
+    starterCode: `/**
+ * Multiply matrix A (m×n) by matrix B (n×p).
+ * @param {number[][]} A - left matrix with m rows and n columns
+ * @param {number[][]} B - right matrix with n rows and p columns
+ * @returns {number[][]} C - result with m rows and p columns
+ */
+function matmul(A, B) {
+  const m = A.length;
+  const n = A[0].length;
+  const p = B[0].length;
+  const C = Array.from({ length: m }, () => Array(p).fill(0));
 
-  for (let i = 0; i < a.length; i++) {
-    // TODO: replace 0 with the current pair product.
-    total += 0;
+  for (let i = 0; i < m; i++) {
+    for (let j = 0; j < p; j++) {
+      let sum = 0;
+      // TODO: replace 0 with the shared inner dimension.
+      for (let k = 0; k < 0; k++) {
+        sum += A[i][k] * B[k][j];
+      }
+      C[i][j] = sum;
+    }
   }
 
-  return total;
+  return C;
 }`,
     testCode: `const results = [];
+
+function sameMatrix(actual, expected) {
+  return JSON.stringify(actual) === JSON.stringify(expected);
+}
 
 function check(name, actual, expected) {
   results.push({
     name,
-    actual,
-    expected,
-    passed: Object.is(actual, expected),
+    actual: JSON.stringify(actual),
+    expected: JSON.stringify(expected),
+    passed: sameMatrix(actual, expected),
   });
 }
 
-check('dot([1, 2], [3, 4])', dot([1, 2], [3, 4]), 11);
-check('dot([0, 5], [10, 2])', dot([0, 5], [10, 2]), 10);
-check('dot([-1, 2], [3, 5])', dot([-1, 2], [3, 5]), 7);
-check('dot([2, 2, 2], [1, 2, 3])', dot([2, 2, 2], [1, 2, 3]), 12);
+check(
+  'practice-sized product',
+  matmul([[1, 2], [3, 1]], [[2, 1, 3], [1, 4, 2]]),
+  [[4, 9, 7], [7, 7, 11]]
+);
 
 return results;`,
     hints: [
-      'Inside the loop, i points to the current matching pair.',
-      'Add a[i] times b[i] into total.',
-      'total += a[i] * b[i];',
+      'The shared inner size between A and B is n.',
+      'The inner loop should run once for every aligned pair.',
+      'for (let k = 0; k < n; k++) {',
     ],
-    solution: `function dot(a, b) {
-  let total = 0;
+    solution: `/**
+ * Multiply matrix A (m×n) by matrix B (n×p).
+ * @param {number[][]} A - left matrix with m rows and n columns
+ * @param {number[][]} B - right matrix with n rows and p columns
+ * @returns {number[][]} C - result with m rows and p columns
+ */
+function matmul(A, B) {
+  const m = A.length;
+  const n = A[0].length;
+  const p = B[0].length;
+  const C = Array.from({ length: m }, () => Array(p).fill(0));
 
-  for (let i = 0; i < a.length; i++) {
-    total += a[i] * b[i];
+  for (let i = 0; i < m; i++) {
+    for (let j = 0; j < p; j++) {
+      let sum = 0;
+      for (let k = 0; k < n; k++) {
+        sum += A[i][k] * B[k][j];
+      }
+      C[i][j] = sum;
+    }
   }
 
-  return total;
+  return C;
 }`,
-    explanation: 'The loop version is the same rule as dot2, repeated until every matching pair has contributed.',
+    explanation: 'The inner dimension n tells you how many aligned pairs belong in each dot product.',
   },
 
   {
@@ -139,48 +260,90 @@ return results;`,
     stepLabel: '2.1',
     group: 'Matrix cell',
     title: 'One cell, first term',
-    concept: 'One matrix-product cell begins with A[row][0] times B[0][col].',
-    objective: 'Replace one expression with the first term of a row-column dot product.',
+    concept: 'Each output cell C[i][j] stores one dot product. Start with the first aligned pair inside that cell.',
+    objective: 'Replace one expression with the first row-column product inside the full matmul function.',
     difficulty: 'core',
-    starterCode: `function firstCellTerm(A, B, row, col) {
-  // TODO: replace 0 with the first row-column product.
-  return 0;
+    starterCode: `/**
+ * Multiply matrix A (m×n) by matrix B (n×p).
+ * @param {number[][]} A - left matrix with m rows and n columns
+ * @param {number[][]} B - right matrix with n rows and p columns
+ * @returns {number[][]} C - result with m rows and p columns
+ */
+function matmul(A, B) {
+  const m = A.length;
+  const n = A[0].length;
+  const p = B[0].length;
+  const C = Array.from({ length: m }, () => Array(p).fill(0));
+
+  for (let i = 0; i < m; i++) {
+    for (let j = 0; j < p; j++) {
+      let sum = 0;
+      for (let k = 0; k < n; k++) {
+        if (k === 0) {
+          // TODO: replace 0 with the first row-column product.
+          sum += 0;
+        } else {
+          sum += A[i][k] * B[k][j];
+        }
+      }
+      C[i][j] = sum;
+    }
+  }
+
+  return C;
 }`,
     testCode: `const results = [];
+
+function sameMatrix(actual, expected) {
+  return JSON.stringify(actual) === JSON.stringify(expected);
+}
 
 function check(name, actual, expected) {
   results.push({
     name,
-    actual,
-    expected,
-    passed: Object.is(actual, expected),
+    actual: JSON.stringify(actual),
+    expected: JSON.stringify(expected),
+    passed: sameMatrix(actual, expected),
   });
 }
 
-const A = [
-  [1, 2],
-  [3, 1],
-];
-
-const B = [
-  [2, 1, 3],
-  [1, 4, 2],
-];
-
-check('first term for C[0][0]', firstCellTerm(A, B, 0, 0), 2);
-check('first term for C[0][2]', firstCellTerm(A, B, 0, 2), 3);
-check('first term for C[1][1]', firstCellTerm(A, B, 1, 1), 3);
+check('first pair drives every cell', matmul([[2, 5], [1, 3]], [[4, 1], [2, 6]]), [[18, 32], [10, 19]]);
 
 return results;`,
     hints: [
-      'Use the selected row from A, the selected column from B, and k = 0.',
-      'The first term is A[row][0] times B[0][col].',
-      'return A[row][0] * B[0][col];',
+      'For k = 0, use A[i][0] and B[0][j].',
+      'The first term is still one aligned pair product.',
+      'sum += A[i][0] * B[0][j];',
     ],
-    solution: `function firstCellTerm(A, B, row, col) {
-  return A[row][0] * B[0][col];
+    solution: `/**
+ * Multiply matrix A (m×n) by matrix B (n×p).
+ * @param {number[][]} A - left matrix with m rows and n columns
+ * @param {number[][]} B - right matrix with n rows and p columns
+ * @returns {number[][]} C - result with m rows and p columns
+ */
+function matmul(A, B) {
+  const m = A.length;
+  const n = A[0].length;
+  const p = B[0].length;
+  const C = Array.from({ length: m }, () => Array(p).fill(0));
+
+  for (let i = 0; i < m; i++) {
+    for (let j = 0; j < p; j++) {
+      let sum = 0;
+      for (let k = 0; k < n; k++) {
+        if (k === 0) {
+          sum += A[i][0] * B[0][j];
+        } else {
+          sum += A[i][k] * B[k][j];
+        }
+      }
+      C[i][j] = sum;
+    }
+  }
+
+  return C;
 }`,
-    explanation: 'A matrix cell is a dot product; this is the first product in that dot product.',
+    explanation: 'A matrix cell is a dot product; the first product in that dot product uses k = 0.',
   },
 
   {
@@ -188,95 +351,113 @@ return results;`,
     stepLabel: '2.2',
     group: 'Matrix cell',
     title: 'One cell loop',
-    concept: 'The index k moves across a row of A and down a column of B.',
-    objective: 'Complete the one accumulator update for a matrix cell.',
+    concept: 'A single cell is complete once the inner loop accumulates every pair and stores the result in C[i][j].',
+    objective: 'Replace one assignment so each computed dot product lands in the correct output cell.',
     difficulty: 'core',
-    starterCode: `function matrixCell(A, B, row, col) {
-  let total = 0;
+    starterCode: `/**
+ * Multiply matrix A (m×n) by matrix B (n×p).
+ * @param {number[][]} A - left matrix with m rows and n columns
+ * @param {number[][]} B - right matrix with n rows and p columns
+ * @returns {number[][]} C - result with m rows and p columns
+ */
+function matmul(A, B) {
+  const m = A.length;
+  const n = A[0].length;
+  const p = B[0].length;
+  const C = Array.from({ length: m }, () => Array(p).fill(0));
 
-  for (let k = 0; k < B.length; k++) {
-    // TODO: replace 0 with the current row-column product.
-    total += 0;
+  for (let i = 0; i < m; i++) {
+    for (let j = 0; j < p; j++) {
+      let sum = 0;
+      for (let k = 0; k < n; k++) {
+        sum += A[i][k] * B[k][j];
+      }
+      // TODO: replace 0 with the correct output cell assignment.
+      C[0][0] = sum;
+    }
   }
 
-  return total;
+  return C;
 }`,
     testCode: `const results = [];
+
+function sameMatrix(actual, expected) {
+  return JSON.stringify(actual) === JSON.stringify(expected);
+}
 
 function check(name, actual, expected) {
   results.push({
     name,
-    actual,
-    expected,
-    passed: Object.is(actual, expected),
+    actual: JSON.stringify(actual),
+    expected: JSON.stringify(expected),
+    passed: sameMatrix(actual, expected),
   });
 }
 
-const A = [
-  [1, 2],
-  [3, 1],
-];
-
-const B = [
-  [2, 1, 3],
-  [1, 4, 2],
-];
-
-check('C[0][0]', matrixCell(A, B, 0, 0), 4);
-check('C[0][1]', matrixCell(A, B, 0, 1), 9);
-check('C[0][2]', matrixCell(A, B, 0, 2), 7);
-check('C[1][0]', matrixCell(A, B, 1, 0), 7);
-check('C[1][1]', matrixCell(A, B, 1, 1), 7);
-check('C[1][2]', matrixCell(A, B, 1, 2), 11);
+check('all cells assigned', matmul([[1, 0], [0, 2]], [[3, 4], [5, 6]]), [[3, 4], [10, 12]]);
 
 return results;`,
     hints: [
-      'Use k as the shared index between A and B.',
-      'A[row][k] chooses the next entry in the row. B[k][col] chooses the next entry in the column.',
-      'total += A[row][k] * B[k][col];',
+      'Store the finished dot product at row i and column j.',
+      'The outer loops already chose the output position.',
+      'C[i][j] = sum;',
     ],
-    solution: `function matrixCell(A, B, row, col) {
-  let total = 0;
+    solution: `/**
+ * Multiply matrix A (m×n) by matrix B (n×p).
+ * @param {number[][]} A - left matrix with m rows and n columns
+ * @param {number[][]} B - right matrix with n rows and p columns
+ * @returns {number[][]} C - result with m rows and p columns
+ */
+function matmul(A, B) {
+  const m = A.length;
+  const n = A[0].length;
+  const p = B[0].length;
+  const C = Array.from({ length: m }, () => Array(p).fill(0));
 
-  for (let k = 0; k < B.length; k++) {
-    total += A[row][k] * B[k][col];
+  for (let i = 0; i < m; i++) {
+    for (let j = 0; j < p; j++) {
+      let sum = 0;
+      for (let k = 0; k < n; k++) {
+        sum += A[i][k] * B[k][j];
+      }
+      C[i][j] = sum;
+    }
   }
 
-  return total;
+  return C;
 }`,
-    explanation: 'The complete cell is the sum of every row-column product for that row and column.',
+    explanation: 'Assignment to C[i][j] is what turns a dot product into one matrix entry.',
   },
 
   {
     id: 'matrix-multiply-column-count',
     stepLabel: '3.1',
     group: 'Matrix multiplication',
-    title: 'Output column count',
-    concept: 'The product A * B has one output column for each column in B.',
-    objective: 'Replace one number so the inner loop visits every output column.',
+    title: 'Output column',
+    concept: 'The j loop walks across output columns. Each column of C comes from pairing every row of A with one column of B.',
+    objective: 'Replace one bound so the middle loop visits every output column.',
     difficulty: 'challenge',
-    starterCode: `function matrixCell(A, B, row, col) {
-  let total = 0;
-  for (let k = 0; k < B.length; k++) {
-    total += A[row][k] * B[k][col];
-  }
-  return total;
-}
-
+    starterCode: `/**
+ * Multiply matrix A (m×n) by matrix B (n×p).
+ * @param {number[][]} A - left matrix with m rows and n columns
+ * @param {number[][]} B - right matrix with n rows and p columns
+ * @returns {number[][]} C - result with m rows and p columns
+ */
 function matmul(A, B) {
-  const rows = A.length;
-  const cols = 0; // TODO: replace 0 with the number of output columns.
+  const m = A.length;
+  const n = A[0].length;
+  const p = B[0].length;
+  const C = Array.from({ length: m }, () => Array(p).fill(0));
 
-  const C = [];
-
-  for (let i = 0; i < rows; i++) {
-    const row = [];
-
-    for (let j = 0; j < cols; j++) {
-      row.push(matrixCell(A, B, i, j));
+  for (let i = 0; i < m; i++) {
+    // TODO: replace 0 with the number of output columns.
+    for (let j = 0; j < 0; j++) {
+      let sum = 0;
+      for (let k = 0; k < n; k++) {
+        sum += A[i][k] * B[k][j];
+      }
+      C[i][j] = sum;
     }
-
-    C.push(row);
   }
 
   return C;
@@ -296,90 +477,70 @@ function check(name, actual, expected) {
   });
 }
 
-check(
-  '2x2 times 2x3',
-  matmul(
-    [[1, 2], [3, 1]],
-    [[2, 1, 3], [1, 4, 2]]
-  ),
-  [[4, 9, 7], [7, 7, 11]]
-);
-
-check(
-  '2x3 times 3x1',
-  matmul(
-    [[1, 2, 3], [4, 5, 6]],
-    [[1], [2], [3]]
-  ),
-  [[14], [32]]
-);
+check('wide output', matmul([[1, 2], [3, 4]], [[1, 0, 2], [0, 1, 1]]), [[1, 2, 4], [3, 4, 10]]);
 
 return results;`,
     hints: [
-      'The number of output columns comes from the first row of B.',
-      'B[0] is the first row of B. Its length is the number of columns.',
-      'const cols = B[0].length;',
+      'B has p columns, so C also has p columns.',
+      'The middle loop should run once per output column.',
+      'for (let j = 0; j < p; j++) {',
     ],
-    solution: `function matrixCell(A, B, row, col) {
-  let total = 0;
-  for (let k = 0; k < B.length; k++) {
-    total += A[row][k] * B[k][col];
-  }
-  return total;
-}
-
+    solution: `/**
+ * Multiply matrix A (m×n) by matrix B (n×p).
+ * @param {number[][]} A - left matrix with m rows and n columns
+ * @param {number[][]} B - right matrix with n rows and p columns
+ * @returns {number[][]} C - result with m rows and p columns
+ */
 function matmul(A, B) {
-  const rows = A.length;
-  const cols = B[0].length;
+  const m = A.length;
+  const n = A[0].length;
+  const p = B[0].length;
+  const C = Array.from({ length: m }, () => Array(p).fill(0));
 
-  const C = [];
-
-  for (let i = 0; i < rows; i++) {
-    const row = [];
-
-    for (let j = 0; j < cols; j++) {
-      row.push(matrixCell(A, B, i, j));
+  for (let i = 0; i < m; i++) {
+    for (let j = 0; j < p; j++) {
+      let sum = 0;
+      for (let k = 0; k < n; k++) {
+        sum += A[i][k] * B[k][j];
+      }
+      C[i][j] = sum;
     }
-
-    C.push(row);
   }
 
   return C;
 }`,
-    explanation: 'The shape of A * B is rows of A by columns of B, so the inner loop must run once per column in B.',
+    explanation: 'Outer loops choose which output cell you are filling; the inner loop still does the dot product.',
   },
 
   {
     id: 'matrix-multiply-push-cell',
     stepLabel: '3.2',
     group: 'Matrix multiplication',
-    title: 'Push each computed cell',
-    concept: 'The nested loops choose each output position; matrixCell computes the value for that position.',
-    objective: 'Replace one argument so each row receives the computed cell value.',
+    title: 'Full matrix multiply',
+    concept: 'The i loop walks down rows of A. Together, the three loops fill every output cell.',
+    objective: 'Replace one bound so the outer loop visits every output row.',
     difficulty: 'challenge',
-    starterCode: `function matrixCell(A, B, row, col) {
-  let total = 0;
-  for (let k = 0; k < B.length; k++) {
-    total += A[row][k] * B[k][col];
-  }
-  return total;
-}
-
+    starterCode: `/**
+ * Multiply matrix A (m×n) by matrix B (n×p).
+ * @param {number[][]} A - left matrix with m rows and n columns
+ * @param {number[][]} B - right matrix with n rows and p columns
+ * @returns {number[][]} C - result with m rows and p columns
+ */
 function matmul(A, B) {
-  const rows = A.length;
-  const cols = B[0].length;
+  const m = A.length;
+  const n = A[0].length;
+  const p = B[0].length;
+  const C = Array.from({ length: m }, () => Array(p).fill(0));
 
-  const C = [];
-
-  for (let i = 0; i < rows; i++) {
-    const row = [];
-
-    for (let j = 0; j < cols; j++) {
-      // TODO: replace 0 with the computed C[i][j] value.
-      row.push(0);
+  // TODO: replace 0 with the number of output rows.
+  for (let i = 0; i < 0; i++) {
+    for (let j = 0; j < p; j++) {
+      let sum = 0;
+      for (let k = 0; k < n; k++) {
+        sum += A[i][k] * B[k][j];
+      }
+      C[i][j] = sum;
     }
-
-    C.push(row);
   }
 
   return C;
@@ -399,66 +560,40 @@ function check(name, actual, expected) {
   });
 }
 
-check(
-  '2x2 times 2x3',
-  matmul(
-    [[1, 2], [3, 1]],
-    [[2, 1, 3], [1, 4, 2]]
-  ),
-  [[4, 9, 7], [7, 7, 11]]
-);
-
-check(
-  'identity matrix',
-  matmul(
-    [[1, 0], [0, 1]],
-    [[5, 6], [7, 8]]
-  ),
-  [[5, 6], [7, 8]]
-);
-
-check(
-  '2x3 times 3x1',
-  matmul(
-    [[1, 2, 3], [4, 5, 6]],
-    [[1], [2], [3]]
-  ),
-  [[14], [32]]
-);
+check('complete implementation', matmul([[1, 2, 3], [4, 5, 6]], [[7, 8], [9, 10], [11, 12]]), [[58, 64], [139, 154]]);
+check('identity matrix', matmul([[1, 0], [0, 1]], [[5, 6], [7, 8]]), [[5, 6], [7, 8]]);
 
 return results;`,
     hints: [
-      'You already have matrixCell(A, B, i, j). Use it inside the nested loops.',
-      'The outer loop chooses output row i. The inner loop chooses output column j.',
-      'row.push(matrixCell(A, B, i, j));',
+      'A has m rows, so the outer loop should run m times.',
+      'Every row of A should produce one row of C.',
+      'for (let i = 0; i < m; i++) {',
     ],
-    solution: `function matrixCell(A, B, row, col) {
-  let total = 0;
-  for (let k = 0; k < B.length; k++) {
-    total += A[row][k] * B[k][col];
-  }
-  return total;
-}
-
+    solution: `/**
+ * Multiply matrix A (m×n) by matrix B (n×p).
+ * @param {number[][]} A - left matrix with m rows and n columns
+ * @param {number[][]} B - right matrix with n rows and p columns
+ * @returns {number[][]} C - result with m rows and p columns
+ */
 function matmul(A, B) {
-  const rows = A.length;
-  const cols = B[0].length;
+  const m = A.length;
+  const n = A[0].length;
+  const p = B[0].length;
+  const C = Array.from({ length: m }, () => Array(p).fill(0));
 
-  const C = [];
-
-  for (let i = 0; i < rows; i++) {
-    const row = [];
-
-    for (let j = 0; j < cols; j++) {
-      row.push(matrixCell(A, B, i, j));
+  for (let i = 0; i < m; i++) {
+    for (let j = 0; j < p; j++) {
+      let sum = 0;
+      for (let k = 0; k < n; k++) {
+        sum += A[i][k] * B[k][j];
+      }
+      C[i][j] = sum;
     }
-
-    C.push(row);
   }
 
   return C;
 }`,
-    explanation: 'The full matrix product is the matrixCell rule repeated for every row and every column.',
+    explanation: 'You now have the complete manual matmul that general libraries implement much faster.',
   },
 
   {
