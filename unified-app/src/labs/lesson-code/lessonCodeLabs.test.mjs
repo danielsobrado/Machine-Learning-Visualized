@@ -103,17 +103,16 @@ test('lesson code lab solutions pass their embedded tests', () => {
 });
 
 test('lesson pages and the central labs route can resolve code lab groups', async () => {
-  assert.equal(getLessonCodeLabExercises('matrix-multiplication').length, 4);
+  const matrixExercises = getLessonCodeLabExercises('matrix-multiplication');
+  assert.equal(matrixExercises.length, 10);
+  assert.match(matrixExercises[0].starterCode, /function matmul\(A, B\)/);
   assert.equal(getLessonCodeLabExercises('bag-of-words').length, 4);
 
   const appSource = await readFile(new URL('../../App.jsx', import.meta.url), 'utf8');
   const animationPageSource = await readFile(new URL('../../pages/AnimationPage.jsx', import.meta.url), 'utf8');
-  const matrixLessonSource = await readFile(new URL('../../animations/matrix-multiplication/index.jsx', import.meta.url), 'utf8');
 
   assert.match(appSource, /path="\/labs"/);
   assert.match(animationPageSource, /LessonCodeLab/);
-  assert.match(matrixLessonSource, /AlgebraCodeLab/);
-  assert.match(matrixLessonSource, /3\. Code Lab/);
 });
 
 test('code lab progress summaries are scoped to the selected lesson exercises', () => {

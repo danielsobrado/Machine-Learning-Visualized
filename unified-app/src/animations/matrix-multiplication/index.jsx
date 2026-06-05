@@ -1,16 +1,14 @@
 import React, { useState, Suspense, lazy } from 'react';
-import { Code2, Play, FlaskConical } from 'lucide-react';
+import { Play, FlaskConical } from 'lucide-react';
 
 // Lazy load panels
 const AnimationPanel = lazy(() => import('./AnimationPanel'));
 const PracticePanel = lazy(() => import('./PracticePanel'));
-const AlgebraCodeLab = lazy(() => import('../../labs/algebra/AlgebraCodeLab'));
 
 // Tab configuration
 const tabs = [
     { id: 'animation', label: '1. Animation', icon: Play, color: 'from-blue-500 to-cyan-500' },
     { id: 'practice', label: '2. Practice Lab', icon: FlaskConical, color: 'from-rose-500 to-red-500' },
-    { id: 'codefix', label: '3. Code Lab', icon: Code2, color: 'from-emerald-500 to-teal-500' },
 ];
 
 // Loading fallback
@@ -31,8 +29,6 @@ export default function MatrixMultiplicationAnimation() {
                 return <Suspense fallback={<LoadingPanel />}><AnimationPanel /></Suspense>;
             case 'practice':
                 return <Suspense fallback={<LoadingPanel />}><PracticePanel /></Suspense>;
-            case 'codefix':
-                return <Suspense fallback={<LoadingPanel />}><AlgebraCodeLab lessonId="matrix-multiplication" /></Suspense>;
             default:
                 return <Suspense fallback={<LoadingPanel />}><AnimationPanel /></Suspense>;
         }
