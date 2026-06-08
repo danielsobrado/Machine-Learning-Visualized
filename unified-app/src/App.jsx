@@ -206,16 +206,11 @@ export default function App() {
         setCommandPaletteOpen(true);
         return;
       }
-
-      if (event.key.toLowerCase() === 's') {
-        event.preventDefault();
-        navigate('/animation/softmax');
-      }
     };
 
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [navigate]);
+  }, []);
 
   const currentLessonId = location.pathname.match(/^\/animation\/([^/]+)/)?.[1];
 

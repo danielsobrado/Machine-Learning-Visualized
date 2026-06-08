@@ -3,7 +3,6 @@ import React from 'react';
 const HINTS = [
   ['⌘K', 'search'],
   ['/', 'palette'],
-  ['S', 'softmax'],
   ['↑↓', 'move'],
   ['↵', 'open'],
 ];
