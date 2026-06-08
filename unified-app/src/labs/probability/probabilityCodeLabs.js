@@ -1,42 +1,82 @@
 export const PROBABILITY_CODE_LABS = [
   // --- probability-distributions ---
   {
-    id: 'dist-bernoulli-pmf',
+    id: 'dist-value-bernoulli',
     stepLabel: '52.1',
-    group: 'Bernoulli mean',
-    title: 'Bernoulli PMF',
-    concept: 'A Bernoulli distribution models a single trial with success probability p. PMF: P(X = k) = p if k=1 else 1-p.',
-    objective: 'Compute Bernoulli PMF value for outcome k (0 or 1).',
+    group: 'Distribution eval',
+    title: 'Bernoulli branch',
+    concept: 'A dispatch function can evaluate multiple distributions.',
+    objective: 'For kind=bernoulli return p or 1-p based on k.',
     difficulty: 'warmup',
-    starterCode: `function bernoulliPmf(k, p) {
-  // TODO: return p if k is 1, otherwise 1 - p
+    starterCode: `function distValue(kind, k, p, x, mu, sigma) {
+  // TODO: implement bernoulli branch
   return 0;
 }`,
     testCode: `const results = [];
+function approxEqual(a, b, tol = 1e-6) { return Math.abs(a - b) <= tol; }
 function check(name, actual, expected) {
-  results.push({ name, actual, expected, passed: Object.is(actual, expected) });
+  results.push({ name, actual, expected, passed: approxEqual(actual, expected) });
 }
-check('success k=1', bernoulliPmf(1, 0.75), 0.75);
-check('failure k=0', bernoulliPmf(0, 0.75), 0.25);
+check('bern k1', distValue('bernoulli', 1, 0.7, 0, 0, 1), 0.7);
+check('bern k0', distValue('bernoulli', 0, 0.7, 0, 0, 1), 0.3);
 return results;`,
-    hints: [
-      'Use conditional logic or ternary operator: k === 1 ? p : 1 - p.',
-    ],
-    solution: `function bernoulliPmf(k, p) {
-  return k === 1 ? p : 1 - p;
+    hints: ['if (kind === "bernoulli") return k === 1 ? p : 1 - p;'],
+    solution: `function distValue(kind, k, p, x, mu, sigma) {
+  if (kind === 'bernoulli') return k === 1 ? p : 1 - p;
+  return 0;
 }`,
-    explanation: 'The Bernoulli distribution is the simplest discrete distribution, modeling binary outcomes (e.g. coin flips).',
+    explanation: 'Branching by distribution family keeps one small API for learners.',
   },
   {
-    id: 'dist-gaussian-pdf',
+    id: 'dist-value-gaussian-coeff',
     stepLabel: '52.2',
-    group: 'PDF eval',
-    title: 'Gaussian PDF',
-    concept: 'The Normal (Gaussian) probability density function is: f(x) = (1 / (sigma * sqrt(2 * pi))) * exp(-0.5 * ((x - mu) / sigma)^2).',
-    objective: 'Evaluate the 1D Gaussian density at point x.',
+    group: 'Distribution eval',
+    title: 'Gaussian coefficient',
+    concept: 'Normal PDF includes a scale coefficient term.',
+    objective: 'Compute coeff = 1 / (sigma * sqrt(2*pi)).',
+    difficulty: 'warmup',
+    starterCode: `function distValue(kind, k, p, x, mu, sigma) {
+  if (kind === 'bernoulli') return k === 1 ? p : 1 - p;
+  if (kind === 'gaussian') {
+    // TODO: coefficient term
+    const coeff = 0;
+    return coeff;
+  }
+  return 0;
+}`,
+    testCode: `const results = [];
+function approxEqual(a, b, tol = 1e-6) { return Math.abs(a - b) <= tol; }
+function check(name, actual, expected) {
+  results.push({ name, actual, expected, passed: approxEqual(actual, expected) });
+}
+check('coeff sigma1', distValue('gaussian', 0, 0, 0, 0, 1), 0.398942);
+return results;`,
+    hints: ['const coeff = 1 / (sigma * Math.sqrt(2 * Math.PI));'],
+    solution: `function distValue(kind, k, p, x, mu, sigma) {
+  if (kind === 'bernoulli') return k === 1 ? p : 1 - p;
+  if (kind === 'gaussian') {
+    const coeff = 1 / (sigma * Math.sqrt(2 * Math.PI));
+    return coeff;
+  }
+  return 0;
+}`,
+    explanation: 'Coefficient controls density scale as variance changes.',
+  },
+  {
+    id: 'dist-value-gaussian-pdf',
+    stepLabel: '52.3',
+    group: 'Distribution eval',
+    title: 'Gaussian full PDF',
+    concept: 'Normal density multiplies coefficient and exponential term.',
+    objective: 'Return full Gaussian PDF when kind=gaussian.',
     difficulty: 'core',
-    starterCode: `function gaussianPdf(x, mu, sigma) {
-  // TODO: compute the Gaussian PDF formula
+    starterCode: `function distValue(kind, k, p, x, mu, sigma) {
+  if (kind === 'bernoulli') return k === 1 ? p : 1 - p;
+  if (kind === 'gaussian') {
+    const coeff = 1 / (sigma * Math.sqrt(2 * Math.PI));
+    // TODO: include exponent term
+    return coeff;
+  }
   return 0;
 }`,
     testCode: `const results = [];
@@ -44,197 +84,322 @@ function approxEqual(a, b, tol = 1e-5) { return Math.abs(a - b) <= tol; }
 function check(name, actual, expected) {
   results.push({ name, actual, expected, passed: approxEqual(actual, expected) });
 }
-check('standard normal at mean', gaussianPdf(0, 0, 1), 0.398942);
-check('normal at 1 std', gaussianPdf(1, 0, 1), 0.24197);
+check('std normal at 1', distValue('gaussian', 0, 0, 1, 0, 1), 0.24197);
 return results;`,
-    hints: [
-      'pi is Math.PI. exp is Math.exp.',
-      'Coefficient: 1 / (sigma * Math.sqrt(2 * Math.PI)).',
-      'Exponent: -0.5 * Math.pow((x - mu) / sigma, 2).',
-      'Multiply coefficient by Math.exp(exponent).',
-    ],
-    solution: `function gaussianPdf(x, mu, sigma) {
-  const coeff = 1 / (sigma * Math.sqrt(2 * Math.PI));
-  const exponent = -0.5 * Math.pow((x - mu) / sigma, 2);
-  return coeff * Math.exp(exponent);
+    hints: ['const expTerm = Math.exp(-0.5 * Math.pow((x - mu) / sigma, 2)); return coeff * expTerm;'],
+    solution: `function distValue(kind, k, p, x, mu, sigma) {
+  if (kind === 'bernoulli') return k === 1 ? p : 1 - p;
+  if (kind === 'gaussian') {
+    const coeff = 1 / (sigma * Math.sqrt(2 * Math.PI));
+    const expTerm = Math.exp(-0.5 * Math.pow((x - mu) / sigma, 2));
+    return coeff * expTerm;
+  }
+  return 0;
 }`,
-    explanation: 'The Gaussian PDF gives the relative likelihood that a continuous random variable takes a value near x.',
+    explanation: 'Exponent controls decay as x moves away from mean.',
   },
-
+  {
+    id: 'dist-value-dispatch',
+    stepLabel: '52.4',
+    group: 'Distribution eval',
+    title: 'Distribution dispatch fallback',
+    concept: 'Unknown distribution kinds should fail safely.',
+    objective: 'Return 0 for unsupported kind values.',
+    difficulty: 'core',
+    starterCode: `function distValue(kind, k, p, x, mu, sigma) {
+  if (kind === 'bernoulli') return k === 1 ? p : 1 - p;
+  if (kind === 'gaussian') {
+    const coeff = 1 / (sigma * Math.sqrt(2 * Math.PI));
+    const expTerm = Math.exp(-0.5 * Math.pow((x - mu) / sigma, 2));
+    return coeff * expTerm;
+  }
+  // TODO: fallback for unsupported kind
+}`,
+    testCode: `const results = [];
+function check(name, actual, expected) {
+  results.push({ name, actual, expected, passed: Object.is(actual, expected) });
+}
+check('unknown kind', distValue('poisson', 0, 0, 0, 0, 1), 0);
+return results;`,
+    hints: ['return 0;'],
+    solution: `function distValue(kind, k, p, x, mu, sigma) {
+  if (kind === 'bernoulli') return k === 1 ? p : 1 - p;
+  if (kind === 'gaussian') {
+    const coeff = 1 / (sigma * Math.sqrt(2 * Math.PI));
+    const expTerm = Math.exp(-0.5 * Math.pow((x - mu) / sigma, 2));
+    return coeff * expTerm;
+  }
+  return 0;
+}`,
+    explanation: 'Safe defaults prevent NaN propagation in teaching code.',
+  },
   // --- conditional-probability ---
   {
-    id: 'cond-prob-formula',
+    id: 'cond-chain-pab',
     stepLabel: '53.1',
-    group: 'P(A|B) formula',
-    title: 'Conditional Probability Formula',
-    concept: 'Conditional probability is P(A|B) = P(A and B) / P(B). It measures likelihood of event A given B has occurred.',
-    objective: 'Compute P(A|B) given joint probability P(A and B) and prior probability P(B).',
+    group: 'Conditional probability chain',
+    title: 'Compute P(A|B)',
+    concept: 'Conditional probability starts from P(A and B) / P(B).',
+    objective: 'Compute pAGivenB from pAAndB and pB.',
     difficulty: 'warmup',
-    starterCode: `function conditionalProbability(pAAndB, pB) {
-  // TODO: compute P(A|B). Handle division by zero.
+    starterCode: `function conditionalChain(pAAndB, pB, pA, pBGivenA, pCGivenAB) {
+  // TODO: compute pAGivenB, guard pB=0
+  const pAGivenB = 0;
+  return pAGivenB;
+}`,
+    testCode: `const results = [];
+function check(name, actual, expected) {
+  results.push({ name, actual, expected, passed: Object.is(actual, expected) });
+}
+check('p(a|b)', conditionalChain(0.2, 0.5, 0.5, 0.4, 0.3), 0.4);
+return results;`,
+    hints: ['const pAGivenB = pB === 0 ? 0 : pAAndB / pB;'],
+    solution: `function conditionalChain(pAAndB, pB, pA, pBGivenA, pCGivenAB) {
+  const pAGivenB = pB === 0 ? 0 : pAAndB / pB;
+  return pAGivenB;
+}`,
+    explanation: 'This checks inverse conditioning on the same joint event.',
+  },
+  {
+    id: 'cond-chain-joint-ab',
+    stepLabel: '53.2',
+    group: 'Conditional probability chain',
+    title: 'Rebuild joint P(A and B)',
+    concept: 'Chain rule forward direction gives P(A and B) = P(A) P(B|A).',
+    objective: 'Compute pAB from pA and pBGivenA.',
+    difficulty: 'warmup',
+    starterCode: `function conditionalChain(pAAndB, pB, pA, pBGivenA, pCGivenAB) {
+  // TODO: compute pAB from pA and pBGivenA
   return 0;
 }`,
     testCode: `const results = [];
 function check(name, actual, expected) {
   results.push({ name, actual, expected, passed: Object.is(actual, expected) });
 }
-check('simple conditional', conditionalProbability(0.2, 0.5), 0.4);
-check('zero conditioning event', conditionalProbability(0, 0), 0);
+check('p(a,b)', conditionalChain(0.2, 0.5, 0.5, 0.4, 0.3), 0.2);
 return results;`,
-    hints: [
-      'If P(B) is 0, return 0.',
-      'Otherwise return pAAndB / pB.',
-    ],
-    solution: `function conditionalProbability(pAAndB, pB) {
-  if (pB === 0) return 0;
-  return pAAndB / pB;
+    hints: ['return pA * pBGivenA;'],
+    solution: `function conditionalChain(pAAndB, pB, pA, pBGivenA, pCGivenAB) {
+  return pA * pBGivenA;
 }`,
-    explanation: 'Conditional probability restricts the sample space to the conditioning event B.',
+    explanation: 'Forward chain rule and inverse conditional should agree.',
   },
   {
-    id: 'cond-chain-rule',
-    stepLabel: '53.2',
-    group: 'Chain rule',
-    title: 'Probability Chain Rule',
-    concept: 'The chain rule computes joint probability of multiple events: P(A and B and C) = P(A) * P(B|A) * P(C | A and B).',
-    objective: 'Compute P(A and B and C) using the conditional chain rule probabilities.',
+    id: 'cond-chain-joint-abc',
+    stepLabel: '53.3',
+    group: 'Conditional probability chain',
+    title: 'Chain to three events',
+    concept: 'P(A,B,C) extends with P(C|A,B).',
+    objective: 'Compute pABC = pA * pBGivenA * pCGivenAB.',
     difficulty: 'core',
-    starterCode: `function jointThreeEvents(pA, pBGivenA, pCGivenAAndB) {
-  // TODO: return P(A and B and C)
+    starterCode: `function conditionalChain(pAAndB, pB, pA, pBGivenA, pCGivenAB) {
+  const pAB = pA * pBGivenA;
+  // TODO: multiply by pCGivenAB
+  return pAB;
+}`,
+    testCode: `const results = [];
+function check(name, actual, expected) {
+  results.push({ name, actual, expected, passed: Object.is(actual, expected) });
+}
+check('p(a,b,c)', conditionalChain(0.2, 0.5, 0.5, 0.4, 0.3), 0.06);
+return results;`,
+    hints: ['return pAB * pCGivenAB;'],
+    solution: `function conditionalChain(pAAndB, pB, pA, pBGivenA, pCGivenAB) {
+  const pAB = pA * pBGivenA;
+  return pAB * pCGivenAB;
+}`,
+    explanation: 'Sequential factors build higher-order joint probabilities.',
+  },
+  {
+    id: 'cond-chain-report',
+    stepLabel: '53.4',
+    group: 'Conditional probability chain',
+    title: 'Combined conditional chain report',
+    concept: 'A small report can expose conditional and joint quantities together.',
+    objective: 'Return pAGivenB + pABC in one scalar check.',
+    difficulty: 'core',
+    starterCode: `function conditionalChain(pAAndB, pB, pA, pBGivenA, pCGivenAB) {
+  const pAGivenB = pB === 0 ? 0 : pAAndB / pB;
+  const pABC = pA * pBGivenA * pCGivenAB;
+  // TODO: return combined scalar pAGivenB + pABC
   return 0;
 }`,
     testCode: `const results = [];
-function approxEqual(a, b, tol = 1e-5) { return Math.abs(a - b) <= tol; }
+function approxEqual(a, b, tol = 1e-9) { return Math.abs(a - b) <= tol; }
 function check(name, actual, expected) {
   results.push({ name, actual, expected, passed: approxEqual(actual, expected) });
 }
-check('chain joint', jointThreeEvents(0.5, 0.4, 0.3), 0.06);
+check('combined', conditionalChain(0.2, 0.5, 0.5, 0.4, 0.3), 0.46);
 return results;`,
-    hints: [
-      'Multiply all three probabilities together.',
-      'return pA * pBGivenA * pCGivenAAndB;',
-    ],
-    solution: `function jointThreeEvents(pA, pBGivenA, pCGivenAAndB) {
-  return pA * pBGivenA * pCGivenAAndB;
+    hints: ['return pAGivenB + pABC;'],
+    solution: `function conditionalChain(pAAndB, pB, pA, pBGivenA, pCGivenAB) {
+  const pAGivenB = pB === 0 ? 0 : pAAndB / pB;
+  const pABC = pA * pBGivenA * pCGivenAB;
+  return pAGivenB + pABC;
 }`,
-    explanation: 'The chain rule allows joint probability calculation by breaking it into sequential conditional probabilities.',
+    explanation: 'The final step validates both conditional and chain computations.',
   },
-
   // --- bayes-rule-ml ---
   {
-    id: 'bayes-numerator-calc',
+    id: 'bayes-posterior-numerator',
     stepLabel: '54.1',
-    group: 'Numerator',
-    title: 'Bayes Rule Numerator',
-    concept: 'Bayes rule computes posterior probability. The numerator is likelihood times prior: P(B|A) * P(A).',
-    objective: 'Compute the Bayes numerator for a hypothesis.',
+    group: 'Bayes posterior',
+    title: 'Posterior numerator',
+    concept: 'Bayes numerator is prior times likelihood under hypothesis.',
+    objective: 'Compute num = prior * likH.',
     difficulty: 'warmup',
-    starterCode: `function bayesNumerator(likelihood, prior) {
-  // TODO: compute likelihood * prior
-  return 0;
+    starterCode: `function bayesPosterior(prior, likH, likNotH) {
+  // TODO: numerator
+  const num = 0;
+  return num;
 }`,
     testCode: `const results = [];
-function approxEqual(a, b, tol = 1e-5) {
-  return Math.abs(a - b) <= tol;
-}
+function approxEqual(a, b, tol = 1e-6) { return Math.abs(a - b) <= tol; }
 function check(name, actual, expected) {
   results.push({ name, actual, expected, passed: approxEqual(actual, expected) });
 }
-check('simple numerator', bayesNumerator(0.9, 0.01), 0.009);
+check('numerator', bayesPosterior(0.2, 0.9, 0.1), 0.18);
 return results;`,
-    hints: [
-      'Multiply likelihood by prior.',
-    ],
-    solution: `function bayesNumerator(likelihood, prior) {
-  return likelihood * prior;
+    hints: ['const num = prior * likH;'],
+    solution: `function bayesPosterior(prior, likH, likNotH) {
+  const num = prior * likH;
+  return num;
 }`,
-    explanation: 'The numerator ranks potential hypotheses before normalizing them by evidence.',
+    explanation: 'Numerator captures evidence mass aligned with the hypothesis.',
   },
   {
-    id: 'bayes-posterior-calc',
+    id: 'bayes-posterior-denominator',
     stepLabel: '54.2',
-    group: 'Posterior normalize',
-    title: 'Posterior Probability',
-    concept: 'Bayes rule updates a hypothesis prior: P(H|E) = P(E|H)*P(H) / (P(E|H)*P(H) + P(E|~H)*P(~H)).',
-    objective: 'Compute the posterior probability P(H|E).',
+    group: 'Bayes posterior',
+    title: 'Posterior denominator',
+    concept: 'Evidence sums hypothesis and alternative paths.',
+    objective: 'Compute den = num + (1-prior) * likNotH.',
+    difficulty: 'warmup',
+    starterCode: `function bayesPosterior(prior, likH, likNotH) {
+  const num = prior * likH;
+  // TODO: denominator
+  const den = 0;
+  return den;
+}`,
+    testCode: `const results = [];
+function check(name, actual, expected) {
+  results.push({ name, actual, expected, passed: Object.is(actual, expected) });
+}
+check('denominator', bayesPosterior(0.2, 0.9, 0.1), 0.26);
+return results;`,
+    hints: ['const den = num + (1 - prior) * likNotH;'],
+    solution: `function bayesPosterior(prior, likH, likNotH) {
+  const num = prior * likH;
+  const den = num + (1 - prior) * likNotH;
+  return den;
+}`,
+    explanation: 'Evidence normalizes posterior into a valid probability.',
+  },
+  {
+    id: 'bayes-posterior-ratio',
+    stepLabel: '54.3',
+    group: 'Bayes posterior',
+    title: 'Posterior ratio',
+    concept: 'Posterior is numerator divided by denominator.',
+    objective: 'Return num / den with zero guard.',
     difficulty: 'core',
-    starterCode: `function bayesPosterior(prior, likelihoodCorrect, likelihoodIncorrect) {
-  // prior is P(H)
-  // likelihoodCorrect is P(E|H)
-  // likelihoodIncorrect is P(E|~H)
-  // TODO: compute P(H|E)
+    starterCode: `function bayesPosterior(prior, likH, likNotH) {
+  const num = prior * likH;
+  const den = num + (1 - prior) * likNotH;
+  // TODO: return ratio with den=0 guard
   return 0;
 }`,
     testCode: `const results = [];
-function approxEqual(a, b, tol = 1e-5) { return Math.abs(a - b) <= tol; }
+function approxEqual(a, b, tol = 1e-6) { return Math.abs(a - b) <= tol; }
 function check(name, actual, expected) {
   results.push({ name, actual, expected, passed: approxEqual(actual, expected) });
 }
-check('rare disease test', bayesPosterior(0.01, 0.99, 0.05), 0.166667);
+check('posterior', bayesPosterior(0.01, 0.99, 0.05), 0.166667);
 return results;`,
-    hints: [
-      'Calculate numerator: prior * likelihoodCorrect.',
-      'Calculate negative prior: 1 - prior.',
-      'Calculate denominator: numerator + negativePrior * likelihoodIncorrect.',
-      'Return numerator / denominator.',
-    ],
-    solution: `function bayesPosterior(prior, likelihoodCorrect, likelihoodIncorrect) {
-  const num = prior * likelihoodCorrect;
-  const den = num + (1 - prior) * likelihoodIncorrect;
+    hints: ['if (den === 0) return 0; return num / den;'],
+    solution: `function bayesPosterior(prior, likH, likNotH) {
+  const num = prior * likH;
+  const den = num + (1 - prior) * likNotH;
   if (den === 0) return 0;
   return num / den;
 }`,
-    explanation: 'Bayes rule combines prior belief with empirical evidence to output posterior confidence.',
+    explanation: 'Ratio form is the canonical Bayes update.',
   },
-
-  // --- maximum-likelihood-estimation ---
   {
-    id: 'mle-gauss-mean',
-    stepLabel: '55.1',
-    group: 'Gaussian mean MLE',
-    title: 'Gaussian Mean MLE',
-    concept: 'The Maximum Likelihood Estimator for a Gaussian mean is simply the sample average of observations.',
-    objective: 'Compute the MLE estimation of mu for data samples.',
-    difficulty: 'warmup',
-    starterCode: `function mleGaussianMean(data) {
-  if (data.length === 0) return 0;
-  // TODO: return sample mean
-  return 0;
+    id: 'bayes-posterior-full',
+    stepLabel: '54.4',
+    group: 'Bayes posterior',
+    title: 'Stable posterior update',
+    concept: 'Robust code treats prior bounds 0 and 1 correctly.',
+    objective: 'Preserve correct posterior at prior extremes.',
+    difficulty: 'core',
+    starterCode: `function bayesPosterior(prior, likH, likNotH) {
+  // TODO: prior==0 => 0, prior==1 => 1
+  const num = prior * likH;
+  const den = num + (1 - prior) * likNotH;
+  if (den === 0) return 0;
+  return num / den;
 }`,
     testCode: `const results = [];
 function check(name, actual, expected) {
   results.push({ name, actual, expected, passed: Object.is(actual, expected) });
 }
-check('mean of list', mleGaussianMean([10, 20, 30, 40]), 25);
+check('prior 0', bayesPosterior(0, 0.9, 0.1), 0);
+check('prior 1', bayesPosterior(1, 0.9, 0.1), 1);
 return results;`,
-    hints: [
-      'Sum all data points and divide by data.length.',
-    ],
-    solution: `function mleGaussianMean(data) {
-  if (data.length === 0) return 0;
-  let sum = 0;
-  for (let i = 0; i < data.length; i++) {
-    sum += data[i];
-  }
-  return sum / data.length;
+    hints: ['if (prior === 0) return 0; if (prior === 1) return 1;'],
+    solution: `function bayesPosterior(prior, likH, likNotH) {
+  if (prior === 0) return 0;
+  if (prior === 1) return 1;
+  const num = prior * likH;
+  const den = num + (1 - prior) * likNotH;
+  if (den === 0) return 0;
+  return num / den;
 }`,
-    explanation: 'The sample average maximizes the probability of observing the given Gaussian dataset.',
+    explanation: 'Boundary handling avoids unstable behavior in edge-case priors.',
+  },
+  // --- maximum-likelihood-estimation ---
+  {
+    id: 'mle-loglik-guard',
+    stepLabel: '55.1',
+    group: 'MLE log-likelihood',
+    title: 'Probability bounds guard',
+    concept: 'Bernoulli log-likelihood is undefined for p outside (0,1).',
+    objective: 'Return -Infinity for invalid p.',
+    difficulty: 'warmup',
+    starterCode: `function mleLogLik(data, p) {
+  // TODO: guard invalid p
+  return 0;
+}`,
+    testCode: `const results = [];
+function check(name, actual, expected) {
+  const passed = (Number.isNaN(expected) && Number.isNaN(actual)) || Object.is(actual, expected);
+  results.push({ name, actual, expected, passed });
+}
+check('invalid low', mleLogLik([1, 0], 0), -Infinity);
+return results;`,
+    hints: ['if (p <= 0 || p >= 1) return -Infinity;'],
+    solution: `function mleLogLik(data, p) {
+  if (p <= 0 || p >= 1) return -Infinity;
+  return 0;
+}`,
+    explanation: 'Bounds guard prevents taking log(0).',
   },
   {
-    id: 'mle-bern-loglik',
+    id: 'mle-loglik-term',
     stepLabel: '55.2',
-    group: 'Per-sample log',
-    title: 'Bernoulli Log-Likelihood',
-    concept: 'To optimize parameters, MLE maximizes log-likelihood: log L(p) = sum(k_i * log(p) + (1 - k_i) * log(1 - p)).',
-    objective: 'Evaluate the Bernoulli log-likelihood given data array (values 0 or 1) and parameter p.',
-    difficulty: 'core',
-    starterCode: `function bernoulliLogLikelihood(data, p) {
+    group: 'MLE log-likelihood',
+    title: 'Per-sample log-likelihood term',
+    concept: 'Each Bernoulli sample contributes k*log(p)+(1-k)*log(1-p).',
+    objective: 'Accumulate per-sample log term.',
+    difficulty: 'warmup',
+    starterCode: `function mleLogLik(data, p) {
   if (p <= 0 || p >= 1) return -Infinity;
   let logLik = 0;
-  
-  // TODO: Loop through data and sum log likelihoods.
-  // Use Math.log for natural logarithm.
-  
+  for (let i = 0; i < data.length; i++) {
+    const k = data[i];
+    // TODO: accumulate term
+  }
   return logLik;
 }`,
     testCode: `const results = [];
@@ -242,14 +407,10 @@ function approxEqual(a, b, tol = 1e-5) { return Math.abs(a - b) <= tol; }
 function check(name, actual, expected) {
   results.push({ name, actual, expected, passed: approxEqual(actual, expected) });
 }
-check('loglik simple p=0.5', bernoulliLogLikelihood([1, 0, 1], 0.5), -2.07944);
-check('loglik biased p=0.8', bernoulliLogLikelihood([1, 0, 1], 0.8), -2.055725);
+check('three samples', mleLogLik([1, 0, 1], 0.5), -2.07944);
 return results;`,
-    hints: [
-      'Loop through elements. Let k = data[i].',
-      'For each element, add: k * Math.log(p) + (1 - k) * Math.log(1 - p).',
-    ],
-    solution: `function bernoulliLogLikelihood(data, p) {
+    hints: ['logLik += k * Math.log(p) + (1 - k) * Math.log(1 - p);'],
+    solution: `function mleLogLik(data, p) {
   if (p <= 0 || p >= 1) return -Infinity;
   let logLik = 0;
   for (let i = 0; i < data.length; i++) {
@@ -258,242 +419,559 @@ return results;`,
   }
   return logLik;
 }`,
-    explanation: 'Maximizing log-likelihood is mathematically simpler than maximizing raw likelihood due to products turning into sums.',
+    explanation: 'Summed log terms turn product likelihood into additive objective.',
   },
-
-  // --- expected-value-variance ---
   {
-    id: 'ev-discrete-calc',
-    stepLabel: '56.1',
-    group: 'Weighted sum',
-    title: 'Discrete Expected Value',
-    concept: 'Expected Value is the probability-weighted average outcome: E[X] = sum(x_i * p_i).',
-    objective: 'Compute the expected value given outcomes and their probabilities.',
-    difficulty: 'warmup',
-    starterCode: `function expectedValue(outcomes, probabilities) {
-  let ev = 0;
-  
-  // TODO: compute sum of outcomes[i] * probabilities[i]
-  
-  return ev;
+    id: 'mle-loglik-empty',
+    stepLabel: '55.3',
+    group: 'MLE log-likelihood',
+    title: 'Empty dataset baseline',
+    concept: 'Empty data has neutral log-likelihood of 0.',
+    objective: 'Return 0 when data is empty and p valid.',
+    difficulty: 'core',
+    starterCode: `function mleLogLik(data, p) {
+  if (p <= 0 || p >= 1) return -Infinity;
+  // TODO: handle empty data
+  let logLik = 0;
+  for (let i = 0; i < data.length; i++) {
+    const k = data[i];
+    logLik += k * Math.log(p) + (1 - k) * Math.log(1 - p);
+  }
+  return logLik;
 }`,
     testCode: `const results = [];
 function check(name, actual, expected) {
   results.push({ name, actual, expected, passed: Object.is(actual, expected) });
 }
-check('die expectation', expectedValue([1, 2, 3, 4, 5, 6], [1/6, 1/6, 1/6, 1/6, 1/6, 1/6]), 3.5);
+check('empty data', mleLogLik([], 0.5), 0);
 return results;`,
-    hints: [
-      'Loop i from 0 to outcomes.length-1.',
-      'Multiply outcomes[i] by probabilities[i] and add to ev.',
-    ],
-    solution: `function expectedValue(outcomes, probabilities) {
-  let ev = 0;
-  for (let i = 0; i < outcomes.length; i++) {
-    ev += outcomes[i] * probabilities[i];
+    hints: ['if (data.length === 0) return 0;'],
+    solution: `function mleLogLik(data, p) {
+  if (p <= 0 || p >= 1) return -Infinity;
+  if (data.length === 0) return 0;
+  let logLik = 0;
+  for (let i = 0; i < data.length; i++) {
+    const k = data[i];
+    logLik += k * Math.log(p) + (1 - k) * Math.log(1 - p);
   }
-  return ev;
+  return logLik;
 }`,
-    explanation: 'Expected value represents the long-term average outcome of repeating trials.',
+    explanation: 'Neutral objective on empty samples helps deterministic testing.',
   },
   {
-    id: 'var-discrete-calc',
-    stepLabel: '56.2',
-    group: 'Variance formula',
-    title: 'Discrete Variance',
-    concept: 'Variance measures the spread of outcomes around the expected value: Var(X) = sum((x_i - E[X])^2 * p_i).',
-    objective: 'Compute variance of discrete outcomes given pre-calculated expected value.',
+    id: 'mle-loglik-full',
+    stepLabel: '55.4',
+    group: 'MLE log-likelihood',
+    title: 'Complete MLE log-likelihood',
+    concept: 'Final utility combines domain checks and per-sample accumulation.',
+    objective: 'Return full Bernoulli log-likelihood value.',
     difficulty: 'core',
-    starterCode: `function discreteVariance(outcomes, probabilities, ev) {
-  let variance = 0;
-  
-  // TODO: compute sum of (outcomes[i] - ev)^2 * probabilities[i]
-  
-  return variance;
+    starterCode: `function mleLogLik(data, p) {
+  if (p <= 0 || p >= 1) return -Infinity;
+  if (data.length === 0) return 0;
+  let logLik = 0;
+  for (let i = 0; i < data.length; i++) {
+    const k = data[i];
+    // TODO: add bernoulli log term
+  }
+  return logLik;
 }`,
     testCode: `const results = [];
 function approxEqual(a, b, tol = 1e-5) { return Math.abs(a - b) <= tol; }
 function check(name, actual, expected) {
   results.push({ name, actual, expected, passed: approxEqual(actual, expected) });
 }
-check('die variance', discreteVariance([1, 2, 3, 4, 5, 6], [1/6, 1/6, 1/6, 1/6, 1/6, 1/6], 3.5), 2.916667);
+check('biased p', mleLogLik([1, 0, 1], 0.8), -2.055725);
 return results;`,
-    hints: [
-      'Loop i from 0 to outcomes.length-1.',
-      'Compute squared difference: Math.pow(outcomes[i] - ev, 2).',
-      'Multiply by probabilities[i] and accumulate.',
-    ],
-    solution: `function discreteVariance(outcomes, probabilities, ev) {
-  let variance = 0;
-  for (let i = 0; i < outcomes.length; i++) {
-    variance += Math.pow(outcomes[i] - ev, 2) * probabilities[i];
+    hints: ['same formula as previous step'],
+    solution: `function mleLogLik(data, p) {
+  if (p <= 0 || p >= 1) return -Infinity;
+  if (data.length === 0) return 0;
+  let logLik = 0;
+  for (let i = 0; i < data.length; i++) {
+    const k = data[i];
+    logLik += k * Math.log(p) + (1 - k) * Math.log(1 - p);
   }
-  return variance;
+  return logLik;
 }`,
-    explanation: 'Variance gauges the uncertainty or volatility of a random variable\'s outcomes.',
+    explanation: 'This objective is directly optimized in Bernoulli MLE fitting.',
   },
-
+  // --- expected-value-variance ---
+  {
+    id: 'moments-ev',
+    stepLabel: '56.1',
+    group: 'Moments from PMF',
+    title: 'Expected value from PMF',
+    concept: 'First moment is weighted sum of outcomes.',
+    objective: 'Compute ev = sum(outcomes[i] * probs[i]).',
+    difficulty: 'warmup',
+    starterCode: `function momentStats(outcomes, probs) {
+  let ev = 0;
+  // TODO: weighted sum for EV
+  return { ev, variance: 0 };
+}`,
+    testCode: `const results = [];
+function check(name, actual, expected) {
+  results.push({ name, actual, expected, passed: Object.is(actual, expected) });
+}
+check('ev die', momentStats([1, 2, 3, 4, 5, 6], [1/6, 1/6, 1/6, 1/6, 1/6, 1/6]).ev, 3.5);
+return results;`,
+    hints: ['ev += outcomes[i] * probs[i];'],
+    solution: `function momentStats(outcomes, probs) {
+  let ev = 0;
+  for (let i = 0; i < outcomes.length; i++) ev += outcomes[i] * probs[i];
+  return { ev, variance: 0 };
+}`,
+    explanation: 'Expected value is the center of mass of discrete outcomes.',
+  },
+  {
+    id: 'moments-var',
+    stepLabel: '56.2',
+    group: 'Moments from PMF',
+    title: 'Variance from PMF',
+    concept: 'Second central moment captures spread around expected value.',
+    objective: 'Compute variance = sum((x-ev)^2 * p).',
+    difficulty: 'warmup',
+    starterCode: `function momentStats(outcomes, probs) {
+  let ev = 0;
+  for (let i = 0; i < outcomes.length; i++) ev += outcomes[i] * probs[i];
+  let variance = 0;
+  // TODO: weighted squared deviations
+  return { ev, variance };
+}`,
+    testCode: `const results = [];
+function approxEqual(a, b, tol = 1e-5) { return Math.abs(a - b) <= tol; }
+function check(name, actual, expected) {
+  results.push({ name, actual, expected, passed: approxEqual(actual, expected) });
+}
+check('var die', momentStats([1, 2, 3, 4, 5, 6], [1/6, 1/6, 1/6, 1/6, 1/6, 1/6]).variance, 2.916667);
+return results;`,
+    hints: ['variance += Math.pow(outcomes[i] - ev, 2) * probs[i];'],
+    solution: `function momentStats(outcomes, probs) {
+  let ev = 0;
+  for (let i = 0; i < outcomes.length; i++) ev += outcomes[i] * probs[i];
+  let variance = 0;
+  for (let i = 0; i < outcomes.length; i++) variance += Math.pow(outcomes[i] - ev, 2) * probs[i];
+  return { ev, variance };
+}`,
+    explanation: 'Variance quantifies uncertainty around the mean outcome.',
+  },
+  {
+    id: 'moments-prob-sum',
+    stepLabel: '56.3',
+    group: 'Moments from PMF',
+    title: 'PMF validity check',
+    concept: 'A PMF should sum to 1 for valid moment interpretation.',
+    objective: 'Return NaN variance when probability sum differs from 1 by >1e-6.',
+    difficulty: 'core',
+    starterCode: `function momentStats(outcomes, probs) {
+  let pSum = 0;
+  for (let i = 0; i < probs.length; i++) pSum += probs[i];
+  // TODO: guard invalid probability sums
+  let ev = 0;
+  for (let i = 0; i < outcomes.length; i++) ev += outcomes[i] * probs[i];
+  let variance = 0;
+  for (let i = 0; i < outcomes.length; i++) variance += Math.pow(outcomes[i] - ev, 2) * probs[i];
+  return { ev, variance };
+}`,
+    testCode: `const results = [];
+function check(name, actual, expected) {
+  const passed = Number.isNaN(actual) && Number.isNaN(expected);
+  results.push({ name, actual, expected, passed });
+}
+check('invalid pmf', momentStats([1, 2], [0.2, 0.2]).variance, NaN);
+return results;`,
+    hints: ['if (Math.abs(pSum - 1) > 1e-6) return { ev: NaN, variance: NaN };'],
+    solution: `function momentStats(outcomes, probs) {
+  let pSum = 0;
+  for (let i = 0; i < probs.length; i++) pSum += probs[i];
+  if (Math.abs(pSum - 1) > 1e-6) return { ev: NaN, variance: NaN };
+  let ev = 0;
+  for (let i = 0; i < outcomes.length; i++) ev += outcomes[i] * probs[i];
+  let variance = 0;
+  for (let i = 0; i < outcomes.length; i++) variance += Math.pow(outcomes[i] - ev, 2) * probs[i];
+  return { ev, variance };
+}`,
+    explanation: 'Input validation catches malformed PMFs early.',
+  },
+  {
+    id: 'moments-full',
+    stepLabel: '56.4',
+    group: 'Moments from PMF',
+    title: 'Complete moment stats',
+    concept: 'Final helper returns first and second moments robustly.',
+    objective: 'Return zeros for empty arrays.',
+    difficulty: 'core',
+    starterCode: `function momentStats(outcomes, probs) {
+  // TODO: handle empty arrays
+  let pSum = 0;
+  for (let i = 0; i < probs.length; i++) pSum += probs[i];
+  if (Math.abs(pSum - 1) > 1e-6) return { ev: NaN, variance: NaN };
+  let ev = 0;
+  for (let i = 0; i < outcomes.length; i++) ev += outcomes[i] * probs[i];
+  let variance = 0;
+  for (let i = 0; i < outcomes.length; i++) variance += Math.pow(outcomes[i] - ev, 2) * probs[i];
+  return { ev, variance };
+}`,
+    testCode: `const results = [];
+function same(a, b) { return JSON.stringify(a) === JSON.stringify(b); }
+function check(name, actual, expected) {
+  results.push({ name, actual: JSON.stringify(actual), expected: JSON.stringify(expected), passed: same(actual, expected) });
+}
+check('empty arrays', momentStats([], []), { ev: 0, variance: 0 });
+return results;`,
+    hints: ['if (outcomes.length === 0 || probs.length === 0) return { ev: 0, variance: 0 };'],
+    solution: `function momentStats(outcomes, probs) {
+  if (outcomes.length === 0 || probs.length === 0) return { ev: 0, variance: 0 };
+  let pSum = 0;
+  for (let i = 0; i < probs.length; i++) pSum += probs[i];
+  if (Math.abs(pSum - 1) > 1e-6) return { ev: NaN, variance: NaN };
+  let ev = 0;
+  for (let i = 0; i < outcomes.length; i++) ev += outcomes[i] * probs[i];
+  let variance = 0;
+  for (let i = 0; i < outcomes.length; i++) variance += Math.pow(outcomes[i] - ev, 2) * probs[i];
+  return { ev, variance };
+}`,
+    explanation: 'A compact utility for PMF-derived moments across lessons.',
+  },
   // --- spearman-correlation ---
   {
-    id: 'spearman-rank-ties',
+    id: 'spearman-rank-build',
     stepLabel: '57.1',
-    group: 'Rank with ties',
-    title: 'Rank Data with Ties',
-    concept: 'Spearman correlation uses ranks. Tied values receive the average of the ranks they would have otherwise spanned.',
-    objective: 'Assign fractional ranks to elements in an array, handling ties correctly.',
-    difficulty: 'core',
-    starterCode: `function rankData(arr) {
-  const sorted = arr.map((val, idx) => ({ val, idx })).sort((a, b) => a.val - b.val);
-  const ranks = Array(arr.length);
-  
-  let i = 0;
-  while (i < sorted.length) {
-    let j = i;
-    while (j < sorted.length && sorted[j].val === sorted[i].val) {
-      j++;
+    group: 'Spearman correlation',
+    title: 'Build rank array with ties',
+    concept: 'Spearman starts by ranking each array with average tie ranks.',
+    objective: 'Implement rankData with tie averaging.',
+    difficulty: 'warmup',
+    starterCode: `function spearmanRho(x, y) {
+  function rankData(arr) {
+    const sorted = arr.map((val, idx) => ({ val, idx })).sort((a, b) => a.val - b.val);
+    const ranks = Array(arr.length);
+    let i = 0;
+    while (i < sorted.length) {
+      let j = i;
+      while (j < sorted.length && sorted[j].val === sorted[i].val) j++;
+      // TODO: assign average tie rank to k in [i, j)
+      i = j;
     }
-    // TODO: assign the average rank of the tied group to ranks[sorted[k].idx]
-    // The tied range is index i to j - 1. 1-based ranks span from i + 1 to j.
-    // Average rank is (sum of integers from i+1 to j) / count = (i + 1 + j) / 2.
-    const avgRank = 0;
-    
-    i = j;
+    return ranks;
   }
-  return ranks;
+  return rankData(x);
 }`,
     testCode: `const results = [];
-function sameArr(a, b) { return JSON.stringify(a) === JSON.stringify(b); }
+function same(a, b) { return JSON.stringify(a) === JSON.stringify(b); }
 function check(name, actual, expected) {
-  results.push({ name, actual: JSON.stringify(actual), expected: JSON.stringify(expected), passed: sameArr(actual, expected) });
+  results.push({ name, actual: JSON.stringify(actual), expected: JSON.stringify(expected), passed: same(actual, expected) });
 }
-check('ties ranking', rankData([10, 20, 20, 30]), [1, 2.5, 2.5, 4]);
-check('no ties ranking', rankData([5, 15, 10]), [1, 3, 2]);
+check('rank ties', spearmanRho([10, 20, 20, 30], [1, 2, 3, 4]), [1, 2.5, 2.5, 4]);
 return results;`,
-    hints: [
-      'Average rank of elements from i (0-indexed) to j-1 is (i + 1 + j) / 2.',
-      'Loop k from i to j-1 and set ranks[sorted[k].idx] = avgRank.',
-    ],
-    solution: `function rankData(arr) {
-  const sorted = arr.map((val, idx) => ({ val, idx })).sort((a, b) => a.val - b.val);
-  const ranks = Array(arr.length);
-  
-  let i = 0;
-  while (i < sorted.length) {
-    let j = i;
-    while (j < sorted.length && sorted[j].val === sorted[i].val) {
-      j++;
+    hints: ['const avgRank = (i + 1 + j) / 2; for (let k = i; k < j; k++) ranks[sorted[k].idx] = avgRank;'],
+    solution: `function spearmanRho(x, y) {
+  function rankData(arr) {
+    const sorted = arr.map((val, idx) => ({ val, idx })).sort((a, b) => a.val - b.val);
+    const ranks = Array(arr.length);
+    let i = 0;
+    while (i < sorted.length) {
+      let j = i;
+      while (j < sorted.length && sorted[j].val === sorted[i].val) j++;
+      const avgRank = (i + 1 + j) / 2;
+      for (let k = i; k < j; k++) ranks[sorted[k].idx] = avgRank;
+      i = j;
     }
-    const avgRank = (i + 1 + j) / 2;
-    for (let k = i; k < j; k++) {
-      ranks[sorted[k].idx] = avgRank;
-    }
-    i = j;
+    return ranks;
   }
-  return ranks;
+  return rankData(x);
 }`,
-    explanation: 'Fractional ranking maintains continuous values for identical data attributes, preventing arbitrary skew in correlations.',
+    explanation: 'Tie-aware ranking avoids arbitrary ordering artifacts.',
   },
   {
-    id: 'spearman-rho-calc',
+    id: 'spearman-rank-means',
     stepLabel: '57.2',
-    group: 'Pearson on ranks',
-    title: 'Spearman Correlation Coefficient',
-    concept: 'Spearman\'s rank correlation evaluates monotonic relationships. It is calculated by running Pearson correlation on ranked values.',
-    objective: 'Implement Spearman rho calculation using Pearson correlation on rank-transformed inputs.',
-    difficulty: 'challenge',
-    starterCode: `function rankData(arr) {
-  const sorted = arr.map((val, idx) => ({ val, idx })).sort((a, b) => a.val - b.val);
-  const ranks = Array(arr.length);
-  let i = 0;
-  while (i < sorted.length) {
-    let j = i;
-    while (j < sorted.length && sorted[j].val === sorted[i].val) j++;
-    const avgRank = (i + 1 + j) / 2;
-    for (let k = i; k < j; k++) ranks[sorted[k].idx] = avgRank;
-    i = j;
+    group: 'Spearman correlation',
+    title: 'Rank means',
+    concept: 'Pearson-on-ranks needs means of both rank vectors.',
+    objective: 'Compute meanX and meanY from rank arrays.',
+    difficulty: 'warmup',
+    starterCode: `function spearmanRho(x, y) {
+  function rankData(arr) {
+    const sorted = arr.map((val, idx) => ({ val, idx })).sort((a, b) => a.val - b.val);
+    const ranks = Array(arr.length);
+    let i = 0;
+    while (i < sorted.length) {
+      let j = i;
+      while (j < sorted.length && sorted[j].val === sorted[i].val) j++;
+      const avgRank = (i + 1 + j) / 2;
+      for (let k = i; k < j; k++) ranks[sorted[k].idx] = avgRank;
+      i = j;
+    }
+    return ranks;
   }
-  return ranks;
-}
-
-function spearmanRho(x, y) {
-  const rankX = rankData(x);
-  const rankY = rankData(y);
-  const n = rankX.length;
-  
-  let sumX = 0, sumY = 0;
-  for (let i = 0; i < n; i++) {
-    sumX += rankX[i];
-    sumY += rankY[i];
-  }
-  const meanX = sumX / n;
-  const meanY = sumY / n;
-  
-  let num = 0;
-  let denX = 0;
-  let denY = 0;
-  
-  // TODO: Compute covariance numerator and standard deviations denominators.
-  // Formula: num = sum((rx - meanX) * (ry - meanY)), denX = sum((rx - meanX)^2), denY = sum((ry - meanY)^2)
-  
-  if (denX === 0 || denY === 0) return 0;
-  return num / Math.sqrt(denX * denY);
+  const rx = rankData(x);
+  const ry = rankData(y);
+  const n = rx.length;
+  // TODO: compute means
+  const meanX = 0;
+  const meanY = 0;
+  return [meanX, meanY];
 }`,
     testCode: `const results = [];
-function approxEqual(a, b, tol = 1e-5) { return Math.abs(a - b) <= tol; }
+function same(a, b) { return JSON.stringify(a) === JSON.stringify(b); }
 function check(name, actual, expected) {
-  results.push({ name, actual, expected, passed: approxEqual(actual, expected) });
+  results.push({ name, actual: JSON.stringify(actual), expected: JSON.stringify(expected), passed: same(actual, expected) });
 }
-check('monotonic positive correlation', spearmanRho([10, 20, 30, 40], [5, 15, 25, 35]), 1.0);
-check('monotonic negative correlation', spearmanRho([10, 20, 30, 40], [35, 25, 15, 5]), -1.0);
-check('weak correlation', spearmanRho([10, 20, 30, 40], [10, 30, 20, 40]), 0.8);
+check('rank means', spearmanRho([1, 2, 3], [3, 2, 1]), [2, 2]);
 return results;`,
-    hints: [
-      'Loop i from 0 to n-1.',
-      'Compute dx = rankX[i] - meanX, and dy = rankY[i] - meanY.',
-      'Accumulate dx * dy in num, dx * dx in denX, and dy * dy in denY.',
-    ],
-    solution: `function rankData(arr) {
-  const sorted = arr.map((val, idx) => ({ val, idx })).sort((a, b) => a.val - b.val);
-  const ranks = Array(arr.length);
-  let i = 0;
-  while (i < sorted.length) {
-    let j = i;
-    while (j < sorted.length && sorted[j].val === sorted[i].val) j++;
-    const avgRank = (i + 1 + j) / 2;
-    for (let k = i; k < j; k++) ranks[sorted[k].idx] = avgRank;
-    i = j;
+    hints: ['const meanX = rx.reduce((s, v) => s + v, 0) / n;'],
+    solution: `function spearmanRho(x, y) {
+  function rankData(arr) {
+    const sorted = arr.map((val, idx) => ({ val, idx })).sort((a, b) => a.val - b.val);
+    const ranks = Array(arr.length);
+    let i = 0;
+    while (i < sorted.length) {
+      let j = i;
+      while (j < sorted.length && sorted[j].val === sorted[i].val) j++;
+      const avgRank = (i + 1 + j) / 2;
+      for (let k = i; k < j; k++) ranks[sorted[k].idx] = avgRank;
+      i = j;
+    }
+    return ranks;
   }
-  return ranks;
+  const rx = rankData(x);
+  const ry = rankData(y);
+  const n = rx.length;
+  const meanX = rx.reduce((s, v) => s + v, 0) / n;
+  const meanY = ry.reduce((s, v) => s + v, 0) / n;
+  return [meanX, meanY];
+}`,
+    explanation: 'Centering ranks prepares covariance-style numerator computation.',
+  },
+  {
+    id: 'spearman-covariances',
+    stepLabel: '57.3',
+    group: 'Spearman correlation',
+    title: 'Covariance and denominators',
+    concept: 'Spearman is Pearson over ranks: numerator and two denominator sums.',
+    objective: 'Accumulate num, denX, denY from centered ranks.',
+    difficulty: 'core',
+    starterCode: `function spearmanRho(x, y) {
+  function rankData(arr) {
+    const sorted = arr.map((val, idx) => ({ val, idx })).sort((a, b) => a.val - b.val);
+    const ranks = Array(arr.length);
+    let i = 0;
+    while (i < sorted.length) {
+      let j = i;
+      while (j < sorted.length && sorted[j].val === sorted[i].val) j++;
+      const avgRank = (i + 1 + j) / 2;
+      for (let k = i; k < j; k++) ranks[sorted[k].idx] = avgRank;
+      i = j;
+    }
+    return ranks;
+  }
+  const rx = rankData(x);
+  const ry = rankData(y);
+  const n = rx.length;
+  const meanX = rx.reduce((s, v) => s + v, 0) / n;
+  const meanY = ry.reduce((s, v) => s + v, 0) / n;
+  let num = 0, denX = 0, denY = 0;
+  // TODO: accumulate num, denX, denY
+  return [num, denX, denY];
+}`,
+    testCode: `const results = [];
+function same(a, b, tol = 1e-9) { return a.length === b.length && a.every((v, i) => Math.abs(v - b[i]) <= tol); }
+function check(name, actual, expected) {
+  results.push({ name, actual: JSON.stringify(actual), expected: JSON.stringify(expected), passed: same(actual, expected) });
 }
-
-function spearmanRho(x, y) {
-  const rankX = rankData(x);
-  const rankY = rankData(y);
-  const n = rankX.length;
-  
-  let sumX = 0, sumY = 0;
-  for (let i = 0; i < n; i++) {
-    sumX += rankX[i];
-    sumY += rankY[i];
+check('perfect positive sums', spearmanRho([1, 2, 3], [1, 2, 3]), [2, 2, 2]);
+return results;`,
+    hints: ['dx = rx[i]-meanX; dy = ry[i]-meanY; num += dx*dy; denX += dx*dx; denY += dy*dy;'],
+    solution: `function spearmanRho(x, y) {
+  function rankData(arr) {
+    const sorted = arr.map((val, idx) => ({ val, idx })).sort((a, b) => a.val - b.val);
+    const ranks = Array(arr.length);
+    let i = 0;
+    while (i < sorted.length) {
+      let j = i;
+      while (j < sorted.length && sorted[j].val === sorted[i].val) j++;
+      const avgRank = (i + 1 + j) / 2;
+      for (let k = i; k < j; k++) ranks[sorted[k].idx] = avgRank;
+      i = j;
+    }
+    return ranks;
   }
-  const meanX = sumX / n;
-  const meanY = sumY / n;
-  
-  let num = 0;
-  let denX = 0;
-  let denY = 0;
-  
+  const rx = rankData(x);
+  const ry = rankData(y);
+  const n = rx.length;
+  const meanX = rx.reduce((s, v) => s + v, 0) / n;
+  const meanY = ry.reduce((s, v) => s + v, 0) / n;
+  let num = 0, denX = 0, denY = 0;
   for (let i = 0; i < n; i++) {
-    const dx = rankX[i] - meanX;
-    const dy = rankY[i] - meanY;
+    const dx = rx[i] - meanX;
+    const dy = ry[i] - meanY;
     num += dx * dy;
     denX += dx * dx;
     denY += dy * dy;
   }
-  
+  return [num, denX, denY];
+}`,
+    explanation: 'These three sums define Pearson correlation on ranked values.',
+  },
+  {
+    id: 'spearman-rho-main',
+    stepLabel: '57.4',
+    group: 'Spearman correlation',
+    title: 'Spearman rho from rank Pearson',
+    concept: 'Rho is num / sqrt(denX * denY), with zero-denominator guard.',
+    objective: 'Return rho value.',
+    difficulty: 'core',
+    starterCode: `function spearmanRho(x, y) {
+  function rankData(arr) {
+    const sorted = arr.map((val, idx) => ({ val, idx })).sort((a, b) => a.val - b.val);
+    const ranks = Array(arr.length);
+    let i = 0;
+    while (i < sorted.length) {
+      let j = i;
+      while (j < sorted.length && sorted[j].val === sorted[i].val) j++;
+      const avgRank = (i + 1 + j) / 2;
+      for (let k = i; k < j; k++) ranks[sorted[k].idx] = avgRank;
+      i = j;
+    }
+    return ranks;
+  }
+  const rx = rankData(x);
+  const ry = rankData(y);
+  const n = rx.length;
+  const meanX = rx.reduce((s, v) => s + v, 0) / n;
+  const meanY = ry.reduce((s, v) => s + v, 0) / n;
+  let num = 0, denX = 0, denY = 0;
+  for (let i = 0; i < n; i++) {
+    const dx = rx[i] - meanX;
+    const dy = ry[i] - meanY;
+    num += dx * dy;
+    denX += dx * dx;
+    denY += dy * dy;
+  }
+  // TODO: return rho with zero guards
+  return 0;
+}`,
+    testCode: `const results = [];
+function approxEqual(a, b, tol = 1e-5) { return Math.abs(a - b) <= tol; }
+function check(name, actual, expected) {
+  results.push({ name, actual, expected, passed: approxEqual(actual, expected) });
+}
+check('positive', spearmanRho([10, 20, 30, 40], [5, 15, 25, 35]), 1);
+check('negative', spearmanRho([10, 20, 30, 40], [35, 25, 15, 5]), -1);
+return results;`,
+    hints: ['if (denX === 0 || denY === 0) return 0; return num / Math.sqrt(denX * denY);'],
+    solution: `function spearmanRho(x, y) {
+  function rankData(arr) {
+    const sorted = arr.map((val, idx) => ({ val, idx })).sort((a, b) => a.val - b.val);
+    const ranks = Array(arr.length);
+    let i = 0;
+    while (i < sorted.length) {
+      let j = i;
+      while (j < sorted.length && sorted[j].val === sorted[i].val) j++;
+      const avgRank = (i + 1 + j) / 2;
+      for (let k = i; k < j; k++) ranks[sorted[k].idx] = avgRank;
+      i = j;
+    }
+    return ranks;
+  }
+  const rx = rankData(x);
+  const ry = rankData(y);
+  const n = rx.length;
+  const meanX = rx.reduce((s, v) => s + v, 0) / n;
+  const meanY = ry.reduce((s, v) => s + v, 0) / n;
+  let num = 0, denX = 0, denY = 0;
+  for (let i = 0; i < n; i++) {
+    const dx = rx[i] - meanX;
+    const dy = ry[i] - meanY;
+    num += dx * dy;
+    denX += dx * dx;
+    denY += dy * dy;
+  }
   if (denX === 0 || denY === 0) return 0;
   return num / Math.sqrt(denX * denY);
 }`,
-    explanation: 'Spearman correlation detects monotonic non-linear relationships, making it less sensitive to outliers than Pearson correlation.',
+    explanation: 'Spearman captures monotonic association even beyond strict linearity.',
+  },
+  {
+    id: 'spearman-rho-edge',
+    stepLabel: '57.5',
+    group: 'Spearman correlation',
+    title: 'Constant-array edge case',
+    concept: 'If one rank vector is constant, denominator is zero and rho should be 0.',
+    objective: 'Verify zero-denominator behavior.',
+    difficulty: 'core',
+    starterCode: `function spearmanRho(x, y) {
+  function rankData(arr) {
+    const sorted = arr.map((val, idx) => ({ val, idx })).sort((a, b) => a.val - b.val);
+    const ranks = Array(arr.length);
+    let i = 0;
+    while (i < sorted.length) {
+      let j = i;
+      while (j < sorted.length && sorted[j].val === sorted[i].val) j++;
+      const avgRank = (i + 1 + j) / 2;
+      for (let k = i; k < j; k++) ranks[sorted[k].idx] = avgRank;
+      i = j;
+    }
+    return ranks;
   }
+  const rx = rankData(x);
+  const ry = rankData(y);
+  const n = rx.length;
+  const meanX = rx.reduce((s, v) => s + v, 0) / n;
+  const meanY = ry.reduce((s, v) => s + v, 0) / n;
+  let num = 0, denX = 0, denY = 0;
+  for (let i = 0; i < n; i++) {
+    const dx = rx[i] - meanX;
+    const dy = ry[i] - meanY;
+    num += dx * dy;
+    denX += dx * dx;
+    denY += dy * dy;
+  }
+  if (denX === 0 || denY === 0) {
+    // TODO: return 0
+    return 1;
+  }
+  return num / Math.sqrt(denX * denY);
+}`,
+    testCode: `const results = [];
+function check(name, actual, expected) {
+  results.push({ name, actual, expected, passed: Object.is(actual, expected) });
+}
+check('constant x', spearmanRho([1, 1, 1], [1, 2, 3]), 0);
+return results;`,
+    hints: ['return 0;'],
+    solution: `function spearmanRho(x, y) {
+  function rankData(arr) {
+    const sorted = arr.map((val, idx) => ({ val, idx })).sort((a, b) => a.val - b.val);
+    const ranks = Array(arr.length);
+    let i = 0;
+    while (i < sorted.length) {
+      let j = i;
+      while (j < sorted.length && sorted[j].val === sorted[i].val) j++;
+      const avgRank = (i + 1 + j) / 2;
+      for (let k = i; k < j; k++) ranks[sorted[k].idx] = avgRank;
+      i = j;
+    }
+    return ranks;
+  }
+  const rx = rankData(x);
+  const ry = rankData(y);
+  const n = rx.length;
+  const meanX = rx.reduce((s, v) => s + v, 0) / n;
+  const meanY = ry.reduce((s, v) => s + v, 0) / n;
+  let num = 0, denX = 0, denY = 0;
+  for (let i = 0; i < n; i++) {
+    const dx = rx[i] - meanX;
+    const dy = ry[i] - meanY;
+    num += dx * dy;
+    denX += dx * dx;
+    denY += dy * dy;
+  }
+  if (denX === 0 || denY === 0) return 0;
+  return num / Math.sqrt(denX * denY);
+}`,
+    explanation: 'Constant vectors carry no rank variance, so correlation is undefined and set to 0.',
+  },
 ];

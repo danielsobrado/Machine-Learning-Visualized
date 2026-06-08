@@ -1195,70 +1195,163 @@ function populationStabilityIndex(referenceBins, currentBins) {
 
   // --- WAVE 2: ADDED RANKING EXERCISES ---
   {
-    id: 'rank-dot-score',
+    id: 'ranking-loss-diff',
     stepLabel: '12.1',
-    group: 'Dot score',
-    title: 'User-item dot product score',
-    concept: 'Collaborative filtering and ranking models score user-item pairs by calculating the dot product of user and item embedding vectors.',
-    objective: 'Compute the dot product score of user and item vectors.',
+    group: 'Ranking training step',
+    title: 'Positive-negative score gap',
+    concept: 'Pairwise ranking compares a positive item score against a negative item score.',
+    objective: 'Compute scoreDiff = dot(user, itemPos) - dot(user, itemNeg).',
     difficulty: 'warmup',
-    starterCode: `function dotUserItem(user, item) {
-  let score = 0;
+    starterCode: `function rankingLoss(user, itemPos, itemNeg, margin) {
+  let scorePos = 0;
+  let scoreNeg = 0;
   for (let i = 0; i < user.length; i++) {
-    // TODO: multiply user[i] by item[i] and add to score
-    score += 0;
+    scorePos += user[i] * itemPos[i];
+    scoreNeg += user[i] * itemNeg[i];
   }
-  return score;
+  // TODO: compute scoreDiff
+  const scoreDiff = 0;
+  return scoreDiff;
 }`,
     testCode: `const results = [];
 function check(name, actual, expected) {
   results.push({ name, actual, expected, passed: Object.is(actual, expected) });
 }
-check('score aligned', dotUserItem([0.5, 0.5], [2.0, 3.0]), 2.5);
-check('score zero', dotUserItem([0.0, 1.0], [5.0, 0.0]), 0);
+check('score diff', rankingLoss([1, 0], [2, 0], [1, 0], 1), 1);
 return results;`,
-    hints: [
-      'Multiply user[i] by item[i].',
-      'Add it to the score variable.',
-      'score += user[i] * item[i];',
-    ],
-    solution: `function dotUserItem(user, item) {
-  let score = 0;
+    hints: ['const scoreDiff = scorePos - scoreNeg;'],
+    solution: `function rankingLoss(user, itemPos, itemNeg, margin) {
+  let scorePos = 0;
+  let scoreNeg = 0;
   for (let i = 0; i < user.length; i++) {
-    score += user[i] * item[i];
+    scorePos += user[i] * itemPos[i];
+    scoreNeg += user[i] * itemNeg[i];
   }
-  return score;
+  const scoreDiff = scorePos - scoreNeg;
+  return scoreDiff;
 }`,
-    explanation: 'User-item dot product measures how much the user preferences align with item features.',
+    explanation: 'Ranking starts from relative score ordering, not absolute calibration.',
   },
   {
-    id: 'rank-pairwise-hinge',
+    id: 'ranking-loss-margin-gap',
     stepLabel: '12.2',
-    group: 'Pairwise hinge',
-    title: 'Pairwise hinge loss',
-    concept: 'Pairwise ranking loss pushes positive items to have higher scores than negative items. Hinge loss is max(0, margin - (scorePos - scoreNeg)).',
-    objective: 'Compute the pairwise hinge loss with a given margin.',
-    difficulty: 'core',
-    starterCode: `function pairwiseHingeLoss(scorePos, scoreNeg, margin = 1.0) {
-  const diff = scorePos - scoreNeg;
-  // TODO: return max(0, margin - diff)
-  return 0;
+    group: 'Ranking training step',
+    title: 'Margin violation term',
+    concept: 'Hinge ranking loss penalizes when score gap is below margin.',
+    objective: 'Compute violation = margin - scoreDiff.',
+    difficulty: 'warmup',
+    starterCode: `function rankingLoss(user, itemPos, itemNeg, margin) {
+  let scorePos = 0;
+  let scoreNeg = 0;
+  for (let i = 0; i < user.length; i++) {
+    scorePos += user[i] * itemPos[i];
+    scoreNeg += user[i] * itemNeg[i];
+  }
+  const scoreDiff = scorePos - scoreNeg;
+  // TODO: compute violation = margin - scoreDiff
+  const violation = 0;
+  return violation;
 }`,
     testCode: `const results = [];
 function check(name, actual, expected) {
   results.push({ name, actual, expected, passed: Object.is(actual, expected) });
 }
-check('loss positive', pairwiseHingeLoss(0.5, 0.2, 1.0), 0.7); // 1.0 - 0.3 = 0.7
-check('loss zero', pairwiseHingeLoss(1.5, 0.2, 1.0), 0); // 1.0 - 1.3 = -0.3 <= 0
+check('violation term', rankingLoss([1, 0], [2, 0], [1, 0], 1), 0);
 return results;`,
-    hints: [
-      'Use Math.max(0, margin - diff).',
-    ],
-    solution: `function pairwiseHingeLoss(scorePos, scoreNeg, margin = 1.0) {
-  const diff = scorePos - scoreNeg;
-  return Math.max(0, margin - diff);
+    hints: ['const violation = margin - scoreDiff;'],
+    solution: `function rankingLoss(user, itemPos, itemNeg, margin) {
+  let scorePos = 0;
+  let scoreNeg = 0;
+  for (let i = 0; i < user.length; i++) {
+    scorePos += user[i] * itemPos[i];
+    scoreNeg += user[i] * itemNeg[i];
+  }
+  const scoreDiff = scorePos - scoreNeg;
+  const violation = margin - scoreDiff;
+  return violation;
 }`,
-    explanation: 'Hinge loss penalizes the model when the positive item score is not higher than the negative item score by at least the margin.',
+    explanation: 'Margin encodes how much better positives should score than negatives.',
+  },
+  {
+    id: 'ranking-loss-hinge',
+    stepLabel: '12.3',
+    group: 'Ranking training step',
+    title: 'Hinge clipping',
+    concept: 'Only positive violations contribute to loss; satisfied pairs contribute zero.',
+    objective: 'Return Math.max(0, violation).',
+    difficulty: 'core',
+    starterCode: `function rankingLoss(user, itemPos, itemNeg, margin) {
+  let scorePos = 0;
+  let scoreNeg = 0;
+  for (let i = 0; i < user.length; i++) {
+    scorePos += user[i] * itemPos[i];
+    scoreNeg += user[i] * itemNeg[i];
+  }
+  const scoreDiff = scorePos - scoreNeg;
+  const violation = margin - scoreDiff;
+  // TODO: apply hinge clipping
+  return violation;
+}`,
+    testCode: `const results = [];
+function check(name, actual, expected) {
+  results.push({ name, actual, expected, passed: Object.is(actual, expected) });
+}
+check('zero when satisfied', rankingLoss([1, 0], [2, 0], [1, 0], 1), 0);
+check('positive when violated', rankingLoss([1, 0], [1, 0], [1, 0], 1), 1);
+return results;`,
+    hints: ['return Math.max(0, violation);'],
+    solution: `function rankingLoss(user, itemPos, itemNeg, margin) {
+  let scorePos = 0;
+  let scoreNeg = 0;
+  for (let i = 0; i < user.length; i++) {
+    scorePos += user[i] * itemPos[i];
+    scoreNeg += user[i] * itemNeg[i];
+  }
+  const scoreDiff = scorePos - scoreNeg;
+  const violation = margin - scoreDiff;
+  return Math.max(0, violation);
+}`,
+    explanation: 'Hinge clipping prevents over-optimizing already-correct pairs.',
+  },
+  {
+    id: 'ranking-loss-training-step',
+    stepLabel: '12.4',
+    group: 'Ranking training step',
+    title: 'Full ranking loss step',
+    concept: 'One pairwise training step computes a scalar hinge loss from embeddings.',
+    objective: 'Guard empty vectors and return pairwise hinge loss.',
+    difficulty: 'core',
+    starterCode: `function rankingLoss(user, itemPos, itemNeg, margin) {
+  // TODO: return 0 when user is empty
+  let scorePos = 0;
+  let scoreNeg = 0;
+  for (let i = 0; i < user.length; i++) {
+    scorePos += user[i] * itemPos[i];
+    scoreNeg += user[i] * itemNeg[i];
+  }
+  const scoreDiff = scorePos - scoreNeg;
+  return Math.max(0, margin - scoreDiff);
+}`,
+    testCode: `const results = [];
+function check(name, actual, expected) {
+  results.push({ name, actual, expected, passed: Object.is(actual, expected) });
+}
+check('empty user', rankingLoss([], [], [], 1), 0);
+check('non-empty pair', rankingLoss([1, 0], [1, 0], [1, 0], 1), 1);
+return results;`,
+    hints: ['if (user.length === 0) return 0;'],
+    solution: `function rankingLoss(user, itemPos, itemNeg, margin) {
+  if (user.length === 0) return 0;
+  let scorePos = 0;
+  let scoreNeg = 0;
+  for (let i = 0; i < user.length; i++) {
+    scorePos += user[i] * itemPos[i];
+    scoreNeg += user[i] * itemNeg[i];
+  }
+  const scoreDiff = scorePos - scoreNeg;
+  return Math.max(0, margin - scoreDiff);
+}`,
+    explanation: 'The final utility is directly usable in mini-batch pairwise ranking.',
   },
   {
     id: 'eval-pass-at-k-edge',
@@ -1463,65 +1556,96 @@ return results;`,
 
   // --- WAVE 5: MODEL RELIABILITY ---
   {
-    id: 'interpretability-marginal',
+    id: 'shapley-sum-accumulate',
     stepLabel: '48.1',
-    group: 'Marginal contrib',
-    title: 'Marginal Contribution',
-    concept: 'Shapley values explain predictions by computing the marginal contribution of each feature across subset combinations.',
-    objective: 'Compute the difference in model prediction with versus without feature i: f(S union {i}) - f(S).',
+    group: 'Shapley attribution check',
+    title: 'Attribution sum accumulation',
+    concept: 'Shapley efficiency compares total attribution mass against prediction delta.',
+    objective: 'Accumulate all attribution values into sum.',
     difficulty: 'warmup',
-    starterCode: `function marginalContribution(predWith, predWithout) {
-  // TODO: return the difference between prediction with and without feature
-  return 0;
-}`,
-    testCode: `const results = [];
-function approxEqual(a, b, tol = 1e-5) {
-  return Math.abs(a - b) <= tol;
-}
-function check(name, actual, expected) {
-  results.push({ name, actual, expected, passed: approxEqual(actual, expected) });
-}
-check('positive contribution', marginalContribution(0.85, 0.60), 0.25);
-check('negative contribution', marginalContribution(0.40, 0.55), -0.15);
-return results;`,
-    hints: [
-      'Subtract predWithout from predWith.',
-      'return predWith - predWithout;',
-    ],
-    solution: `function marginalContribution(predWith, predWithout) {
-  return predWith - predWithout;
-}`,
-    explanation: 'A feature\'s marginal contribution measures its direct value-add to a specific coalition of features.',
-  },
-  {
-    id: 'interpretability-shapley-sum',
-    stepLabel: '48.2',
-    group: 'Sum to delta',
-    title: 'Shapley Attribution Sum',
-    concept: 'The sum of Shapley values for all features exactly equals the difference between the model\'s prediction and the base expected value.',
-    objective: 'Verify that the sum of feature attributions matches the prediction delta: sum(phi_i) === f(x) - E[f(x)].',
-    difficulty: 'core',
     starterCode: `function verifyShapleySum(attributions, prediction, baseline) {
   let sum = 0;
   for (let i = 0; i < attributions.length; i++) {
-    // TODO: accumulate attributions
+    // TODO: add attributions[i] into sum
     sum += 0;
   }
-  const delta = prediction - baseline;
-  // Check if they are approximately equal within a small tolerance
-  return Math.abs(sum - delta) < 1e-5;
+  return sum;
 }`,
     testCode: `const results = [];
 function check(name, actual, expected) {
   results.push({ name, actual, expected, passed: Object.is(actual, expected) });
 }
-check('sum matches delta', verifyShapleySum([0.15, 0.05, -0.10], 0.85, 0.75), true);
-check('sum mismatch', verifyShapleySum([0.15, 0.05, -0.10], 0.95, 0.75), false);
+check('sum attributions', verifyShapleySum([0.2, -0.1, 0.4], 0, 0), 0.5);
 return results;`,
-    hints: [
-      'Accumulate attributions[i] into sum.',
-      'sum += attributions[i];',
-    ],
+    hints: ['sum += attributions[i];'],
+    solution: `function verifyShapleySum(attributions, prediction, baseline) {
+  let sum = 0;
+  for (let i = 0; i < attributions.length; i++) {
+    sum += attributions[i];
+  }
+  return sum;
+}`,
+    explanation: 'Summation is the bridge between local attributions and global delta.',
+  },
+  {
+    id: 'shapley-sum-delta',
+    stepLabel: '48.2',
+    group: 'Shapley attribution check',
+    title: 'Prediction-baseline delta',
+    concept: 'The target quantity is prediction minus baseline expected value.',
+    objective: 'Compute delta = prediction - baseline.',
+    difficulty: 'warmup',
+    starterCode: `function verifyShapleySum(attributions, prediction, baseline) {
+  let sum = 0;
+  for (let i = 0; i < attributions.length; i++) {
+    sum += attributions[i];
+  }
+  // TODO: compute prediction delta
+  const delta = 0;
+  return delta;
+}`,
+    testCode: `const results = [];
+function check(name, actual, expected) {
+  results.push({ name, actual, expected, passed: Object.is(actual, expected) });
+}
+check('delta value', verifyShapleySum([0.2], 0.9, 0.4), 0.5);
+return results;`,
+    hints: ['const delta = prediction - baseline;'],
+    solution: `function verifyShapleySum(attributions, prediction, baseline) {
+  let sum = 0;
+  for (let i = 0; i < attributions.length; i++) {
+    sum += attributions[i];
+  }
+  const delta = prediction - baseline;
+  return delta;
+}`,
+    explanation: 'Delta is the amount Shapley values must exactly explain.',
+  },
+  {
+    id: 'shapley-sum-tolerance',
+    stepLabel: '48.3',
+    group: 'Shapley attribution check',
+    title: 'Tolerance comparison',
+    concept: 'Floating-point noise requires near-equality rather than exact equality.',
+    objective: 'Return Math.abs(sum - delta) < 1e-5.',
+    difficulty: 'core',
+    starterCode: `function verifyShapleySum(attributions, prediction, baseline) {
+  let sum = 0;
+  for (let i = 0; i < attributions.length; i++) {
+    sum += attributions[i];
+  }
+  const delta = prediction - baseline;
+  // TODO: compare sum and delta with tolerance
+  return false;
+}`,
+    testCode: `const results = [];
+function check(name, actual, expected) {
+  results.push({ name, actual, expected, passed: Object.is(actual, expected) });
+}
+check('matches within tol', verifyShapleySum([0.2, 0.3], 1.0, 0.5), true);
+check('mismatch', verifyShapleySum([0.2, 0.2], 1.0, 0.5), false);
+return results;`,
+    hints: ['return Math.abs(sum - delta) < 1e-5;'],
     solution: `function verifyShapleySum(attributions, prediction, baseline) {
   let sum = 0;
   for (let i = 0; i < attributions.length; i++) {
@@ -1530,69 +1654,133 @@ return results;`,
   const delta = prediction - baseline;
   return Math.abs(sum - delta) < 1e-5;
 }`,
-    explanation: 'Efficiency (or efficiency axiom) ensures that the total payout (prediction offset) is fully distributed among players (features).',
+    explanation: 'Tolerance checks preserve numeric stability in attribution audits.',
   },
   {
-    id: 'fairness-group-rate',
-    stepLabel: '49.1',
-    group: 'Group rate',
-    title: 'Subgroup Positive Rate',
-    concept: 'Fairness audits require measuring metric rates within protected subgroups.',
-    objective: 'Compute the positive prediction rate (selection rate) for a target subgroup: count(y_pred=1) / count(group=targetGroup).',
-    difficulty: 'warmup',
-    starterCode: `function subgroupSelectionRate(predictions, groups, targetGroup) {
-  let groupCount = 0;
-  let positiveCount = 0;
-  
-  for (let i = 0; i < predictions.length; i++) {
-    // TODO: if groups[i] is targetGroup, increment groupCount.
-    // Additionally, if prediction is 1, increment positiveCount.
+    id: 'shapley-sum-check',
+    stepLabel: '48.4',
+    group: 'Shapley attribution check',
+    title: 'Full Shapley sum verification',
+    concept: 'Efficiency passes when attribution sum equals prediction shift from baseline.',
+    objective: 'Return false for empty attributions unless delta is zero.',
+    difficulty: 'core',
+    starterCode: `function verifyShapleySum(attributions, prediction, baseline) {
+  // TODO: handle empty attributions case
+  let sum = 0;
+  for (let i = 0; i < attributions.length; i++) {
+    sum += attributions[i];
   }
-  
-  if (groupCount === 0) return 0;
-  return positiveCount / groupCount;
+  const delta = prediction - baseline;
+  return Math.abs(sum - delta) < 1e-5;
 }`,
     testCode: `const results = [];
 function check(name, actual, expected) {
   results.push({ name, actual, expected, passed: Object.is(actual, expected) });
 }
-const preds = [1, 0, 1, 1, 0];
-const grps  = ['A', 'A', 'B', 'B', 'B'];
-check('selection rate group A', subgroupSelectionRate(preds, grps, 'A'), 0.5);
-check('selection rate group B', subgroupSelectionRate(preds, grps, 'B'), 2 / 3);
+check('empty exact zero', verifyShapleySum([], 1.0, 1.0), true);
+check('empty non-zero', verifyShapleySum([], 1.0, 0.8), false);
 return results;`,
-    hints: [
-      'Check if groups[i] === targetGroup.',
-      'If true, increment groupCount, and check if predictions[i] === 1 to increment positiveCount.',
-    ],
-    solution: `function subgroupSelectionRate(predictions, groups, targetGroup) {
-  let groupCount = 0;
-  let positiveCount = 0;
-  
-  for (let i = 0; i < predictions.length; i++) {
-    if (groups[i] === targetGroup) {
-      groupCount++;
-      if (predictions[i] === 1) {
-        positiveCount++;
-      }
-    }
+    hints: ['if (attributions.length === 0) return Math.abs(prediction - baseline) < 1e-5;'],
+    solution: `function verifyShapleySum(attributions, prediction, baseline) {
+  if (attributions.length === 0) return Math.abs(prediction - baseline) < 1e-5;
+  let sum = 0;
+  for (let i = 0; i < attributions.length; i++) {
+    sum += attributions[i];
   }
-  
-  if (groupCount === 0) return 0;
-  return positiveCount / groupCount;
+  const delta = prediction - baseline;
+  return Math.abs(sum - delta) < 1e-5;
 }`,
-    explanation: 'Measuring selection rate within groups is the first step to checking demographic parity.',
+    explanation: 'Edge-case handling keeps audits deterministic for sparse explanations.',
   },
   {
-    id: 'fairness-parity-gap',
+    id: 'fairness-rate-a',
+    stepLabel: '49.1',
+    group: 'Fairness audit',
+    title: 'Group A selection rate',
+    concept: 'Demographic parity compares subgroup positive prediction rates.',
+    objective: 'Compute positive rate for groupA.',
+    difficulty: 'warmup',
+    starterCode: `function demographicParityGap(predictions, groups, groupA, groupB) {
+  let countA = 0;
+  let posA = 0;
+  for (let i = 0; i < predictions.length; i++) {
+    // TODO: update countA and posA for groupA
+  }
+  return countA === 0 ? 0 : posA / countA;
+}`,
+    testCode: `const results = [];
+function check(name, actual, expected) {
+  results.push({ name, actual, expected, passed: Object.is(actual, expected) });
+}
+const preds = [1, 0, 1, 1];
+const grps = ['A', 'A', 'B', 'B'];
+check('rate A', demographicParityGap(preds, grps, 'A', 'B'), 0.5);
+return results;`,
+    hints: ['if (groups[i] === groupA) { countA++; if (predictions[i] === 1) posA++; }'],
+    solution: `function demographicParityGap(predictions, groups, groupA, groupB) {
+  let countA = 0;
+  let posA = 0;
+  for (let i = 0; i < predictions.length; i++) {
+    if (groups[i] === groupA) {
+      countA++;
+      if (predictions[i] === 1) posA++;
+    }
+  }
+  return countA === 0 ? 0 : posA / countA;
+}`,
+    explanation: 'Each subgroup rate is computed independently before parity comparison.',
+  },
+  {
+    id: 'fairness-rate-b',
     stepLabel: '49.2',
-    group: 'Parity gap',
-    title: 'Demographic Parity Gap',
-    concept: 'Demographic parity states that the likelihood of receiving a positive outcome should be equal across all subgroups.',
-    objective: 'Calculate the demographic parity gap: |rate_A - rate_B|.',
+    group: 'Fairness audit',
+    title: 'Group B selection rate',
+    concept: 'Parity requires both groups to be measured with the same metric.',
+    objective: 'Compute positive rate for groupB.',
+    difficulty: 'warmup',
+    starterCode: `function demographicParityGap(predictions, groups, groupA, groupB) {
+  let countB = 0;
+  let posB = 0;
+  for (let i = 0; i < predictions.length; i++) {
+    // TODO: update countB and posB for groupB
+  }
+  return countB === 0 ? 0 : posB / countB;
+}`,
+    testCode: `const results = [];
+function approxEqual(a, b, tol = 1e-9) {
+  return Math.abs(a - b) <= tol;
+}
+function check(name, actual, expected) {
+  results.push({ name, actual, expected, passed: approxEqual(actual, expected) });
+}
+const preds = [1, 0, 1, 1];
+const grps = ['A', 'A', 'B', 'B'];
+check('rate B', demographicParityGap(preds, grps, 'A', 'B'), 1);
+return results;`,
+    hints: ['if (groups[i] === groupB) { countB++; if (predictions[i] === 1) posB++; }'],
+    solution: `function demographicParityGap(predictions, groups, groupA, groupB) {
+  let countB = 0;
+  let posB = 0;
+  for (let i = 0; i < predictions.length; i++) {
+    if (groups[i] === groupB) {
+      countB++;
+      if (predictions[i] === 1) posB++;
+    }
+  }
+  return countB === 0 ? 0 : posB / countB;
+}`,
+    explanation: 'Symmetry in measurement avoids biased fairness diagnostics.',
+  },
+  {
+    id: 'fairness-gap-abs',
+    stepLabel: '49.3',
+    group: 'Fairness audit',
+    title: 'Absolute parity gap',
+    concept: 'Demographic parity gap is the absolute difference between subgroup rates.',
+    objective: 'Return Math.abs(rateA - rateB).',
     difficulty: 'core',
     starterCode: `function demographicParityGap(predictions, groups, groupA, groupB) {
-  function getRate(target) {
+  function rate(target) {
     let count = 0;
     let pos = 0;
     for (let i = 0; i < predictions.length; i++) {
@@ -1603,27 +1791,76 @@ return results;`,
     }
     return count === 0 ? 0 : pos / count;
   }
-  
-  const rateA = getRate(groupA);
-  const rateB = getRate(groupB);
-  
-  // TODO: return absolute difference between rateA and rateB
+  const rateA = rate(groupA);
+  const rateB = rate(groupB);
+  // TODO: absolute difference
   return 0;
+}`,
+    testCode: `const results = [];
+function approxEqual(a, b, tol = 1e-9) {
+  return Math.abs(a - b) <= tol;
+}
+function check(name, actual, expected) {
+  results.push({ name, actual, expected, passed: approxEqual(actual, expected) });
+}
+const preds = [1, 0, 1, 1];
+const grps = ['A', 'A', 'B', 'B'];
+check('gap', demographicParityGap(preds, grps, 'A', 'B'), 0.5);
+return results;`,
+    hints: ['return Math.abs(rateA - rateB);'],
+    solution: `function demographicParityGap(predictions, groups, groupA, groupB) {
+  function rate(target) {
+    let count = 0;
+    let pos = 0;
+    for (let i = 0; i < predictions.length; i++) {
+      if (groups[i] === target) {
+        count++;
+        if (predictions[i] === 1) pos++;
+      }
+    }
+    return count === 0 ? 0 : pos / count;
+  }
+  const rateA = rate(groupA);
+  const rateB = rate(groupB);
+  return Math.abs(rateA - rateB);
+}`,
+    explanation: 'Absolute gap captures disparity magnitude independent of direction.',
+  },
+  {
+    id: 'fairness-audit-gap',
+    stepLabel: '49.4',
+    group: 'Fairness audit',
+    title: 'Full fairness audit function',
+    concept: 'A complete parity audit handles missing groups and reports stable gaps.',
+    objective: 'Return 0 when both groups are absent, otherwise parity gap.',
+    difficulty: 'core',
+    starterCode: `function demographicParityGap(predictions, groups, groupA, groupB) {
+  function rate(target) {
+    let count = 0;
+    let pos = 0;
+    for (let i = 0; i < predictions.length; i++) {
+      if (groups[i] === target) {
+        count++;
+        if (predictions[i] === 1) pos++;
+      }
+    }
+    return count === 0 ? 0 : pos / count;
+  }
+  // TODO: handle empty predictions edge case
+  const rateA = rate(groupA);
+  const rateB = rate(groupB);
+  return Math.abs(rateA - rateB);
 }`,
     testCode: `const results = [];
 function check(name, actual, expected) {
   results.push({ name, actual, expected, passed: Object.is(actual, expected) });
 }
-const preds = [1, 0, 1, 1, 0];
-const grps  = ['A', 'A', 'B', 'B', 'B'];
-check('parity gap', demographicParityGap(preds, grps, 'A', 'B'), 2/3 - 0.5);
+check('empty list', demographicParityGap([], [], 'A', 'B'), 0);
+check('non-empty', demographicParityGap([1, 0], ['A', 'B'], 'A', 'B'), 1);
 return results;`,
-    hints: [
-      'Use Math.abs to compute absolute differences.',
-      'return Math.abs(rateA - rateB);',
-    ],
+    hints: ['if (predictions.length === 0) return 0;'],
     solution: `function demographicParityGap(predictions, groups, groupA, groupB) {
-  function getRate(target) {
+  function rate(target) {
     let count = 0;
     let pos = 0;
     for (let i = 0; i < predictions.length; i++) {
@@ -1634,164 +1871,269 @@ return results;`,
     }
     return count === 0 ? 0 : pos / count;
   }
-  
-  const rateA = getRate(groupA);
-  const rateB = getRate(groupB);
-  
+  if (predictions.length === 0) return 0;
+  const rateA = rate(groupA);
+  const rateB = rate(groupB);
   return Math.abs(rateA - rateB);
 }`,
-    explanation: 'A demographic parity gap close to 0 indicates outcome independence from protected attributes.',
+    explanation: 'Robust auditing pipelines must handle sparse or empty slices safely.',
   },
   {
-    id: 'uncertainty-entropy',
+    id: 'uncertainty-entropy-binary',
     stepLabel: '50.1',
-    group: 'Predictive entropy',
-    title: 'Shannon Entropy Uncertainty',
-    concept: 'Uncertainty can be quantified using Shannon entropy on class probabilities: H(p) = -sum(p_i * log2(p_i)).',
-    objective: 'Compute the entropy for a binary probability vector [p, 1-p].',
+    group: 'Uncertainty report',
+    title: 'Binary entropy core',
+    concept: 'Binary entropy measures uncertainty from class probability p.',
+    objective: 'Compute binary entropy H(p).',
     difficulty: 'warmup',
-    starterCode: `function binaryEntropy(p) {
-  if (p === 0 || p === 1) return 0;
-  const q = 1 - p;
-  // TODO: compute and return - (p * log2(p) + q * log2(q))
-  return 0;
+    starterCode: `function uncertaintyReport(p, mcSamples) {
+  // TODO: compute entropy, handling p = 0 or 1
+  const entropy = 0;
+  return { entropy, variance: 0 };
+}`,
+    testCode: `const results = [];
+function approxEqual(a, b, tol = 1e-5) {
+  return Math.abs(a - b) <= tol;
+}
+function check(name, actual, expected) {
+  results.push({ name, actual, expected, passed: approxEqual(actual, expected) });
+}
+check('entropy 0.5', uncertaintyReport(0.5, [1]).entropy, 1);
+return results;`,
+    hints: ['entropy = p === 0 || p === 1 ? 0 : -(p * Math.log2(p) + (1 - p) * Math.log2(1 - p));'],
+    solution: `function uncertaintyReport(p, mcSamples) {
+  const entropy = p === 0 || p === 1 ? 0 : -(p * Math.log2(p) + (1 - p) * Math.log2(1 - p));
+  return { entropy, variance: 0 };
+}`,
+    explanation: 'Entropy peaks at balanced predictions and drops at certainty extremes.',
+  },
+  {
+    id: 'uncertainty-mean-samples',
+    stepLabel: '50.2',
+    group: 'Uncertainty report',
+    title: 'MC sample mean',
+    concept: 'Variance requires the sample mean as its center.',
+    objective: 'Compute mean of mcSamples.',
+    difficulty: 'warmup',
+    starterCode: `function uncertaintyReport(p, mcSamples) {
+  const entropy = p === 0 || p === 1 ? 0 : -(p * Math.log2(p) + (1 - p) * Math.log2(1 - p));
+  let mean = 0;
+  // TODO: compute mean from mcSamples
+  return { entropy, variance: mean };
 }`,
     testCode: `const results = [];
 function approxEqual(a, b, tol = 1e-5) { return Math.abs(a - b) <= tol; }
 function check(name, actual, expected) {
   results.push({ name, actual, expected, passed: approxEqual(actual, expected) });
 }
-check('maximum entropy', binaryEntropy(0.5), 1.0);
-check('low entropy', binaryEntropy(0.1), 0.468996);
+check('sample mean', uncertaintyReport(0.5, [0.7, 0.8, 0.9]).variance, 0.8);
 return results;`,
-    hints: [
-      'Use Math.log2 to compute log base 2.',
-      'return -(p * Math.log2(p) + q * Math.log2(q));',
-    ],
-    solution: `function binaryEntropy(p) {
-  if (p === 0 || p === 1) return 0;
-  const q = 1 - p;
-  return -(p * Math.log2(p) + q * Math.log2(q));
+    hints: ['mean = mcSamples.reduce((s, x) => s + x, 0) / mcSamples.length;'],
+    solution: `function uncertaintyReport(p, mcSamples) {
+  const entropy = p === 0 || p === 1 ? 0 : -(p * Math.log2(p) + (1 - p) * Math.log2(1 - p));
+  const mean = mcSamples.reduce((s, x) => s + x, 0) / mcSamples.length;
+  return { entropy, variance: mean };
 }`,
-    explanation: 'Entropy is highest (1.0 for binary) when model outputs are completely uncertain (0.5 prediction probability).',
+    explanation: 'Mean centers fluctuation measurements across stochastic forward passes.',
   },
   {
     id: 'uncertainty-mc-variance',
-    stepLabel: '50.2',
-    group: 'Variance across samples',
-    title: 'Monte Carlo Dropout Variance',
-    concept: 'MC Dropout estimates uncertainty by running multiple forward passes with active dropout and measuring variance.',
-    objective: 'Compute sample variance of prediction outputs: sum((x_i - mean)^2) / (N - 1).',
+    stepLabel: '50.3',
+    group: 'Uncertainty report',
+    title: 'MC variance estimate',
+    concept: 'Epistemic uncertainty can be approximated by sample variance over dropout passes.',
+    objective: 'Compute sample variance var/(n-1).',
     difficulty: 'core',
-    starterCode: `function mcVariance(preds) {
-  const n = preds.length;
-  if (n <= 1) return 0;
-  
-  let sum = 0;
-  for (let i = 0; i < n; i++) sum += preds[i];
-  const mean = sum / n;
-  
+    starterCode: `function uncertaintyReport(p, mcSamples) {
+  const entropy = p === 0 || p === 1 ? 0 : -(p * Math.log2(p) + (1 - p) * Math.log2(1 - p));
+  const n = mcSamples.length;
+  if (n <= 1) return { entropy, variance: 0 };
+  const mean = mcSamples.reduce((s, x) => s + x, 0) / n;
   let varSum = 0;
   for (let i = 0; i < n; i++) {
-    // TODO: accumulate squared deviation from mean
+    // TODO: accumulate squared deviation
     varSum += 0;
   }
-  
-  return varSum / (n - 1);
+  return { entropy, variance: varSum / (n - 1) };
 }`,
     testCode: `const results = [];
-function approxEqual(a, b, tol = 1e-5) { return Math.abs(a - b) <= tol; }
+function approxEqual(a, b, tol = 1e-5) {
+  return Math.abs(a - b) <= tol;
+}
 function check(name, actual, expected) {
   results.push({ name, actual, expected, passed: approxEqual(actual, expected) });
 }
-check('variance sample list', mcVariance([0.8, 0.7, 0.9]), 0.01);
+check('variance sample', uncertaintyReport(0.5, [0.8, 0.7, 0.9]).variance, 0.01);
 return results;`,
-    hints: [
-      'For each prediction x_i, compute (x_i - mean)^2.',
-      'varSum += Math.pow(preds[i] - mean, 2);',
-    ],
-    solution: `function mcVariance(preds) {
-  const n = preds.length;
-  if (n <= 1) return 0;
-  
-  let sum = 0;
-  for (let i = 0; i < n; i++) sum += preds[i];
-  const mean = sum / n;
-  
+    hints: ['varSum += Math.pow(mcSamples[i] - mean, 2);'],
+    solution: `function uncertaintyReport(p, mcSamples) {
+  const entropy = p === 0 || p === 1 ? 0 : -(p * Math.log2(p) + (1 - p) * Math.log2(1 - p));
+  const n = mcSamples.length;
+  if (n <= 1) return { entropy, variance: 0 };
+  const mean = mcSamples.reduce((s, x) => s + x, 0) / n;
   let varSum = 0;
   for (let i = 0; i < n; i++) {
-    varSum += Math.pow(preds[i] - mean, 2);
+    varSum += Math.pow(mcSamples[i] - mean, 2);
   }
-  
-  return varSum / (n - 1);
+  return { entropy, variance: varSum / (n - 1) };
 }`,
-    explanation: 'High variance across dropout passes indicates high model epistemic uncertainty about a sample.',
+    explanation: 'Higher variance indicates more disagreement across stochastic predictions.',
   },
   {
-    id: 'security-fgsm-step',
-    stepLabel: '51.1',
-    group: 'Gradient sign step',
-    title: 'FGSM Perturbation Step',
-    concept: 'The Fast Gradient Sign Method (FGSM) generates adversarial examples by shifting input coordinates in the direction of the sign of the loss gradient.',
-    objective: 'Compute the adversarial image coordinate: x_adv = x + epsilon * sign(grad).',
-    difficulty: 'warmup',
-    starterCode: `function fgsmStep(x, grad, epsilon) {
-  // TODO: compute adversarial value based on sign of gradient.
-  // sign(grad) is 1 if grad > 0, -1 if grad < 0, 0 if grad === 0.
-  let sign = 0;
-  
-  return x + epsilon * sign;
+    id: 'uncertainty-report-full',
+    stepLabel: '50.4',
+    group: 'Uncertainty report',
+    title: 'Complete uncertainty report',
+    concept: 'A full uncertainty report combines aleatoric entropy and epistemic variance.',
+    objective: 'Handle empty mcSamples and return both metrics.',
+    difficulty: 'core',
+    starterCode: `function uncertaintyReport(p, mcSamples) {
+  // TODO: if mcSamples is empty return variance 0
+  const entropy = p === 0 || p === 1 ? 0 : -(p * Math.log2(p) + (1 - p) * Math.log2(1 - p));
+  const n = mcSamples.length;
+  if (n <= 1) return { entropy, variance: 0 };
+  const mean = mcSamples.reduce((s, x) => s + x, 0) / n;
+  let varSum = 0;
+  for (let i = 0; i < n; i++) varSum += Math.pow(mcSamples[i] - mean, 2);
+  return { entropy, variance: varSum / (n - 1) };
 }`,
     testCode: `const results = [];
 function check(name, actual, expected) {
   results.push({ name, actual, expected, passed: Object.is(actual, expected) });
 }
-check('positive gradient shift', fgsmStep(0.5, 0.2, 0.05), 0.55);
-check('negative gradient shift', fgsmStep(0.5, -4.5, 0.05), 0.45);
-check('zero gradient shift', fgsmStep(0.5, 0.0, 0.05), 0.50);
+check('empty samples variance', uncertaintyReport(0.4, []).variance, 0);
+check('entropy finite', Number.isFinite(uncertaintyReport(0.4, []).entropy), true);
 return results;`,
-    hints: [
-      'Use Math.sign(grad) to get the sign of the gradient.',
-      'If Math.sign is unavailable or you want to write it out: grad > 0 ? 1 : (grad < 0 ? -1 : 0).',
-    ],
-    solution: `function fgsmStep(x, grad, epsilon) {
+    hints: ['if (mcSamples.length === 0) return { entropy, variance: 0 };'],
+    solution: `function uncertaintyReport(p, mcSamples) {
+  const entropy = p === 0 || p === 1 ? 0 : -(p * Math.log2(p) + (1 - p) * Math.log2(1 - p));
+  if (mcSamples.length === 0) return { entropy, variance: 0 };
+  const n = mcSamples.length;
+  if (n <= 1) return { entropy, variance: 0 };
+  const mean = mcSamples.reduce((s, x) => s + x, 0) / n;
+  let varSum = 0;
+  for (let i = 0; i < n; i++) varSum += Math.pow(mcSamples[i] - mean, 2);
+  return { entropy, variance: varSum / (n - 1) };
+}`,
+    explanation: 'Both uncertainty channels are useful for risk-aware model decisions.',
+  },
+  {
+    id: 'adv-perturb-sign',
+    stepLabel: '51.1',
+    group: 'Adversarial perturbation',
+    title: 'Gradient sign direction',
+    concept: 'FGSM uses the sign of gradient to choose perturbation direction.',
+    objective: 'Compute sign = grad > 0 ? 1 : (grad < 0 ? -1 : 0).',
+    difficulty: 'warmup',
+    starterCode: `function adversarialPerturb(x, grad, epsilon) {
+  // TODO: compute sign from grad
+  const sign = 0;
+  return sign;
+}`,
+    testCode: `const results = [];
+function check(name, actual, expected) {
+  results.push({ name, actual, expected, passed: Object.is(actual, expected) });
+}
+check('positive sign', adversarialPerturb(0.5, 2, 0.1), 1);
+check('negative sign', adversarialPerturb(0.5, -3, 0.1), -1);
+return results;`,
+    hints: ['const sign = grad > 0 ? 1 : (grad < 0 ? -1 : 0);'],
+    solution: `function adversarialPerturb(x, grad, epsilon) {
+  const sign = grad > 0 ? 1 : (grad < 0 ? -1 : 0);
+  return sign;
+}`,
+    explanation: 'Sign-only direction makes perturbation robust to gradient magnitude scale.',
+  },
+  {
+    id: 'adv-perturb-step',
+    stepLabel: '51.2',
+    group: 'Adversarial perturbation',
+    title: 'FGSM step value',
+    concept: 'The perturbation adds epsilon times sign of gradient to input.',
+    objective: 'Compute xAdv = x + epsilon * sign.',
+    difficulty: 'warmup',
+    starterCode: `function adversarialPerturb(x, grad, epsilon) {
+  const sign = grad > 0 ? 1 : (grad < 0 ? -1 : 0);
+  // TODO: compute perturbed value
+  return x;
+}`,
+    testCode: `const results = [];
+function check(name, actual, expected) {
+  results.push({ name, actual, expected, passed: Object.is(actual, expected) });
+}
+check('fgsm step', adversarialPerturb(0.5, -3, 0.1), 0.4);
+return results;`,
+    hints: ['return x + epsilon * sign;'],
+    solution: `function adversarialPerturb(x, grad, epsilon) {
   const sign = grad > 0 ? 1 : (grad < 0 ? -1 : 0);
   return x + epsilon * sign;
 }`,
-    explanation: 'Perturbing inputs along the loss sign direction maximizes the loss function, inducing misclassification with minimal visual change.',
+    explanation: 'A single FGSM step is a first-order attack approximation.',
   },
   {
-    id: 'security-clip-perturb',
-    stepLabel: '51.2',
-    group: 'Perturbation clip',
-    title: 'Adversarial Perturbation Clipping',
-    concept: 'To keep adversarial examples imperceptible, the total perturbation is clipped to lie within an L-infinity boundary: [x - epsilon, x + epsilon].',
-    objective: 'Clip the adversarial value x_adv to stay within epsilon range of the original value x.',
+    id: 'adv-perturb-clip',
+    stepLabel: '51.3',
+    group: 'Adversarial perturbation',
+    title: 'L-infinity clipping',
+    concept: 'Adversarial perturbation is clipped to stay within epsilon-ball around original input.',
+    objective: 'Clip xAdv to [x - epsilon, x + epsilon].',
     difficulty: 'core',
-    starterCode: `function clipPerturbation(x, xAdv, epsilon) {
+    starterCode: `function adversarialPerturb(x, grad, epsilon) {
+  const sign = grad > 0 ? 1 : (grad < 0 ? -1 : 0);
+  const xAdv = x + epsilon * sign;
   const minVal = x - epsilon;
   const maxVal = x + epsilon;
-  
-  // TODO: clip xAdv to lie between minVal and maxVal
+  // TODO: clip xAdv
   return xAdv;
 }`,
     testCode: `const results = [];
 function check(name, actual, expected) {
   results.push({ name, actual, expected, passed: Object.is(actual, expected) });
 }
-check('under upper bound', clipPerturbation(0.5, 0.53, 0.05), 0.53);
-check('exceeds upper bound', clipPerturbation(0.5, 0.60, 0.05), 0.55);
-check('exceeds lower bound', clipPerturbation(0.5, 0.40, 0.05), 0.45);
+check('clipped exact', adversarialPerturb(0.5, 10, 0.05), 0.55);
 return results;`,
-    hints: [
-      'Use Math.max and Math.min.',
-      'return Math.max(minVal, Math.min(maxVal, xAdv));',
-    ],
-    solution: `function clipPerturbation(x, xAdv, epsilon) {
+    hints: ['return Math.max(minVal, Math.min(maxVal, xAdv));'],
+    solution: `function adversarialPerturb(x, grad, epsilon) {
+  const sign = grad > 0 ? 1 : (grad < 0 ? -1 : 0);
+  const xAdv = x + epsilon * sign;
   const minVal = x - epsilon;
   const maxVal = x + epsilon;
   return Math.max(minVal, Math.min(maxVal, xAdv));
 }`,
-    explanation: 'Clipping projects inputs back into the allowed L-infinity constraint perturbation region.',
+    explanation: 'Projection keeps the perturbation bounded and comparable across samples.',
+  },
+  {
+    id: 'adv-perturb-full',
+    stepLabel: '51.4',
+    group: 'Adversarial perturbation',
+    title: 'Complete perturbation function',
+    concept: 'Production attacks should tolerate epsilon=0 as a no-op.',
+    objective: 'Return x when epsilon is 0, otherwise FGSM clipped perturbation.',
+    difficulty: 'core',
+    starterCode: `function adversarialPerturb(x, grad, epsilon) {
+  // TODO: handle zero epsilon as no-op
+  const sign = grad > 0 ? 1 : (grad < 0 ? -1 : 0);
+  const xAdv = x + epsilon * sign;
+  const minVal = x - epsilon;
+  const maxVal = x + epsilon;
+  return Math.max(minVal, Math.min(maxVal, xAdv));
+}`,
+    testCode: `const results = [];
+function check(name, actual, expected) {
+  results.push({ name, actual, expected, passed: Object.is(actual, expected) });
+}
+check('epsilon zero', adversarialPerturb(0.5, 10, 0), 0.5);
+check('epsilon nonzero', adversarialPerturb(0.5, -10, 0.1), 0.4);
+return results;`,
+    hints: ['if (epsilon === 0) return x;'],
+    solution: `function adversarialPerturb(x, grad, epsilon) {
+  if (epsilon === 0) return x;
+  const sign = grad > 0 ? 1 : (grad < 0 ? -1 : 0);
+  const xAdv = x + epsilon * sign;
+  const minVal = x - epsilon;
+  const maxVal = x + epsilon;
+  return Math.max(minVal, Math.min(maxVal, xAdv));
+}`,
+    explanation: 'No-op handling makes the API predictable in ablation settings.',
   },
 ];

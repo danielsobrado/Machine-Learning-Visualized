@@ -1580,16 +1580,25 @@ return results;`,
 
   // --- WAVE 2: ADDED EXERCISES ---
   {
-    id: 'rope-rotate-2d',
+    id: 'rope-pair-first',
     stepLabel: '4.1',
-    group: 'Rotate 2D block',
-    title: 'Rotate 2D vector',
-    concept: 'Rotary Position Embeddings (RoPE) rotate pairs of dimensions in query/key vectors by an angle representing the position.',
-    objective: 'Implement 2D rotation: [x0 * cos - x1 * sin, x0 * sin + x1 * cos].',
+    group: 'RoPE pair rotation',
+    title: 'First rotated coordinate',
+    concept: 'RoPE rotates query/key vectors in 2D pairs. The first output coordinate is x0 * cos - x1 * sin.',
+    objective: 'Inside applyRoPE, compute the first rotated coordinate for each 2D pair.',
     difficulty: 'warmup',
-    starterCode: `function rotate2d(x0, x1, cos, sin) {
-  // TODO: return the 2D rotated vector array [newX0, newX1]
-  return [];
+    starterCode: `function applyRoPE(x, cos, sin) {
+  const rotated = [];
+  for (let i = 0; i < x.length; i += 2) {
+    const x0 = x[i];
+    const x1 = x[i + 1];
+    const c = cos[i / 2];
+    const s = sin[i / 2];
+    // TODO: first rotated coord = x0 * c - x1 * s
+    const r0 = 0;
+    rotated.push(r0, x1);
+  }
+  return rotated;
 }`,
     testCode: `const results = [];
 function approxArray(a, b, tol = 1e-5) {
@@ -1598,35 +1607,86 @@ function approxArray(a, b, tol = 1e-5) {
 function check(name, actual, expected) {
   results.push({ name, actual: JSON.stringify(actual), expected: JSON.stringify(expected), passed: approxArray(actual, expected) });
 }
-check('rotate 0', rotate2d(1, 0, 0, 1), [0, 1]); // theta = pi/2
-check('rotate identity', rotate2d(1, 2, 1, 0), [1, 2]); // theta = 0
+check('first coord only', applyRoPE([1, 0], [0], [1]), [0, 0]);
 return results;`,
-    hints: [
-      'The first coordinate is x0 * cos - x1 * sin.',
-      'The second coordinate is x0 * sin + x1 * cos.',
-      'return [x0 * cos - x1 * sin, x0 * sin + x1 * cos];',
-    ],
-    solution: `function rotate2d(x0, x1, cos, sin) {
-  return [x0 * cos - x1 * sin, x0 * sin + x1 * cos];
+    hints: ['r0 = x0 * c - x1 * s;'],
+    solution: `function applyRoPE(x, cos, sin) {
+  const rotated = [];
+  for (let i = 0; i < x.length; i += 2) {
+    const x0 = x[i];
+    const x1 = x[i + 1];
+    const c = cos[i / 2];
+    const s = sin[i / 2];
+    const r0 = x0 * c - x1 * s;
+    rotated.push(r0, x1);
+  }
+  return rotated;
 }`,
-    explanation: 'Rotating in 2D pairs is the fundamental building block of Rotary Embeddings.',
+    explanation: 'Each frequency channel gets its own rotation angle through cos/sin tables.',
   },
   {
-    id: 'rope-apply-head',
+    id: 'rope-pair-second',
     stepLabel: '4.2',
-    group: 'Apply to head dimension',
-    title: 'Apply RoPE to head',
-    concept: 'RoPE divides the query/key vector into 2D chunks, rotating each chunk with its specific cosine/sine frequencies.',
-    objective: 'Rotate each 2D chunk of the head vector using cos[i] and sin[i].',
+    group: 'RoPE pair rotation',
+    title: 'Second rotated coordinate',
+    concept: 'The paired second coordinate completes the 2D rotation: x0 * sin + x1 * cos.',
+    objective: 'Push both rotated coordinates for each pair.',
+    difficulty: 'warmup',
+    starterCode: `function applyRoPE(x, cos, sin) {
+  const rotated = [];
+  for (let i = 0; i < x.length; i += 2) {
+    const x0 = x[i];
+    const x1 = x[i + 1];
+    const c = cos[i / 2];
+    const s = sin[i / 2];
+    const r0 = x0 * c - x1 * s;
+    // TODO: second rotated coord = x0 * s + x1 * c
+    const r1 = 0;
+    rotated.push(r0, r1);
+  }
+  return rotated;
+}`,
+    testCode: `const results = [];
+function approxArray(a, b, tol = 1e-5) {
+  return a.length === b.length && a.every((v, i) => Math.abs(v - b[i]) <= tol);
+}
+function check(name, actual, expected) {
+  results.push({ name, actual: JSON.stringify(actual), expected: JSON.stringify(expected), passed: approxArray(actual, expected) });
+}
+check('full pair rotate', applyRoPE([1, 0], [0], [1]), [0, 1]);
+return results;`,
+    hints: ['r1 = x0 * s + x1 * c;'],
+    solution: `function applyRoPE(x, cos, sin) {
+  const rotated = [];
+  for (let i = 0; i < x.length; i += 2) {
+    const x0 = x[i];
+    const x1 = x[i + 1];
+    const c = cos[i / 2];
+    const s = sin[i / 2];
+    const r0 = x0 * c - x1 * s;
+    const r1 = x0 * s + x1 * c;
+    rotated.push(r0, r1);
+  }
+  return rotated;
+}`,
+    explanation: 'Completing both coordinates applies a proper 2D rotation to each head subspace.',
+  },
+  {
+    id: 'rope-head-freq',
+    stepLabel: '4.3',
+    group: 'RoPE pair rotation',
+    title: 'Frequency channel indexing',
+    concept: 'Longer head vectors contain multiple 2D pairs. Pair i uses cos[i/2] and sin[i/2].',
+    objective: 'Rotate a 4D vector using separate frequencies per pair.',
     difficulty: 'core',
     starterCode: `function applyRoPE(x, cos, sin) {
   const rotated = [];
   for (let i = 0; i < x.length; i += 2) {
     const x0 = x[i];
-    const x1 = x[i+1];
-    const c = cos[i/2];
-    const s = sin[i/2];
-    // TODO: compute rotated elements and push them to rotated array
+    const x1 = x[i + 1];
+    const c = cos[i / 2];
+    const s = sin[i / 2];
+    // TODO: push both rotated coordinates
     rotated.push(0, 0);
   }
   return rotated;
@@ -1638,66 +1698,139 @@ function approxArray(a, b, tol = 1e-5) {
 function check(name, actual, expected) {
   results.push({ name, actual: JSON.stringify(actual), expected: JSON.stringify(expected), passed: approxArray(actual, expected) });
 }
-check('apply rope 4D', applyRoPE([1, 0, 0, 1], [0, 1], [1, 0]), [0, 1, 0, 1]);
+check('two pairs', applyRoPE([1, 0, 0, 1], [0, 1], [1, 0]), [0, 1, 0, 1]);
 return results;`,
-    hints: [
-      'The rotated coordinates for chunk i/2 are: x0 * c - x1 * s and x0 * s + x1 * c.',
-      'Push those two coordinates instead of the placeholders.',
-      'rotated[i] = x0 * c - x1 * s; rotated[i+1] = x0 * s + x1 * c;',
-    ],
+    hints: ['rotated.push(x0 * c - x1 * s, x0 * s + x1 * c);'],
     solution: `function applyRoPE(x, cos, sin) {
   const rotated = [];
   for (let i = 0; i < x.length; i += 2) {
     const x0 = x[i];
-    const x1 = x[i+1];
-    const c = cos[i/2];
-    const s = sin[i/2];
+    const x1 = x[i + 1];
+    const c = cos[i / 2];
+    const s = sin[i / 2];
     rotated.push(x0 * c - x1 * s, x0 * s + x1 * c);
   }
   return rotated;
 }`,
-    explanation: 'RoPE applies different rotation angles to different frequency channels, encoding absolute positions as relative rotation differences.',
+    explanation: 'Different frequencies encode position at multiple scales across head dimensions.',
   },
   {
+    id: 'rope-apply-head',
+    stepLabel: '4.4',
+    group: 'RoPE pair rotation',
+    title: 'Apply RoPE to head',
+    concept: 'RoPE encodes absolute positions as relative rotations between query and key vectors at inference time.',
+    objective: 'Return an empty array when the input vector is empty.',
+    difficulty: 'core',
+    starterCode: `function applyRoPE(x, cos, sin) {
+  // TODO: return [] when x.length === 0
+  const rotated = [];
+  for (let i = 0; i < x.length; i += 2) {
+    const x0 = x[i];
+    const x1 = x[i + 1];
+    const c = cos[i / 2];
+    const s = sin[i / 2];
+    rotated.push(x0 * c - x1 * s, x0 * s + x1 * c);
+  }
+  return rotated;
+}`,
+    testCode: `const results = [];
+function approxArray(a, b, tol = 1e-5) {
+  return a.length === b.length && a.every((v, i) => Math.abs(v - b[i]) <= tol);
+}
+function check(name, actual, expected) {
+  results.push({ name, actual: JSON.stringify(actual), expected: JSON.stringify(expected), passed: approxArray(actual, expected) });
+}
+check('empty input', applyRoPE([], [], []), []);
+check('apply rope 4D', applyRoPE([1, 0, 0, 1], [0, 1], [1, 0]), [0, 1, 0, 1]);
+return results;`,
+    hints: ['if (x.length === 0) return [];'],
+    solution: `function applyRoPE(x, cos, sin) {
+  if (x.length === 0) return [];
+  const rotated = [];
+  for (let i = 0; i < x.length; i += 2) {
+    const x0 = x[i];
+    const x1 = x[i + 1];
+    const c = cos[i / 2];
+    const s = sin[i / 2];
+    rotated.push(x0 * c - x1 * s, x0 * s + x1 * c);
+  }
+  return rotated;
+}`,
+    explanation: 'RoPE applies position-dependent rotations without adding explicit positional embeddings.',
+  },
+    {
     id: 'transformer-ffn-dim',
     stepLabel: '5.1',
-    group: 'FFN expansion ratio',
+    group: 'Block parameter estimate',
     title: 'FFN intermediate dimension',
-    concept: 'Modern transformer architectures use different FFN intermediate dimension scales. For SwiGLU, it is typically round(8/3 * d), whereas standard MLP uses 4 * d.',
-    objective: 'Calculate the FFN hidden dimension. For swiglu, it is Math.round(expansionRatio * d_model * 2/3), otherwise expansionRatio * d_model.',
+    concept: 'Transformer blocks scale FFN width differently. SwiGLU uses about 2/3 of the standard MLP expansion to keep parameter counts comparable.',
+    objective: 'Inside estimateTransformerBlock, compute dFFN from dModel and expansionRatio.',
     difficulty: 'warmup',
-    starterCode: `function getFFNIntermediateDim(dModel, expansionRatio, isSwiGLU) {
-  // TODO: return the intermediate dimension of the FFN block
-  return 0;
+    starterCode: `function estimateTransformerBlock(dModel, expansionRatio, isSwiGLU) {
+  // TODO: compute dFFN (SwiGLU: round(dModel * expansionRatio * 2/3), else dModel * expansionRatio)
+  const dFFN = 0;
+  const attnParams = 4 * dModel * dModel;
+  const ffnParams = 2 * dModel * dFFN;
+  return attnParams + ffnParams;
 }`,
     testCode: `const results = [];
 function check(name, actual, expected) {
   results.push({ name, actual, expected, passed: Object.is(actual, expected) });
 }
-check('standard ffn', getFFNIntermediateDim(4096, 4, false), 16384);
-check('swiglu ffn', getFFNIntermediateDim(4096, 4, true), 10923);
+check('standard ffn block', estimateTransformerBlock(4096, 4, false), 201326592);
 return results;`,
-    hints: [
-      'If isSwiGLU is true, multiply dModel * expansionRatio * 2 / 3 and round.',
-      'Otherwise, multiply dModel * expansionRatio.',
-      'return isSwiGLU ? Math.round(dModel * expansionRatio * 2 / 3) : dModel * expansionRatio;',
-    ],
-    solution: `function getFFNIntermediateDim(dModel, expansionRatio, isSwiGLU) {
-  return isSwiGLU ? Math.round(dModel * expansionRatio * 2 / 3) : dModel * expansionRatio;
+    hints: ['dFFN = isSwiGLU ? Math.round(dModel * expansionRatio * 2 / 3) : dModel * expansionRatio;'],
+    solution: `function estimateTransformerBlock(dModel, expansionRatio, isSwiGLU) {
+  const dFFN = isSwiGLU ? Math.round(dModel * expansionRatio * 2 / 3) : dModel * expansionRatio;
+  const attnParams = 4 * dModel * dModel;
+  const ffnParams = 2 * dModel * dFFN;
+  return attnParams + ffnParams;
 }`,
-    explanation: 'SwiGLU uses three weight matrices (gate, up, and down projections) compared to MLPs two, so its intermediate dimension is scaled down by 2/3 to keep parameter counts comparable.',
+    explanation: 'FFN width dominates parameter count alongside attention projections.',
   },
   {
-    id: 'transformer-block-params',
+    id: 'transformer-block-attn',
     stepLabel: '5.2',
-    group: 'Parameter estimate',
-    title: 'Estimate block parameter count',
-    concept: 'A single standard transformer block contains parameters in the self-attention projections (Q, K, V, Out) and the FFN linear layers.',
-    objective: 'Compute total weight parameters in attention (4 * dModel^2) and FFN (2 * dModel * dFFN).',
-    difficulty: 'core',
-    starterCode: `function estimateBlockParams(dModel, dFFN) {
+    group: 'Block parameter estimate',
+    title: 'Attention parameter count',
+    concept: 'A standard self-attention block has four d_model x d_model projections: Q, K, V, and output.',
+    objective: 'Compute attnParams = 4 * dModel * dModel.',
+    difficulty: 'warmup',
+    starterCode: `function estimateTransformerBlock(dModel, expansionRatio, isSwiGLU) {
+  const dFFN = isSwiGLU ? Math.round(dModel * expansionRatio * 2 / 3) : dModel * expansionRatio;
+  // TODO: attention params = 4 * dModel * dModel
+  const attnParams = 0;
+  const ffnParams = 2 * dModel * dFFN;
+  return attnParams + ffnParams;
+}`,
+    testCode: `const results = [];
+function check(name, actual, expected) {
+  results.push({ name, actual, expected, passed: Object.is(actual, expected) });
+}
+check('attn only for tiny block', estimateTransformerBlock(128, 4, false) - 2 * 128 * 512, 65536);
+return results;`,
+    hints: ['attnParams = 4 * dModel * dModel;'],
+    solution: `function estimateTransformerBlock(dModel, expansionRatio, isSwiGLU) {
+  const dFFN = isSwiGLU ? Math.round(dModel * expansionRatio * 2 / 3) : dModel * expansionRatio;
   const attnParams = 4 * dModel * dModel;
-  // TODO: compute FFN parameters (2 * dModel * dFFN) and return the total
+  const ffnParams = 2 * dModel * dFFN;
+  return attnParams + ffnParams;
+}`,
+    explanation: 'Attention projections are symmetric in parameter count across Q/K/V/Out.',
+  },
+  {
+    id: 'transformer-block-ffn',
+    stepLabel: '5.3',
+    group: 'Block parameter estimate',
+    title: 'FFN parameter count',
+    concept: 'A two-layer MLP FFN has an up-projection and a down-projection, giving 2 * dModel * dFFN weights.',
+    objective: 'Compute ffnParams = 2 * dModel * dFFN.',
+    difficulty: 'core',
+    starterCode: `function estimateTransformerBlock(dModel, expansionRatio, isSwiGLU) {
+  const dFFN = isSwiGLU ? Math.round(dModel * expansionRatio * 2 / 3) : dModel * expansionRatio;
+  const attnParams = 4 * dModel * dModel;
+  // TODO: ffnParams = 2 * dModel * dFFN
   const ffnParams = 0;
   return attnParams + ffnParams;
 }`,
@@ -1705,33 +1838,61 @@ return results;`,
 function check(name, actual, expected) {
   results.push({ name, actual, expected, passed: Object.is(actual, expected) });
 }
-check('estimate llama 7b size block', estimateBlockParams(4096, 11008), 157286400);
+check('llama block', estimateTransformerBlock(4096, 4, true), 156590080);
 return results;`,
-    hints: [
-      'The FFN has an up-projection/gate (dModel -> dFFN) and a down-projection (dFFN -> dModel).',
-      'For standard MLP, the parameters are 2 * dModel * dFFN.',
-      'const ffnParams = 2 * dModel * dFFN;',
-    ],
-    solution: `function estimateBlockParams(dModel, dFFN) {
+    hints: ['ffnParams = 2 * dModel * dFFN;'],
+    solution: `function estimateTransformerBlock(dModel, expansionRatio, isSwiGLU) {
+  const dFFN = isSwiGLU ? Math.round(dModel * expansionRatio * 2 / 3) : dModel * expansionRatio;
   const attnParams = 4 * dModel * dModel;
   const ffnParams = 2 * dModel * dFFN;
   return attnParams + ffnParams;
 }`,
-    explanation: 'Self-attention and FFN projections constitute the vast majority of parameters in a transformer block.',
+    explanation: 'FFN matrices often contribute more than half of a transformer block’s weights.',
   },
   {
+    id: 'transformer-block-params',
+    stepLabel: '5.4',
+    group: 'Block parameter estimate',
+    title: 'Total block parameters',
+    concept: 'Architecture families differ mainly in FFN expansion rules and activation choices, but parameter budgeting starts from attn + FFN totals.',
+    objective: 'Return attnParams + ffnParams.',
+    difficulty: 'core',
+    starterCode: `function estimateTransformerBlock(dModel, expansionRatio, isSwiGLU) {
+  const dFFN = isSwiGLU ? Math.round(dModel * expansionRatio * 2 / 3) : dModel * expansionRatio;
+  const attnParams = 4 * dModel * dModel;
+  const ffnParams = 2 * dModel * dFFN;
+  // TODO: return total parameter count
+  return 0;
+}`,
+    testCode: `const results = [];
+function check(name, actual, expected) {
+  results.push({ name, actual, expected, passed: Object.is(actual, expected) });
+}
+check('standard block', estimateTransformerBlock(4096, 4, false), 201326592);
+check('swiglu block', estimateTransformerBlock(4096, 4, true), 156590080);
+return results;`,
+    hints: ['return attnParams + ffnParams;'],
+    solution: `function estimateTransformerBlock(dModel, expansionRatio, isSwiGLU) {
+  const dFFN = isSwiGLU ? Math.round(dModel * expansionRatio * 2 / 3) : dModel * expansionRatio;
+  const attnParams = 4 * dModel * dModel;
+  const ffnParams = 2 * dModel * dFFN;
+  return attnParams + ffnParams;
+}`,
+    explanation: 'Comparing families at equal d_model requires consistent FFN expansion accounting.',
+  },
+    {
     id: 'coconut-latent-residual',
     stepLabel: '6.1',
-    group: 'Latent residual add',
+    group: 'Latent thought step',
     title: 'Latent residual addition',
-    concept: 'Coconut (Chain of Continuous Thought) updates sequence representations in the hidden latent space by adding latent thought vectors.',
-    objective: 'Add the thought vector to the hidden vector element-wise.',
+    concept: 'Coconut updates hidden states with continuous thought vectors before gating blends them in.',
+    objective: 'Inside coconutLatentStep, add hidden[i] and thought[i] when gate is 1.',
     difficulty: 'warmup',
-    starterCode: `function latentResidualAdd(hidden, thought) {
+    starterCode: `function coconutLatentStep(hidden, thought, gate) {
   const result = [];
   for (let i = 0; i < hidden.length; i++) {
-    // TODO: add hidden[i] and thought[i]
-    result.push(0);
+    // TODO: when gate is 1, push hidden[i] + thought[i]
+    result.push(hidden[i]);
   }
   return result;
 }`,
@@ -1742,35 +1903,31 @@ function sameArray(a, b) {
 function check(name, actual, expected) {
   results.push({ name, actual: JSON.stringify(actual), expected: JSON.stringify(expected), passed: sameArray(actual, expected) });
 }
-check('residual add', latentResidualAdd([1, 2], [10, 20]), [11, 22]);
+check('full gate residual', coconutLatentStep([1, 2], [10, 20], 1), [11, 22]);
 return results;`,
-    hints: [
-      'Add hidden[i] and thought[i].',
-      'Push that sum to the result array.',
-    ],
-    solution: `function latentResidualAdd(hidden, thought) {
+    hints: ['if gate is 1, use hidden[i] + thought[i].'],
+    solution: `function coconutLatentStep(hidden, thought, gate) {
   const result = [];
   for (let i = 0; i < hidden.length; i++) {
     result.push(hidden[i] + thought[i]);
   }
   return result;
 }`,
-    explanation: 'Latent thought updates behave similarly to residual connections, shifting hidden representations without losing past context.',
+    explanation: 'Latent residuals inject reasoning updates without discarding prior context.',
   },
   {
-    id: 'coconut-latent-gate',
+    id: 'coconut-latent-gate-weight',
     stepLabel: '6.2',
-    group: 'Gate blend',
-    title: 'Gated latent blend',
-    concept: 'Latent steps are often gated so the model can dynamically control how much new reasoning to inject into the state.',
-    objective: 'Compute the gated blend: output = (1 - g) * hidden + g * thought.',
-    difficulty: 'core',
-    starterCode: `function gatedLatentBlend(hidden, thought, gate) {
+    group: 'Latent thought step',
+    title: 'Gate the thought contribution',
+    concept: 'A scalar gate controls how much of the thought vector is injected into each step.',
+    objective: 'Blend hidden[i] with gate * thought[i].',
+    difficulty: 'warmup',
+    starterCode: `function coconutLatentStep(hidden, thought, gate) {
   const result = [];
   for (let i = 0; i < hidden.length; i++) {
-    // TODO: compute gated blend coordinate
-    const val = 0;
-    result.push(val);
+    // TODO: hidden[i] + gate * thought[i]
+    result.push(hidden[i]);
   }
   return result;
 }`,
@@ -1781,73 +1938,105 @@ function approxArray(a, b, tol = 1e-5) {
 function check(name, actual, expected) {
   results.push({ name, actual: JSON.stringify(actual), expected: JSON.stringify(expected), passed: approxArray(actual, expected) });
 }
-check('gate 0.5', gatedLatentBlend([2, 4], [10, 20], 0.5), [6, 12]);
-check('gate 0.1', gatedLatentBlend([2, 4], [10, 20], 0.1), [2.8, 5.6]);
+check('partial gate', coconutLatentStep([2, 4], [10, 20], 0.5), [7, 14]);
 return results;`,
-    hints: [
-      'Use the formula: (1 - gate) * hidden[i] + gate * thought[i].',
-      'Store this in val.',
-    ],
-    solution: `function gatedLatentBlend(hidden, thought, gate) {
+    hints: ['result.push(hidden[i] + gate * thought[i]);'],
+    solution: `function coconutLatentStep(hidden, thought, gate) {
   const result = [];
   for (let i = 0; i < hidden.length; i++) {
-    const val = (1 - gate) * hidden[i] + gate * thought[i];
-    result.push(val);
+    result.push(hidden[i] + gate * thought[i]);
   }
   return result;
 }`,
-    explanation: 'Gating lets the model pass the original representations unmodified if no immediate continuous thinking is required.',
+    explanation: 'Partial gates let the model inject only a fraction of the proposed latent thought.',
   },
   {
-    id: 'gqa-group-index',
-    stepLabel: '7.1',
-    group: 'KV head index',
-    title: 'GQA KV head indexing',
-    concept: 'Grouped-Query Attention maps query heads to shared KV heads. If we have Hq query heads and Hkv key-value heads, head Q corresponds to KV head Q / (Hq / Hkv).',
-    objective: 'Return the index of the KV head corresponding to queryHeadIndex.',
-    difficulty: 'warmup',
-    starterCode: `function getKVHeadIndex(queryHeadIndex, numQueryHeads, numKVHeads) {
-  const groupSize = numQueryHeads / numKVHeads;
-  // TODO: return the index of the key-value head for queryHeadIndex
-  return 0;
+    id: 'coconut-latent-gate',
+    stepLabel: '6.3',
+    group: 'Latent thought step',
+    title: 'Gated latent blend',
+    concept: 'The full Coconut update interpolates between the previous hidden state and the thought vector.',
+    objective: 'Use (1 - gate) * hidden[i] + gate * thought[i].',
+    difficulty: 'core',
+    starterCode: `function coconutLatentStep(hidden, thought, gate) {
+  const result = [];
+  for (let i = 0; i < hidden.length; i++) {
+    // TODO: convex blend between hidden and thought
+    result.push(0);
+  }
+  return result;
 }`,
     testCode: `const results = [];
-function check(name, actual, expected) {
-  results.push({ name, actual, expected, passed: Object.is(actual, expected) });
+function approxArray(a, b, tol = 1e-5) {
+  return a.length === b.length && a.every((v, i) => Math.abs(v - b[i]) <= tol);
 }
-check('GQA 8 heads to 2 KV', getKVHeadIndex(5, 8, 2), 1);
-check('GQA 8 heads to 8 KV (MHA)', getKVHeadIndex(5, 8, 8), 5);
-check('GQA 8 heads to 1 KV (MQA)', getKVHeadIndex(7, 8, 1), 0);
+function check(name, actual, expected) {
+  results.push({ name, actual: JSON.stringify(actual), expected: JSON.stringify(expected), passed: approxArray(actual, expected) });
+}
+check('gate 0.5', coconutLatentStep([2, 4], [10, 20], 0.5), [6, 12]);
 return results;`,
-    hints: [
-      'Divide queryHeadIndex by groupSize.',
-      'Take the floor of the result using Math.floor.',
-      'return Math.floor(queryHeadIndex / groupSize);',
-    ],
-    solution: `function getKVHeadIndex(queryHeadIndex, numQueryHeads, numKVHeads) {
-  const groupSize = numQueryHeads / numKVHeads;
-  return Math.floor(queryHeadIndex / groupSize);
+    hints: ['(1 - gate) * hidden[i] + gate * thought[i]'],
+    solution: `function coconutLatentStep(hidden, thought, gate) {
+  const result = [];
+  for (let i = 0; i < hidden.length; i++) {
+    result.push((1 - gate) * hidden[i] + gate * thought[i]);
+  }
+  return result;
 }`,
-    explanation: 'Dividing query heads into chunks allows sharing KV heads, reducing KV cache size and memory traffic during generation.',
+    explanation: 'Convex blending generalizes residual addition and pure thought replacement.',
   },
   {
-    id: 'gqa-expand-kv',
-    stepLabel: '7.2',
-    group: 'Repeat/broadcast rule',
-    title: 'GQA KV expansion',
-    concept: 'During computation, GQA repeats Key/Value states so that their heads match the number of Query heads.',
-    objective: 'Repeat Key/Value vectors along the head dimension for a single token.',
+    id: 'coconut-latent-pass',
+    stepLabel: '6.4',
+    group: 'Latent thought step',
+    title: 'Pass-through when gate is zero',
+    concept: 'When the gate is 0, Coconut should leave the hidden state unchanged.',
+    objective: 'Return hidden unchanged when gate === 0.',
     difficulty: 'core',
+    starterCode: `function coconutLatentStep(hidden, thought, gate) {
+  // TODO: if gate is 0, return hidden unchanged
+  const result = [];
+  for (let i = 0; i < hidden.length; i++) {
+    result.push((1 - gate) * hidden[i] + gate * thought[i]);
+  }
+  return result;
+}`,
+    testCode: `const results = [];
+function sameArray(a, b) {
+  return JSON.stringify(a) === JSON.stringify(b);
+}
+function check(name, actual, expected) {
+  results.push({ name, actual: JSON.stringify(actual), expected: JSON.stringify(expected), passed: sameArray(actual, expected) });
+}
+check('gate zero pass', coconutLatentStep([1, 2, 3], [9, 9, 9], 0), [1, 2, 3]);
+return results;`,
+    hints: ['if (gate === 0) return hidden;'],
+    solution: `function coconutLatentStep(hidden, thought, gate) {
+  if (gate === 0) return hidden;
+  const result = [];
+  for (let i = 0; i < hidden.length; i++) {
+    result.push((1 - gate) * hidden[i] + gate * thought[i]);
+  }
+  return result;
+}`,
+    explanation: 'A zero gate skips latent reasoning when the model already has enough context.',
+  },
+    {
+    id: 'gqa-group-size',
+    stepLabel: '7.1',
+    group: 'KV head expansion',
+    title: 'GQA group size',
+    concept: 'Grouped-Query Attention shares KV heads across multiple query heads. The group size is numQueryHeads / numKVHeads.',
+    objective: 'Inside expandKV, compute groupSize.',
+    difficulty: 'warmup',
     starterCode: `function expandKV(kvHeads, numQueryHeads, numKVHeads) {
-  const groupSize = numQueryHeads / numKVHeads;
+  // TODO: groupSize = numQueryHeads / numKVHeads
+  const groupSize = 1;
   const expanded = [];
-  
   for (let q = 0; q < numQueryHeads; q++) {
-    // TODO: find the correct KV head index and push it to expanded
-    const kvIdx = 0;
+    const kvIdx = Math.floor(q / groupSize);
     expanded.push(kvHeads[kvIdx]);
   }
-  
   return expanded;
 }`,
     testCode: `const results = [];
@@ -1857,27 +2046,142 @@ function sameArray(a, b) {
 function check(name, actual, expected) {
   results.push({ name, actual: JSON.stringify(actual), expected: JSON.stringify(expected), passed: sameArray(actual, expected) });
 }
-const kv = [[1, 2], [3, 4]]; // 2 KV heads
-check('GQA repeat 4 query heads', expandKV(kv, 4, 2), [[1, 2], [1, 2], [3, 4], [3, 4]]);
+const kv = [[1, 2], [3, 4]];
+check('8 query to 2 kv', expandKV(kv, 8, 2), [kv[0], kv[0], kv[0], kv[0], kv[1], kv[1], kv[1], kv[1]]);
 return results;`,
-    hints: [
-      'KV head index is Math.floor(q / groupSize).',
-      'Set kvIdx to this computed index.',
-    ],
+    hints: ['const groupSize = numQueryHeads / numKVHeads;'],
     solution: `function expandKV(kvHeads, numQueryHeads, numKVHeads) {
   const groupSize = numQueryHeads / numKVHeads;
   const expanded = [];
-  
   for (let q = 0; q < numQueryHeads; q++) {
     const kvIdx = Math.floor(q / groupSize);
     expanded.push(kvHeads[kvIdx]);
   }
-  
   return expanded;
 }`,
-    explanation: 'Repeating KV heads aligns vectors shape-wise so standard multi-head dot product attention can proceed.',
+    explanation: 'Group size determines how many query heads reuse each KV head.',
   },
   {
+    id: 'gqa-group-index',
+    stepLabel: '7.2',
+    group: 'KV head expansion',
+    title: 'GQA KV head indexing',
+    concept: 'Query head q maps to KV head floor(q / groupSize).',
+    objective: 'Compute kvIdx for each query head.',
+    difficulty: 'warmup',
+    starterCode: `function expandKV(kvHeads, numQueryHeads, numKVHeads) {
+  const groupSize = numQueryHeads / numKVHeads;
+  const expanded = [];
+  for (let q = 0; q < numQueryHeads; q++) {
+    // TODO: kvIdx = Math.floor(q / groupSize)
+    const kvIdx = 0;
+    expanded.push(kvHeads[kvIdx]);
+  }
+  return expanded;
+}`,
+    testCode: `const results = [];
+function sameArray(a, b) {
+  return JSON.stringify(a) === JSON.stringify(b);
+}
+function check(name, actual, expected) {
+  results.push({ name, actual: JSON.stringify(actual), expected: JSON.stringify(expected), passed: sameArray(actual, expected) });
+}
+const kv = [[1], [2]];
+check('index mapping', expandKV(kv, 4, 2), [[1], [1], [2], [2]]);
+return results;`,
+    hints: ['const kvIdx = Math.floor(q / groupSize);'],
+    solution: `function expandKV(kvHeads, numQueryHeads, numKVHeads) {
+  const groupSize = numQueryHeads / numKVHeads;
+  const expanded = [];
+  for (let q = 0; q < numQueryHeads; q++) {
+    const kvIdx = Math.floor(q / groupSize);
+    expanded.push(kvHeads[kvIdx]);
+  }
+  return expanded;
+}`,
+    explanation: 'Indexing maps many query heads onto fewer KV cache slots.',
+  },
+  {
+    id: 'gqa-expand-kv',
+    stepLabel: '7.3',
+    group: 'KV head expansion',
+    title: 'GQA KV expansion',
+    concept: 'After indexing, each query head receives a copy of its assigned KV head vector.',
+    objective: 'Push kvHeads[kvIdx] into expanded for every query head.',
+    difficulty: 'core',
+    starterCode: `function expandKV(kvHeads, numQueryHeads, numKVHeads) {
+  const groupSize = numQueryHeads / numKVHeads;
+  const expanded = [];
+  for (let q = 0; q < numQueryHeads; q++) {
+    const kvIdx = Math.floor(q / groupSize);
+    // TODO: push kvHeads[kvIdx]
+  }
+  return expanded;
+}`,
+    testCode: `const results = [];
+function sameArray(a, b) {
+  return JSON.stringify(a) === JSON.stringify(b);
+}
+function check(name, actual, expected) {
+  results.push({ name, actual: JSON.stringify(actual), expected: JSON.stringify(expected), passed: sameArray(actual, expected) });
+}
+const kv = [[1, 2], [3, 4]];
+check('GQA repeat 4 query heads', expandKV(kv, 4, 2), [[1, 2], [1, 2], [3, 4], [3, 4]]);
+return results;`,
+    hints: ['expanded.push(kvHeads[kvIdx]);'],
+    solution: `function expandKV(kvHeads, numQueryHeads, numKVHeads) {
+  const groupSize = numQueryHeads / numKVHeads;
+  const expanded = [];
+  for (let q = 0; q < numQueryHeads; q++) {
+    const kvIdx = Math.floor(q / groupSize);
+    expanded.push(kvHeads[kvIdx]);
+  }
+  return expanded;
+}`,
+    explanation: 'Broadcasting KV heads aligns tensor shapes for standard attention kernels.',
+  },
+  {
+    id: 'gqa-mqa-edge',
+    stepLabel: '7.4',
+    group: 'KV head expansion',
+    title: 'Multi-query attention edge case',
+    concept: 'When numKVHeads is 1, every query head shares the single KV head (MQA).',
+    objective: 'Return an empty array when numQueryHeads is 0.',
+    difficulty: 'core',
+    starterCode: `function expandKV(kvHeads, numQueryHeads, numKVHeads) {
+  // TODO: return [] when numQueryHeads === 0
+  const groupSize = numQueryHeads / numKVHeads;
+  const expanded = [];
+  for (let q = 0; q < numQueryHeads; q++) {
+    const kvIdx = Math.floor(q / groupSize);
+    expanded.push(kvHeads[kvIdx]);
+  }
+  return expanded;
+}`,
+    testCode: `const results = [];
+function sameArray(a, b) {
+  return JSON.stringify(a) === JSON.stringify(b);
+}
+function check(name, actual, expected) {
+  results.push({ name, actual: JSON.stringify(actual), expected: JSON.stringify(expected), passed: sameArray(actual, expected) });
+}
+check('empty query heads', expandKV([[1]], 0, 1), []);
+check('MQA single kv', expandKV([[9]], 3, 1), [[9], [9], [9]]);
+return results;`,
+    hints: ['if (numQueryHeads === 0) return [];'],
+    solution: `function expandKV(kvHeads, numQueryHeads, numKVHeads) {
+  if (numQueryHeads === 0) return [];
+  const groupSize = numQueryHeads / numKVHeads;
+  const expanded = [];
+  for (let q = 0; q < numQueryHeads; q++) {
+    const kvIdx = Math.floor(q / groupSize);
+    expanded.push(kvHeads[kvIdx]);
+  }
+  return expanded;
+}`,
+    explanation: 'MQA is the extreme GQA setting with one shared KV head for all queries.',
+  },
+    {
     id: 'kv-cache-append-step',
     stepLabel: '8.1',
     group: 'Cache append',
@@ -2419,42 +2723,63 @@ function decodeKVCacheStep(x, Wq, Wk, Wv, keyCache, valueCache) {
   {
     id: 'flash-max-update',
     stepLabel: '9.1',
-    group: 'Row max update',
-    title: 'FlashAttention max update',
-    concept: 'FlashAttention operates in blocks. To maintain correct Softmax outputs, it updates the running maximum for each row as new blocks are loaded.',
-    objective: 'Compute the new maximum of two values.',
+    group: 'Online softmax block',
+    title: 'Running row maximum',
+    concept: 'FlashAttention tracks a running row max while streaming attention blocks.',
+    objective: 'Inside flashAttentionStep, set newMax = Math.max(state.max, blockMax).',
     difficulty: 'warmup',
-    starterCode: `function updateRowMax(oldMax, blockMax) {
-  // TODO: return the maximum of oldMax and blockMax
-  return 0;
+    starterCode: `function flashAttentionStep(state, blockMax, blockSum, blockOutput) {
+  const oldMax = state.max;
+  const oldSum = state.sum;
+  const oldOutput = state.output;
+  // TODO: newMax = Math.max(oldMax, blockMax)
+  const newMax = oldMax;
+  const scaleOld = Math.exp(oldMax - newMax);
+  const scaleBlock = Math.exp(blockMax - newMax);
+  const newSum = oldSum * scaleOld + blockSum * scaleBlock;
+  const newOutput = oldOutput.map((v, i) => v * scaleOld + blockOutput[i] * scaleBlock);
+  return { max: newMax, sum: newSum, output: newOutput };
 }`,
     testCode: `const results = [];
 function check(name, actual, expected) {
   results.push({ name, actual, expected, passed: Object.is(actual, expected) });
 }
-check('update max positive', updateRowMax(5, 8), 8);
-check('update max negative', updateRowMax(-10, -2), -2);
+const out = flashAttentionStep({ max: 5, sum: 2, output: [1] }, 8, 1, [2]);
+check('new max', out.max, 8);
 return results;`,
-    hints: [
-      'Use Math.max.',
-      'return Math.max(oldMax, blockMax);',
-    ],
-    solution: `function updateRowMax(oldMax, blockMax) {
-  return Math.max(oldMax, blockMax);
+    hints: ['const newMax = Math.max(oldMax, blockMax);'],
+    solution: `function flashAttentionStep(state, blockMax, blockSum, blockOutput) {
+  const oldMax = state.max;
+  const oldSum = state.sum;
+  const oldOutput = state.output;
+  const newMax = Math.max(oldMax, blockMax);
+  const scaleOld = Math.exp(oldMax - newMax);
+  const scaleBlock = Math.exp(blockMax - newMax);
+  const newSum = oldSum * scaleOld + blockSum * scaleBlock;
+  const newOutput = oldOutput.map((v, i) => v * scaleOld + blockOutput[i] * scaleBlock);
+  return { max: newMax, sum: newSum, output: newOutput };
 }`,
-    explanation: 'Subtracting row maximums protects exponents from overflow.',
+    explanation: 'Tracking the running max stabilizes online softmax accumulation.',
   },
   {
     id: 'flash-sum-update',
     stepLabel: '9.2',
-    group: 'Running sum',
-    title: 'FlashAttention sum update',
-    concept: 'To update the running Softmax denominator incrementally, FlashAttention scales the old sum and the block sum by the difference in their maximums.',
-    objective: 'Compute the updated denominator: oldSum * e^(oldMax - newMax) + blockSum * e^(blockMax - newMax).',
-    difficulty: 'core',
-    starterCode: `function updateRowSum(oldSum, blockSum, oldMax, blockMax, newMax) {
-  // TODO: return the updated Softmax sum denominator
-  return 0;
+    group: 'Online softmax block',
+    title: 'Rescaled denominator sum',
+    concept: 'When the row max increases, prior block contributions must be down-weighted exponentially.',
+    objective: 'Compute newSum = oldSum * exp(oldMax - newMax) + blockSum * exp(blockMax - newMax).',
+    difficulty: 'warmup',
+    starterCode: `function flashAttentionStep(state, blockMax, blockSum, blockOutput) {
+  const oldMax = state.max;
+  const oldSum = state.sum;
+  const oldOutput = state.output;
+  const newMax = Math.max(oldMax, blockMax);
+  const scaleOld = Math.exp(oldMax - newMax);
+  const scaleBlock = Math.exp(blockMax - newMax);
+  // TODO: rescale and add blockSum into newSum
+  const newSum = oldSum;
+  const newOutput = oldOutput.map((v, i) => v * scaleOld + blockOutput[i] * scaleBlock);
+  return { max: newMax, sum: newSum, output: newOutput };
 }`,
     testCode: `const results = [];
 function approxEqual(a, b, tol = 1e-5) {
@@ -2463,19 +2788,273 @@ function approxEqual(a, b, tol = 1e-5) {
 function check(name, actual, expected) {
   results.push({ name, actual, expected, passed: approxEqual(actual, expected) });
 }
-check('same max sum update', updateRowSum(2.0, 1.0, 5.0, 5.0, 5.0), 3.0);
-check('different max sum update', updateRowSum(1.0, 1.0, 5.0, 6.0, 6.0), 1.367879);
+const out = flashAttentionStep({ max: 5, sum: 1, output: [0] }, 6, 1, [0]);
+check('rescaled sum', out.sum, 1.367879);
 return results;`,
-    hints: [
-      'Use Math.exp(oldMax - newMax) and Math.exp(blockMax - newMax).',
-      'The formula is: oldSum * Math.exp(oldMax - newMax) + blockSum * Math.exp(blockMax - newMax).',
-    ],
-    solution: `function updateRowSum(oldSum, blockSum, oldMax, blockMax, newMax) {
-  return oldSum * Math.exp(oldMax - newMax) + blockSum * Math.exp(blockMax - newMax);
+    hints: ['const newSum = oldSum * scaleOld + blockSum * scaleBlock;'],
+    solution: `function flashAttentionStep(state, blockMax, blockSum, blockOutput) {
+  const oldMax = state.max;
+  const oldSum = state.sum;
+  const oldOutput = state.output;
+  const newMax = Math.max(oldMax, blockMax);
+  const scaleOld = Math.exp(oldMax - newMax);
+  const scaleBlock = Math.exp(blockMax - newMax);
+  const newSum = oldSum * scaleOld + blockSum * scaleBlock;
+  const newOutput = oldOutput.map((v, i) => v * scaleOld + blockOutput[i] * scaleBlock);
+  return { max: newMax, sum: newSum, output: newOutput };
 }`,
-    explanation: 'Scaling old sums ensures the Softmax denominators stay mathematically equivalent to standard Softmax while loading in chunks.',
+    explanation: 'Rescaling keeps the softmax denominator consistent across blocks.',
   },
-  // --- spec-sparse-attention ---
+  {
+    id: 'flash-output-update',
+    stepLabel: '9.3',
+    group: 'Online softmax block',
+    title: 'Rescaled output accumulator',
+    concept: 'FlashAttention also rescales the weighted value accumulator with the same exponential factors.',
+    objective: 'Update each output dimension with scaled old and block contributions.',
+    difficulty: 'core',
+    starterCode: `function flashAttentionStep(state, blockMax, blockSum, blockOutput) {
+  const oldMax = state.max;
+  const oldSum = state.sum;
+  const oldOutput = state.output;
+  const newMax = Math.max(oldMax, blockMax);
+  const scaleOld = Math.exp(oldMax - newMax);
+  const scaleBlock = Math.exp(blockMax - newMax);
+  const newSum = oldSum * scaleOld + blockSum * scaleBlock;
+  // TODO: newOutput[i] = oldOutput[i] * scaleOld + blockOutput[i] * scaleBlock
+  const newOutput = oldOutput.map((v) => v);
+  return { max: newMax, sum: newSum, output: newOutput };
+}`,
+    testCode: `const results = [];
+function approxEqual(a, b, tol = 1e-5) {
+  return Math.abs(a - b) <= tol;
+}
+function check(name, actual, expected) {
+  results.push({ name, actual, expected, passed: approxEqual(actual, expected) });
+}
+const out = flashAttentionStep({ max: 5, sum: 2, output: [1] }, 5, 3, [2]);
+check('same max output merge', out.output[0], 3);
+return results;`,
+    hints: ['return oldOutput.map((v, i) => v * scaleOld + blockOutput[i] * scaleBlock);'],
+    solution: `function flashAttentionStep(state, blockMax, blockSum, blockOutput) {
+  const oldMax = state.max;
+  const oldSum = state.sum;
+  const oldOutput = state.output;
+  const newMax = Math.max(oldMax, blockMax);
+  const scaleOld = Math.exp(oldMax - newMax);
+  const scaleBlock = Math.exp(blockMax - newMax);
+  const newSum = oldSum * scaleOld + blockSum * scaleBlock;
+  const newOutput = oldOutput.map((v, i) => v * scaleOld + blockOutput[i] * scaleBlock);
+  return { max: newMax, sum: newSum, output: newOutput };
+}`,
+    explanation: 'Output rescaling is what makes block-wise attention mathematically equivalent to full attention.',
+  },
+  {
+    id: 'flash-block-step',
+    stepLabel: '9.4',
+    group: 'Online softmax block',
+    title: 'Complete FlashAttention block merge',
+    concept: 'One FlashAttention step merges a new block into running max, sum, and output state.',
+    objective: 'Return the merged state object with max, sum, and output.',
+    difficulty: 'core',
+    starterCode: `function flashAttentionStep(state, blockMax, blockSum, blockOutput) {
+  const oldMax = state.max;
+  const oldSum = state.sum;
+  const oldOutput = state.output;
+  const newMax = Math.max(oldMax, blockMax);
+  const scaleOld = Math.exp(oldMax - newMax);
+  const scaleBlock = Math.exp(blockMax - newMax);
+  const newSum = oldSum * scaleOld + blockSum * scaleBlock;
+  const newOutput = oldOutput.map((v, i) => v * scaleOld + blockOutput[i] * scaleBlock);
+  // TODO: return { max: newMax, sum: newSum, output: newOutput }
+  return state;
+}`,
+    testCode: `const results = [];
+function approxEqual(a, b, tol = 1e-5) {
+  return Math.abs(a - b) <= tol;
+}
+function check(name, actual, expected) {
+  results.push({ name, actual, expected, passed: approxEqual(actual, expected) });
+}
+const out = flashAttentionStep({ max: 1, sum: 1, output: [1] }, 2, 2, [3]);
+check('merged max', out.max, 2);
+check('merged sum', out.sum, 2.367879);
+check('merged output', out.output[0], 3.367879);
+return results;`,
+    hints: ['return { max: newMax, sum: newSum, output: newOutput };'],
+    solution: `function flashAttentionStep(state, blockMax, blockSum, blockOutput) {
+  const oldMax = state.max;
+  const oldSum = state.sum;
+  const oldOutput = state.output;
+  const newMax = Math.max(oldMax, blockMax);
+  const scaleOld = Math.exp(oldMax - newMax);
+  const scaleBlock = Math.exp(blockMax - newMax);
+  const newSum = oldSum * scaleOld + blockSum * scaleBlock;
+  const newOutput = oldOutput.map((v, i) => v * scaleOld + blockOutput[i] * scaleBlock);
+  return { max: newMax, sum: newSum, output: newOutput };
+}`,
+    explanation: 'Chaining these steps block-by-block is the core of IO-efficient attention.',
+  },
+  {
+    id: 'flash-scale-old',
+    stepLabel: '9.5',
+    group: 'Online softmax block',
+    title: 'Rescale previous block',
+    concept: 'When a larger block max arrives, earlier softmax mass must be down-weighted by exp(oldMax - newMax).',
+    objective: 'Inside flashAttentionStep, compute scaleOld = Math.exp(oldMax - newMax).',
+    difficulty: 'warmup',
+    starterCode: `function flashAttentionStep(state, blockMax, blockSum, blockOutput) {
+  const oldMax = state.max;
+  const oldSum = state.sum;
+  const oldOutput = state.output;
+  const newMax = Math.max(oldMax, blockMax);
+  // TODO: scaleOld = Math.exp(oldMax - newMax)
+  const scaleOld = 1;
+  const scaleBlock = Math.exp(blockMax - newMax);
+  const newSum = oldSum * scaleOld + blockSum * scaleBlock;
+  const newOutput = oldOutput.map((v, i) => v * scaleOld + blockOutput[i] * scaleBlock);
+  return { max: newMax, sum: newSum, output: newOutput };
+}`,
+    testCode: `const results = [];
+function approxEqual(a, b, tol = 1e-5) {
+  return Math.abs(a - b) <= tol;
+}
+function check(name, actual, expected) {
+  results.push({ name, actual, expected, passed: approxEqual(actual, expected) });
+}
+const out = flashAttentionStep({ max: 1, sum: 2, output: [1] }, 3, 1, [0]);
+check('downweighted sum', out.sum, 1.270671);
+return results;`,
+    hints: ['const scaleOld = Math.exp(oldMax - newMax);'],
+    solution: `function flashAttentionStep(state, blockMax, blockSum, blockOutput) {
+  const oldMax = state.max;
+  const oldSum = state.sum;
+  const oldOutput = state.output;
+  const newMax = Math.max(oldMax, blockMax);
+  const scaleOld = Math.exp(oldMax - newMax);
+  const scaleBlock = Math.exp(blockMax - newMax);
+  const newSum = oldSum * scaleOld + blockSum * scaleBlock;
+  const newOutput = oldOutput.map((v, i) => v * scaleOld + blockOutput[i] * scaleBlock);
+  return { max: newMax, sum: newSum, output: newOutput };
+}`,
+    explanation: 'Old-block rescaling is what makes online softmax exact.',
+  },
+  {
+    id: 'flash-scale-block',
+    stepLabel: '9.6',
+    group: 'Online softmax block',
+    title: 'Scale incoming block',
+    concept: 'The new block contribution is weighted by exp(blockMax - newMax) before accumulation.',
+    objective: 'Compute scaleBlock = Math.exp(blockMax - newMax).',
+    difficulty: 'warmup',
+    starterCode: `function flashAttentionStep(state, blockMax, blockSum, blockOutput) {
+  const oldMax = state.max;
+  const oldSum = state.sum;
+  const oldOutput = state.output;
+  const newMax = Math.max(oldMax, blockMax);
+  const scaleOld = Math.exp(oldMax - newMax);
+  // TODO: scaleBlock = Math.exp(blockMax - newMax)
+  const scaleBlock = 1;
+  const newSum = oldSum * scaleOld + blockSum * scaleBlock;
+  const newOutput = oldOutput.map((v, i) => v * scaleOld + blockOutput[i] * scaleBlock);
+  return { max: newMax, sum: newSum, output: newOutput };
+}`,
+    testCode: `const results = [];
+function approxEqual(a, b, tol = 1e-5) {
+  return Math.abs(a - b) <= tol;
+}
+function check(name, actual, expected) {
+  results.push({ name, actual, expected, passed: approxEqual(actual, expected) });
+}
+const out = flashAttentionStep({ max: 2, sum: 1, output: [0] }, 4, 2, [1]);
+check('block scaled sum', out.sum, 2.135335);
+return results;`,
+    hints: ['const scaleBlock = Math.exp(blockMax - newMax);'],
+    solution: `function flashAttentionStep(state, blockMax, blockSum, blockOutput) {
+  const oldMax = state.max;
+  const oldSum = state.sum;
+  const oldOutput = state.output;
+  const newMax = Math.max(oldMax, blockMax);
+  const scaleOld = Math.exp(oldMax - newMax);
+  const scaleBlock = Math.exp(blockMax - newMax);
+  const newSum = oldSum * scaleOld + blockSum * scaleBlock;
+  const newOutput = oldOutput.map((v, i) => v * scaleOld + blockOutput[i] * scaleBlock);
+  return { max: newMax, sum: newSum, output: newOutput };
+}`,
+    explanation: 'Both old and new blocks must be expressed in the same max-reference frame.',
+  },
+  {
+    id: 'flash-normalize',
+    stepLabel: '9.7',
+    group: 'Online softmax block',
+    title: 'Normalize attention output',
+    concept: 'After all blocks are merged, divide the accumulated numerator by the softmax denominator.',
+    objective: 'Inside flashFinalize, return state.output[i] / state.sum for each dimension.',
+    difficulty: 'core',
+    starterCode: `function flashFinalize(state) {
+  const normalized = [];
+  for (let i = 0; i < state.output.length; i++) {
+    // TODO: push state.output[i] / state.sum
+    normalized.push(0);
+  }
+  return normalized;
+}`,
+    testCode: `const results = [];
+function approxEqual(a, b, tol = 1e-5) {
+  return Math.abs(a - b) <= tol;
+}
+function check(name, actual, expected) {
+  results.push({ name, actual, expected, passed: approxEqual(actual, expected) });
+}
+check('normalized output', flashFinalize({ max: 1, sum: 2, output: [4, 6] })[0], 2);
+return results;`,
+    hints: ['normalized.push(state.output[i] / state.sum);'],
+    solution: `function flashFinalize(state) {
+  const normalized = [];
+  for (let i = 0; i < state.output.length; i++) {
+    normalized.push(state.output[i] / state.sum);
+  }
+  return normalized;
+}`,
+    explanation: 'Normalization turns weighted value sums into true attention expectations.',
+  },
+  {
+    id: 'flash-zero-sum',
+    stepLabel: '9.8',
+    group: 'Online softmax block',
+    title: 'Zero denominator guard',
+    concept: 'If no probability mass accumulated, return zeros instead of dividing by zero.',
+    objective: 'Return an array of zeros when state.sum is 0.',
+    difficulty: 'challenge',
+    starterCode: `function flashFinalize(state) {
+  // TODO: if state.sum === 0, return zeros matching output length
+  const normalized = [];
+  for (let i = 0; i < state.output.length; i++) {
+    normalized.push(state.output[i] / state.sum);
+  }
+  return normalized;
+}`,
+    testCode: `const results = [];
+function sameArray(a, b) {
+  return JSON.stringify(a) === JSON.stringify(b);
+}
+function check(name, actual, expected) {
+  results.push({ name, actual: JSON.stringify(actual), expected: JSON.stringify(expected), passed: sameArray(actual, expected) });
+}
+check('zero sum guard', flashFinalize({ max: 0, sum: 0, output: [1, 2] }), [0, 0]);
+return results;`,
+    hints: ['if (state.sum === 0) return state.output.map(() => 0);'],
+    solution: `function flashFinalize(state) {
+  if (state.sum === 0) return state.output.map(() => 0);
+  const normalized = [];
+  for (let i = 0; i < state.output.length; i++) {
+    normalized.push(state.output[i] / state.sum);
+  }
+  return normalized;
+}`,
+    explanation: 'Numerical guards keep attention kernels stable on masked rows.',
+  },
+    // --- spec-sparse-attention ---
   {
     id: 'specsparse-prefix-length',
     stepLabel: 'SSA.1',
@@ -4914,48 +5493,206 @@ return results;`,
     explanation: 'Routing tokens to only a subset of experts limits active parameters per token, enabling massive model capacity with low computational costs.',
   },
   {
-    id: 'lora-scaling-factor',
+    id: 'lora-down-project',
     stepLabel: '16.1',
-    group: 'Alpha scaling',
-    title: 'LoRA scaling factor',
-    concept: 'Low-Rank Adaptation (LoRA) scales low-rank updates by a factor of alpha / rank to maintain consistent learning scales when rank changes.',
-    objective: 'Compute the scaling factor alpha divided by rank.',
+    group: 'LoRA forward step',
+    title: 'Down-project to rank',
+    concept: 'LoRA first projects the input into a low-rank space with matrix A.',
+    objective: 'Inside loraForward, compute one rank coordinate h[r] = sum_i A[r][i] * x[i].',
     difficulty: 'warmup',
-    starterCode: `function getLoraScale(alpha, rank) {
-  // TODO: return the scaling factor
-  return 0;
+    starterCode: `function loraForward(x, A, B, yBase, alpha, rank) {
+  const h = [];
+  for (let r = 0; r < A.length; r++) {
+    let sum = 0;
+    for (let i = 0; i < x.length; i++) {
+      // TODO: add A[r][i] * x[i] to sum
+    }
+    h.push(sum);
+  }
+  const delta = [];
+  for (let o = 0; o < B.length; o++) {
+    let sum = 0;
+    for (let r = 0; r < h.length; r++) sum += B[o][r] * h[r];
+    delta.push(sum);
+  }
+  const scale = alpha / rank;
+  return yBase.map((v, i) => v + scale * delta[i]);
 }`,
     testCode: `const results = [];
 function check(name, actual, expected) {
   results.push({ name, actual, expected, passed: Object.is(actual, expected) });
 }
-check('scale alpha 32 rank 8', getLoraScale(32, 8), 4);
-check('scale alpha 16 rank 16', getLoraScale(16, 16), 1);
+const out = loraForward([2, 3], [[1, 0], [0, 1]], [[2, 0], [0, 1]], [0, 0], 4, 2);
+check('rank 0 projection', out[0], 8);
 return results;`,
-    hints: [
-      'Divide alpha by rank.',
-      'return alpha / rank;',
-    ],
-    solution: `function getLoraScale(alpha, rank) {
-  return alpha / rank;
+    hints: ['sum += A[r][i] * x[i];'],
+    solution: `function loraForward(x, A, B, yBase, alpha, rank) {
+  const h = [];
+  for (let r = 0; r < A.length; r++) {
+    let sum = 0;
+    for (let i = 0; i < x.length; i++) {
+      sum += A[r][i] * x[i];
+    }
+    h.push(sum);
+  }
+  const delta = [];
+  for (let o = 0; o < B.length; o++) {
+    let sum = 0;
+    for (let r = 0; r < h.length; r++) sum += B[o][r] * h[r];
+    delta.push(sum);
+  }
+  const scale = alpha / rank;
+  return yBase.map((v, i) => v + scale * delta[i]);
 }`,
-    explanation: 'Alpha scaling allows changing LoRA rank without needing to retune learning rate hyperparameters.',
+    explanation: 'The A matrix compresses activations into rank-limited coordinates.',
+  },
+  {
+    id: 'lora-rank-vector',
+    stepLabel: '16.2',
+    group: 'LoRA forward step',
+    title: 'Build rank vector h',
+    concept: 'All rank coordinates together form the bottleneck activation h = A @ x.',
+    objective: 'Push each computed sum into h for every row of A.',
+    difficulty: 'warmup',
+    starterCode: `function loraForward(x, A, B, yBase, alpha, rank) {
+  const h = [];
+  for (let r = 0; r < A.length; r++) {
+    let sum = 0;
+    for (let i = 0; i < x.length; i++) sum += A[r][i] * x[i];
+    // TODO: push sum into h
+  }
+  const delta = [];
+  for (let o = 0; o < B.length; o++) {
+    let sum = 0;
+    for (let r = 0; r < h.length; r++) sum += B[o][r] * h[r];
+    delta.push(sum);
+  }
+  const scale = alpha / rank;
+  return yBase.map((v, i) => v + scale * delta[i]);
+}`,
+    testCode: `const results = [];
+function check(name, actual, expected) {
+  results.push({ name, actual, expected, passed: Object.is(actual, expected) });
+}
+const out = loraForward([1, 2], [[1, 1]], [[2]], [0], 2, 1);
+check('rank vector applied', out[0], 12);
+return results;`,
+    hints: ['h.push(sum);'],
+    solution: `function loraForward(x, A, B, yBase, alpha, rank) {
+  const h = [];
+  for (let r = 0; r < A.length; r++) {
+    let sum = 0;
+    for (let i = 0; i < x.length; i++) sum += A[r][i] * x[i];
+    h.push(sum);
+  }
+  const delta = [];
+  for (let o = 0; o < B.length; o++) {
+    let sum = 0;
+    for (let r = 0; r < h.length; r++) sum += B[o][r] * h[r];
+    delta.push(sum);
+  }
+  const scale = alpha / rank;
+  return yBase.map((v, i) => v + scale * delta[i]);
+}`,
+    explanation: 'Rank-space activations are the shared bottleneck for all adapter outputs.',
+  },
+  {
+    id: 'lora-up-project',
+    stepLabel: '16.3',
+    group: 'LoRA forward step',
+    title: 'Up-project to output delta',
+    concept: 'Matrix B maps the rank vector back to the model output dimension: delta = B @ h.',
+    objective: 'Accumulate B[o][r] * h[r] into each delta coordinate.',
+    difficulty: 'core',
+    starterCode: `function loraForward(x, A, B, yBase, alpha, rank) {
+  const h = [];
+  for (let r = 0; r < A.length; r++) {
+    let sum = 0;
+    for (let i = 0; i < x.length; i++) sum += A[r][i] * x[i];
+    h.push(sum);
+  }
+  const delta = [];
+  for (let o = 0; o < B.length; o++) {
+    let sum = 0;
+    for (let r = 0; r < h.length; r++) {
+      // TODO: sum += B[o][r] * h[r]
+    }
+    delta.push(sum);
+  }
+  const scale = alpha / rank;
+  return yBase.map((v, i) => v + scale * delta[i]);
+}`,
+    testCode: `const results = [];
+function check(name, actual, expected) {
+  results.push({ name, actual, expected, passed: Object.is(actual, expected) });
+}
+const out = loraForward([1], [[2]], [[1]], [1], 3, 1);
+check('up projection', out[0], 7);
+return results;`,
+    hints: ['sum += B[o][r] * h[r];'],
+    solution: `function loraForward(x, A, B, yBase, alpha, rank) {
+  const h = [];
+  for (let r = 0; r < A.length; r++) {
+    let sum = 0;
+    for (let i = 0; i < x.length; i++) sum += A[r][i] * x[i];
+    h.push(sum);
+  }
+  const delta = [];
+  for (let o = 0; o < B.length; o++) {
+    let sum = 0;
+    for (let r = 0; r < h.length; r++) sum += B[o][r] * h[r];
+    delta.push(sum);
+  }
+  const scale = alpha / rank;
+  return yBase.map((v, i) => v + scale * delta[i]);
+}`,
+    explanation: 'B reconstructs a full-width update from the low-rank bottleneck.',
+  },
+  {
+    id: 'lora-scaling-factor',
+    stepLabel: '16.4',
+    group: 'LoRA forward step',
+    title: 'LoRA scaling factor',
+    concept: 'Adapter updates are scaled by alpha / rank to keep magnitude stable across ranks.',
+    objective: 'Compute scale = alpha / rank.',
+    difficulty: 'warmup',
+    starterCode: `function loraForward(x, A, B, yBase, alpha, rank) {
+  const h = A.map((row) => row.reduce((s, w, i) => s + w * x[i], 0));
+  const delta = B.map((row) => row.reduce((s, w, r) => s + w * h[r], 0));
+  // TODO: scale = alpha / rank
+  const scale = 0;
+  return yBase.map((v, i) => v + scale * delta[i]);
+}`,
+    testCode: `const results = [];
+function check(name, actual, expected) {
+  results.push({ name, actual, expected, passed: Object.is(actual, expected) });
+}
+const out = loraForward([1], [[1]], [[2]], [0], 8, 2);
+check('scaled adapter', out[0], 8);
+return results;`,
+    hints: ['const scale = alpha / rank;'],
+    solution: `function loraForward(x, A, B, yBase, alpha, rank) {
+  const h = A.map((row) => row.reduce((s, w, i) => s + w * x[i], 0));
+  const delta = B.map((row) => row.reduce((s, w, r) => s + w * h[r], 0));
+  const scale = alpha / rank;
+  return yBase.map((v, i) => v + scale * delta[i]);
+}`,
+    explanation: 'Alpha scaling decouples rank from update magnitude.',
   },
   {
     id: 'lora-forward-add',
-    stepLabel: '16.2',
-    group: 'Effective delta add',
-    title: 'LoRA output update',
-    concept: 'LoRA updates the forward pass output: y = W_base * x + (alpha / r) * B * (A * x).',
-    objective: 'Incorporate the low-rank delta output into the baseline output vector.',
+    stepLabel: '16.5',
+    group: 'LoRA forward step',
+    title: 'Fuse base and adapter outputs',
+    concept: 'The served output is y = y_base + (alpha/rank) * B @ A @ x.',
+    objective: 'Return yBase[i] + scale * delta[i] for every coordinate.',
     difficulty: 'core',
-    starterCode: `function addLoraDelta(yBase, loraDelta, scale) {
-  const output = [];
-  for (let i = 0; i < yBase.length; i++) {
-    // TODO: add scale * loraDelta[i] to yBase[i]
-    output.push(0);
-  }
-  return output;
+    starterCode: `function loraForward(x, A, B, yBase, alpha, rank) {
+  const h = A.map((row) => row.reduce((s, w, i) => s + w * x[i], 0));
+  const delta = B.map((row) => row.reduce((s, w, r) => s + w * h[r], 0));
+  const scale = alpha / rank;
+  // TODO: return fused output array
+  return yBase;
 }`,
     testCode: `const results = [];
 function approxArray(a, b, tol = 1e-5) {
@@ -4964,20 +5701,87 @@ function approxArray(a, b, tol = 1e-5) {
 function check(name, actual, expected) {
   results.push({ name, actual: JSON.stringify(actual), expected: JSON.stringify(expected), passed: approxArray(actual, expected) });
 }
-check('apply lora delta', addLoraDelta([2.0, 3.0], [0.5, -0.2], 4.0), [4.0, 2.2]);
+const out = loraForward([1, 0], [[1, 0], [0, 1]], [[1, 2], [3, 4]], [1, 1], 4, 2);
+check('fused output', out, [3, 7]);
 return results;`,
-    hints: [
-      'Multiply scale by loraDelta[i] and add to yBase[i].',
-      'Push the result to the output array.',
-    ],
-    solution: `function addLoraDelta(yBase, loraDelta, scale) {
-  const output = [];
-  for (let i = 0; i < yBase.length; i++) {
-    output.push(yBase[i] + scale * loraDelta[i]);
-  }
-  return output;
+    hints: ['return yBase.map((v, i) => v + scale * delta[i]);'],
+    solution: `function loraForward(x, A, B, yBase, alpha, rank) {
+  const h = A.map((row) => row.reduce((s, w, i) => s + w * x[i], 0));
+  const delta = B.map((row) => row.reduce((s, w, r) => s + w * h[r], 0));
+  const scale = alpha / rank;
+  return yBase.map((v, i) => v + scale * delta[i]);
 }`,
-    explanation: 'Low-rank updates are computed in parallel to base weights and added at output, leaving baseline weights frozen.',
+    explanation: 'Serving adds adapter deltas on top of frozen backbone outputs.',
+  },
+  {
+    id: 'lora-zero-rank',
+    stepLabel: '16.6',
+    group: 'LoRA forward step',
+    title: 'Zero-rank passthrough',
+    concept: 'Rank zero disables the adapter branch entirely.',
+    objective: 'Return yBase unchanged when rank === 0.',
+    difficulty: 'core',
+    starterCode: `function loraForward(x, A, B, yBase, alpha, rank) {
+  // TODO: if rank === 0, return yBase
+  const h = A.map((row) => row.reduce((s, w, i) => s + w * x[i], 0));
+  const delta = B.map((row) => row.reduce((s, w, r) => s + w * h[r], 0));
+  const scale = alpha / rank;
+  return yBase.map((v, i) => v + scale * delta[i]);
+}`,
+    testCode: `const results = [];
+function sameArray(a, b) {
+  return JSON.stringify(a) === JSON.stringify(b);
+}
+function check(name, actual, expected) {
+  results.push({ name, actual: JSON.stringify(actual), expected: JSON.stringify(expected), passed: sameArray(actual, expected) });
+}
+check('zero rank', loraForward([1], [[1]], [[1]], [5, 6], 8, 0), [5, 6]);
+return results;`,
+    hints: ['if (rank === 0) return yBase;'],
+    solution: `function loraForward(x, A, B, yBase, alpha, rank) {
+  if (rank === 0) return yBase;
+  const h = A.map((row) => row.reduce((s, w, i) => s + w * x[i], 0));
+  const delta = B.map((row) => row.reduce((s, w, r) => s + w * h[r], 0));
+  const scale = alpha / rank;
+  return yBase.map((v, i) => v + scale * delta[i]);
+}`,
+    explanation: 'Disabling adapters should never break the base forward path.',
+  },
+  {
+    id: 'lora-shape-guard',
+    stepLabel: '16.7',
+    group: 'LoRA forward step',
+    title: 'Output dimension guard',
+    concept: 'Adapter output must match the base output length before fusion.',
+    objective: 'Return yBase unchanged when delta length differs from yBase length.',
+    difficulty: 'challenge',
+    starterCode: `function loraForward(x, A, B, yBase, alpha, rank) {
+  if (rank === 0) return yBase;
+  const h = A.map((row) => row.reduce((s, w, i) => s + w * x[i], 0));
+  const delta = B.map((row) => row.reduce((s, w, r) => s + w * h[r], 0));
+  // TODO: if delta.length !== yBase.length, return yBase
+  const scale = alpha / rank;
+  return yBase.map((v, i) => v + scale * delta[i]);
+}`,
+    testCode: `const results = [];
+function sameArray(a, b) {
+  return JSON.stringify(a) === JSON.stringify(b);
+}
+function check(name, actual, expected) {
+  results.push({ name, actual: JSON.stringify(actual), expected: JSON.stringify(expected), passed: sameArray(actual, expected) });
+}
+check('shape mismatch', loraForward([1], [[1]], [[1, 2]], [3, 4], 2, 1), [3, 4]);
+return results;`,
+    hints: ['if (delta.length !== yBase.length) return yBase;'],
+    solution: `function loraForward(x, A, B, yBase, alpha, rank) {
+  if (rank === 0) return yBase;
+  const h = A.map((row) => row.reduce((s, w, i) => s + w * x[i], 0));
+  const delta = B.map((row) => row.reduce((s, w, r) => s + w * h[r], 0));
+  if (delta.length !== yBase.length) return yBase;
+  const scale = alpha / rank;
+  return yBase.map((v, i) => v + scale * delta[i]);
+}`,
+    explanation: 'Shape guards prevent silent adapter wiring bugs in fine-tuning pipelines.',
   },
   // --- native-sparse-attention ---
   {

@@ -1390,42 +1390,15 @@ return results;`,
   {
     id: 'eagle-self-trust-check',
     stepLabel: '17.1',
-    group: 'Self-trust threshold',
-    title: 'EAGLE speculative self-trust check',
-    concept: 'EAGLE speculative decoding dynamically extends draft trees. If the draft models confidence is higher than a self-trust threshold, it accepts the draft step.',
-    objective: 'Return true if confidence is greater than or equal to threshold, otherwise false.',
+    group: 'EAGLE verify step',
+    title: 'EAGLE self-trust check',
+    concept: 'EAGLE extends draft trees while the draft model trusts its own confidence scores.',
+    objective: 'Inside eagleVerifyStep, return true when confidence >= threshold.',
     difficulty: 'warmup',
-    starterCode: `function checkSelfTrust(confidence, threshold) {
-  // TODO: return true if confidence is at least threshold
-  return false;
-}`,
-    testCode: `const results = [];
-function check(name, actual, expected) {
-  results.push({ name, actual, expected, passed: Object.is(actual, expected) });
-}
-check('trusted', checkSelfTrust(0.85, 0.8), true);
-check('untrusted', checkSelfTrust(0.75, 0.8), false);
-return results;`,
-    hints: [
-      'Use confidence >= threshold.',
-    ],
-    solution: `function checkSelfTrust(confidence, threshold) {
-  return confidence >= threshold;
-}`,
-    explanation: 'Self-trust thresholds allow draft models to bypass verification for high-confidence tokens, speeding up speculative generation.',
-  },
-  {
-    id: 'eagle-token-salvage',
-    stepLabel: '17.2',
-    group: 'Token salvage',
-    title: 'Salvage rejected draft tokens',
-    concept: 'When the target model rejects draft tokens, EAGLE salvages the prefix of accepted tokens to form the new sequence.',
-    objective: 'Filter draft tokens: keep only tokens whose corresponding acceptMask value is true.',
-    difficulty: 'core',
-    starterCode: `function salvageTokens(draftTokens, acceptMask) {
+    starterCode: `function eagleVerifyStep(draftTokens, confidences, threshold) {
   const accepted = [];
   for (let i = 0; i < draftTokens.length; i++) {
-    // TODO: if acceptMask[i] is true, push draftTokens[i] to accepted
+    // TODO: if confidences[i] >= threshold, push draftTokens[i]; else break
   }
   return accepted;
 }`,
@@ -1436,21 +1409,148 @@ function sameArray(a, b) {
 function check(name, actual, expected) {
   results.push({ name, actual: JSON.stringify(actual), expected: JSON.stringify(expected), passed: sameArray(actual, expected) });
 }
-check('salvage mixed', salvageTokens(['a', 'b', 'c'], [true, false, true]), ['a', 'c']);
+check('trusted prefix', eagleVerifyStep(['a', 'b'], [0.9, 0.85], 0.8), ['a', 'b']);
 return results;`,
-    hints: [
-      'Check if acceptMask[i] is true.',
-      'If so, push draftTokens[i] to accepted.',
-    ],
-    solution: `function salvageTokens(draftTokens, acceptMask) {
+    hints: ['if (confidences[i] >= threshold) accepted.push(draftTokens[i]); else break;'],
+    solution: `function eagleVerifyStep(draftTokens, confidences, threshold) {
   const accepted = [];
   for (let i = 0; i < draftTokens.length; i++) {
-    if (acceptMask[i]) {
+    if (confidences[i] >= threshold) {
       accepted.push(draftTokens[i]);
+    } else {
+      break;
     }
   }
   return accepted;
 }`,
-    explanation: 'Salvaging ensures accepted draft prefix tokens are kept even if a future token in the batch is rejected.',
+    explanation: 'High-confidence draft tokens can be accepted without target-model verification.',
+  },
+  {
+    id: 'eagle-prefix-break',
+    stepLabel: '17.2',
+    group: 'EAGLE verify step',
+    title: 'Stop at first rejection',
+    concept: 'Verification halts at the first low-confidence token, keeping only the trusted prefix.',
+    objective: 'Break the loop when confidence falls below threshold.',
+    difficulty: 'warmup',
+    starterCode: `function eagleVerifyStep(draftTokens, confidences, threshold) {
+  const accepted = [];
+  for (let i = 0; i < draftTokens.length; i++) {
+    if (confidences[i] >= threshold) {
+      accepted.push(draftTokens[i]);
+    } else {
+      // TODO: stop processing further draft tokens
+    }
+  }
+  return accepted;
+}`,
+    testCode: `const results = [];
+function sameArray(a, b) {
+  return JSON.stringify(a) === JSON.stringify(b);
+}
+function check(name, actual, expected) {
+  results.push({ name, actual: JSON.stringify(actual), expected: JSON.stringify(expected), passed: sameArray(actual, expected) });
+}
+check('prefix stops early', eagleVerifyStep(['a', 'b', 'c'], [0.9, 0.7, 0.95], 0.8), ['a']);
+return results;`,
+    hints: ['else { break; }'],
+    solution: `function eagleVerifyStep(draftTokens, confidences, threshold) {
+  const accepted = [];
+  for (let i = 0; i < draftTokens.length; i++) {
+    if (confidences[i] >= threshold) {
+      accepted.push(draftTokens[i]);
+    } else {
+      break;
+    }
+  }
+  return accepted;
+}`,
+    explanation: 'Prefix salvage prevents rejected tail tokens from invalidating accepted drafts.',
+  },
+  {
+    id: 'eagle-token-salvage',
+    stepLabel: '17.3',
+    group: 'EAGLE verify step',
+    title: 'Salvage accepted draft tokens',
+    concept: 'Accepted tokens form the next sequence prefix for continued speculative decoding.',
+    objective: 'Push draftTokens[i] when confidence passes the threshold.',
+    difficulty: 'core',
+    starterCode: `function eagleVerifyStep(draftTokens, confidences, threshold) {
+  const accepted = [];
+  for (let i = 0; i < draftTokens.length; i++) {
+    if (confidences[i] >= threshold) {
+      // TODO: push draftTokens[i]
+    } else {
+      break;
+    }
+  }
+  return accepted;
+}`,
+    testCode: `const results = [];
+function sameArray(a, b) {
+  return JSON.stringify(a) === JSON.stringify(b);
+}
+function check(name, actual, expected) {
+  results.push({ name, actual: JSON.stringify(actual), expected: JSON.stringify(expected), passed: sameArray(actual, expected) });
+}
+check('salvage mixed', eagleVerifyStep(['a', 'b', 'c'], [0.9, 0.85, 0.7], 0.8), ['a', 'b']);
+return results;`,
+    hints: ['accepted.push(draftTokens[i]);'],
+    solution: `function eagleVerifyStep(draftTokens, confidences, threshold) {
+  const accepted = [];
+  for (let i = 0; i < draftTokens.length; i++) {
+    if (confidences[i] >= threshold) {
+      accepted.push(draftTokens[i]);
+    } else {
+      break;
+    }
+  }
+  return accepted;
+}`,
+    explanation: 'Salvaging keeps useful draft work instead of discarding entire batches.',
+  },
+  {
+    id: 'eagle-empty-draft',
+    stepLabel: '17.4',
+    group: 'EAGLE verify step',
+    title: 'Empty draft edge case',
+    concept: 'Speculative steps must handle empty draft batches without errors.',
+    objective: 'Return [] when draftTokens is empty.',
+    difficulty: 'core',
+    starterCode: `function eagleVerifyStep(draftTokens, confidences, threshold) {
+  // TODO: return [] when draftTokens.length === 0
+  const accepted = [];
+  for (let i = 0; i < draftTokens.length; i++) {
+    if (confidences[i] >= threshold) {
+      accepted.push(draftTokens[i]);
+    } else {
+      break;
+    }
+  }
+  return accepted;
+}`,
+    testCode: `const results = [];
+function sameArray(a, b) {
+  return JSON.stringify(a) === JSON.stringify(b);
+}
+function check(name, actual, expected) {
+  results.push({ name, actual: JSON.stringify(actual), expected: JSON.stringify(expected), passed: sameArray(actual, expected) });
+}
+check('empty draft', eagleVerifyStep([], [], 0.8), []);
+return results;`,
+    hints: ['if (draftTokens.length === 0) return [];'],
+    solution: `function eagleVerifyStep(draftTokens, confidences, threshold) {
+  if (draftTokens.length === 0) return [];
+  const accepted = [];
+  for (let i = 0; i < draftTokens.length; i++) {
+    if (confidences[i] >= threshold) {
+      accepted.push(draftTokens[i]);
+    } else {
+      break;
+    }
+  }
+  return accepted;
+}`,
+    explanation: 'Empty drafts occur at sequence boundaries and should be no-ops.',
   },
 ];

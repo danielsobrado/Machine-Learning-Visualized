@@ -104,12 +104,12 @@ export const LESSON_GROUP_MAPPINGS = {
     groups: ['Standard error and confidence intervals'],
   },
   'hypothesis-testing-intuition': { source: 'exp', groups: ['A/B test z-statistic'] },
-  'probability-distributions': { source: 'prob', groups: ['Bernoulli mean', 'PDF eval'] },
-  'conditional-probability': { source: 'prob', groups: ['P(A|B) formula', 'Chain rule'] },
-  'bayes-rule-ml': { source: 'prob', groups: ['Numerator', 'Posterior normalize'] },
-  'maximum-likelihood-estimation': { source: 'prob', groups: ['Gaussian mean MLE', 'Per-sample log'] },
-  'expected-value-variance': { source: 'prob', groups: ['Weighted sum', 'Variance formula'] },
-  'spearman-correlation': { source: 'prob', groups: ['Rank with ties', 'Pearson on ranks'] },
+  'probability-distributions': { source: 'prob', groups: ['Distribution eval'] },
+  'conditional-probability': { source: 'prob', groups: ['Conditional probability chain'] },
+  'bayes-rule-ml': { source: 'prob', groups: ['Bayes posterior'] },
+  'maximum-likelihood-estimation': { source: 'prob', groups: ['MLE log-likelihood'] },
+  'expected-value-variance': { source: 'prob', groups: ['Moments from PMF'] },
+  'spearman-correlation': { source: 'prob', groups: ['Spearman correlation'] },
 
   // Core ML
   'logistic-regression': { source: 'nn', groups: ['Logistic regression bridge'] },
@@ -120,14 +120,14 @@ export const LESSON_GROUP_MAPPINGS = {
   'overfitting': { source: 'nn', groups: ['Regularization', 'Training loop mechanics'] },
   'bias-variance-tradeoff': { source: 'nn', groups: ['Regularization', 'Training loop mechanics'] },
   'train-validation-test-split': { source: 'core', groups: ['Shuffle', 'Train slice', 'No leakage check'] },
-  'cross-validation': { source: 'core', groups: ['Fold size', 'Train/val masks'] },
-  'data-leakage-deep-dive': { source: 'core', groups: ['Label in features', 'Preprocessing leak'] },
+  'cross-validation': { source: 'core', groups: ['K-fold split'] },
+  'data-leakage-deep-dive': { source: 'core', groups: ['Leak-safe scaling'] },
   'feature-scaling-preprocessing': { source: 'core', groups: ['Mean', 'Transform'] },
   'k-means': { source: 'core', groups: ['Distance to centroid', 'Assignment', 'Mean update'] },
-  'knn-naive-bayes-svm': { source: 'core', groups: ['kNN vote', 'SVM hinge'] },
-  'tree-ensembles': { source: 'core', groups: ['Gini', 'Bagging average'] },
-  'time-series-forecasting-track': { source: 'core', groups: ['Window slice', 'One-step forecast'] },
-  'data-engineering-for-ml-track': { source: 'core', groups: ['Median impute', 'Dedup key'] },
+  'knn-naive-bayes-svm': { source: 'core', groups: ['kNN predict'] },
+  'tree-ensembles': { source: 'core', groups: ['Ensemble predict'] },
+  'time-series-forecasting-track': { source: 'core', groups: ['Forecast smooth'] },
+  'data-engineering-for-ml-track': { source: 'core', groups: ['Pipeline clean'] },
 
   // Neural networks
   'relu': { source: 'nn', groups: ['One neuron', 'Activation gradients'] },
@@ -143,7 +143,7 @@ export const LESSON_GROUP_MAPPINGS = {
   'gradient-problems': { source: 'nn', groups: ['Activation gradients', 'Derivative basics'] },
   'layer-normalization': { source: 'transformer', groups: ['LayerNorm and RMSNorm'] },
   'lstm': { source: 'nn', groups: ['Forget and input gates', 'Candidate cell', 'Cell state update', 'Output gate & hidden output'] },
-  'conv2d': { source: 'nn', groups: ['Output size formula', 'One patch dot product'] },
+  'conv2d': { source: 'nn', groups: ['Conv2D step'] },
   'max-pooling': { source: 'nn', groups: ['Window max'] },
   'conv-relu': { source: 'nn', groups: ['ReLU clip'] },
   'initialization': { source: 'nn', groups: ['He std'] },
@@ -169,12 +169,12 @@ export const LESSON_GROUP_MAPPINGS = {
     ],
   },
   'residual-stream': { source: 'transformer', groups: ['Residual stream mechanics', 'Tiny transformer block'] },
-  'rope': { source: 'transformer', groups: ['Rotate 2D block', 'Apply to head dimension'] },
-  'transformer-architecture-families': { source: 'transformer', groups: ['FFN expansion ratio', 'Parameter estimate'] },
-  'coconut-latent-reasoning': { source: 'transformer', groups: ['Latent residual add', 'Gate blend'] },
-  'grouped-query-attention': { source: 'transformer', groups: ['KV head index', 'Repeat/broadcast rule'] },
+  'rope': { source: 'transformer', groups: ['RoPE pair rotation'] },
+  'transformer-architecture-families': { source: 'transformer', groups: ['Block parameter estimate'] },
+  'coconut-latent-reasoning': { source: 'transformer', groups: ['Latent thought step'] },
+  'grouped-query-attention': { source: 'transformer', groups: ['KV head expansion'] },
   'kv-cache': { source: 'transformer', groups: ['Cache append', 'Sequence slicing', 'Cached cross-attention', 'Autoregressive generation step'] },
-  'flash-attention': { source: 'transformer', groups: ['Row max update', 'Running sum'] },
+  'flash-attention': { source: 'transformer', groups: ['Online softmax block'] },
   'spec-sparse-attention': {
     source: 'transformer',
     groups: [
@@ -204,12 +204,12 @@ export const LESSON_GROUP_MAPPINGS = {
     source: 'transformer',
     groups: ['Softmax gate', 'Top-k pick', 'Load per expert', 'Weighted combine'],
   },
-  'fine-tuning': { source: 'transformer', groups: ['Alpha scaling', 'Effective delta add'] },
+  'fine-tuning': { source: 'transformer', groups: ['LoRA forward step'] },
   'native-sparse-attention': {
     source: 'transformer',
     groups: ['Block grid', 'Top-k blocks', 'Mask scatter', 'Effective attention region'],
   },
-  'recommender-systems-ranking-track': { source: 'eval', groups: ['Dot score', 'Pairwise hinge'] },
+  'recommender-systems-ranking-track': { source: 'eval', groups: ['Ranking training step'] },
   'llm-training-objectives': {
     source: 'lm',
     groups: [
@@ -240,7 +240,7 @@ export const LESSON_GROUP_MAPPINGS = {
       'Temperature and top-k / top-p',
     ],
   },
-  'eagle-3-1-speculative-decoding': { source: 'lm', groups: ['Self-trust threshold', 'Token salvage'] },
+  'eagle-3-1-speculative-decoding': { source: 'lm', groups: ['EAGLE verify step'] },
 
   // NLP
   'bag-of-words': { source: 'rag', groups: ['Bag-of-words vectors'] },
@@ -303,7 +303,7 @@ export const LESSON_GROUP_MAPPINGS = {
 
   // Algorithms
   'bloom-filter': { source: 'algo', groups: ['Hash positions', 'Query all bits'] },
-  'pagerank': { source: 'algo', groups: ['Out-link normalize', 'Damping teleport'] },
+  'pagerank': { source: 'algo', groups: ['PageRank iteration'] },
 
   // Diffusion Models
   'diffusion-basics': {
@@ -315,11 +315,11 @@ export const LESSON_GROUP_MAPPINGS = {
     source: 'diffusion',
     groups: ['Uncond branch', 'Cond branch', 'Scale mix', 'Zero-scale identity'],
   },
-  'unet-vs-dit': { source: 'diffusion', groups: ['skip concat', 'patch tokens'] },
+  'unet-vs-dit': { source: 'diffusion', groups: ['U-Net vs DiT step'] },
   'sd3-overview': { source: 'diffusion', groups: ['VAE downscale'] },
-  'flow-matching': { source: 'diffusion', groups: ['linear interp'] },
+  'flow-matching': { source: 'diffusion', groups: ['Flow matching step'] },
   'diffusion-vae': { source: 'diffusion', groups: ['encode scale'] },
-  'tokenizer-bpe': { source: 'diffusion', groups: ['pair count', 'merge rule'] },
+  'tokenizer-bpe': { source: 'diffusion', groups: ['BPE train step'] },
   'clip-encoder': { source: 'diffusion', groups: ['L2 normalize'] },
   't5-encoder': { source: 'diffusion', groups: ['pad mask'] },
   'joint-attention': { source: 'diffusion', groups: ['Concat Q'] },
@@ -343,26 +343,26 @@ export const LESSON_GROUP_MAPPINGS = {
   'agentic-coding-systems': { source: 'frontier', groups: ['Hunk apply'] },
 
   // Reinforcement learning
-  'rl-foundations': { source: 'rl', groups: ['One-step return', 'Discount chain'] },
-  'mdp-formalism': { source: 'rl', groups: ['Transition sum', 'Gamma discount'] },
-  'value-iteration': { source: 'rl', groups: ['Max over actions', 'Backup once'] },
-  'policy-iteration': { source: 'rl', groups: ['Eval backup', 'Greedy improve'] },
+  'rl-foundations': { source: 'rl', groups: ['Discounted return'] },
+  'mdp-formalism': { source: 'rl', groups: ['Bellman expectation'] },
+  'value-iteration': { source: 'rl', groups: ['Value iteration step'] },
+  'policy-iteration': { source: 'rl', groups: ['Policy iteration step'] },
   'q-learning': { source: 'rl', groups: ['Epsilon-greedy selection', 'Terminal-aware TD target', 'Tabular Q-update', 'Complete agent step'] },
-  'rl-exploration': { source: 'rl', groups: ['Epsilon mix', 'UCB formula'] },
-  'policy-gradients': { source: 'rl', groups: ['Baseline subtract', 'Return multiply'] },
-  'actor-critic': { source: 'rl', groups: ['TD error', 'Actor log grad'] },
-  'reward-shaping': { source: 'rl', groups: ['Potential phi', 'Total step reward'] },
-  'grpo-reasoning': { source: 'rl', groups: ['Group mean', 'Relative reward'] },
-  'dapo-reasoning-rl': { source: 'rl', groups: ['Reward clip', 'Decoupled baseline'] },
-  'markov-chains': { source: 'rl', groups: ['One-step multiply', 'Stationary'] },
+  'rl-exploration': { source: 'rl', groups: ['Exploration step'] },
+  'policy-gradients': { source: 'rl', groups: ['Policy gradient step'] },
+  'actor-critic': { source: 'rl', groups: ['Actor-critic step'] },
+  'reward-shaping': { source: 'rl', groups: ['Shaped reward step'] },
+  'grpo-reasoning': { source: 'rl', groups: ['Relative advantage'] },
+  'dapo-reasoning-rl': { source: 'rl', groups: ['DAPO advantage'] },
+  'markov-chains': { source: 'rl', groups: ['Markov chain step'] },
 
   // Model reliability
   'model-monitoring': { source: 'eval', groups: ['Drift checks'] },
   'model-debugging': { source: 'transformer', groups: ['Transformer debugging checks'] },
-  'model-interpretability': { source: 'eval', groups: ['Marginal contrib', 'Sum to delta'] },
-  'model-fairness': { source: 'eval', groups: ['Group rate', 'Parity gap'] },
-  'uncertainty-estimation': { source: 'eval', groups: ['Predictive entropy', 'Variance across samples'] },
-  'ml-security-robustness-track': { source: 'eval', groups: ['Gradient sign step', 'Perturbation clip'] },
+  'model-interpretability': { source: 'eval', groups: ['Shapley attribution check'] },
+  'model-fairness': { source: 'eval', groups: ['Fairness audit'] },
+  'uncertainty-estimation': { source: 'eval', groups: ['Uncertainty report'] },
+  'ml-security-robustness-track': { source: 'eval', groups: ['Adversarial perturbation'] },
 };
 
 function resolveMapping(mapping) {

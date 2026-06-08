@@ -3262,71 +3262,182 @@ function lstmCell(x, hPrev, cPrev, params) {
     explanation: 'The output gate exposes only the relevant slice of cell memory as the hidden representation passed to the next timestep.',
   },
   {
-    id: 'conv2d-output-size',
+    id: 'conv2d-step-outdim',
     stepLabel: '32.1',
-    group: 'Output size formula',
-    title: 'Conv2D output dimension',
-    concept: 'The output dimension of a 2D convolution is: outputSize = Math.floor((inputSize - kernelSize + 2 * padding) / stride) + 1.',
-    objective: 'Compute the output dimension height/width.',
+    group: 'Conv2D step',
+    title: 'Conv output dimension',
+    concept: 'Conv2D output width/height follows stride-padding-kernel formula.',
+    objective: 'Compute outDim from inputSize, kernelSize, padding, stride.',
     difficulty: 'warmup',
-    starterCode: `function getConv2dOutputDim(inputSize, kernelSize, padding, stride) {
-  // TODO: calculate and return output size
-  return 0;
+    starterCode: `function conv2dStep(inputSize, kernelSize, padding, stride, patch, kernel) {
+  // TODO: compute output dimension
+  const outDim = 0;
+  return outDim;
 }`,
     testCode: `const results = [];
 function check(name, actual, expected) {
   results.push({ name, actual, expected, passed: Object.is(actual, expected) });
 }
-check('conv same size', getConv2dOutputDim(32, 3, 1, 1), 32);
-check('conv downsample', getConv2dOutputDim(32, 4, 0, 2), 15);
+check('out dim', conv2dStep(32, 3, 1, 1, [[1,2],[3,4]], [[1,0],[0,1]]), 32);
 return results;`,
-    hints: [
-      'Apply the formula: Math.floor((inputSize - kernelSize + 2 * padding) / stride) + 1.',
-    ],
-    solution: `function getConv2dOutputDim(inputSize, kernelSize, padding, stride) {
-  return Math.floor((inputSize - kernelSize + 2 * padding) / stride) + 1;
+    hints: ['Math.floor((inputSize - kernelSize + 2 * padding) / stride) + 1'],
+    solution: `function conv2dStep(inputSize, kernelSize, padding, stride, patch, kernel) {
+  const outDim = Math.floor((inputSize - kernelSize + 2 * padding) / stride) + 1;
+  return outDim;
 }`,
-    explanation: 'Correct output dimensions are crucial to allocate the correct tensor shapes during a forward pass.',
+    explanation: 'Shape math is mandatory before allocating convolution outputs.',
   },
   {
-    id: 'conv2d-dot-patch',
+    id: 'conv2d-step-dot',
     stepLabel: '32.2',
-    group: 'One patch dot product',
-    title: 'Conv2D patch dot product',
-    concept: 'At each sliding window step, Conv2D multiplies kernel weights and input image patch coordinates element-wise and sums them.',
-    objective: 'Calculate the sum of element-wise products of a 2x2 image patch and kernel.',
-    difficulty: 'core',
-    starterCode: `function conv2dPatchDot(patch, kernel) {
-  let sum = 0;
+    group: 'Conv2D step',
+    title: 'Patch-kernel dot',
+    concept: 'Each output location is a patch-kernel elementwise dot product.',
+    objective: 'Compute dot sum over 2x2 patch and kernel.',
+    difficulty: 'warmup',
+    starterCode: `function conv2dStep(inputSize, kernelSize, padding, stride, patch, kernel) {
+  let dot = 0;
   for (let r = 0; r < 2; r++) {
     for (let c = 0; c < 2; c++) {
-      // TODO: multiply patch[r][c] by kernel[r][c] and accumulate in sum
-      sum += 0;
+      // TODO: accumulate patch-kernel product
+      dot += 0;
     }
   }
-  return sum;
+  return dot;
 }`,
     testCode: `const results = [];
 function check(name, actual, expected) {
   results.push({ name, actual, expected, passed: Object.is(actual, expected) });
 }
-check('dot patch basic', conv2dPatchDot([[1, 2], [3, 4]], [[0.5, 0], [0, 0.5]]), 2.5); // 1*0.5 + 4*0.5 = 2.5
+check('dot', conv2dStep(0, 0, 0, 0, [[1,2],[3,4]], [[0.5,0],[0,0.5]]), 2.5);
 return results;`,
-    hints: [
-      'Multiply patch[r][c] by kernel[r][c].',
-      'Add it to sum.',
-      'sum += patch[r][c] * kernel[r][c];',
-    ],
-    solution: `function conv2dPatchDot(patch, kernel) {
-  let sum = 0;
+    hints: ['dot += patch[r][c] * kernel[r][c];'],
+    solution: `function conv2dStep(inputSize, kernelSize, padding, stride, patch, kernel) {
+  let dot = 0;
   for (let r = 0; r < 2; r++) {
     for (let c = 0; c < 2; c++) {
-      sum += patch[r][c] * kernel[r][c];
+      dot += patch[r][c] * kernel[r][c];
     }
   }
-  return sum;
+  return dot;
 }`,
-    explanation: '2D sliding window dot products extract translation-invariant spatial features from inputs.',
+    explanation: 'Dot products are the local linear feature extractors in Conv2D.',
+  },
+  {
+    id: 'conv2d-step-return-both',
+    stepLabel: '32.3',
+    group: 'Conv2D step',
+    title: 'Return shape and patch value',
+    concept: 'A minimal conv step can report both output shape and one patch response.',
+    objective: 'Return object { outDim, patchDot }.',
+    difficulty: 'core',
+    starterCode: `function conv2dStep(inputSize, kernelSize, padding, stride, patch, kernel) {
+  const outDim = Math.floor((inputSize - kernelSize + 2 * padding) / stride) + 1;
+  let patchDot = 0;
+  for (let r = 0; r < 2; r++) {
+    for (let c = 0; c < 2; c++) patchDot += patch[r][c] * kernel[r][c];
+  }
+  // TODO: return both values
+  return outDim;
+}`,
+    testCode: `const results = [];
+function same(a, b) { return JSON.stringify(a) === JSON.stringify(b); }
+function check(name, actual, expected) {
+  results.push({ name, actual: JSON.stringify(actual), expected: JSON.stringify(expected), passed: same(actual, expected) });
+}
+check('both', conv2dStep(32, 3, 1, 1, [[1,2],[3,4]], [[0.5,0],[0,0.5]]), { outDim: 32, patchDot: 2.5 });
+return results;`,
+    hints: ['return { outDim, patchDot };'],
+    solution: `function conv2dStep(inputSize, kernelSize, padding, stride, patch, kernel) {
+  const outDim = Math.floor((inputSize - kernelSize + 2 * padding) / stride) + 1;
+  let patchDot = 0;
+  for (let r = 0; r < 2; r++) {
+    for (let c = 0; c < 2; c++) patchDot += patch[r][c] * kernel[r][c];
+  }
+  return { outDim, patchDot };
+}`,
+    explanation: 'Combining shape and local response mirrors one forward micro-step.',
+  },
+  {
+    id: 'conv2d-step-kernel-guard',
+    stepLabel: '32.4',
+    group: 'Conv2D step',
+    title: 'Patch shape guard',
+    concept: 'Guard against malformed patch/kernel inputs before dot computation.',
+    objective: 'Return null when patch or kernel are not 2x2.',
+    difficulty: 'core',
+    starterCode: `function conv2dStep(inputSize, kernelSize, padding, stride, patch, kernel) {
+  // TODO: return null for invalid patch/kernel shape
+  const outDim = Math.floor((inputSize - kernelSize + 2 * padding) / stride) + 1;
+  let patchDot = 0;
+  for (let r = 0; r < 2; r++) {
+    for (let c = 0; c < 2; c++) patchDot += patch[r][c] * kernel[r][c];
+  }
+  return { outDim, patchDot };
+}`,
+    testCode: `const results = [];
+function check(name, actual, expected) {
+  const passed = JSON.stringify(actual) === JSON.stringify(expected);
+  results.push({ name, actual: JSON.stringify(actual), expected: JSON.stringify(expected), passed });
+}
+check('invalid patch', conv2dStep(32, 3, 1, 1, [[1,2]], [[1,0],[0,1]]), null);
+return results;`,
+    hints: ['check lengths for outer and inner arrays equal 2'],
+    solution: `function conv2dStep(inputSize, kernelSize, padding, stride, patch, kernel) {
+  const validPatch = patch.length === 2 && patch[0].length === 2 && patch[1].length === 2;
+  const validKernel = kernel.length === 2 && kernel[0].length === 2 && kernel[1].length === 2;
+  if (!validPatch || !validKernel) return null;
+  const outDim = Math.floor((inputSize - kernelSize + 2 * padding) / stride) + 1;
+  let patchDot = 0;
+  for (let r = 0; r < 2; r++) {
+    for (let c = 0; c < 2; c++) patchDot += patch[r][c] * kernel[r][c];
+  }
+  return { outDim, patchDot };
+}`,
+    explanation: 'Input guards keep demos resilient when learners experiment.',
+  },
+  {
+    id: 'conv2d-step-full',
+    stepLabel: '32.5',
+    group: 'Conv2D step',
+    title: 'Full Conv2D single step',
+    concept: 'Final step returns null for invalid stride and valid object otherwise.',
+    objective: 'Return null when stride <= 0.',
+    difficulty: 'core',
+    starterCode: `function conv2dStep(inputSize, kernelSize, padding, stride, patch, kernel) {
+  // TODO: stride must be positive
+  const validPatch = patch.length === 2 && patch[0].length === 2 && patch[1].length === 2;
+  const validKernel = kernel.length === 2 && kernel[0].length === 2 && kernel[1].length === 2;
+  if (!validPatch || !validKernel) return null;
+  const outDim = Math.floor((inputSize - kernelSize + 2 * padding) / stride) + 1;
+  let patchDot = 0;
+  for (let r = 0; r < 2; r++) {
+    for (let c = 0; c < 2; c++) patchDot += patch[r][c] * kernel[r][c];
+  }
+  return { outDim, patchDot };
+}`,
+    testCode: `const results = [];
+function same(a, b) { return JSON.stringify(a) === JSON.stringify(b); }
+function check(name, actual, expected) {
+  results.push({ name, actual: JSON.stringify(actual), expected: JSON.stringify(expected), passed: same(actual, expected) });
+}
+check('bad stride', conv2dStep(32, 3, 1, 0, [[1,2],[3,4]], [[1,0],[0,1]]), null);
+check('good stride', conv2dStep(32, 3, 1, 1, [[1,2],[3,4]], [[1,0],[0,1]]), { outDim: 32, patchDot: 5 });
+return results;`,
+    hints: ['if (stride <= 0) return null;'],
+    solution: `function conv2dStep(inputSize, kernelSize, padding, stride, patch, kernel) {
+  if (stride <= 0) return null;
+  const validPatch = patch.length === 2 && patch[0].length === 2 && patch[1].length === 2;
+  const validKernel = kernel.length === 2 && kernel[0].length === 2 && kernel[1].length === 2;
+  if (!validPatch || !validKernel) return null;
+  const outDim = Math.floor((inputSize - kernelSize + 2 * padding) / stride) + 1;
+  let patchDot = 0;
+  for (let r = 0; r < 2; r++) {
+    for (let c = 0; c < 2; c++) patchDot += patch[r][c] * kernel[r][c];
+  }
+  return { outDim, patchDot };
+}`,
+    explanation: 'Final helper is a clean micro-model of one Conv2D operation.',
   },
   {
     id: 'max-pooling-2d-top',

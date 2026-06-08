@@ -135,123 +135,250 @@ return results;`,
 
   // --- pagerank ---
   {
-    id: 'pagerank-distribute-mass',
+    id: 'pagerank-share',
     stepLabel: '71.1',
-    group: 'Out-link normalize',
-    title: 'PageRank Mass Distribution',
-    concept: 'PageRank spreads page importance (rank) across outgoing link connections.',
-    objective: 'Add the distributed PageRank mass from source to target pages.',
+    group: 'PageRank iteration',
+    title: 'Out-link share',
+    concept: 'Each page distributes rank equally across outgoing links.',
+    objective: 'Compute share = rank / outDegree for non-dangling pages.',
     difficulty: 'warmup',
-    starterCode: `function distributeRank(sourceRank, outLinks, targetRanks) {
-  if (outLinks.length === 0) return;
-  const share = sourceRank / outLinks.length;
-  for (let i = 0; i < outLinks.length; i++) {
-    const targetIdx = outLinks[i];
-    // TODO: add share to targetRanks[targetIdx]
-    targetRanks[targetIdx] += 0;
+    starterCode: `function pagerankStep(ranks, adjList, d) {
+  const n = ranks.length;
+  const next = Array(n).fill(0);
+  for (let j = 0; j < n; j++) {
+    const out = adjList[j];
+    if (out.length === 0) continue;
+    // TODO: share and distribute
   }
+  return next;
 }`,
     testCode: `const results = [];
-function sameArr(a, b, tol=1e-5) { return a.every((v, i) => Math.abs(v - b[i]) <= tol); }
 function check(name, actual, expected) {
-  results.push({ name, actual: JSON.stringify(actual), expected: JSON.stringify(expected), passed: sameArr(actual, expected) });
+  results.push({ name, actual, expected, passed: Object.is(actual, expected) });
 }
-const targets = [0, 0, 0];
-distributeRank(1.2, [0, 2], targets);
-check('mass distributed', targets, [0.6, 0.0, 0.6]);
+const out = pagerankStep([0.6, 0.4], [[1], [0,1]], 0.85);
+check('share effect', out[1] > out[0], true);
 return results;`,
-    hints: [
-      'Add share to targetRanks[targetIdx].',
-      'targetRanks[targetIdx] += share;',
-    ],
-    solution: `function distributeRank(sourceRank, outLinks, targetRanks) {
-  if (outLinks.length === 0) return;
-  const share = sourceRank / outLinks.length;
-  for (let i = 0; i < outLinks.length; i++) {
-    const targetIdx = outLinks[i];
-    targetRanks[targetIdx] += share;
+    hints: ['const share = ranks[j] / out.length;'],
+    solution: `function pagerankStep(ranks, adjList, d) {
+  const n = ranks.length;
+  const next = Array(n).fill(0);
+  for (let j = 0; j < n; j++) {
+    const out = adjList[j];
+    if (out.length === 0) continue;
+    const share = ranks[j] / out.length;
+    for (let i = 0; i < out.length; i++) next[out[i]] += share;
   }
+  return next;
 }`,
-    explanation: 'PageRank mass is divided equally among a page\'s outward pointing links, representing a random web surfer\'s choices.',
+    explanation: 'Rank mass conservation is the base PageRank mechanism.',
   },
   {
-    id: 'pagerank-power-iteration',
+    id: 'pagerank-dangling',
     stepLabel: '71.2',
-    group: 'Damping teleport',
-    title: 'PageRank Power Iteration Step',
-    concept: 'PageRank updates combine link mass with a damping teleport factor: PR(i) = (1-d)/N + d * sum_j (PR(j)/L(j)).',
-    objective: 'Compute the PageRank scores after one step of power iteration.',
-    difficulty: 'core',
-    starterCode: `function pagerankStep(ranks, adjList, d = 0.85) {
+    group: 'PageRank iteration',
+    title: 'Dangling node redistribution',
+    concept: 'Pages with no links spread mass uniformly to all pages.',
+    objective: 'Handle out.length===0 by adding ranks[j]/n to all nodes.',
+    difficulty: 'warmup',
+    starterCode: `function pagerankStep(ranks, adjList, d) {
   const n = ranks.length;
-  const nextRanks = Array(n).fill(0);
-  
-  // Distribute rank mass from links
+  const next = Array(n).fill(0);
   for (let j = 0; j < n; j++) {
-    const outLinks = adjList[j];
-    if (outLinks.length === 0) {
-      // Dangling page: distribute equally to all pages
-      for (let i = 0; i < n; i++) {
-        nextRanks[i] += ranks[j] / n;
-      }
+    const out = adjList[j];
+    if (out.length === 0) {
+      // TODO: distribute dangling mass equally
     } else {
-      const share = ranks[j] / outLinks.length;
-      for (let i = 0; i < outLinks.length; i++) {
-        nextRanks[outLinks[i]] += share;
-      }
+      const share = ranks[j] / out.length;
+      for (let i = 0; i < out.length; i++) next[out[i]] += share;
     }
   }
-  
-  // Apply damping factor
-  const teleport = (1 - d) / n;
-  for (let i = 0; i < n; i++) {
-    // TODO: scale nextRanks[i] by d, and add teleport
-    nextRanks[i] = 0;
-  }
-  
-  return nextRanks;
+  return next;
 }`,
     testCode: `const results = [];
-function sameArr(a, b, tol=1e-5) { return a.every((v, i) => Math.abs(v - b[i]) <= tol); }
+function approxEqual(a, b, tol = 1e-9) { return Math.abs(a - b) <= tol; }
 function check(name, actual, expected) {
-  results.push({ name, actual: JSON.stringify(actual), expected: JSON.stringify(expected), passed: sameArr(actual, expected) });
+  results.push({ name, actual, expected, passed: approxEqual(actual, expected) });
 }
-const adj = [
-  [1],
-  [0, 1],
-];
-const initRanks = [0.5, 0.5];
-check('pagerank iteration step', pagerankStep(initRanks, adj, 0.85), [0.2875, 0.7125]);
+const out = pagerankStep([1, 0], [[], [0]], 0.85);
+check('dangling gives half', out[0], 0.5);
+check('dangling gives half2', out[1], 0.5);
 return results;`,
-    hints: [
-      'Scale the accumulated link mass by d, then add teleport.',
-      'nextRanks[i] = d * nextRanks[i] + teleport;',
-    ],
-    solution: `function pagerankStep(ranks, adjList, d = 0.85) {
+    hints: ['for (let i = 0; i < n; i++) next[i] += ranks[j] / n;'],
+    solution: `function pagerankStep(ranks, adjList, d) {
   const n = ranks.length;
-  const nextRanks = Array(n).fill(0);
-  
+  const next = Array(n).fill(0);
   for (let j = 0; j < n; j++) {
-    const outLinks = adjList[j];
-    if (outLinks.length === 0) {
-      for (let i = 0; i < n; i++) {
-        nextRanks[i] += ranks[j] / n;
-      }
+    const out = adjList[j];
+    if (out.length === 0) {
+      for (let i = 0; i < n; i++) next[i] += ranks[j] / n;
     } else {
-      const share = ranks[j] / outLinks.length;
-      for (let i = 0; i < outLinks.length; i++) {
-        nextRanks[outLinks[i]] += share;
-      }
+      const share = ranks[j] / out.length;
+      for (let i = 0; i < out.length; i++) next[out[i]] += share;
     }
   }
-  
-  const teleport = (1 - d) / n;
-  for (let i = 0; i < n; i++) {
-    nextRanks[i] = d * nextRanks[i] + teleport;
-  }
-  
-  return nextRanks;
+  return next;
 }`,
-    explanation: 'Teleportation represents a surfer typing a random URL, ensuring convergence stability in disconnected web graphs.',
+    explanation: 'Dangling handling prevents rank sink collapse.',
+  },
+  {
+    id: 'pagerank-teleport',
+    stepLabel: '71.3',
+    group: 'PageRank iteration',
+    title: 'Apply damping and teleport',
+    concept: 'Damping blends random jump with link-following probability.',
+    objective: 'Transform next[i] to d*next[i] + (1-d)/n.',
+    difficulty: 'core',
+    starterCode: `function pagerankStep(ranks, adjList, d) {
+  const n = ranks.length;
+  const next = Array(n).fill(0);
+  for (let j = 0; j < n; j++) {
+    const out = adjList[j];
+    if (out.length === 0) {
+      for (let i = 0; i < n; i++) next[i] += ranks[j] / n;
+    } else {
+      const share = ranks[j] / out.length;
+      for (let i = 0; i < out.length; i++) next[out[i]] += share;
+    }
   }
+  const teleport = (1 - d) / n;
+  // TODO: apply damping
+  return next;
+}`,
+    testCode: `const results = [];
+function same(a, b, tol = 1e-5) { return a.length === b.length && a.every((v, i) => Math.abs(v - b[i]) <= tol); }
+function check(name, actual, expected) {
+  results.push({ name, actual: JSON.stringify(actual), expected: JSON.stringify(expected), passed: same(actual, expected) });
+}
+check('pagerank example', pagerankStep([0.5, 0.5], [[1], [0,1]], 0.85), [0.2875, 0.7125]);
+return results;`,
+    hints: ['for (let i = 0; i < n; i++) next[i] = d * next[i] + teleport;'],
+    solution: `function pagerankStep(ranks, adjList, d) {
+  const n = ranks.length;
+  const next = Array(n).fill(0);
+  for (let j = 0; j < n; j++) {
+    const out = adjList[j];
+    if (out.length === 0) {
+      for (let i = 0; i < n; i++) next[i] += ranks[j] / n;
+    } else {
+      const share = ranks[j] / out.length;
+      for (let i = 0; i < out.length; i++) next[out[i]] += share;
+    }
+  }
+  const teleport = (1 - d) / n;
+  for (let i = 0; i < n; i++) next[i] = d * next[i] + teleport;
+  return next;
+}`,
+    explanation: 'Teleportation guarantees ergodicity and convergence.',
+  },
+  {
+    id: 'pagerank-normalize',
+    stepLabel: '71.4',
+    group: 'PageRank iteration',
+    title: 'Normalize numeric drift',
+    concept: 'Finite precision can make rank sum deviate from 1.',
+    objective: 'Normalize next by total sum.',
+    difficulty: 'core',
+    starterCode: `function pagerankStep(ranks, adjList, d) {
+  const n = ranks.length;
+  const next = Array(n).fill(0);
+  for (let j = 0; j < n; j++) {
+    const out = adjList[j];
+    if (out.length === 0) {
+      for (let i = 0; i < n; i++) next[i] += ranks[j] / n;
+    } else {
+      const share = ranks[j] / out.length;
+      for (let i = 0; i < out.length; i++) next[out[i]] += share;
+    }
+  }
+  const teleport = (1 - d) / n;
+  for (let i = 0; i < n; i++) next[i] = d * next[i] + teleport;
+  // TODO: normalize next
+  return next;
+}`,
+    testCode: `const results = [];
+function approxEqual(a, b, tol = 1e-9) { return Math.abs(a - b) <= tol; }
+function check(name, actual, expected) {
+  results.push({ name, actual, expected, passed: approxEqual(actual, expected) });
+}
+const out = pagerankStep([0.5, 0.5], [[1], [0,1]], 0.85);
+check('sum one', out[0] + out[1], 1);
+return results;`,
+    hints: ['const total = next.reduce((s, v) => s + v, 0); if (total > 0) divide each'],
+    solution: `function pagerankStep(ranks, adjList, d) {
+  const n = ranks.length;
+  const next = Array(n).fill(0);
+  for (let j = 0; j < n; j++) {
+    const out = adjList[j];
+    if (out.length === 0) {
+      for (let i = 0; i < n; i++) next[i] += ranks[j] / n;
+    } else {
+      const share = ranks[j] / out.length;
+      for (let i = 0; i < out.length; i++) next[out[i]] += share;
+    }
+  }
+  const teleport = (1 - d) / n;
+  for (let i = 0; i < n; i++) next[i] = d * next[i] + teleport;
+  const total = next.reduce((s, v) => s + v, 0);
+  if (total > 0) for (let i = 0; i < n; i++) next[i] /= total;
+  return next;
+}`,
+    explanation: 'Normalization maintains probabilistic interpretation each iteration.',
+  },
+  {
+    id: 'pagerank-iteration-step',
+    stepLabel: '71.5',
+    group: 'PageRank iteration',
+    title: 'Complete PageRank iteration',
+    concept: 'Final step combines distribution, damping, and normalization robustly.',
+    objective: 'Return null when d is outside [0,1].',
+    difficulty: 'core',
+    starterCode: `function pagerankStep(ranks, adjList, d) {
+  // TODO: validate damping range
+  const n = ranks.length;
+  const next = Array(n).fill(0);
+  for (let j = 0; j < n; j++) {
+    const out = adjList[j];
+    if (out.length === 0) {
+      for (let i = 0; i < n; i++) next[i] += ranks[j] / n;
+    } else {
+      const share = ranks[j] / out.length;
+      for (let i = 0; i < out.length; i++) next[out[i]] += share;
+    }
+  }
+  const teleport = (1 - d) / n;
+  for (let i = 0; i < n; i++) next[i] = d * next[i] + teleport;
+  const total = next.reduce((s, v) => s + v, 0);
+  if (total > 0) for (let i = 0; i < n; i++) next[i] /= total;
+  return next;
+}`,
+    testCode: `const results = [];
+function check(name, actual, expected) {
+  const passed = JSON.stringify(actual) === JSON.stringify(expected);
+  results.push({ name, actual: JSON.stringify(actual), expected: JSON.stringify(expected), passed });
+}
+check('invalid d', pagerankStep([0.5, 0.5], [[1], [0,1]], 1.2), null);
+return results;`,
+    hints: ['if (d < 0 || d > 1) return null;'],
+    solution: `function pagerankStep(ranks, adjList, d) {
+  if (d < 0 || d > 1) return null;
+  const n = ranks.length;
+  const next = Array(n).fill(0);
+  for (let j = 0; j < n; j++) {
+    const out = adjList[j];
+    if (out.length === 0) {
+      for (let i = 0; i < n; i++) next[i] += ranks[j] / n;
+    } else {
+      const share = ranks[j] / out.length;
+      for (let i = 0; i < out.length; i++) next[out[i]] += share;
+    }
+  }
+  const teleport = (1 - d) / n;
+  for (let i = 0; i < n; i++) next[i] = d * next[i] + teleport;
+  const total = next.reduce((s, v) => s + v, 0);
+  if (total > 0) for (let i = 0; i < n; i++) next[i] /= total;
+  return next;
+}`,
+    explanation: 'Validation plus complete update gives a production-safe iteration primitive.',
+  },
 ];

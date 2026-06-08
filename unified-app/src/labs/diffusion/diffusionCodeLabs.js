@@ -993,290 +993,353 @@ return results;`,
 
   // --- unet-vs-dit ---
   {
-    id: 'unet-skip-shape-calc',
+    id: 'arch-token-concat-shape',
     stepLabel: '75.1',
-    group: 'skip concat',
-    title: 'U-Net Skip Connection Channels',
-    concept: 'U-Net decoders concatenate encoder feature maps along the channel dimension via skip connections.',
-    objective: 'Compute output shapes [H, W, Channels] after concatenating decoder activations and skip activations.',
+    group: 'U-Net vs DiT step',
+    title: 'U-Net skip concat shape',
+    concept: 'U-Net concatenates decoder and skip features on channel axis.',
+    objective: 'Compute concat shape when spatial dims match.',
     difficulty: 'warmup',
-    starterCode: `function concatSkipShape(decShape, skipShape) {
-  // Shapes are [H, W, C]
-  // TODO: return combined shape. Assert H and W match, and channels sum.
-  // Return null if height or width do not match.
+    starterCode: `function archTokenStep(decShape, skipShape, image2D, patchSize) {
+  // TODO: return null if H/W mismatch, else [H, W, Cdec + Cskip]
   return null;
 }`,
     testCode: `const results = [];
 function check(name, actual, expected) {
-  results.push({ name, actual: JSON.stringify(actual), expected: JSON.stringify(expected), passed: JSON.stringify(actual) === JSON.stringify(expected) });
+  const passed = JSON.stringify(actual) === JSON.stringify(expected);
+  results.push({ name, actual: JSON.stringify(actual), expected: JSON.stringify(expected), passed });
 }
-check('matching shapes concat', concatSkipShape([32, 32, 128], [32, 32, 128]), [32, 32, 256]);
-check('mismatch height shape', concatSkipShape([32, 32, 128], [16, 32, 128]), null);
+const img = [[1,2,9,10],[3,4,11,12],[5,6,13,14],[7,8,15,16]];
+check('concat', archTokenStep([32,32,128], [32,32,128], img, 2), [32,32,256]);
 return results;`,
-    hints: [
-      'Compare decShape[0] with skipShape[0] and decShape[1] with skipShape[1].',
-      'If not equal, return null.',
-      'Otherwise return [decShape[0], decShape[1], decShape[2] + skipShape[2]].',
-    ],
-    solution: `function concatSkipShape(decShape, skipShape) {
-  if (decShape[0] !== skipShape[0] || decShape[1] !== skipShape[1]) {
-    return null;
-  }
+    hints: ['if dims mismatch return null'],
+    solution: `function archTokenStep(decShape, skipShape, image2D, patchSize) {
+  if (decShape[0] !== skipShape[0] || decShape[1] !== skipShape[1]) return null;
   return [decShape[0], decShape[1], decShape[2] + skipShape[2]];
 }`,
-    explanation: 'Skip connections preserve fine spatial coordinates, countering downsampling information loss.',
+    explanation: 'Skip concat preserves encoder detail in decoder path.',
   },
   {
-    id: 'dit-patchify-image',
+    id: 'arch-token-patch-grid',
     stepLabel: '75.2',
-    group: 'patch tokens',
-    title: 'DiT Patchify Flattening',
-    concept: 'Diffusion Transformers (DiT) process visual inputs by dividing images into a sequence of flat patch tokens.',
-    objective: 'Convert a 2x2 image grid of 2x2 pixel patches into 4 flattened patch tokens (length 4 each).',
-    difficulty: 'core',
-    starterCode: `function patchifyImage(image2D, patchSize) {
-  // image2D is 4x4 array of pixel values
-  // patchSize is 2. The output tokens array should have length 4.
-  const tokens = [];
-  
-  // TODO: extract four 2x2 patches, flatten each to a length 4 array, and push to tokens.
-  // Grid order: top-left, top-right, bottom-left, bottom-right.
-  
-  return tokens;
+    group: 'U-Net vs DiT step',
+    title: 'Patch grid loop',
+    concept: 'DiT tokenizes image by iterating patch-grid origins.',
+    objective: 'Collect patch origins [r,c] for patch extraction.',
+    difficulty: 'warmup',
+    starterCode: `function archTokenStep(decShape, skipShape, image2D, patchSize) {
+  const origins = [];
+  // TODO: push [r,c] for each patch start using patchSize stride
+  return origins;
 }`,
     testCode: `const results = [];
-function sameArr(a, b) { return JSON.stringify(a) === JSON.stringify(b); }
+function same(a, b) { return JSON.stringify(a) === JSON.stringify(b); }
 function check(name, actual, expected) {
-  results.push({ name, actual: JSON.stringify(actual), expected: JSON.stringify(expected), passed: sameArr(actual, expected) });
+  results.push({ name, actual: JSON.stringify(actual), expected: JSON.stringify(expected), passed: same(actual, expected) });
 }
-const img = [
-  [1, 2,  9, 10],
-  [3, 4, 11, 12],
-  [5, 6, 13, 14],
-  [7, 8, 15, 16]
-];
-check('extract patches', patchifyImage(img, 2), [
-  [1, 2, 3, 4],
-  [9, 10, 11, 12],
-  [5, 6, 7, 8],
-  [13, 14, 15, 16]
-]);
+const img = [[1,2,9,10],[3,4,11,12],[5,6,13,14],[7,8,15,16]];
+check('origins', archTokenStep([1,1,1], [1,1,1], img, 2), [[0,0],[0,2],[2,0],[2,2]]);
 return results;`,
-    hints: [
-      'Top-left patch: row 0-1, col 0-1.',
-      'Top-right patch: row 0-1, col 2-3.',
-      'Bottom-left patch: row 2-3, col 0-1.',
-      'Bottom-right patch: row 2-3, col 2-3.',
-      'Store each group in a 4-element array and push to tokens.',
-    ],
-    solution: `function patchifyImage(image2D, patchSize) {
+    hints: ['nested loops: for r+=patchSize, for c+=patchSize'],
+    solution: `function archTokenStep(decShape, skipShape, image2D, patchSize) {
+  const origins = [];
+  for (let r = 0; r < image2D.length; r += patchSize) {
+    for (let c = 0; c < image2D[0].length; c += patchSize) origins.push([r, c]);
+  }
+  return origins;
+}`,
+    explanation: 'Origin grid defines tokenization traversal order.',
+  },
+  {
+    id: 'arch-token-patchify',
+    stepLabel: '75.3',
+    group: 'U-Net vs DiT step',
+    title: 'Patchify to tokens',
+    concept: 'Each patch becomes a flattened token vector.',
+    objective: 'Extract and flatten all patches in grid order.',
+    difficulty: 'core',
+    starterCode: `function archTokenStep(decShape, skipShape, image2D, patchSize) {
   const tokens = [];
-  const coords = [
-    [0, 0], // top-left
-    [0, 2], // top-right
-    [2, 0], // bottom-left
-    [2, 2]  // bottom-right
-  ];
-  for (let p = 0; p < coords.length; p++) {
-    const rStart = coords[p][0];
-    const cStart = coords[p][1];
-    const patch = [];
-    for (let r = 0; r < patchSize; r++) {
-      for (let c = 0; c < patchSize; c++) {
-        patch.push(image2D[rStart + r][cStart + c]);
-      }
+  for (let r = 0; r < image2D.length; r += patchSize) {
+    for (let c = 0; c < image2D[0].length; c += patchSize) {
+      const patch = [];
+      // TODO: flatten patchSize x patchSize patch
+      tokens.push(patch);
     }
-    tokens.push(patch);
   }
   return tokens;
 }`,
-    explanation: 'Patchifying translates spatial grids into coordinate-grouped tokens compatible with sequence transformer heads.',
-  },
-
-  // --- sd3-overview ---
-  {
-    id: 'sd3-latent-dims-w',
-    stepLabel: '76.1',
-    group: 'VAE downscale',
-    title: 'SD3 Latent Width Calculation',
-    concept: 'Stable Diffusion 3 downsamples images by a factor of 8 during VAE encoding. First, we compute the latent width.',
-    objective: 'Divide the pixel width by the spatial compression factor (8).',
-    difficulty: 'warmup',
-    starterCode: `function getSd3LatentShape(width, height) {
-  // TODO: calculate the latent width
-  const wLat = 0;
-  
-  return [wLat, 0];
-}`,
     testCode: `const results = [];
+function same(a, b) { return JSON.stringify(a) === JSON.stringify(b); }
 function check(name, actual, expected) {
-  results.push({ name, actual: JSON.stringify(actual), expected: JSON.stringify(expected), passed: JSON.stringify(actual) === JSON.stringify(expected) });
+  results.push({ name, actual: JSON.stringify(actual), expected: JSON.stringify(expected), passed: same(actual, expected) });
 }
-check('512 width', getSd3LatentShape(512, 512), [64, 0]);
+const img = [[1,2,9,10],[3,4,11,12],[5,6,13,14],[7,8,15,16]];
+check('tokens', archTokenStep([1,1,1], [1,1,1], img, 2), [[1,2,3,4],[9,10,11,12],[5,6,7,8],[13,14,15,16]]);
 return results;`,
-    hints: [
-      'Divide width by 8.',
-    ],
-    solution: `function getSd3LatentShape(width, height) {
-  const wLat = width / 8;
-  return [wLat, 0];
+    hints: ['inner loops over dr/dc push image2D[r+dr][c+dc]'],
+    solution: `function archTokenStep(decShape, skipShape, image2D, patchSize) {
+  const tokens = [];
+  for (let r = 0; r < image2D.length; r += patchSize) {
+    for (let c = 0; c < image2D[0].length; c += patchSize) {
+      const patch = [];
+      for (let dr = 0; dr < patchSize; dr++) {
+        for (let dc = 0; dc < patchSize; dc++) patch.push(image2D[r + dr][c + dc]);
+      }
+      tokens.push(patch);
+    }
+  }
+  return tokens;
 }`,
-    explanation: 'The latent dimension is significantly smaller, making it easier for the network to process spatial features.',
+    explanation: 'Patchify is the key modality bridge from image grids to transformer tokens.',
   },
   {
-    id: 'sd3-latent-dims-h',
-    stepLabel: '76.2',
-    group: 'VAE downscale',
-    title: 'SD3 Latent Height Calculation',
-    concept: 'Next, we compute the latent height using the same downscale factor of 8.',
-    objective: 'Divide the pixel height by 8.',
-    difficulty: 'warmup',
-    starterCode: `function getSd3LatentShape(width, height) {
-  const wLat = width / 8;
-  
-  // TODO: calculate the latent height
-  const hLat = 0;
-  
-  return [wLat, hLat];
-}`,
-    testCode: `const results = [];
-function check(name, actual, expected) {
-  results.push({ name, actual: JSON.stringify(actual), expected: JSON.stringify(expected), passed: JSON.stringify(actual) === JSON.stringify(expected) });
-}
-check('512x512 resolution', getSd3LatentShape(512, 512), [64, 64]);
-return results;`,
-    hints: [
-      'Divide height by 8.',
-    ],
-    solution: `function getSd3LatentShape(width, height) {
-  const wLat = width / 8;
-  const hLat = height / 8;
-  
-  return [wLat, hLat];
-}`,
-    explanation: 'Both width and height are compressed independently by the VAE.',
-  },
-  {
-    id: 'sd3-latent-dims-array',
-    stepLabel: '76.3',
-    group: 'VAE downscale',
-    title: 'Array Construction',
-    concept: 'We store the resulting downscaled dimensions in a shape array.',
-    objective: 'Construct the array holding the width and height.',
-    difficulty: 'warmup',
-    starterCode: `function getSd3LatentShape(width, height) {
-  const wLat = width / 8;
-  const hLat = height / 8;
-  
-  // TODO: Create an array with the two dimensions
-  const shape = [];
-  
-  return shape;
-}`,
-    testCode: `const results = [];
-function check(name, actual, expected) {
-  results.push({ name, actual: JSON.stringify(actual), expected: JSON.stringify(expected), passed: JSON.stringify(actual) === JSON.stringify(expected) });
-}
-check('512x512 resolution', getSd3LatentShape(512, 512), [64, 64]);
-return results;`,
-    hints: [
-      'Use [wLat, hLat].',
-    ],
-    solution: `function getSd3LatentShape(width, height) {
-  const wLat = width / 8;
-  const hLat = height / 8;
-  
-  const shape = [wLat, hLat];
-  
-  return shape;
-}`,
-    explanation: 'The shape array represents the spatial footprint of the latent representation.',
-  },
-  {
-    id: 'sd3-latent-dims',
-    stepLabel: '76.4',
-    group: 'VAE downscale',
-    title: 'SD3 Latent Shape Calculation',
-    concept: 'Stable Diffusion 3 downsamples images by a factor of 8 during VAE encoding: H_lat = H / 8, W_lat = W / 8.',
-    objective: 'Optimize the function to return the downscaled dimensions directly.',
+    id: 'arch-token-compare',
+    stepLabel: '75.4',
+    group: 'U-Net vs DiT step',
+    title: 'Return both architecture artifacts',
+    concept: 'Comparison step returns U-Net concat shape and DiT tokens together.',
+    objective: 'Return object { concatShape, tokens }.',
     difficulty: 'core',
-    starterCode: `function getSd3LatentShape(width, height) {
-  // TODO: divide width and height by 8, return [wLat, hLat] in one line
-  return [0, 0];
+    starterCode: `function archTokenStep(decShape, skipShape, image2D, patchSize) {
+  const concatShape = (decShape[0] === skipShape[0] && decShape[1] === skipShape[1])
+    ? [decShape[0], decShape[1], decShape[2] + skipShape[2]]
+    : null;
+  const tokens = [];
+  for (let r = 0; r < image2D.length; r += patchSize) {
+    for (let c = 0; c < image2D[0].length; c += patchSize) {
+      const patch = [];
+      for (let dr = 0; dr < patchSize; dr++) {
+        for (let dc = 0; dc < patchSize; dc++) patch.push(image2D[r + dr][c + dc]);
+      }
+      tokens.push(patch);
+    }
+  }
+  // TODO: return both outputs
+  return tokens;
+}`,
+    testCode: `const results = [];
+function same(a, b) { return JSON.stringify(a) === JSON.stringify(b); }
+function check(name, actual, expected) {
+  results.push({ name, actual: JSON.stringify(actual), expected: JSON.stringify(expected), passed: same(actual, expected) });
+}
+const img = [[1,2,9,10],[3,4,11,12],[5,6,13,14],[7,8,15,16]];
+check('both outputs', archTokenStep([32,32,128], [32,32,128], img, 2), { concatShape: [32,32,256], tokens: [[1,2,3,4],[9,10,11,12],[5,6,7,8],[13,14,15,16]] });
+return results;`,
+    hints: ['return { concatShape, tokens };'],
+    solution: `function archTokenStep(decShape, skipShape, image2D, patchSize) {
+  const concatShape = (decShape[0] === skipShape[0] && decShape[1] === skipShape[1])
+    ? [decShape[0], decShape[1], decShape[2] + skipShape[2]]
+    : null;
+  const tokens = [];
+  for (let r = 0; r < image2D.length; r += patchSize) {
+    for (let c = 0; c < image2D[0].length; c += patchSize) {
+      const patch = [];
+      for (let dr = 0; dr < patchSize; dr++) {
+        for (let dc = 0; dc < patchSize; dc++) patch.push(image2D[r + dr][c + dc]);
+      }
+      tokens.push(patch);
+    }
+  }
+  return { concatShape, tokens };
+}`,
+    explanation: 'This compactly contrasts CNN-style and transformer-style feature representations.',
+  },
+  {
+    id: 'arch-token-safe',
+    stepLabel: '75.5',
+    group: 'U-Net vs DiT step',
+    title: 'Patch size safety guard',
+    concept: 'Patchify requires positive patch size dividing image dimensions.',
+    objective: 'Return null when patchSize <= 0 or non-divisible dimensions.',
+    difficulty: 'core',
+    starterCode: `function archTokenStep(decShape, skipShape, image2D, patchSize) {
+  // TODO: validate patchSize and divisibility
+  const concatShape = (decShape[0] === skipShape[0] && decShape[1] === skipShape[1])
+    ? [decShape[0], decShape[1], decShape[2] + skipShape[2]]
+    : null;
+  const tokens = [];
+  for (let r = 0; r < image2D.length; r += patchSize) {
+    for (let c = 0; c < image2D[0].length; c += patchSize) {
+      const patch = [];
+      for (let dr = 0; dr < patchSize; dr++) {
+        for (let dc = 0; dc < patchSize; dc++) patch.push(image2D[r + dr][c + dc]);
+      }
+      tokens.push(patch);
+    }
+  }
+  return { concatShape, tokens };
 }`,
     testCode: `const results = [];
 function check(name, actual, expected) {
-  results.push({ name, actual: JSON.stringify(actual), expected: JSON.stringify(expected), passed: JSON.stringify(actual) === JSON.stringify(expected) });
+  const passed = JSON.stringify(actual) === JSON.stringify(expected);
+  results.push({ name, actual: JSON.stringify(actual), expected: JSON.stringify(expected), passed });
 }
-check('512x512 resolution', getSd3LatentShape(512, 512), [64, 64]);
-check('1024x768 resolution', getSd3LatentShape(1024, 768), [128, 96]);
+const img = [[1,2,9,10],[3,4,11,12],[5,6,13,14],[7,8,15,16]];
+check('invalid patch size', archTokenStep([1,1,1], [1,1,1], img, 3), null);
 return results;`,
-    hints: [
-      'Divide width and height by 8.',
-    ],
-    solution: `function getSd3LatentShape(width, height) {
-  return [width / 8, height / 8];
+    hints: ['if (patchSize <= 0 || image2D.length % patchSize !== 0 || image2D[0].length % patchSize !== 0) return null;'],
+    solution: `function archTokenStep(decShape, skipShape, image2D, patchSize) {
+  if (patchSize <= 0 || image2D.length % patchSize !== 0 || image2D[0].length % patchSize !== 0) return null;
+  const concatShape = (decShape[0] === skipShape[0] && decShape[1] === skipShape[1])
+    ? [decShape[0], decShape[1], decShape[2] + skipShape[2]]
+    : null;
+  const tokens = [];
+  for (let r = 0; r < image2D.length; r += patchSize) {
+    for (let c = 0; c < image2D[0].length; c += patchSize) {
+      const patch = [];
+      for (let dr = 0; dr < patchSize; dr++) {
+        for (let dc = 0; dc < patchSize; dc++) patch.push(image2D[r + dr][c + dc]);
+      }
+      tokens.push(patch);
+    }
+  }
+  return { concatShape, tokens };
 }`,
-    explanation: 'Latent-space representation minimizes visual redundancies, reducing computation budgets significantly.',
+    explanation: 'Validation protects tokenization from malformed patch geometry.',
   },
-
   // --- flow-matching ---
   {
-    id: 'flow-linear-interp',
+    id: 'flow-step-interp',
     stepLabel: '77.1',
-    group: 'linear interp',
-    title: 'Flow Path Interpolation',
-    concept: 'Flow matching defines a velocity vector field along linear paths: x_t = (1 - t) * x0 + t * x1.',
-    objective: 'Interpolate coordinate x_t at time t (between 0 and 1) between data x0 and noise x1.',
+    group: 'Flow matching step',
+    title: 'Linear interpolation position',
+    concept: 'Flow matching starts from interpolation x_t = (1-t)x0 + tx1.',
+    objective: 'Compute interpolated position from x0, x1, and t.',
     difficulty: 'warmup',
-    starterCode: `function getFlowInterpolation(x0, x1, t) {
-  // TODO: compute and return (1 - t) * x0 + t * x1
-  return 0;
+    starterCode: `function flowSampleStep(x0, x1, t, xt, velocity, dt) {
+  // TODO: compute interp
+  const interp = 0;
+  return interp;
 }`,
     testCode: `const results = [];
 function check(name, actual, expected) {
   results.push({ name, actual, expected, passed: Object.is(actual, expected) });
 }
-check('midpoint t=0.5', getFlowInterpolation(2.0, 10.0, 0.5), 6.0);
-check('start point t=0.0', getFlowInterpolation(2.0, 10.0, 0.0), 2.0);
-check('end point t=1.0', getFlowInterpolation(2.0, 10.0, 1.0), 10.0);
+check('interp', flowSampleStep(2, 10, 0.5, 0, 0, 0.1), 6);
 return results;`,
-    hints: [
-      'Multiply x0 by (1 - t), multiply x1 by t, and add the terms.',
-    ],
-    solution: `function getFlowInterpolation(x0, x1, t) {
-  return (1 - t) * x0 + t * x1;
+    hints: ['const interp = (1 - t) * x0 + t * x1;'],
+    solution: `function flowSampleStep(x0, x1, t, xt, velocity, dt) {
+  const interp = (1 - t) * x0 + t * x1;
+  return interp;
 }`,
-    explanation: 'Linear interpolation forms the straight-line trajectory matched by flow velocity predictors.',
+    explanation: 'Interpolation defines the target path used during flow training.',
   },
   {
-    id: 'flow-euler-integration',
+    id: 'flow-step-velocity',
     stepLabel: '77.2',
-    group: 'linear interp',
-    title: 'Euler Integration Step',
-    concept: 'Flow matching samples are generated by integrating predicted velocities using Euler steps: x_next = x_t + dt * velocity.',
-    objective: 'Compute the next position coordinate using Euler integration.',
-    difficulty: 'core',
-    starterCode: `function eulerStep(xt, velocity, dt) {
-  // TODO: return xt + dt * velocity
-  return 0;
+    group: 'Flow matching step',
+    title: 'Path velocity',
+    concept: 'For linear paths, velocity is constant difference x1 - x0.',
+    objective: 'Compute path velocity term.',
+    difficulty: 'warmup',
+    starterCode: `function flowSampleStep(x0, x1, t, xt, velocity, dt) {
+  // TODO: compute pathVel
+  const pathVel = 0;
+  return pathVel;
 }`,
     testCode: `const results = [];
 function check(name, actual, expected) {
   results.push({ name, actual, expected, passed: Object.is(actual, expected) });
 }
-check('positive velocity step', eulerStep(1.5, 4.0, 0.1), 1.9); // 1.5 + 0.4 = 1.9
-check('negative velocity step', eulerStep(1.5, -2.0, 0.05), 1.4);
+check('path vel', flowSampleStep(2, 10, 0.5, 0, 0, 0.1), 8);
 return results;`,
-    hints: [
-      'Multiply velocity by dt, then add the result to xt.',
-    ],
-    solution: `function eulerStep(xt, velocity, dt) {
-  return xt + dt * velocity;
+    hints: ['const pathVel = x1 - x0;'],
+    solution: `function flowSampleStep(x0, x1, t, xt, velocity, dt) {
+  const pathVel = x1 - x0;
+  return pathVel;
 }`,
-    explanation: 'Integrating velocity steps generates data along straight trajectories, yielding better samples with fewer steps.',
+    explanation: 'Constant path velocity is a key simplification in linear flow matching.',
   },
-
+  {
+    id: 'flow-step-model-velocity',
+    stepLabel: '77.3',
+    group: 'Flow matching step',
+    title: 'Use provided model velocity',
+    concept: 'Sampling uses model-predicted velocity field at current state.',
+    objective: 'Choose v = velocity argument, fallback to path velocity when null.',
+    difficulty: 'core',
+    starterCode: `function flowSampleStep(x0, x1, t, xt, velocity, dt) {
+  const pathVel = x1 - x0;
+  // TODO: choose model velocity when provided
+  const v = pathVel;
+  return v;
+}`,
+    testCode: `const results = [];
+function check(name, actual, expected) {
+  results.push({ name, actual, expected, passed: Object.is(actual, expected) });
+}
+check('uses provided vel', flowSampleStep(2, 10, 0.5, 0, 3, 0.1), 3);
+check('fallback vel', flowSampleStep(2, 10, 0.5, 0, null, 0.1), 8);
+return results;`,
+    hints: ['const v = velocity == null ? pathVel : velocity;'],
+    solution: `function flowSampleStep(x0, x1, t, xt, velocity, dt) {
+  const pathVel = x1 - x0;
+  const v = velocity == null ? pathVel : velocity;
+  return v;
+}`,
+    explanation: 'Fallback keeps the function usable with or without model prediction.',
+  },
+  {
+    id: 'flow-step-euler',
+    stepLabel: '77.4',
+    group: 'Flow matching step',
+    title: 'Euler integration update',
+    concept: 'Sampling advances state with x_{t+dt} = x_t + dt * v.',
+    objective: 'Compute next sample using Euler step.',
+    difficulty: 'core',
+    starterCode: `function flowSampleStep(x0, x1, t, xt, velocity, dt) {
+  const pathVel = x1 - x0;
+  const v = velocity == null ? pathVel : velocity;
+  // TODO: euler update
+  return xt;
+}`,
+    testCode: `const results = [];
+function check(name, actual, expected) {
+  results.push({ name, actual, expected, passed: Object.is(actual, expected) });
+}
+check('euler', flowSampleStep(2, 10, 0.5, 1.5, 4, 0.1), 1.9);
+return results;`,
+    hints: ['return xt + dt * v;'],
+    solution: `function flowSampleStep(x0, x1, t, xt, velocity, dt) {
+  const pathVel = x1 - x0;
+  const v = velocity == null ? pathVel : velocity;
+  return xt + dt * v;
+}`,
+    explanation: 'Euler updates are the simplest numerical integration for flow paths.',
+  },
+  {
+    id: 'flow-step-full',
+    stepLabel: '77.5',
+    group: 'Flow matching step',
+    title: 'Complete flow sample step',
+    concept: 'Complete helper can blend interpolation, velocity logic, and safe time step handling.',
+    objective: 'Return xt unchanged when dt is 0, else Euler update with selected velocity.',
+    difficulty: 'core',
+    starterCode: `function flowSampleStep(x0, x1, t, xt, velocity, dt) {
+  const interp = (1 - t) * x0 + t * x1;
+  const pathVel = x1 - x0;
+  const v = velocity == null ? pathVel : velocity;
+  // TODO: if dt is zero, return xt
+  return xt + dt * v + 0 * interp;
+}`,
+    testCode: `const results = [];
+function check(name, actual, expected) {
+  results.push({ name, actual, expected, passed: Object.is(actual, expected) });
+}
+check('dt zero', flowSampleStep(2, 10, 0.5, 1.5, 4, 0), 1.5);
+check('dt nonzero', flowSampleStep(2, 10, 0.5, 1.5, 4, 0.1), 1.9);
+return results;`,
+    hints: ['if (dt === 0) return xt;'],
+    solution: `function flowSampleStep(x0, x1, t, xt, velocity, dt) {
+  const interp = (1 - t) * x0 + t * x1;
+  const pathVel = x1 - x0;
+  const v = velocity == null ? pathVel : velocity;
+  if (dt === 0) return xt;
+  return xt + dt * v + 0 * interp;
+}`,
+    explanation: 'The final function mirrors one robust numerical sampling micro-step.',
+  },
   // --- diffusion-vae ---
   {
     id: 'vae-latent-scaling-factor',
@@ -1402,34 +1465,34 @@ return results;`,
   {
     id: 'bpe-count-pair-freqs',
     stepLabel: '79.1',
-    group: 'pair count',
-    title: 'BPE Pair Frequencies',
-    concept: 'Byte-Pair Encoding identifies the most common adjacent token sequences to build vocabulary merges.',
-    objective: 'Count frequencies of adjacent token pairs in a tokenized corpus.',
-    difficulty: 'core',
-    starterCode: `function countPairs(tokensList) {
+    group: 'BPE train step',
+    title: 'BPE pair frequencies',
+    concept: 'Byte-Pair Encoding starts by counting adjacent symbol pairs across the corpus.',
+    objective: 'Inside bpeTrainStep, count adjacent pair frequencies into freqs.',
+    difficulty: 'warmup',
+    starterCode: `function bpeTrainStep(tokensList) {
   const freqs = {};
-  
-  // tokensList is an array of arrays of strings: [['l', 'o', 'w'], ['n', 'e', 'w', 'e', 'r']]
-  // TODO: Iterate over each token list. For each adjacent pair (tokens[i], tokens[i+1]),
-  // join them as "tokenA,tokenB" and increment counts in freqs.
-  
-  return freqs;
+  // TODO: count adjacent pairs across every word in tokensList as "a,b" keys
+  let bestPair = null;
+  let bestCount = 0;
+  for (const pair in freqs) {
+    if (freqs[pair] > bestCount) {
+      bestCount = freqs[pair];
+      bestPair = pair.split(',');
+    }
+  }
+  const mergedCorpus = tokensList.map((word) => word);
+  return { corpus: mergedCorpus, mergedPair: bestPair };
 }`,
     testCode: `const results = [];
 function check(name, actual, expected) {
   results.push({ name, actual: JSON.stringify(actual), expected: JSON.stringify(expected), passed: JSON.stringify(actual) === JSON.stringify(expected) });
 }
-const corpus = [['l', 'o', 'w'], ['l', 'o', 'w', 'e', 'r']];
-check('pair counts', countPairs(corpus), { 'l,o': 2, 'o,w': 2, 'w,e': 1, 'e,r': 1 });
+const out = bpeTrainStep([['l', 'o', 'w'], ['l', 'o', 'w', 'e', 'r']]);
+check('best pair', out.mergedPair, ['l', 'o']);
 return results;`,
-    hints: [
-      'Loop over each word in tokensList.',
-      'For each word, loop index i from 0 to word.length - 2.',
-      'Join word[i] and word[i+1] with a comma: const pair = word[i] + "," + word[i+1].',
-      'Increment freqs[pair] = (freqs[pair] || 0) + 1.',
-    ],
-    solution: `function countPairs(tokensList) {
+    hints: ['for each adjacent pair, freqs[pair] = (freqs[pair] || 0) + 1;'],
+    solution: `function bpeTrainStep(tokensList) {
   const freqs = {};
   for (let w = 0; w < tokensList.length; w++) {
     const word = tokensList[w];
@@ -1438,56 +1501,403 @@ return results;`,
       freqs[pair] = (freqs[pair] || 0) + 1;
     }
   }
-  return freqs;
+  let bestPair = null;
+  let bestCount = 0;
+  for (const pair in freqs) {
+    if (freqs[pair] > bestCount) {
+      bestCount = freqs[pair];
+      bestPair = pair.split(',');
+    }
+  }
+  const mergedCorpus = tokensList.map((word) => word);
+  return { corpus: mergedCorpus, mergedPair: bestPair };
 }`,
-    explanation: 'Counting pair frequencies reveals which tokens appear together most frequently, identifying prospective merge operations.',
+    explanation: 'The most frequent pair becomes the next BPE merge candidate.',
   },
   {
-    id: 'bpe-merge-tokens-list',
+    id: 'bpe-best-pair',
     stepLabel: '79.2',
-    group: 'merge rule',
-    title: 'BPE Token Merging',
-    concept: 'BPE merges occur by replacing adjacent matching token pairs with combined symbols.',
-    objective: 'Merge all adjacent instances of a target pair (e.g. ["l", "o"]) into a single symbol ("lo").',
-    difficulty: 'core',
-    starterCode: `function mergePair(wordTokens, pairTarget) {
-  // wordTokens is ['l', 'o', 'w']
-  // pairTarget is ['l', 'o']
-  const merged = [];
-  
-  // TODO: Loop through wordTokens and replace adjacent pairTarget values with merged string
-  
-  return merged;
+    group: 'BPE train step',
+    title: 'Select best merge pair',
+    concept: 'Each BPE iteration merges the highest-frequency adjacent pair in the corpus.',
+    objective: 'Track bestPair with the maximum count in freqs.',
+    difficulty: 'warmup',
+    starterCode: `function bpeTrainStep(tokensList) {
+  const freqs = {};
+  for (let w = 0; w < tokensList.length; w++) {
+    const word = tokensList[w];
+    for (let i = 0; i < word.length - 1; i++) {
+      const pair = word[i] + ',' + word[i + 1];
+      freqs[pair] = (freqs[pair] || 0) + 1;
+    }
+  }
+  let bestPair = null;
+  let bestCount = 0;
+  // TODO: choose the pair key with the highest frequency
+  const mergedCorpus = tokensList.map((word) => word);
+  return { corpus: mergedCorpus, mergedPair: bestPair };
 }`,
     testCode: `const results = [];
 function check(name, actual, expected) {
   results.push({ name, actual: JSON.stringify(actual), expected: JSON.stringify(expected), passed: JSON.stringify(actual) === JSON.stringify(expected) });
 }
-check('merge lo in low', mergePair(['l', 'o', 'w'], ['l', 'o']), ['lo', 'w']);
-check('merge duplicate letters', mergePair(['a', 'a', 'a'], ['a', 'a']), ['aa', 'a']);
+const out = bpeTrainStep([['l', 'o', 'w'], ['l', 'o', 'w', 'e', 'r']]);
+check('best pair', out.mergedPair, ['l', 'o']);
 return results;`,
-    hints: [
-      'Loop index i from 0 to wordTokens.length - 1.',
-      'If i < length - 1 and wordTokens[i] === pairTarget[0] and wordTokens[i+1] === pairTarget[1], push combined string and increment i.',
-      'Otherwise, push wordTokens[i].',
-    ],
-    solution: `function mergePair(wordTokens, pairTarget) {
-  const merged = [];
-  let i = 0;
-  while (i < wordTokens.length) {
-    if (i < wordTokens.length - 1 && wordTokens[i] === pairTarget[0] && wordTokens[i + 1] === pairTarget[1]) {
-      merged.push(pairTarget[0] + pairTarget[1]);
-      i += 2;
-    } else {
-      merged.push(wordTokens[i]);
-      i++;
+    hints: ['loop over freqs and keep the max count pair.'],
+    solution: `function bpeTrainStep(tokensList) {
+  const freqs = {};
+  for (let w = 0; w < tokensList.length; w++) {
+    const word = tokensList[w];
+    for (let i = 0; i < word.length - 1; i++) {
+      const pair = word[i] + ',' + word[i + 1];
+      freqs[pair] = (freqs[pair] || 0) + 1;
     }
   }
-  return merged;
+  let bestPair = null;
+  let bestCount = 0;
+  for (const pair in freqs) {
+    if (freqs[pair] > bestCount) {
+      bestCount = freqs[pair];
+      bestPair = pair.split(',');
+    }
+  }
+  const mergedCorpus = tokensList.map((word) => word);
+  return { corpus: mergedCorpus, mergedPair: bestPair };
 }`,
-    explanation: 'Replacing character pairs progressively builds longer subword vocabularies, reducing sequence token counts.',
+    explanation: 'Greedy highest-frequency merges grow the subword vocabulary iteratively.',
+  },
+  {
+    id: 'bpe-merge-tokens-list',
+    stepLabel: '79.3',
+    group: 'BPE train step',
+    title: 'Merge pair in one word',
+    concept: 'A merge replaces every non-overlapping adjacent occurrence of the target pair with a combined symbol.',
+    objective: 'Merge bestPair inside each word before returning the updated corpus.',
+    difficulty: 'core',
+    starterCode: `function bpeTrainStep(tokensList) {
+  const freqs = {};
+  for (let w = 0; w < tokensList.length; w++) {
+    const word = tokensList[w];
+    for (let i = 0; i < word.length - 1; i++) {
+      const pair = word[i] + ',' + word[i + 1];
+      freqs[pair] = (freqs[pair] || 0) + 1;
+    }
+  }
+  let bestPair = null;
+  let bestCount = 0;
+  for (const pair in freqs) {
+    if (freqs[pair] > bestCount) {
+      bestCount = freqs[pair];
+      bestPair = pair.split(',');
+    }
+  }
+  const mergedCorpus = [];
+  for (let w = 0; w < tokensList.length; w++) {
+    const word = tokensList[w];
+    const merged = [];
+    let i = 0;
+    while (i < word.length) {
+      if (bestPair && i < word.length - 1 && word[i] === bestPair[0] && word[i + 1] === bestPair[1]) {
+        // TODO: push combined symbol and skip both tokens
+        i += 2;
+      } else {
+        merged.push(word[i]);
+        i += 1;
+      }
+    }
+    mergedCorpus.push(merged);
+  }
+  return { corpus: mergedCorpus, mergedPair: bestPair };
+}`,
+    testCode: `const results = [];
+function check(name, actual, expected) {
+  results.push({ name, actual: JSON.stringify(actual), expected: JSON.stringify(expected), passed: JSON.stringify(actual) === JSON.stringify(expected) });
+}
+const out = bpeTrainStep([['l', 'o', 'w']]);
+check('merged corpus', out.corpus, [['lo', 'w']]);
+return results;`,
+    hints: ['merged.push(bestPair[0] + bestPair[1]); i += 2;'],
+    solution: `function bpeTrainStep(tokensList) {
+  const freqs = {};
+  for (let w = 0; w < tokensList.length; w++) {
+    const word = tokensList[w];
+    for (let i = 0; i < word.length - 1; i++) {
+      const pair = word[i] + ',' + word[i + 1];
+      freqs[pair] = (freqs[pair] || 0) + 1;
+    }
+  }
+  let bestPair = null;
+  let bestCount = 0;
+  for (const pair in freqs) {
+    if (freqs[pair] > bestCount) {
+      bestCount = freqs[pair];
+      bestPair = pair.split(',');
+    }
+  }
+  const mergedCorpus = [];
+  for (let w = 0; w < tokensList.length; w++) {
+    const word = tokensList[w];
+    const merged = [];
+    let i = 0;
+    while (i < word.length) {
+      if (bestPair && i < word.length - 1 && word[i] === bestPair[0] && word[i + 1] === bestPair[1]) {
+        merged.push(bestPair[0] + bestPair[1]);
+        i += 2;
+      } else {
+        merged.push(word[i]);
+        i += 1;
+      }
+    }
+    mergedCorpus.push(merged);
+  }
+  return { corpus: mergedCorpus, mergedPair: bestPair };
+}`,
+    explanation: 'Merging across the corpus shortens token sequences over training iterations.',
+  },
+  {
+    id: 'bpe-empty-corpus',
+    stepLabel: '79.4',
+    group: 'BPE train step',
+    title: 'Empty corpus edge case',
+    concept: 'Training code must handle an empty corpus without attempting a merge.',
+    objective: 'Return corpus unchanged and mergedPair null when tokensList is empty.',
+    difficulty: 'core',
+    starterCode: `function bpeTrainStep(tokensList) {
+  // TODO: if tokensList.length === 0, return { corpus: [], mergedPair: null }
+  const freqs = {};
+  for (let w = 0; w < tokensList.length; w++) {
+    const word = tokensList[w];
+    for (let i = 0; i < word.length - 1; i++) {
+      const pair = word[i] + ',' + word[i + 1];
+      freqs[pair] = (freqs[pair] || 0) + 1;
+    }
+  }
+  let bestPair = null;
+  let bestCount = 0;
+  for (const pair in freqs) {
+    if (freqs[pair] > bestCount) {
+      bestCount = freqs[pair];
+      bestPair = pair.split(',');
+    }
+  }
+  const mergedCorpus = tokensList.map((word) => word.slice());
+  return { corpus: mergedCorpus, mergedPair: bestPair };
+}`,
+    testCode: `const results = [];
+function check(name, actual, expected) {
+  results.push({ name, actual: JSON.stringify(actual), expected: JSON.stringify(expected), passed: JSON.stringify(actual) === JSON.stringify(expected) });
+}
+check('empty corpus', bpeTrainStep([]), { corpus: [], mergedPair: null });
+return results;`,
+    hints: ['if (tokensList.length === 0) return { corpus: [], mergedPair: null };'],
+    solution: `function bpeTrainStep(tokensList) {
+  if (tokensList.length === 0) return { corpus: [], mergedPair: null };
+  const freqs = {};
+  for (let w = 0; w < tokensList.length; w++) {
+    const word = tokensList[w];
+    for (let i = 0; i < word.length - 1; i++) {
+      const pair = word[i] + ',' + word[i + 1];
+      freqs[pair] = (freqs[pair] || 0) + 1;
+    }
+  }
+  let bestPair = null;
+  let bestCount = 0;
+  for (const pair in freqs) {
+    if (freqs[pair] > bestCount) {
+      bestCount = freqs[pair];
+      bestPair = pair.split(',');
+    }
+  }
+  const mergedCorpus = [];
+  for (let w = 0; w < tokensList.length; w++) {
+    const word = tokensList[w];
+    const merged = [];
+    let i = 0;
+    while (i < word.length) {
+      if (bestPair && i < word.length - 1 && word[i] === bestPair[0] && word[i + 1] === bestPair[1]) {
+        merged.push(bestPair[0] + bestPair[1]);
+        i += 2;
+      } else {
+        merged.push(word[i]);
+        i += 1;
+      }
+    }
+    mergedCorpus.push(merged);
+  }
+  return { corpus: mergedCorpus, mergedPair: bestPair };
+}`,
+    explanation: 'Edge-case guards keep tokenizer training loops safe on empty input.',
   },
 
+  {
+    id: 'bpe-merge-all-words',
+    stepLabel: '79.5',
+    group: 'BPE train step',
+    title: 'Merge across full corpus',
+    concept: 'One BPE iteration applies the winning merge to every word in the training corpus.',
+    objective: 'Push each merged word into mergedCorpus after processing all words.',
+    difficulty: 'core',
+    starterCode: `function bpeTrainStep(tokensList) {
+  if (tokensList.length === 0) return { corpus: [], mergedPair: null };
+  const freqs = {};
+  for (let w = 0; w < tokensList.length; w++) {
+    const word = tokensList[w];
+    for (let i = 0; i < word.length - 1; i++) {
+      const pair = word[i] + ',' + word[i + 1];
+      freqs[pair] = (freqs[pair] || 0) + 1;
+    }
+  }
+  let bestPair = null;
+  let bestCount = 0;
+  for (const pair in freqs) {
+    if (freqs[pair] > bestCount) {
+      bestCount = freqs[pair];
+      bestPair = pair.split(',');
+    }
+  }
+  const mergedCorpus = [];
+  for (let w = 0; w < tokensList.length; w++) {
+    const word = tokensList[w];
+    const merged = [];
+    let i = 0;
+    while (i < word.length) {
+      if (bestPair && i < word.length - 1 && word[i] === bestPair[0] && word[i + 1] === bestPair[1]) {
+        merged.push(bestPair[0] + bestPair[1]);
+        i += 2;
+      } else {
+        merged.push(word[i]);
+        i += 1;
+      }
+    }
+    // TODO: mergedCorpus.push(merged)
+  }
+  return { corpus: mergedCorpus, mergedPair: bestPair };
+}`,
+    testCode: `const results = [];
+function check(name, actual, expected) {
+  results.push({ name, actual: JSON.stringify(actual), expected: JSON.stringify(expected), passed: JSON.stringify(actual) === JSON.stringify(expected) });
+}
+const out = bpeTrainStep([['l', 'o', 'w'], ['l', 'o', 'w', 'e', 'r']]);
+check('corpus merged', out.corpus, [['lo', 'w'], ['lo', 'w', 'e', 'r']]);
+return results;`,
+    hints: ['mergedCorpus.push(merged);'],
+    solution: `function bpeTrainStep(tokensList) {
+  if (tokensList.length === 0) return { corpus: [], mergedPair: null };
+  const freqs = {};
+  for (let w = 0; w < tokensList.length; w++) {
+    const word = tokensList[w];
+    for (let i = 0; i < word.length - 1; i++) {
+      const pair = word[i] + ',' + word[i + 1];
+      freqs[pair] = (freqs[pair] || 0) + 1;
+    }
+  }
+  let bestPair = null;
+  let bestCount = 0;
+  for (const pair in freqs) {
+    if (freqs[pair] > bestCount) {
+      bestCount = freqs[pair];
+      bestPair = pair.split(',');
+    }
+  }
+  const mergedCorpus = [];
+  for (let w = 0; w < tokensList.length; w++) {
+    const word = tokensList[w];
+    const merged = [];
+    let i = 0;
+    while (i < word.length) {
+      if (bestPair && i < word.length - 1 && word[i] === bestPair[0] && word[i + 1] === bestPair[1]) {
+        merged.push(bestPair[0] + bestPair[1]);
+        i += 2;
+      } else {
+        merged.push(word[i]);
+        i += 1;
+      }
+    }
+    mergedCorpus.push(merged);
+  }
+  return { corpus: mergedCorpus, mergedPair: bestPair };
+}`,
+    explanation: 'Corpus-wide merges are what shrink average sequence length over training.',
+  },
+  {
+    id: 'bpe-no-pairs',
+    stepLabel: '79.6',
+    group: 'BPE train step',
+    title: 'Single-token words',
+    concept: 'When every word is one token long, there are no adjacent pairs left to merge.',
+    objective: 'Return mergedPair null when no pair frequencies exist.',
+    difficulty: 'challenge',
+    starterCode: `function bpeTrainStep(tokensList) {
+  if (tokensList.length === 0) return { corpus: [], mergedPair: null };
+  const freqs = {};
+  for (let w = 0; w < tokensList.length; w++) {
+    const word = tokensList[w];
+    for (let i = 0; i < word.length - 1; i++) {
+      const pair = word[i] + ',' + word[i + 1];
+      freqs[pair] = (freqs[pair] || 0) + 1;
+    }
+  }
+  // TODO: if no pairs were found, return { corpus: tokensList.slice(), mergedPair: null }
+  let bestPair = null;
+  let bestCount = 0;
+  for (const pair in freqs) {
+    if (freqs[pair] > bestCount) {
+      bestCount = freqs[pair];
+      bestPair = pair.split(',');
+    }
+  }
+  const mergedCorpus = tokensList.map((word) => word.slice());
+  return { corpus: mergedCorpus, mergedPair: bestPair };
+}`,
+    testCode: `const results = [];
+function check(name, actual, expected) {
+  results.push({ name, actual: JSON.stringify(actual), expected: JSON.stringify(expected), passed: JSON.stringify(actual) === JSON.stringify(expected) });
+}
+check('no adjacent pairs', bpeTrainStep([['a'], ['b']]), { corpus: [['a'], ['b']], mergedPair: null });
+return results;`,
+    hints: ['if (Object.keys(freqs).length === 0) return { corpus: tokensList.map((w) => w.slice()), mergedPair: null };'],
+    solution: `function bpeTrainStep(tokensList) {
+  if (tokensList.length === 0) return { corpus: [], mergedPair: null };
+  const freqs = {};
+  for (let w = 0; w < tokensList.length; w++) {
+    const word = tokensList[w];
+    for (let i = 0; i < word.length - 1; i++) {
+      const pair = word[i] + ',' + word[i + 1];
+      freqs[pair] = (freqs[pair] || 0) + 1;
+    }
+  }
+  if (Object.keys(freqs).length === 0) {
+    return { corpus: tokensList.map((word) => word.slice()), mergedPair: null };
+  }
+  let bestPair = null;
+  let bestCount = 0;
+  for (const pair in freqs) {
+    if (freqs[pair] > bestCount) {
+      bestCount = freqs[pair];
+      bestPair = pair.split(',');
+    }
+  }
+  const mergedCorpus = [];
+  for (let w = 0; w < tokensList.length; w++) {
+    const word = tokensList[w];
+    const merged = [];
+    let i = 0;
+    while (i < word.length) {
+      if (bestPair && i < word.length - 1 && word[i] === bestPair[0] && word[i + 1] === bestPair[1]) {
+        merged.push(bestPair[0] + bestPair[1]);
+        i += 2;
+      } else {
+        merged.push(word[i]);
+        i += 1;
+      }
+    }
+    mergedCorpus.push(merged);
+  }
+  return { corpus: mergedCorpus, mergedPair: bestPair };
+}`,
+    explanation: 'Training loops stop naturally when merges are no longer possible.',
+  },
   // --- clip-encoder ---
   {
     id: 'clip-l2-norm-sumsq',
