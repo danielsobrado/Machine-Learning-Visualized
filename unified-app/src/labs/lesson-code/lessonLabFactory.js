@@ -1,6 +1,5 @@
 import { allAnimations } from '../../data/animations.js';
-
-const BASE_LESSON_LAB_NUMBER = 77;
+import { getLessonCatalogNumber } from '../../data/lessonCatalogNumbers.js';
 
 const STOP_WORDS = new Set([
   'and',
@@ -18,8 +17,6 @@ const STOP_WORDS = new Set([
   'track',
   'comprehensive',
 ]);
-
-const lessonIndexById = new Map(allAnimations.map((lesson, index) => [lesson.id, index]));
 
 function unique(values) {
   return [...new Set(values)];
@@ -267,8 +264,7 @@ return results;`,
 }
 
 export function createLessonLabGroup(lesson, domain) {
-  const lessonIndex = lessonIndexById.get(lesson.id);
-  const groupNumber = BASE_LESSON_LAB_NUMBER + lessonIndex;
+  const groupNumber = getLessonCatalogNumber(lesson.id, lesson.categoryId);
   const terms = termsForLesson(lesson);
   const suffix = toFunctionSuffix(lesson.id);
 

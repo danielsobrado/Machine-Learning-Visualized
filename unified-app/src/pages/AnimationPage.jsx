@@ -2,6 +2,7 @@ import React, { Suspense } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { ArrowLeft, ArrowRight } from 'lucide-react';
 import { allAnimations, getAnimationById } from '../data/animations';
+import { getLessonCatalogNumber } from '../data/lessonCatalogNumbers';
 import { getAnimationComponent, isAnimationAvailable } from '../animations';
 import AnimationShell from '../components/animation-shell/AnimationShell';
 
@@ -25,6 +26,7 @@ export default function AnimationPage() {
   }
 
   const currentIndex = allAnimations.findIndex((item) => item.id === id);
+  const lessonNumber = getLessonCatalogNumber(animation.id, animation.categoryId);
   const prevAnimation = currentIndex > 0 ? allAnimations[currentIndex - 1] : null;
   const nextAnimation =
     currentIndex < allAnimations.length - 1 ? allAnimations[currentIndex + 1] : null;
@@ -36,7 +38,7 @@ export default function AnimationPage() {
           <Link to="/">Catalog</Link>
           <span className="sep">/</span>
           <span>{animation.categoryName}</span>
-          <span className="right">{String(currentIndex + 1).padStart(2, '0')}</span>
+          <span className="right">{lessonNumber}</span>
         </div>
         <h1 className="ds-title">{animation.name}</h1>
         <p className="ds-subtitle">{animation.description}</p>

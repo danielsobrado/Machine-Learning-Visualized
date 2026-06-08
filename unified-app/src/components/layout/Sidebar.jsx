@@ -2,6 +2,7 @@ import React from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { Search } from 'lucide-react';
 import { categories } from '../../data/animations';
+import { formatLessonCatalogNumber } from '../../data/lessonCatalogNumbers';
 
 export default function Sidebar({ isOpen, isCollapsed, onClose, onOpenCommandPalette }) {
   const location = useLocation();
@@ -67,8 +68,7 @@ export default function Sidebar({ isOpen, isCollapsed, onClose, onOpenCommandPal
                     }`}
                   >
                     <span className="num">
-                      {String(categoryIndex + 1).padStart(2, '0')}.
-                      {String(itemIndex + 1).padStart(2, '0')}
+                      {formatLessonCatalogNumber(categoryIndex, itemIndex)}
                     </span>
                     <span className="label">{item.name}</span>
                   </Link>

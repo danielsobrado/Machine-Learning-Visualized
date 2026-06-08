@@ -2,6 +2,7 @@ import React from 'react';
 import { Link } from 'react-router-dom';
 import { ArrowRight } from 'lucide-react';
 import { allAnimations, categories, curriculumBacklog, curriculumTracks } from '../data/animations';
+import { formatLessonCatalogNumber } from '../data/lessonCatalogNumbers';
 import { HUB_LEARNING_PATHS } from '../data/learningPaths';
 import { LEARNING_PROGRESS_EVENT, readCompletedLessons } from '../data/learningProgress';
 
@@ -225,8 +226,7 @@ export default function HomePage() {
               {category.items.map((item, itemIndex) => (
                 <Link className="ua-toc-item" key={item.id} to={`/animation/${item.id}`}>
                   <span className="ua-toc-num">
-                    {String(categoryIndex + 1).padStart(2, '0')}.
-                    {String(itemIndex + 1).padStart(2, '0')}
+                    {formatLessonCatalogNumber(categoryIndex, itemIndex)}
                   </span>
                   <span className="ua-toc-title">{item.name}</span>
                   <span className="ua-toc-desc">{item.description}</span>

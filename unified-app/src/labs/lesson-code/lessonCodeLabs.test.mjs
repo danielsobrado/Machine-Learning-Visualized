@@ -3,6 +3,7 @@ import { readFile } from 'node:fs/promises';
 import test from 'node:test';
 
 import { allAnimations } from '../../data/animations.js';
+import { getLessonCatalogNumber } from '../../data/lessonCatalogNumbers.js';
 import { summarizeCodeLabProgress } from '../../data/codeLabProgress.js';
 import {
   LESSON_CODE_LAB_BY_ID,
@@ -48,6 +49,13 @@ test('mapped lessons expose real code labs and placeholders are removed', () => 
   }
 });
 
+test('lesson code lab group numbers match the catalog sidebar', () => {
+  for (const group of LESSON_CODE_LAB_GROUPS) {
+    const expected = getLessonCatalogNumber(group.lessonId, group.categoryId);
+    assert.equal(group.groupNumber, expected, `${group.lessonId} should use catalog number ${expected}`);
+  }
+});
+
 test('lesson code lab exercises keep the Rustlings-style schema', () => {
   const ids = new Set();
 
@@ -60,7 +68,7 @@ test('lesson code lab exercises keep the Rustlings-style schema', () => {
     assert.equal(ids.has(exercise.id), false, `${exercise.id} should be unique`);
     ids.add(exercise.id);
 
-    assert.match(exercise.stepLabel, /^\d+\.\d+$/);
+    assert.match(exercise.stepLabel, /^\d{2}\.\d{2}\.\d+$/);
     assert.match(exercise.starterCode, /TODO/);
     assert.ok(Array.isArray(exercise.hints));
     assert.ok(exercise.hints.length >= 1);
