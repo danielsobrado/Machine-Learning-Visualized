@@ -1,145 +1,166 @@
 export const CORE_ML_CODE_LABS = [
   // --- train-validation-test-split ---
   {
-    id: 'split-shuffle',
+    id: 'split-pipeline-indices',
     stepLabel: '39.1',
-    group: 'Shuffle',
-    title: 'Fisher-Yates Shuffle',
-    concept: 'To ensure a representative split, datasets should be randomly shuffled before partitioning.',
-    objective: 'Implement the Fisher-Yates shuffle algorithm on an array of indices.',
+    group: 'Dataset split pipeline',
+    title: 'Build index list',
+    concept: 'Split pipelines typically shuffle indices before slicing subsets.',
+    objective: 'Build [0..n-1] index list from dataset length.',
+    difficulty: 'warmup',
+    starterCode: `function splitPipeline(dataset, trainFrac, valFrac, seed) {
+  const indices = [];
+  for (let i = 0; i < dataset.length; i++) {
+    // TODO: push i
+  }
+  return indices;
+}`,
+    testCode: `const results = [];
+function same(a, b) { return JSON.stringify(a) === JSON.stringify(b); }
+function check(name, actual, expected) {
+  results.push({ name, actual: JSON.stringify(actual), expected: JSON.stringify(expected), passed: same(actual, expected) });
+}
+check('indices', splitPipeline(['a', 'b', 'c'], 0.6, 0.2, 42), [0, 1, 2]);
+return results;`,
+    hints: ['indices.push(i);'],
+    solution: `function splitPipeline(dataset, trainFrac, valFrac, seed) {
+  const indices = [];
+  for (let i = 0; i < dataset.length; i++) {
+    indices.push(i);
+  }
+  return indices;
+}`,
+    explanation: 'Index pipelines avoid copying and mutating raw records during split logic.',
+  },
+  {
+    id: 'split-pipeline-shuffle',
+    stepLabel: '39.2',
+    group: 'Dataset split pipeline',
+    title: 'Deterministic shuffle',
+    concept: 'Deterministic shuffling lets tests and experiments be reproducible.',
+    objective: 'Use shuffleIndices(indices, seed).',
     difficulty: 'warmup',
     starterCode: `function shuffleIndices(arr, seed) {
-  // A simple deterministic pseudo-random generator based on seed
   let r = seed || 42;
   function random() {
-    let x = Math.sin(r++) * 10000;
+    const x = Math.sin(r++) * 10000;
     return x - Math.floor(x);
   }
-  
   const shuffled = [...arr];
   for (let i = shuffled.length - 1; i > 0; i--) {
     const j = Math.floor(random() * (i + 1));
-    // TODO: swap elements at i and j
-    const temp = shuffled[i];
-    shuffled[i] = shuffled[i];
+    const t = shuffled[i];
+    shuffled[i] = shuffled[j];
+    shuffled[j] = t;
   }
   return shuffled;
+}
+function splitPipeline(dataset, trainFrac, valFrac, seed) {
+  const indices = [];
+  for (let i = 0; i < dataset.length; i++) indices.push(i);
+  // TODO: shuffle indices with seed
+  return indices;
 }`,
     testCode: `const results = [];
+function same(a, b) { return JSON.stringify(a) === JSON.stringify(b); }
 function check(name, actual, expected) {
-  results.push({ name, actual: JSON.stringify(actual), expected: JSON.stringify(expected), passed: JSON.stringify(actual) === JSON.stringify(expected) });
+  results.push({ name, actual: JSON.stringify(actual), expected: JSON.stringify(expected), passed: same(actual, expected) });
 }
-const arr = [0, 1, 2, 3, 4];
-check('shuffled with seed 42', shuffleIndices(arr, 42), [4, 2, 0, 1, 3]);
+check('seeded shuffle', splitPipeline([10, 20, 30, 40, 50], 0.6, 0.2, 42), [4, 2, 0, 1, 3]);
 return results;`,
-    hints: [
-      'Swap shuffled[i] and shuffled[j].',
-      'Use temp to hold shuffled[i], set shuffled[i] = shuffled[j], then shuffled[j] = temp.',
-    ],
+    hints: ['return shuffleIndices(indices, seed);'],
     solution: `function shuffleIndices(arr, seed) {
   let r = seed || 42;
   function random() {
-    let x = Math.sin(r++) * 10000;
+    const x = Math.sin(r++) * 10000;
     return x - Math.floor(x);
   }
-  
   const shuffled = [...arr];
   for (let i = shuffled.length - 1; i > 0; i--) {
     const j = Math.floor(random() * (i + 1));
-    const temp = shuffled[i];
+    const t = shuffled[i];
     shuffled[i] = shuffled[j];
-    shuffled[j] = temp;
+    shuffled[j] = t;
   }
   return shuffled;
+}
+function splitPipeline(dataset, trainFrac, valFrac, seed) {
+  const indices = [];
+  for (let i = 0; i < dataset.length; i++) indices.push(i);
+  return shuffleIndices(indices, seed);
 }`,
-    explanation: 'Shuffling prevents training and test sets from having ordered bias (e.g., all class 0 at the start).',
+    explanation: 'Seed control makes split behavior auditable and repeatable.',
   },
   {
-    id: 'split-slices',
-    stepLabel: '39.2',
-    group: 'Train slice',
-    title: 'Dataset Splitting Slices',
-    concept: 'Partition the dataset into Train, Validation, and Test sets based on proportional fractions.',
-    objective: 'Compute slice boundaries and return the split datasets.',
+    id: 'split-pipeline-slices',
+    stepLabel: '39.3',
+    group: 'Dataset split pipeline',
+    title: 'Index slices',
+    concept: 'After shuffling, split indices into train/val/test boundaries.',
+    objective: 'Implement splitDataset index slicing.',
     difficulty: 'core',
-    starterCode: `function splitDataset(dataset, trainFrac, valFrac) {
-  const n = dataset.length;
+    starterCode: `function splitDataset(indices, trainFrac, valFrac) {
+  const n = indices.length;
   const trainEnd = Math.floor(n * trainFrac);
   const valEnd = Math.floor(n * (trainFrac + valFrac));
-  
-  // TODO: Slice dataset into train, val, and test arrays
-  const train = [];
-  const val = [];
-  const test = [];
-  
-  return { train, val, test };
+  // TODO: return trainIdx, valIdx, testIdx slices
+  return { trainIdx: [], valIdx: [], testIdx: [] };
 }`,
     testCode: `const results = [];
-function sameObj(a, b) { return JSON.stringify(a) === JSON.stringify(b); }
+function same(a, b) { return JSON.stringify(a) === JSON.stringify(b); }
 function check(name, actual, expected) {
-  results.push({ name, actual: JSON.stringify(actual), expected: JSON.stringify(expected), passed: sameObj(actual, expected) });
+  results.push({ name, actual: JSON.stringify(actual), expected: JSON.stringify(expected), passed: same(actual, expected) });
 }
-const data = [10, 20, 30, 40, 50, 60, 70, 80, 90, 100];
-check('split 60/20/20', splitDataset(data, 0.6, 0.2), {
-  train: [10, 20, 30, 40, 50, 60],
-  val: [70, 80],
-  test: [90, 100]
-});
+const out = splitDataset([4, 2, 0, 1, 3], 0.6, 0.2);
+check('train idx', out.trainIdx, [4, 2, 0]);
+check('val idx', out.valIdx, [1]);
+check('test idx', out.testIdx, [3]);
 return results;`,
-    hints: [
-      'Use dataset.slice(start, end).',
-      'train goes from 0 to trainEnd.',
-      'val goes from trainEnd to valEnd.',
-      'test goes from valEnd to the end.',
-    ],
-    solution: `function splitDataset(dataset, trainFrac, valFrac) {
-  const n = dataset.length;
+    hints: ['return { trainIdx: indices.slice(0, trainEnd), valIdx: indices.slice(trainEnd, valEnd), testIdx: indices.slice(valEnd) };'],
+    solution: `function splitDataset(indices, trainFrac, valFrac) {
+  const n = indices.length;
   const trainEnd = Math.floor(n * trainFrac);
   const valEnd = Math.floor(n * (trainFrac + valFrac));
-  
-  const train = dataset.slice(0, trainEnd);
-  const val = dataset.slice(trainEnd, valEnd);
-  const test = dataset.slice(valEnd);
-  
-  return { train, val, test };
+  return {
+    trainIdx: indices.slice(0, trainEnd),
+    valIdx: indices.slice(trainEnd, valEnd),
+    testIdx: indices.slice(valEnd),
+  };
 }`,
-    explanation: 'Train set fits parameters; Val guides hyperparameter tuning; Test provides unbiased final evaluation.',
+    explanation: 'Boundary slicing creates non-overlapping split partitions.',
   },
   {
-    id: 'split-leakage-check',
-    stepLabel: '39.3',
-    group: 'No leakage check',
-    title: 'Data Leakage Verification',
-    concept: 'To ensure validity, there must be absolute zero overlap (leakage) between splits.',
-    objective: 'Implement a function to verify that train, validation, and test sets are completely disjoint.',
-    difficulty: 'challenge',
+    id: 'split-pipeline-leak-check',
+    stepLabel: '39.4',
+    group: 'Dataset split pipeline',
+    title: 'Leakage checker',
+    concept: 'Leak-free splits require disjoint train/val/test index sets.',
+    objective: 'Complete checkNoLeakage helper.',
+    difficulty: 'core',
     starterCode: `function checkNoLeakage(trainIdx, valIdx, testIdx) {
   const trainSet = new Set(trainIdx);
   const valSet = new Set(valIdx);
   const testSet = new Set(testIdx);
-  
-  // TODO: Check if any element in valSet or testSet exists in trainSet, or if they overlap.
-  // Return true if there is NO leakage (mutually disjoint), else false.
-  return false;
+  for (const x of trainIdx) {
+    // TODO: reject overlap with val/test
+  }
+  for (const x of valIdx) {
+    if (testSet.has(x)) return false;
+  }
+  return true;
 }`,
     testCode: `const results = [];
 function check(name, actual, expected) {
   results.push({ name, actual, expected, passed: Object.is(actual, expected) });
 }
-check('disjoint sets', checkNoLeakage([1, 2, 3], [4, 5], [6]), true);
-check('overlap train/val', checkNoLeakage([1, 2, 3], [3, 4], [5]), false);
-check('overlap val/test', checkNoLeakage([1, 2], [3, 4], [4, 5]), false);
+check('disjoint', checkNoLeakage([0, 1], [2], [3]), true);
+check('overlap', checkNoLeakage([0, 1], [1], [3]), false);
 return results;`,
-    hints: [
-      'Check if any element of trainIdx is in valSet or testSet.',
-      'Check if any element of valIdx is in testSet.',
-      'If any overlap is found, return false. Otherwise return true.',
-    ],
+    hints: ['if (valSet.has(x) || testSet.has(x)) return false;'],
     solution: `function checkNoLeakage(trainIdx, valIdx, testIdx) {
   const trainSet = new Set(trainIdx);
   const valSet = new Set(valIdx);
   const testSet = new Set(testIdx);
-  
   for (const x of trainIdx) {
     if (valSet.has(x) || testSet.has(x)) return false;
   }
@@ -148,7 +169,117 @@ return results;`,
   }
   return true;
 }`,
-    explanation: 'Overlapping samples between splits lead to overly optimistic performance evaluation (leakage).',
+    explanation: 'Leakage checks prevent inflated validation metrics.',
+  },
+  {
+    id: 'split-pipeline-full',
+    stepLabel: '39.5',
+    group: 'Dataset split pipeline',
+    title: 'Full split pipeline',
+    concept: 'A complete split pipeline creates shuffled partitions and verifies disjointness.',
+    objective: 'Build splitPipeline(dataset, trainFrac, valFrac, seed) end to end.',
+    difficulty: 'challenge',
+    starterCode: `function shuffleIndices(arr, seed) {
+  let r = seed || 42;
+  function random() {
+    const x = Math.sin(r++) * 10000;
+    return x - Math.floor(x);
+  }
+  const shuffled = [...arr];
+  for (let i = shuffled.length - 1; i > 0; i--) {
+    const j = Math.floor(random() * (i + 1));
+    const t = shuffled[i];
+    shuffled[i] = shuffled[j];
+    shuffled[j] = t;
+  }
+  return shuffled;
+}
+function splitDataset(indices, trainFrac, valFrac) {
+  const n = indices.length;
+  const trainEnd = Math.floor(n * trainFrac);
+  const valEnd = Math.floor(n * (trainFrac + valFrac));
+  return {
+    trainIdx: indices.slice(0, trainEnd),
+    valIdx: indices.slice(trainEnd, valEnd),
+    testIdx: indices.slice(valEnd),
+  };
+}
+function checkNoLeakage(trainIdx, valIdx, testIdx) {
+  const trainSet = new Set(trainIdx);
+  const valSet = new Set(valIdx);
+  const testSet = new Set(testIdx);
+  for (const x of trainIdx) if (valSet.has(x) || testSet.has(x)) return false;
+  for (const x of valIdx) if (testSet.has(x)) return false;
+  return true;
+}
+function splitPipeline(dataset, trainFrac, valFrac, seed) {
+  const indices = [];
+  for (let i = 0; i < dataset.length; i++) indices.push(i);
+  const shuffled = shuffleIndices(indices, seed);
+  const split = splitDataset(shuffled, trainFrac, valFrac);
+  // TODO: add leakage check and map indices back to examples
+  return { train: [], val: [], test: [], noLeakage: false };
+}`,
+    testCode: `const results = [];
+function same(a, b) { return JSON.stringify(a) === JSON.stringify(b); }
+function check(name, actual, expected) {
+  const passed = typeof expected === 'object' ? same(actual, expected) : Object.is(actual, expected);
+  results.push({ name, actual: JSON.stringify(actual), expected: JSON.stringify(expected), passed });
+}
+const out = splitPipeline(['a', 'b', 'c', 'd', 'e'], 0.6, 0.2, 42);
+check('train values', out.train, ['e', 'c', 'a']);
+check('val values', out.val, ['b']);
+check('test values', out.test, ['d']);
+check('no leakage', out.noLeakage, true);
+return results;`,
+    hints: ['const noLeakage = checkNoLeakage(split.trainIdx, split.valIdx, split.testIdx);'],
+    solution: `function shuffleIndices(arr, seed) {
+  let r = seed || 42;
+  function random() {
+    const x = Math.sin(r++) * 10000;
+    return x - Math.floor(x);
+  }
+  const shuffled = [...arr];
+  for (let i = shuffled.length - 1; i > 0; i--) {
+    const j = Math.floor(random() * (i + 1));
+    const t = shuffled[i];
+    shuffled[i] = shuffled[j];
+    shuffled[j] = t;
+  }
+  return shuffled;
+}
+function splitDataset(indices, trainFrac, valFrac) {
+  const n = indices.length;
+  const trainEnd = Math.floor(n * trainFrac);
+  const valEnd = Math.floor(n * (trainFrac + valFrac));
+  return {
+    trainIdx: indices.slice(0, trainEnd),
+    valIdx: indices.slice(trainEnd, valEnd),
+    testIdx: indices.slice(valEnd),
+  };
+}
+function checkNoLeakage(trainIdx, valIdx, testIdx) {
+  const trainSet = new Set(trainIdx);
+  const valSet = new Set(valIdx);
+  const testSet = new Set(testIdx);
+  for (const x of trainIdx) if (valSet.has(x) || testSet.has(x)) return false;
+  for (const x of valIdx) if (testSet.has(x)) return false;
+  return true;
+}
+function splitPipeline(dataset, trainFrac, valFrac, seed) {
+  const indices = [];
+  for (let i = 0; i < dataset.length; i++) indices.push(i);
+  const shuffled = shuffleIndices(indices, seed);
+  const split = splitDataset(shuffled, trainFrac, valFrac);
+  const noLeakage = checkNoLeakage(split.trainIdx, split.valIdx, split.testIdx);
+  return {
+    train: split.trainIdx.map((i) => dataset[i]),
+    val: split.valIdx.map((i) => dataset[i]),
+    test: split.testIdx.map((i) => dataset[i]),
+    noLeakage,
+  };
+}`,
+    explanation: 'This mirrors a production-ready split utility flow for reproducible experiments.',
   },
 
   // --- cross-validation ---
@@ -478,280 +609,826 @@ return results;`,
   },
   // --- feature-scaling-preprocessing ---
   {
-    id: 'scaling-mean-std',
+    id: 'scale-mean-std',
     stepLabel: '42.1',
-    group: 'Mean',
-    title: 'Mean and Standard Deviation Calculation',
-    concept: 'Scaling techniques require computing column-wise statistics, specifically sample mean and standard deviation.',
-    objective: 'Compute mean and standard deviation of a 1D numeric array.',
+    group: 'Feature scaling pipeline',
+    title: 'Standardization stats',
+    concept: 'Standardization needs mean and standard deviation from the feature array.',
+    objective: 'Compute mean and std.',
     difficulty: 'warmup',
-    starterCode: `function getMeanAndStd(arr) {
-  // TODO: compute mean and standard deviation
-  let mean = 0;
-  let std = 1;
-  
+    starterCode: `function scaleFeatures(arr, method) {
+  let sum = 0;
+  for (let i = 0; i < arr.length; i++) sum += arr[i];
+  const mean = sum / arr.length;
+  let varSum = 0;
+  for (let i = 0; i < arr.length; i++) {
+    // TODO: accumulate squared difference
+    varSum += 0;
+  }
+  const std = Math.sqrt(varSum / arr.length);
   return { mean, std };
 }`,
     testCode: `const results = [];
-function approxEqual(a, b, tol = 1e-5) { return Math.abs(a - b) <= tol; }
+function approxEqual(a, b, tol = 1e-6) { return Math.abs(a - b) <= tol; }
 function check(name, actual, expected) {
   results.push({ name, actual, expected, passed: approxEqual(actual, expected) });
 }
-const res = getMeanAndStd([2, 4, 4, 4, 5, 5, 7, 9]);
-check('mean', res.mean, 5);
-check('std', res.std, 2);
+const out = scaleFeatures([10, 20, 30], 'standardize');
+check('mean', out.mean, 20);
+check('std', out.std, 8.1649658);
 return results;`,
-    hints: [
-      'mean is sum of values divided by count.',
-      'std is Math.sqrt(sum((x - mean)^2) / count).',
-    ],
-    solution: `function getMeanAndStd(arr) {
-  const n = arr.length;
+    hints: ['varSum += Math.pow(arr[i] - mean, 2);'],
+    solution: `function scaleFeatures(arr, method) {
   let sum = 0;
-  for (let i = 0; i < n; i++) {
-    sum += arr[i];
-  }
-  const mean = sum / n;
-  
+  for (let i = 0; i < arr.length; i++) sum += arr[i];
+  const mean = sum / arr.length;
   let varSum = 0;
-  for (let i = 0; i < n; i++) {
+  for (let i = 0; i < arr.length; i++) {
     varSum += Math.pow(arr[i] - mean, 2);
   }
-  const std = Math.sqrt(varSum / n);
-  
+  const std = Math.sqrt(varSum / arr.length);
   return { mean, std };
 }`,
-    explanation: 'Mean and standard deviation quantify the central tendency and spread of feature scales.',
+    explanation: 'Statistical moments define the normalization transform.',
   },
   {
-    id: 'scaling-standardize',
+    id: 'scale-standardize',
     stepLabel: '42.2',
-    group: 'Transform',
-    title: 'Standardization',
-    concept: 'Standardization (Z-score normalization) scales features to have a mean of 0 and standard deviation of 1: z = (x - mean) / std.',
-    objective: 'Standardize a numeric vector using given mean and std.',
-    difficulty: 'core',
-    starterCode: `function standardizeVector(arr, mean, std) {
-  // TODO: apply Z-score normalization to each element
-  // Handle case where std is 0 by returning unchanged values
-  return arr;
-}`,
-    testCode: `const results = [];
-function sameArr(a, b, tol = 1e-5) {
-  return a.every((v, i) => Math.abs(v - b[i]) <= tol);
-}
-function check(name, actual, expected) {
-  results.push({ name, actual: JSON.stringify(actual), expected: JSON.stringify(expected), passed: sameArr(actual, expected) });
-}
-check('standardize simple', standardizeVector([10, 20, 30], 20, 10), [-1, 0, 1]);
-return results;`,
-    hints: [
-      'If std is 0, return arr.',
-      'Use arr.map(x => (x - mean) / std).',
-    ],
-    solution: `function standardizeVector(arr, mean, std) {
-  if (std === 0) return arr;
-  return arr.map(x => (x - mean) / std);
-}`,
-    explanation: 'Standardization is robust to outliers and crucial for distance-based estimators like SVM or kNN.',
-  },
-  {
-    id: 'scaling-minmax',
-    stepLabel: '42.3',
-    group: 'Transform',
-    title: 'Min-Max Scaling',
-    concept: 'Min-Max scaling normalizes data to a fixed range, typically [0, 1]: x_scaled = (x - min) / (max - min).',
-    objective: 'Apply Min-Max scaling to a numeric vector.',
-    difficulty: 'core',
-    starterCode: `function minMaxScale(arr) {
-  let min = arr[0];
-  let max = arr[0];
-  for (let i = 1; i < arr.length; i++) {
-    if (arr[i] < min) min = arr[i];
-    if (arr[i] > max) max = arr[i];
-  }
-  
-  // TODO: Apply Min-Max scaling to each element. 
-  // Handle case where min equals max by returning all zeros.
-  return arr;
-}`,
-    testCode: `const results = [];
-function sameArr(a, b, tol = 1e-5) {
-  return a.every((v, i) => Math.abs(v - b[i]) <= tol);
-}
-function check(name, actual, expected) {
-  results.push({ name, actual: JSON.stringify(actual), expected: JSON.stringify(expected), passed: sameArr(actual, expected) });
-}
-check('min-max scale', minMaxScale([5, 10, 15, 20]), [0, 0.333333, 0.666667, 1]);
-return results;`,
-    hints: [
-      'Denominator is max - min.',
-      'If max === min, return an array of 0s of the same length.',
-      'Otherwise, map x to (x - min) / (max - min).',
-    ],
-    solution: `function minMaxScale(arr) {
-  let min = arr[0];
-  let max = arr[0];
-  for (let i = 1; i < arr.length; i++) {
-    if (arr[i] < min) min = arr[i];
-    if (arr[i] > max) max = arr[i];
-  }
-  
-  const range = max - min;
-  if (range === 0) {
-    return arr.map(() => 0);
-  }
-  return arr.map(x => (x - min) / range);
-}`,
-    explanation: 'Min-Max scaling preserves structural zeros and works well for algorithms that expect bounded inputs (like neural networks).',
-  },
-
-  // --- k-means ---
-  {
-    id: 'kmeans-distance',
-    stepLabel: '43.1',
-    group: 'Distance to centroid',
-    title: 'Euclidean Distance',
-    concept: 'K-Means groups points by assigning them to the closest centroid based on distance metrics.',
-    objective: 'Compute the Euclidean distance between two coordinate arrays.',
+    group: 'Feature scaling pipeline',
+    title: 'Standardize values',
+    concept: 'Standardization centers values and scales by spread.',
+    objective: 'Return arr mapped to (x - mean) / std.',
     difficulty: 'warmup',
-    starterCode: `function euclideanDistance(p1, p2) {
-  // TODO: compute sqrt(sum((p1[i] - p2[i])^2))
-  return 0;
+    starterCode: `function scaleFeatures(arr, method) {
+  let sum = 0;
+  for (let i = 0; i < arr.length; i++) sum += arr[i];
+  const mean = sum / arr.length;
+  let varSum = 0;
+  for (let i = 0; i < arr.length; i++) varSum += Math.pow(arr[i] - mean, 2);
+  let std = Math.sqrt(varSum / arr.length);
+  if (std === 0) std = 1;
+  if (method === 'standardize') {
+    // TODO: return standardized values
+    return arr;
+  }
+  return [];
 }`,
     testCode: `const results = [];
-function approxEqual(a, b, tol = 1e-5) { return Math.abs(a - b) <= tol; }
+function same(a, b, tol = 1e-6) { return a.length === b.length && a.every((v, i) => Math.abs(v - b[i]) <= tol); }
 function check(name, actual, expected) {
-  results.push({ name, actual, expected, passed: approxEqual(actual, expected) });
+  results.push({ name, actual: JSON.stringify(actual), expected: JSON.stringify(expected), passed: same(actual, expected) });
 }
-check('distance 2D', euclideanDistance([0, 0], [3, 4]), 5);
+check('standardized', scaleFeatures([10, 20, 30], 'standardize'), [-1.224745, 0, 1.224745]);
 return results;`,
-    hints: [
-      'Iterate through coordinates from 0 to p1.length - 1.',
-      'Sum up the squared differences.',
-      'Return Math.sqrt(sum).',
-    ],
-    solution: `function euclideanDistance(p1, p2) {
+    hints: ['return arr.map((x) => (x - mean) / std);'],
+    solution: `function scaleFeatures(arr, method) {
   let sum = 0;
-  for (let i = 0; i < p1.length; i++) {
-    sum += Math.pow(p1[i] - p2[i], 2);
+  for (let i = 0; i < arr.length; i++) sum += arr[i];
+  const mean = sum / arr.length;
+  let varSum = 0;
+  for (let i = 0; i < arr.length; i++) varSum += Math.pow(arr[i] - mean, 2);
+  let std = Math.sqrt(varSum / arr.length);
+  if (std === 0) std = 1;
+  if (method === 'standardize') {
+    return arr.map((x) => (x - mean) / std);
   }
-  return Math.sqrt(sum);
+  return [];
 }`,
-    explanation: 'Euclidean distance is the canonical similarity metric used to define cluster boundaries in spherical spaces.',
+    explanation: 'Z-scores make each feature dimension comparable.',
   },
   {
-    id: 'kmeans-assign',
-    stepLabel: '43.2',
-    group: 'Assignment',
-    title: 'Cluster Assignment',
-    concept: 'Each data point is mapped to the cluster index representing its nearest centroid.',
-    objective: 'Given a point and list of centroids, return the index of the closest centroid.',
-    difficulty: 'core',
-    starterCode: `function assignPointToCentroid(point, centroids) {
-  function dist(p1, p2) {
-    let s = 0;
-    for (let i = 0; i < p1.length; i++) s += Math.pow(p1[i] - p2[i], 2);
-    return Math.sqrt(s);
+    id: 'scale-minmax-bounds',
+    stepLabel: '42.3',
+    group: 'Feature scaling pipeline',
+    title: 'Min-max bounds',
+    concept: 'Min-max scaling needs feature minimum and maximum.',
+    objective: 'Compute min and max by scanning arr.',
+    difficulty: 'warmup',
+    starterCode: `function scaleFeatures(arr, method) {
+  let min = arr[0];
+  let max = arr[0];
+  for (let i = 1; i < arr.length; i++) {
+    // TODO: update min and max
   }
-  
-  let minIdx = 0;
-  let minDistance = Infinity;
-  
-  // TODO: Iterate over centroids, compute distance, and track the index of the minimum distance.
-  
-  return minIdx;
+  return { min, max };
 }`,
     testCode: `const results = [];
 function check(name, actual, expected) {
   results.push({ name, actual, expected, passed: Object.is(actual, expected) });
 }
-const centroids = [[1, 1], [5, 5], [10, 10]];
-check('closer to centroid 0', assignPointToCentroid([1.5, 2], centroids), 0);
-check('closer to centroid 1', assignPointToCentroid([4, 6], centroids), 1);
+const out = scaleFeatures([5, 10, 2, 7], 'minmax');
+check('min', out.min, 2);
+check('max', out.max, 10);
 return results;`,
-    hints: [
-      'Loop i from 0 to centroids.length - 1.',
-      'Calculate distance d using dist(point, centroids[i]).',
-      'If d < minDistance, update minDistance and set minIdx = i.',
-    ],
-    solution: `function assignPointToCentroid(point, centroids) {
-  function dist(p1, p2) {
-    let s = 0;
-    for (let i = 0; i < p1.length; i++) s += Math.pow(p1[i] - p2[i], 2);
-    return Math.sqrt(s);
+    hints: ['if (arr[i] < min) min = arr[i]; if (arr[i] > max) max = arr[i];'],
+    solution: `function scaleFeatures(arr, method) {
+  let min = arr[0];
+  let max = arr[0];
+  for (let i = 1; i < arr.length; i++) {
+    if (arr[i] < min) min = arr[i];
+    if (arr[i] > max) max = arr[i];
   }
-  
-  let minIdx = 0;
-  let minDistance = Infinity;
-  
-  for (let i = 0; i < centroids.length; i++) {
-    const d = dist(point, centroids[i]);
-    if (d < minDistance) {
-      minDistance = d;
-      minIdx = i;
-    }
-  }
-  
-  return minIdx;
+  return { min, max };
 }`,
-    explanation: 'Assigning points to the nearest centroid minimizes intra-cluster variance.',
+    explanation: 'Bounded transforms rely on range endpoints.',
   },
   {
-    id: 'kmeans-update-centroids',
-    stepLabel: '43.3',
-    group: 'Mean update',
-    title: 'Centroid Position Updates',
-    concept: 'Centroids move to the center (mean) of all points currently assigned to their cluster.',
-    objective: 'Recompute centroids by averaging coordinates of assigned points.',
+    id: 'scale-minmax-transform',
+    stepLabel: '42.4',
+    group: 'Feature scaling pipeline',
+    title: 'Min-max transform',
+    concept: 'Min-max maps values into [0, 1] by range normalization.',
+    objective: 'Implement min-max scaling branch.',
     difficulty: 'core',
-    starterCode: `function updateCentroids(points, labels, k, dim) {
-  const newCentroids = Array(k).fill(null).map(() => Array(dim).fill(0));
-  const counts = Array(k).fill(0);
-  
-  // TODO: Sum coordinate values for each cluster label, and track point counts.
-  // Then divide each coordinate sum by cluster count. If count is 0, leave centroid at [0,0...].
-  
-  return newCentroids;
+    starterCode: `function scaleFeatures(arr, method) {
+  let min = arr[0];
+  let max = arr[0];
+  for (let i = 1; i < arr.length; i++) {
+    if (arr[i] < min) min = arr[i];
+    if (arr[i] > max) max = arr[i];
+  }
+  if (method === 'minmax') {
+    const range = max - min;
+    // TODO: range=0 => all zeros, else normalized values
+    return arr;
+  }
+  return [];
 }`,
     testCode: `const results = [];
-function sameCentroids(a, b) { return JSON.stringify(a) === JSON.stringify(b); }
+function same(a, b, tol = 1e-6) { return a.length === b.length && a.every((v, i) => Math.abs(v - b[i]) <= tol); }
 function check(name, actual, expected) {
-  results.push({ name, actual: JSON.stringify(actual), expected: JSON.stringify(expected), passed: sameCentroids(actual, expected) });
+  results.push({ name, actual: JSON.stringify(actual), expected: JSON.stringify(expected), passed: same(actual, expected) });
 }
-const pts = [[1, 2], [2, 3], [5, 6]];
-const lbls = [0, 0, 1];
-check('update 2 centroids in 2D', updateCentroids(pts, lbls, 2, 2), [[1.5, 2.5], [5, 6]]);
+check('minmax', scaleFeatures([5, 10, 15, 20], 'minmax'), [0, 0.333333, 0.666667, 1]);
 return results;`,
-    hints: [
-      'Iterate through all points. Let label = labels[i].',
-      'For each coordinate d from 0 to dim-1, add points[i][d] to newCentroids[label][d].',
-      'Increment counts[label].',
-      'After looping, for each cluster j, divide its coordinates by counts[j] (if counts[j] > 0).',
-    ],
-    solution: `function updateCentroids(points, labels, k, dim) {
-  const newCentroids = Array(k).fill(null).map(() => Array(dim).fill(0));
-  const counts = Array(k).fill(0);
-  
-  for (let i = 0; i < points.length; i++) {
-    const label = labels[i];
-    counts[label]++;
-    for (let d = 0; d < dim; d++) {
-      newCentroids[label][d] += points[i][d];
-    }
+    hints: ['if (range === 0) return arr.map(() => 0); return arr.map((x) => (x - min) / range);'],
+    solution: `function scaleFeatures(arr, method) {
+  let min = arr[0];
+  let max = arr[0];
+  for (let i = 1; i < arr.length; i++) {
+    if (arr[i] < min) min = arr[i];
+    if (arr[i] > max) max = arr[i];
   }
-  
-  for (let j = 0; j < k; j++) {
-    if (counts[j] > 0) {
-      for (let d = 0; d < dim; d++) {
-        newCentroids[j][d] /= counts[j];
-      }
-    }
+  if (method === 'minmax') {
+    const range = max - min;
+    if (range === 0) return arr.map(() => 0);
+    return arr.map((x) => (x - min) / range);
   }
-  
-  return newCentroids;
+  return [];
 }`,
-    explanation: 'Updating centroids to the mean of cluster members iteratively reduces the total within-cluster sum of squares (inertia).',
+    explanation: 'Range scaling is common for bounded-input models.',
+  },
+  {
+    id: 'scale-method-dispatch',
+    stepLabel: '42.5',
+    group: 'Feature scaling pipeline',
+    title: 'Method dispatch',
+    concept: 'A single utility can dispatch scaling based on method string.',
+    objective: 'Handle standardize and minmax branches.',
+    difficulty: 'core',
+    starterCode: `function scaleFeatures(arr, method) {
+  let sum = 0;
+  for (let i = 0; i < arr.length; i++) sum += arr[i];
+  const mean = sum / arr.length;
+  let varSum = 0;
+  for (let i = 0; i < arr.length; i++) varSum += Math.pow(arr[i] - mean, 2);
+  let std = Math.sqrt(varSum / arr.length);
+  if (std === 0) std = 1;
+  let min = arr[0];
+  let max = arr[0];
+  for (let i = 1; i < arr.length; i++) {
+    if (arr[i] < min) min = arr[i];
+    if (arr[i] > max) max = arr[i];
+  }
+  const range = max - min;
+  if (method === 'standardize') return arr.map((x) => (x - mean) / std);
+  if (method === 'minmax') return range === 0 ? arr.map(() => 0) : arr.map((x) => (x - min) / range);
+  // TODO: unknown method fallback
+  return arr;
+}`,
+    testCode: `const results = [];
+function same(a, b, tol = 1e-6) { return a.length === b.length && a.every((v, i) => Math.abs(v - b[i]) <= tol); }
+function check(name, actual, expected) {
+  results.push({ name, actual: JSON.stringify(actual), expected: JSON.stringify(expected), passed: same(actual, expected) });
+}
+check('unknown unchanged', scaleFeatures([1, 2, 3], 'noop'), [1, 2, 3]);
+check('minmax branch', scaleFeatures([1, 2, 3], 'minmax'), [0, 0.5, 1]);
+return results;`,
+    hints: ['return [...arr];'],
+    solution: `function scaleFeatures(arr, method) {
+  let sum = 0;
+  for (let i = 0; i < arr.length; i++) sum += arr[i];
+  const mean = sum / arr.length;
+  let varSum = 0;
+  for (let i = 0; i < arr.length; i++) varSum += Math.pow(arr[i] - mean, 2);
+  let std = Math.sqrt(varSum / arr.length);
+  if (std === 0) std = 1;
+  let min = arr[0];
+  let max = arr[0];
+  for (let i = 1; i < arr.length; i++) {
+    if (arr[i] < min) min = arr[i];
+    if (arr[i] > max) max = arr[i];
+  }
+  const range = max - min;
+  if (method === 'standardize') return arr.map((x) => (x - mean) / std);
+  if (method === 'minmax') return range === 0 ? arr.map(() => 0) : arr.map((x) => (x - min) / range);
+  return [...arr];
+}`,
+    explanation: 'Dispatch centralizes scaling behavior behind one API.',
+  },
+  {
+    id: 'scale-features-full',
+    stepLabel: '42.6',
+    group: 'Feature scaling pipeline',
+    title: 'Complete scaling pipeline',
+    concept: 'A robust scaler handles empty arrays and both scaling methods.',
+    objective: 'Return [] for empty input and apply chosen scaling strategy.',
+    difficulty: 'challenge',
+    starterCode: `function scaleFeatures(arr, method) {
+  // TODO: guard empty input
+  let sum = 0;
+  for (let i = 0; i < arr.length; i++) sum += arr[i];
+  const mean = sum / arr.length;
+  let varSum = 0;
+  for (let i = 0; i < arr.length; i++) varSum += Math.pow(arr[i] - mean, 2);
+  let std = Math.sqrt(varSum / arr.length);
+  if (std === 0) std = 1;
+  let min = arr[0];
+  let max = arr[0];
+  for (let i = 1; i < arr.length; i++) {
+    if (arr[i] < min) min = arr[i];
+    if (arr[i] > max) max = arr[i];
+  }
+  const range = max - min;
+  if (method === 'standardize') return arr.map((x) => (x - mean) / std);
+  if (method === 'minmax') return range === 0 ? arr.map(() => 0) : arr.map((x) => (x - min) / range);
+  return [...arr];
+}`,
+    testCode: `const results = [];
+function same(a, b, tol = 1e-6) { return a.length === b.length && a.every((v, i) => Math.abs(v - b[i]) <= tol); }
+function check(name, actual, expected) {
+  results.push({ name, actual: JSON.stringify(actual), expected: JSON.stringify(expected), passed: same(actual, expected) });
+}
+check('empty', scaleFeatures([], 'standardize'), []);
+check('standardize', scaleFeatures([10, 20, 30], 'standardize'), [-1.224745, 0, 1.224745]);
+check('minmax', scaleFeatures([5, 10, 15], 'minmax'), [0, 0.5, 1]);
+return results;`,
+    hints: ['if (arr.length === 0) return [];'],
+    solution: `function scaleFeatures(arr, method) {
+  if (arr.length === 0) return [];
+  let sum = 0;
+  for (let i = 0; i < arr.length; i++) sum += arr[i];
+  const mean = sum / arr.length;
+  let varSum = 0;
+  for (let i = 0; i < arr.length; i++) varSum += Math.pow(arr[i] - mean, 2);
+  let std = Math.sqrt(varSum / arr.length);
+  if (std === 0) std = 1;
+  let min = arr[0];
+  let max = arr[0];
+  for (let i = 1; i < arr.length; i++) {
+    if (arr[i] < min) min = arr[i];
+    if (arr[i] > max) max = arr[i];
+  }
+  const range = max - min;
+  if (method === 'standardize') return arr.map((x) => (x - mean) / std);
+  if (method === 'minmax') return range === 0 ? arr.map(() => 0) : arr.map((x) => (x - min) / range);
+  return [...arr];
+}`,
+    explanation: 'Complete preprocessing functions need predictable edge-case behavior.',
+  },
+
+  // --- k-means ---
+  {
+    id: 'kmeans-nearest-centroid',
+    stepLabel: '43.1',
+    group: 'K-means iteration',
+    title: 'Nearest centroid index',
+    concept: 'Each point is assigned to the nearest centroid.',
+    objective: 'Return nearest centroid index for one point.',
+    difficulty: 'warmup',
+    starterCode: `function nearestCentroid(point, centroids) {
+  let best = 0;
+  let bestDist = Infinity;
+  for (let c = 0; c < centroids.length; c++) {
+    let d2 = 0;
+    for (let j = 0; j < point.length; j++) {
+      const diff = point[j] - centroids[c][j];
+      d2 += diff * diff;
+    }
+    // TODO: update best/bestDist
+  }
+  return best;
+}`,
+    testCode: `const results = [];
+function check(name, actual, expected) {
+  results.push({ name, actual, expected, passed: Object.is(actual, expected) });
+}
+check('nearest 0', nearestCentroid([1, 2], [[0, 0], [10, 10]]), 0);
+check('nearest 1', nearestCentroid([9, 9], [[0, 0], [10, 10]]), 1);
+return results;`,
+    hints: ['if (d2 < bestDist) { bestDist = d2; best = c; }'],
+    solution: `function nearestCentroid(point, centroids) {
+  let best = 0;
+  let bestDist = Infinity;
+  for (let c = 0; c < centroids.length; c++) {
+    let d2 = 0;
+    for (let j = 0; j < point.length; j++) {
+      const diff = point[j] - centroids[c][j];
+      d2 += diff * diff;
+    }
+    if (d2 < bestDist) {
+      bestDist = d2;
+      best = c;
+    }
+  }
+  return best;
+}`,
+    explanation: 'Label assignment is the first half of each K-means iteration.',
+  },
+  {
+    id: 'kmeans-labels-loop',
+    stepLabel: '43.2',
+    group: 'K-means iteration',
+    title: 'Assign all labels',
+    concept: 'K-means assigns every point to a closest centroid index.',
+    objective: 'Fill labels array by calling nearestCentroid.',
+    difficulty: 'warmup',
+    starterCode: `function nearestCentroid(point, centroids) {
+  let best = 0;
+  let bestDist = Infinity;
+  for (let c = 0; c < centroids.length; c++) {
+    let d2 = 0;
+    for (let j = 0; j < point.length; j++) {
+      const diff = point[j] - centroids[c][j];
+      d2 += diff * diff;
+    }
+    if (d2 < bestDist) { bestDist = d2; best = c; }
+  }
+  return best;
+}
+function kmeansStep(points, centroids) {
+  const labels = [];
+  for (let i = 0; i < points.length; i++) {
+    // TODO: push nearest centroid for points[i]
+  }
+  return { labels, newCentroids: [], inertia: 0 };
+}`,
+    testCode: `const results = [];
+function same(a, b) { return JSON.stringify(a) === JSON.stringify(b); }
+function check(name, actual, expected) {
+  results.push({ name, actual: JSON.stringify(actual), expected: JSON.stringify(expected), passed: same(actual, expected) });
+}
+const out = kmeansStep([[0, 0], [10, 10], [9, 8]], [[0, 0], [10, 10]]);
+check('labels', out.labels, [0, 1, 1]);
+return results;`,
+    hints: ['labels.push(nearestCentroid(points[i], centroids));'],
+    solution: `function nearestCentroid(point, centroids) {
+  let best = 0;
+  let bestDist = Infinity;
+  for (let c = 0; c < centroids.length; c++) {
+    let d2 = 0;
+    for (let j = 0; j < point.length; j++) {
+      const diff = point[j] - centroids[c][j];
+      d2 += diff * diff;
+    }
+    if (d2 < bestDist) { bestDist = d2; best = c; }
+  }
+  return best;
+}
+function kmeansStep(points, centroids) {
+  const labels = [];
+  for (let i = 0; i < points.length; i++) {
+    labels.push(nearestCentroid(points[i], centroids));
+  }
+  return { labels, newCentroids: [], inertia: 0 };
+}`,
+    explanation: 'Label vectors capture cluster membership for update phase.',
+  },
+  {
+    id: 'kmeans-centroid-sums',
+    stepLabel: '43.3',
+    group: 'K-means iteration',
+    title: 'Accumulate centroid sums',
+    concept: 'Centroid updates average points assigned to each cluster.',
+    objective: 'Accumulate sums and counts by label.',
+    difficulty: 'core',
+    starterCode: `function kmeansStep(points, centroids) {
+  const k = centroids.length;
+  const dim = centroids[0].length;
+  const labels = [];
+  for (let i = 0; i < points.length; i++) {
+    let best = 0;
+    let bestDist = Infinity;
+    for (let c = 0; c < k; c++) {
+      let d2 = 0;
+      for (let j = 0; j < dim; j++) d2 += (points[i][j] - centroids[c][j]) ** 2;
+      if (d2 < bestDist) { bestDist = d2; best = c; }
+    }
+    labels.push(best);
+  }
+  const sums = Array(k).fill(null).map(() => Array(dim).fill(0));
+  const counts = Array(k).fill(0);
+  for (let i = 0; i < points.length; i++) {
+    const c = labels[i];
+    // TODO: update counts and coordinate sums
+  }
+  return { sums, counts };
+}`,
+    testCode: `const results = [];
+function same(a, b) { return JSON.stringify(a) === JSON.stringify(b); }
+function check(name, actual, expected) {
+  results.push({ name, actual: JSON.stringify(actual), expected: JSON.stringify(expected), passed: same(actual, expected) });
+}
+const out = kmeansStep([[0, 0], [2, 2], [10, 10]], [[0, 0], [10, 10]]);
+check('counts', out.counts, [2, 1]);
+check('sums', out.sums, [[2, 2], [10, 10]]);
+return results;`,
+    hints: ['counts[c]++;', 'sums[c][j] += points[i][j];'],
+    solution: `function kmeansStep(points, centroids) {
+  const k = centroids.length;
+  const dim = centroids[0].length;
+  const labels = [];
+  for (let i = 0; i < points.length; i++) {
+    let best = 0;
+    let bestDist = Infinity;
+    for (let c = 0; c < k; c++) {
+      let d2 = 0;
+      for (let j = 0; j < dim; j++) d2 += (points[i][j] - centroids[c][j]) ** 2;
+      if (d2 < bestDist) { bestDist = d2; best = c; }
+    }
+    labels.push(best);
+  }
+  const sums = Array(k).fill(null).map(() => Array(dim).fill(0));
+  const counts = Array(k).fill(0);
+  for (let i = 0; i < points.length; i++) {
+    const c = labels[i];
+    counts[c]++;
+    for (let j = 0; j < dim; j++) sums[c][j] += points[i][j];
+  }
+  return { sums, counts };
+}`,
+    explanation: 'Cluster means are computed from per-cluster coordinate sums.',
+  },
+  {
+    id: 'kmeans-new-centroids',
+    stepLabel: '43.4',
+    group: 'K-means iteration',
+    title: 'Compute centroid means',
+    concept: 'Each centroid becomes the arithmetic mean of assigned points.',
+    objective: 'Build newCentroids from sums/counts with empty-cluster fallback.',
+    difficulty: 'core',
+    starterCode: `function kmeansStep(points, centroids) {
+  const k = centroids.length;
+  const dim = centroids[0].length;
+  const labels = points.map((p) => {
+    let best = 0;
+    let bestDist = Infinity;
+    for (let c = 0; c < k; c++) {
+      let d2 = 0;
+      for (let j = 0; j < dim; j++) d2 += (p[j] - centroids[c][j]) ** 2;
+      if (d2 < bestDist) { bestDist = d2; best = c; }
+    }
+    return best;
+  });
+  const sums = Array(k).fill(null).map(() => Array(dim).fill(0));
+  const counts = Array(k).fill(0);
+  for (let i = 0; i < points.length; i++) {
+    const c = labels[i];
+    counts[c]++;
+    for (let j = 0; j < dim; j++) sums[c][j] += points[i][j];
+  }
+  const newCentroids = Array(k).fill(null).map(() => Array(dim).fill(0));
+  for (let c = 0; c < k; c++) {
+    // TODO: divide sums by count, else keep previous centroid
+  }
+  return { labels, newCentroids, inertia: 0 };
+}`,
+    testCode: `const results = [];
+function same(a, b) { return JSON.stringify(a) === JSON.stringify(b); }
+function check(name, actual, expected) {
+  results.push({ name, actual: JSON.stringify(actual), expected: JSON.stringify(expected), passed: same(actual, expected) });
+}
+const out = kmeansStep([[0, 0], [2, 2], [10, 10]], [[0, 0], [10, 10]]);
+check('new centroids', out.newCentroids, [[1, 1], [10, 10]]);
+return results;`,
+    hints: ['newCentroids[c][j] = counts[c] === 0 ? centroids[c][j] : sums[c][j] / counts[c];'],
+    solution: `function kmeansStep(points, centroids) {
+  const k = centroids.length;
+  const dim = centroids[0].length;
+  const labels = points.map((p) => {
+    let best = 0;
+    let bestDist = Infinity;
+    for (let c = 0; c < k; c++) {
+      let d2 = 0;
+      for (let j = 0; j < dim; j++) d2 += (p[j] - centroids[c][j]) ** 2;
+      if (d2 < bestDist) { bestDist = d2; best = c; }
+    }
+    return best;
+  });
+  const sums = Array(k).fill(null).map(() => Array(dim).fill(0));
+  const counts = Array(k).fill(0);
+  for (let i = 0; i < points.length; i++) {
+    const c = labels[i];
+    counts[c]++;
+    for (let j = 0; j < dim; j++) sums[c][j] += points[i][j];
+  }
+  const newCentroids = Array(k).fill(null).map(() => Array(dim).fill(0));
+  for (let c = 0; c < k; c++) {
+    for (let j = 0; j < dim; j++) {
+      newCentroids[c][j] = counts[c] === 0 ? centroids[c][j] : sums[c][j] / counts[c];
+    }
+  }
+  return { labels, newCentroids, inertia: 0 };
+}`,
+    explanation: 'Empty clusters are usually stabilized by preserving previous centroid positions.',
+  },
+  {
+    id: 'kmeans-inertia',
+    stepLabel: '43.5',
+    group: 'K-means iteration',
+    title: 'Compute inertia',
+    concept: 'Inertia is the total within-cluster squared distance.',
+    objective: 'Accumulate squared distance to assigned updated centroids.',
+    difficulty: 'core',
+    starterCode: `function kmeansStep(points, centroids) {
+  const k = centroids.length;
+  const dim = centroids[0].length;
+  const labels = points.map((p) => {
+    let best = 0;
+    let bestDist = Infinity;
+    for (let c = 0; c < k; c++) {
+      let d2 = 0;
+      for (let j = 0; j < dim; j++) d2 += (p[j] - centroids[c][j]) ** 2;
+      if (d2 < bestDist) { bestDist = d2; best = c; }
+    }
+    return best;
+  });
+  const sums = Array(k).fill(null).map(() => Array(dim).fill(0));
+  const counts = Array(k).fill(0);
+  for (let i = 0; i < points.length; i++) {
+    const c = labels[i];
+    counts[c]++;
+    for (let j = 0; j < dim; j++) sums[c][j] += points[i][j];
+  }
+  const newCentroids = Array(k).fill(null).map(() => Array(dim).fill(0));
+  for (let c = 0; c < k; c++) {
+    for (let j = 0; j < dim; j++) {
+      newCentroids[c][j] = counts[c] === 0 ? centroids[c][j] : sums[c][j] / counts[c];
+    }
+  }
+  let inertia = 0;
+  for (let i = 0; i < points.length; i++) {
+    const c = labels[i];
+    // TODO: add squared distance to newCentroids[c]
+  }
+  return { labels, newCentroids, inertia };
+}`,
+    testCode: `const results = [];
+function approxEqual(a, b, tol = 1e-9) { return Math.abs(a - b) <= tol; }
+function check(name, actual, expected) {
+  results.push({ name, actual, expected, passed: approxEqual(actual, expected) });
+}
+const out = kmeansStep([[0, 0], [2, 2], [10, 10]], [[0, 0], [10, 10]]);
+check('inertia', out.inertia, 4);
+return results;`,
+    hints: ['let d2 = 0; for (...) d2 += (points[i][j] - newCentroids[c][j]) ** 2; inertia += d2;'],
+    solution: `function kmeansStep(points, centroids) {
+  const k = centroids.length;
+  const dim = centroids[0].length;
+  const labels = points.map((p) => {
+    let best = 0;
+    let bestDist = Infinity;
+    for (let c = 0; c < k; c++) {
+      let d2 = 0;
+      for (let j = 0; j < dim; j++) d2 += (p[j] - centroids[c][j]) ** 2;
+      if (d2 < bestDist) { bestDist = d2; best = c; }
+    }
+    return best;
+  });
+  const sums = Array(k).fill(null).map(() => Array(dim).fill(0));
+  const counts = Array(k).fill(0);
+  for (let i = 0; i < points.length; i++) {
+    const c = labels[i];
+    counts[c]++;
+    for (let j = 0; j < dim; j++) sums[c][j] += points[i][j];
+  }
+  const newCentroids = Array(k).fill(null).map(() => Array(dim).fill(0));
+  for (let c = 0; c < k; c++) {
+    for (let j = 0; j < dim; j++) {
+      newCentroids[c][j] = counts[c] === 0 ? centroids[c][j] : sums[c][j] / counts[c];
+    }
+  }
+  let inertia = 0;
+  for (let i = 0; i < points.length; i++) {
+    const c = labels[i];
+    let d2 = 0;
+    for (let j = 0; j < dim; j++) d2 += (points[i][j] - newCentroids[c][j]) ** 2;
+    inertia += d2;
+  }
+  return { labels, newCentroids, inertia };
+}`,
+    explanation: 'Inertia is the optimization target minimized by K-means.',
+  },
+  {
+    id: 'kmeans-step-full',
+    stepLabel: '43.6',
+    group: 'K-means iteration',
+    title: 'Full K-means step',
+    concept: 'A full step returns labels, centroid updates, and inertia.',
+    objective: 'Guard empty points and return {labels,newCentroids,inertia}.',
+    difficulty: 'challenge',
+    starterCode: `function kmeansStep(points, centroids) {
+  if (points.length === 0) {
+    // TODO: return empty labels, unchanged centroids, zero inertia
+  }
+  const k = centroids.length;
+  const dim = centroids[0].length;
+  const labels = points.map((p) => {
+    let best = 0;
+    let bestDist = Infinity;
+    for (let c = 0; c < k; c++) {
+      let d2 = 0;
+      for (let j = 0; j < dim; j++) d2 += (p[j] - centroids[c][j]) ** 2;
+      if (d2 < bestDist) { bestDist = d2; best = c; }
+    }
+    return best;
+  });
+  const sums = Array(k).fill(null).map(() => Array(dim).fill(0));
+  const counts = Array(k).fill(0);
+  for (let i = 0; i < points.length; i++) {
+    const c = labels[i];
+    counts[c]++;
+    for (let j = 0; j < dim; j++) sums[c][j] += points[i][j];
+  }
+  const newCentroids = Array(k).fill(null).map(() => Array(dim).fill(0));
+  for (let c = 0; c < k; c++) {
+    for (let j = 0; j < dim; j++) {
+      newCentroids[c][j] = counts[c] === 0 ? centroids[c][j] : sums[c][j] / counts[c];
+    }
+  }
+  let inertia = 0;
+  for (let i = 0; i < points.length; i++) {
+    const c = labels[i];
+    let d2 = 0;
+    for (let j = 0; j < dim; j++) d2 += (points[i][j] - newCentroids[c][j]) ** 2;
+    inertia += d2;
+  }
+  return { labels, newCentroids, inertia };
+}`,
+    testCode: `const results = [];
+function same(a, b) { return JSON.stringify(a) === JSON.stringify(b); }
+function approxEqual(a, b, tol = 1e-9) { return Math.abs(a - b) <= tol; }
+function check(name, actual, expected) {
+  const passed = typeof expected === 'number' ? approxEqual(actual, expected) : same(actual, expected);
+  results.push({ name, actual: JSON.stringify(actual), expected: JSON.stringify(expected), passed });
+}
+check('empty labels', kmeansStep([], [[1, 1]]).labels, []);
+check('empty centroids unchanged', kmeansStep([], [[1, 1]]).newCentroids, [[1, 1]]);
+check('empty inertia', kmeansStep([], [[1, 1]]).inertia, 0);
+const out = kmeansStep([[0, 0], [2, 2], [10, 10]], [[0, 0], [10, 10]]);
+check('labels full', out.labels, [0, 0, 1]);
+check('centroids full', out.newCentroids, [[1, 1], [10, 10]]);
+check('inertia full', out.inertia, 4);
+return results;`,
+    hints: ['return { labels: [], newCentroids: centroids.map((c) => [...c]), inertia: 0 };'],
+    solution: `function kmeansStep(points, centroids) {
+  if (points.length === 0) {
+    return { labels: [], newCentroids: centroids.map((c) => [...c]), inertia: 0 };
+  }
+  const k = centroids.length;
+  const dim = centroids[0].length;
+  const labels = points.map((p) => {
+    let best = 0;
+    let bestDist = Infinity;
+    for (let c = 0; c < k; c++) {
+      let d2 = 0;
+      for (let j = 0; j < dim; j++) d2 += (p[j] - centroids[c][j]) ** 2;
+      if (d2 < bestDist) { bestDist = d2; best = c; }
+    }
+    return best;
+  });
+  const sums = Array(k).fill(null).map(() => Array(dim).fill(0));
+  const counts = Array(k).fill(0);
+  for (let i = 0; i < points.length; i++) {
+    const c = labels[i];
+    counts[c]++;
+    for (let j = 0; j < dim; j++) sums[c][j] += points[i][j];
+  }
+  const newCentroids = Array(k).fill(null).map(() => Array(dim).fill(0));
+  for (let c = 0; c < k; c++) {
+    for (let j = 0; j < dim; j++) {
+      newCentroids[c][j] = counts[c] === 0 ? centroids[c][j] : sums[c][j] / counts[c];
+    }
+  }
+  let inertia = 0;
+  for (let i = 0; i < points.length; i++) {
+    const c = labels[i];
+    let d2 = 0;
+    for (let j = 0; j < dim; j++) d2 += (points[i][j] - newCentroids[c][j]) ** 2;
+    inertia += d2;
+  }
+  return { labels, newCentroids, inertia };
+}`,
+    explanation: 'This single step is the reusable core for iterative K-means fitting.',
+  },
+  {
+    id: 'kmeans-step-compact',
+    stepLabel: '43.7',
+    group: 'K-means iteration',
+    title: 'Compact step validation',
+    concept: 'Final checks ensure outputs stay shape-consistent across updates.',
+    objective: 'Return centroid count and inertia from kmeansStep output.',
+    difficulty: 'challenge',
+    starterCode: `function kmeansStep(points, centroids) {
+  if (points.length === 0) return { labels: [], newCentroids: centroids.map((c) => [...c]), inertia: 0 };
+  const k = centroids.length;
+  const dim = centroids[0].length;
+  const labels = points.map((p) => {
+    let best = 0;
+    let bestDist = Infinity;
+    for (let c = 0; c < k; c++) {
+      let d2 = 0;
+      for (let j = 0; j < dim; j++) d2 += (p[j] - centroids[c][j]) ** 2;
+      if (d2 < bestDist) { bestDist = d2; best = c; }
+    }
+    return best;
+  });
+  const sums = Array(k).fill(null).map(() => Array(dim).fill(0));
+  const counts = Array(k).fill(0);
+  for (let i = 0; i < points.length; i++) {
+    const c = labels[i];
+    counts[c]++;
+    for (let j = 0; j < dim; j++) sums[c][j] += points[i][j];
+  }
+  const newCentroids = Array(k).fill(null).map(() => Array(dim).fill(0));
+  for (let c = 0; c < k; c++) {
+    for (let j = 0; j < dim; j++) {
+      newCentroids[c][j] = counts[c] === 0 ? centroids[c][j] : sums[c][j] / counts[c];
+    }
+  }
+  let inertia = 0;
+  for (let i = 0; i < points.length; i++) {
+    const c = labels[i];
+    let d2 = 0;
+    for (let j = 0; j < dim; j++) d2 += (points[i][j] - newCentroids[c][j]) ** 2;
+    inertia += d2;
+  }
+  return { labels, newCentroids, inertia };
+}
+function kmeansSummary(points, centroids) {
+  const out = kmeansStep(points, centroids);
+  // TODO: return [number of centroids, inertia]
+  return [0, 0];
+}`,
+    testCode: `const results = [];
+function same(a, b) { return JSON.stringify(a) === JSON.stringify(b); }
+function check(name, actual, expected) {
+  results.push({ name, actual: JSON.stringify(actual), expected: JSON.stringify(expected), passed: same(actual, expected) });
+}
+check('summary', kmeansSummary([[0, 0], [2, 2], [10, 10]], [[0, 0], [10, 10]]), [2, 4]);
+return results;`,
+    hints: ['return [out.newCentroids.length, out.inertia];'],
+    solution: `function kmeansStep(points, centroids) {
+  if (points.length === 0) return { labels: [], newCentroids: centroids.map((c) => [...c]), inertia: 0 };
+  const k = centroids.length;
+  const dim = centroids[0].length;
+  const labels = points.map((p) => {
+    let best = 0;
+    let bestDist = Infinity;
+    for (let c = 0; c < k; c++) {
+      let d2 = 0;
+      for (let j = 0; j < dim; j++) d2 += (p[j] - centroids[c][j]) ** 2;
+      if (d2 < bestDist) { bestDist = d2; best = c; }
+    }
+    return best;
+  });
+  const sums = Array(k).fill(null).map(() => Array(dim).fill(0));
+  const counts = Array(k).fill(0);
+  for (let i = 0; i < points.length; i++) {
+    const c = labels[i];
+    counts[c]++;
+    for (let j = 0; j < dim; j++) sums[c][j] += points[i][j];
+  }
+  const newCentroids = Array(k).fill(null).map(() => Array(dim).fill(0));
+  for (let c = 0; c < k; c++) {
+    for (let j = 0; j < dim; j++) {
+      newCentroids[c][j] = counts[c] === 0 ? centroids[c][j] : sums[c][j] / counts[c];
+    }
+  }
+  let inertia = 0;
+  for (let i = 0; i < points.length; i++) {
+    const c = labels[i];
+    let d2 = 0;
+    for (let j = 0; j < dim; j++) d2 += (points[i][j] - newCentroids[c][j]) ** 2;
+    inertia += d2;
+  }
+  return { labels, newCentroids, inertia };
+}
+function kmeansSummary(points, centroids) {
+  const out = kmeansStep(points, centroids);
+  return [out.newCentroids.length, out.inertia];
+}`,
+    explanation: 'This validates stable output structure after one K-means iteration.',
   },
 
   // --- knn-naive-bayes-svm ---

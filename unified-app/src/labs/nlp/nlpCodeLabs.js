@@ -451,285 +451,490 @@ function skipGramTrainStep(vCenter, vContext, vNegatives, lr) {
 
   // --- GLOVE ---
   {
-    id: 'glove-weight',
+    id: 'glove-loss-weight',
     stepLabel: '2.1',
-    group: 'Co-occurrence weight',
-    title: 'GloVe weight function',
-    concept: 'GloVe uses a weighting function f(x) = (x/xMax)^alpha if x < xMax, else 1, to prevent rare or frequent co-occurrences from dominating.',
-    objective: 'Implement the GloVe co-occurrence weighting function.',
+    group: 'GloVe pair loss',
+    title: 'Pair weight term',
+    concept: 'GloVe scales pair contribution with f(xij).',
+    objective: 'Compute weight term for one pair.',
     difficulty: 'warmup',
-    starterCode: `function gloveWeight(x, xMax = 100, alpha = 0.75) {
-  if (x === 0) return 0;
-  // TODO: return the correct weight based on xMax and alpha bounds
-  return 0;
+    starterCode: `function glovePairLoss(wi, wj, biasI, biasJ, xij, xMax = 100, alpha = 0.75) {
+  // TODO: implement piecewise weight
+  const weight = 0;
+  return weight;
 }`,
     testCode: `const results = [];
-function approxEqual(a, b, tolerance = 1e-5) {
-  return Math.abs(a - b) <= tolerance;
-}
+function approxEqual(a, b, tolerance = 1e-6) { return Math.abs(a - b) <= tolerance; }
 function check(name, actual, expected) {
   results.push({ name, actual, expected, passed: approxEqual(actual, expected) });
 }
-check('x is 0', gloveWeight(0), 0);
-check('x above xMax', gloveWeight(120, 100, 0.75), 1.0);
-check('x below xMax', gloveWeight(50, 100, 0.75), 0.594603);
+check('x above max', glovePairLoss([], [], 0, 0, 120, 100, 0.75), 1);
+check('x below max', glovePairLoss([], [], 0, 0, 50, 100, 0.75), 0.5946035575);
 return results;`,
-    hints: [
-      'If x is greater than or equal to xMax, return 1.',
-      'Otherwise, compute Math.pow(x / xMax, alpha).',
-    ],
-    solution: `function gloveWeight(x, xMax = 100, alpha = 0.75) {
-  if (x === 0) return 0;
-  return x >= xMax ? 1 : Math.pow(x / xMax, alpha);
+    hints: ['const weight = xij >= xMax ? 1 : Math.pow(xij / xMax, alpha);'],
+    solution: `function glovePairLoss(wi, wj, biasI, biasJ, xij, xMax = 100, alpha = 0.75) {
+  const weight = xij >= xMax ? 1 : Math.pow(xij / xMax, alpha);
+  return weight;
 }`,
-    explanation: 'The weighting function scales the objective so that very frequent pairs like "the-and" do not bias the word vector updates.',
+    explanation: 'The weighting function balances common and rare pair influence.',
   },
   {
-    id: 'glove-prediction',
+    id: 'glove-loss-pred',
     stepLabel: '2.2',
-    group: 'Dot-plus-bias prediction',
-    title: 'GloVe dot plus bias prediction',
-    concept: 'GloVe fits the dot product of two word vectors plus their respective biases to the log of their co-occurrence count.',
-    objective: 'Calculate the predicted log co-occurrence using vector dot products and bias terms.',
+    group: 'GloVe pair loss',
+    title: 'Dot-plus-bias prediction',
+    concept: 'Predicted log count is dot(wi, wj) + biasI + biasJ.',
+    objective: 'Compute pred term.',
     difficulty: 'warmup',
-    starterCode: `function glovePredict(wi, wj, biasI, biasJ) {
-  function dot(a, b) {
-    let sum = 0;
-    for (let i = 0; i < a.length; i++) sum += a[i] * b[i];
-    return sum;
+    starterCode: `function glovePairLoss(wi, wj, biasI, biasJ, xij, xMax = 100, alpha = 0.75) {
+  let dot = 0;
+  for (let i = 0; i < wi.length; i++) {
+    // TODO: accumulate dot
+    dot += 0;
   }
-  // TODO: return dot product of wi and wj plus biasI and biasJ
-  return 0;
+  const pred = 0;
+  return pred;
 }`,
     testCode: `const results = [];
 function check(name, actual, expected) {
   results.push({ name, actual, expected, passed: Object.is(actual, expected) });
 }
-check('prediction basic', glovePredict([1, 2], [3, 4], 0.5, 0.2), 11.7);
-check('prediction zero vectors', glovePredict([0, 0], [0, 0], -1, 2), 1);
+check('pred', glovePairLoss([1, 2], [3, 4], 0.5, 0.2, 10), 11.7);
 return results;`,
-    hints: [
-      'Call dot(wi, wj).',
-      'Add biasI and biasJ to that dot product.',
-    ],
-    solution: `function glovePredict(wi, wj, biasI, biasJ) {
-  function dot(a, b) {
-    let sum = 0;
-    for (let i = 0; i < a.length; i++) sum += a[i] * b[i];
-    return sum;
+    hints: ['dot += wi[i] * wj[i];', 'const pred = dot + biasI + biasJ;'],
+    solution: `function glovePairLoss(wi, wj, biasI, biasJ, xij, xMax = 100, alpha = 0.75) {
+  let dot = 0;
+  for (let i = 0; i < wi.length; i++) {
+    dot += wi[i] * wj[i];
   }
-  return dot(wi, wj) + biasI + biasJ;
+  const pred = dot + biasI + biasJ;
+  return pred;
 }`,
-    explanation: 'Bias terms capture the baseline frequency of words i and j independently of their co-occurrence.',
+    explanation: 'Bias terms model unigram tendency outside pair interaction.',
   },
   {
-    id: 'glove-loss-term',
+    id: 'glove-loss-diff',
     stepLabel: '2.3',
-    group: 'Full scalar loss',
-    title: 'GloVe single pair loss',
-    concept: 'The loss for a word pair (i, j) is the weighted squared difference between prediction and log(x_ij).',
-    objective: 'Combine the weight function, prediction, and log co-occurrences to compute single-pair loss.',
-    difficulty: 'challenge',
+    group: 'GloVe pair loss',
+    title: 'Residual vs log count',
+    concept: 'Pair residual compares predicted log count to observed log(xij).',
+    objective: 'Compute diff = pred - Math.log(xij).',
+    difficulty: 'core',
     starterCode: `function glovePairLoss(wi, wj, biasI, biasJ, xij, xMax = 100, alpha = 0.75) {
-  function dot(a, b) {
-    let sum = 0;
-    for (let i = 0; i < a.length; i++) sum += a[i] * b[i];
-    return sum;
-  }
-  
-  const weight = xij >= xMax ? 1 : Math.pow(xij / xMax, alpha);
-  const pred = dot(wi, wj) + biasI + biasJ;
-  // TODO: compute squared error (pred - ln(xij))^2 and multiply by weight
+  let dot = 0;
+  for (let i = 0; i < wi.length; i++) dot += wi[i] * wj[i];
+  const pred = dot + biasI + biasJ;
+  // TODO: residual against log count
   return 0;
 }`,
     testCode: `const results = [];
-function approxEqual(a, b, tolerance = 1e-5) {
-  return Math.abs(a - b) <= tolerance;
+function approxEqual(a, b, tolerance = 1e-6) { return Math.abs(a - b) <= tolerance; }
+function check(name, actual, expected) {
+  results.push({ name, actual, expected, passed: approxEqual(actual, expected) });
 }
+check('diff', glovePairLoss([0.5, -0.2], [0.8, 0.4], 0.1, 0.2, 10), -1.682585093);
+return results;`,
+    hints: ['return pred - Math.log(xij);'],
+    solution: `function glovePairLoss(wi, wj, biasI, biasJ, xij, xMax = 100, alpha = 0.75) {
+  let dot = 0;
+  for (let i = 0; i < wi.length; i++) dot += wi[i] * wj[i];
+  const pred = dot + biasI + biasJ;
+  return pred - Math.log(xij);
+}`,
+    explanation: 'GloVe regresses on logarithmic co-occurrence scale.',
+  },
+  {
+    id: 'glove-loss-square',
+    stepLabel: '2.4',
+    group: 'GloVe pair loss',
+    title: 'Squared residual',
+    concept: 'GloVe uses squared residual for one pair.',
+    objective: 'Compute diff * diff.',
+    difficulty: 'core',
+    starterCode: `function glovePairLoss(wi, wj, biasI, biasJ, xij, xMax = 100, alpha = 0.75) {
+  let dot = 0;
+  for (let i = 0; i < wi.length; i++) dot += wi[i] * wj[i];
+  const pred = dot + biasI + biasJ;
+  const diff = pred - Math.log(xij);
+  // TODO: return squared residual
+  return 0;
+}`,
+    testCode: `const results = [];
+function approxEqual(a, b, tolerance = 1e-6) { return Math.abs(a - b) <= tolerance; }
+function check(name, actual, expected) {
+  results.push({ name, actual, expected, passed: approxEqual(actual, expected) });
+}
+check('squared', glovePairLoss([0.5, -0.2], [0.8, 0.4], 0.1, 0.2, 10), 2.831092595);
+return results;`,
+    hints: ['return diff * diff;'],
+    solution: `function glovePairLoss(wi, wj, biasI, biasJ, xij, xMax = 100, alpha = 0.75) {
+  let dot = 0;
+  for (let i = 0; i < wi.length; i++) dot += wi[i] * wj[i];
+  const pred = dot + biasI + biasJ;
+  const diff = pred - Math.log(xij);
+  return diff * diff;
+}`,
+    explanation: 'Squared penalty emphasizes larger pair mismatches.',
+  },
+  {
+    id: 'glove-loss-weighted',
+    stepLabel: '2.5',
+    group: 'GloVe pair loss',
+    title: 'Weighted pair loss',
+    concept: 'Final pair contribution is weight times squared residual.',
+    objective: 'Multiply squared residual by weight.',
+    difficulty: 'core',
+    starterCode: `function glovePairLoss(wi, wj, biasI, biasJ, xij, xMax = 100, alpha = 0.75) {
+  let dot = 0;
+  for (let i = 0; i < wi.length; i++) dot += wi[i] * wj[i];
+  const pred = dot + biasI + biasJ;
+  const diff = pred - Math.log(xij);
+  const sq = diff * diff;
+  const weight = xij >= xMax ? 1 : Math.pow(xij / xMax, alpha);
+  // TODO: return weighted loss
+  return 0;
+}`,
+    testCode: `const results = [];
+function approxEqual(a, b, tolerance = 1e-6) { return Math.abs(a - b) <= tolerance; }
+function check(name, actual, expected) {
+  results.push({ name, actual, expected, passed: approxEqual(actual, expected) });
+}
+check('weighted xij=10', glovePairLoss([0.5, -0.2], [0.8, 0.4], 0.1, 0.2, 10, 100, 0.75), 0.503447367);
+return results;`,
+    hints: ['return weight * sq;'],
+    solution: `function glovePairLoss(wi, wj, biasI, biasJ, xij, xMax = 100, alpha = 0.75) {
+  let dot = 0;
+  for (let i = 0; i < wi.length; i++) dot += wi[i] * wj[i];
+  const pred = dot + biasI + biasJ;
+  const diff = pred - Math.log(xij);
+  const sq = diff * diff;
+  const weight = xij >= xMax ? 1 : Math.pow(xij / xMax, alpha);
+  return weight * sq;
+}`,
+    explanation: 'Weighting keeps frequent pairs from dominating optimization.',
+  },
+  {
+    id: 'glove-pair-loss-full',
+    stepLabel: '2.6',
+    group: 'GloVe pair loss',
+    title: 'Complete glovePairLoss',
+    concept: 'A robust pair loss handles non-positive xij safely.',
+    objective: 'Return 0 when xij <= 0, else weighted squared residual.',
+    difficulty: 'challenge',
+    starterCode: `function glovePairLoss(wi, wj, biasI, biasJ, xij, xMax = 100, alpha = 0.75) {
+  // TODO: guard non-positive xij
+  let dot = 0;
+  for (let i = 0; i < wi.length; i++) dot += wi[i] * wj[i];
+  const pred = dot + biasI + biasJ;
+  const diff = pred - Math.log(xij);
+  const sq = diff * diff;
+  const weight = xij >= xMax ? 1 : Math.pow(xij / xMax, alpha);
+  return weight * sq;
+}`,
+    testCode: `const results = [];
+function approxEqual(a, b, tolerance = 1e-6) { return Math.abs(a - b) <= tolerance; }
 function check(name, actual, expected) {
   results.push({ name, actual, expected, passed: approxEqual(actual, expected) });
 }
 const wi = [0.5, -0.2];
 const wj = [0.8, 0.4];
-check('pair loss xij=10', glovePairLoss(wi, wj, 0.1, 0.2, 10, 100, 0.75), 0.503447);
-check('pair loss xij=120', glovePairLoss(wi, wj, 0.1, 0.2, 120, 100, 0.75), 17.367987);
+check('xij=10', glovePairLoss(wi, wj, 0.1, 0.2, 10, 100, 0.75), 0.503447367);
+check('xij=120', glovePairLoss(wi, wj, 0.1, 0.2, 120, 100, 0.75), 17.367987426);
+check('xij<=0 guard', glovePairLoss(wi, wj, 0.1, 0.2, 0, 100, 0.75), 0);
 return results;`,
-    hints: [
-      'Compute the log co-occurrence using Math.log(xij).',
-      'The difference is pred - Math.log(xij).',
-      'Return weight * diff * diff.',
-    ],
+    hints: ['if (xij <= 0) return 0;'],
     solution: `function glovePairLoss(wi, wj, biasI, biasJ, xij, xMax = 100, alpha = 0.75) {
-  function dot(a, b) {
-    let sum = 0;
-    for (let i = 0; i < a.length; i++) sum += a[i] * b[i];
-    return sum;
-  }
-  
-  const weight = xij >= xMax ? 1 : Math.pow(xij / xMax, alpha);
-  const pred = dot(wi, wj) + biasI + biasJ;
+  if (xij <= 0) return 0;
+  let dot = 0;
+  for (let i = 0; i < wi.length; i++) dot += wi[i] * wj[i];
+  const pred = dot + biasI + biasJ;
   const diff = pred - Math.log(xij);
-  return weight * diff * diff;
+  const sq = diff * diff;
+  const weight = xij >= xMax ? 1 : Math.pow(xij / xMax, alpha);
+  return weight * sq;
 }`,
-    explanation: 'GloVe is a global log-bilinear matrix factorization model that scales quadratic loss with a custom weighting function.',
+    explanation: 'The final helper is directly usable in per-pair training loops.',
   },
 
   // --- FASTTEXT ---
   {
-    id: 'fasttext-ngrams',
+    id: 'fasttext-embed-ngrams',
     stepLabel: '3.1',
-    group: 'Character n-gram enumerate',
-    title: 'Character n-grams extraction',
-    concept: 'FastText represents words by splitting them into overlapping character n-grams bounded by "<" and ">".',
-    objective: 'Generate all character n-grams of size n for a decorated word.',
-    difficulty: 'core',
-    starterCode: `function getCharacterNGrams(word, n = 3) {
+    group: 'FastText word vector',
+    title: 'Enumerate character n-grams',
+    concept: 'FastText decomposes words into bounded character n-grams.',
+    objective: 'Build ngram list inside fastTextEmbed.',
+    difficulty: 'warmup',
+    starterCode: `function fastTextEmbed(word, buckets, numBuckets, vectorDim, n) {
   const decorated = '<' + word + '>';
   const ngrams = [];
-  
-  // TODO: loop through decorated string and slice substrings of length n
   for (let i = 0; i <= decorated.length - n; i++) {
-    const ngram = '';
-    ngrams.push(ngram);
+    // TODO: push n-gram slice
+    ngrams.push('');
   }
-  
   return ngrams;
 }`,
     testCode: `const results = [];
-function sameArray(a, b) {
-  return JSON.stringify(a) === JSON.stringify(b);
-}
+function same(a, b) { return JSON.stringify(a) === JSON.stringify(b); }
 function check(name, actual, expected) {
-  results.push({ name, actual, expected, passed: sameArray(actual, expected) });
+  results.push({ name, actual: JSON.stringify(actual), expected: JSON.stringify(expected), passed: same(actual, expected) });
 }
-check('apple n=3', getCharacterNGrams('apple', 3), ['<ap', 'app', 'ppl', 'ple', 'le>']);
-check('cat n=3', getCharacterNGrams('cat', 3), ['<ca', 'cat', 'at>']);
+check('apple ngrams', fastTextEmbed('apple', [], 4, 2, 3), ['<ap', 'app', 'ppl', 'ple', 'le>']);
 return results;`,
-    hints: [
-      'Use decorated.substring(i, i + n) or decorated.slice(i, i + n).',
-      'Assign it to the ngram variable.',
-    ],
-    solution: `function getCharacterNGrams(word, n = 3) {
+    hints: ['ngrams.push(decorated.slice(i, i + n));'],
+    solution: `function fastTextEmbed(word, buckets, numBuckets, vectorDim, n) {
   const decorated = '<' + word + '>';
   const ngrams = [];
-  
   for (let i = 0; i <= decorated.length - n; i++) {
-    const ngram = decorated.slice(i, i + n);
-    ngrams.push(ngram);
+    ngrams.push(decorated.slice(i, i + n));
   }
-  
   return ngrams;
 }`,
-    explanation: 'Including n-grams allows FastText to generalize to unseen, out-of-vocabulary words using common subword roots.',
+    explanation: 'Subword decomposition supports morphology-aware embeddings.',
   },
   {
-    id: 'fasttext-hash',
+    id: 'fasttext-embed-hash',
     stepLabel: '3.2',
-    group: 'Hash bucket',
-    title: 'N-gram hashing',
-    concept: 'Since there are millions of possible n-grams, FastText hashes them to a fixed number of buckets (e.g. 2,000,000) using a string hash algorithm.',
-    objective: 'Compute a polynomial rolling hash modulo numBuckets for a subword n-gram.',
-    difficulty: 'core',
-    starterCode: `function fasttextHash(ngram, numBuckets) {
-  let hash = 5381;
-  for (let i = 0; i < ngram.length; i++) {
-    // TODO: update hash using: (hash * 33) + character code of current character
-    hash = 0;
+    group: 'FastText word vector',
+    title: 'Hash to bucket',
+    concept: 'Each n-gram maps to a finite hash bucket.',
+    objective: 'Implement fasttextHash inside fastTextEmbed.',
+    difficulty: 'warmup',
+    starterCode: `function fastTextEmbed(word, buckets, numBuckets, vectorDim, n) {
+  function fasttextHash(ngram, m) {
+    let hash = 5381;
+    for (let i = 0; i < ngram.length; i++) {
+      // TODO: hash update
+      hash = 0;
+    }
+    return (hash >>> 0) % m;
   }
-  return (hash >>> 0) % numBuckets;
+  return [fasttextHash('app', numBuckets), fasttextHash('ple', numBuckets)];
 }`,
     testCode: `const results = [];
 function check(name, actual, expected) {
   results.push({ name, actual, expected, passed: Object.is(actual, expected) });
 }
-check('hash test', fasttextHash('app', 1000), 438);
-check('hash check another', fasttextHash('ple', 1000), 630);
+const out = fastTextEmbed('apple', [], 4, 2, 3);
+check('app bucket', out[0], 2);
+check('ple bucket', out[1], 2);
 return results;`,
-    hints: [
-      'Get char code using ngram.charCodeAt(i).',
-      'The formula is hash = (hash * 33) + ngram.charCodeAt(i).',
-      'Make sure to do standard JS arithmetic or bitwise ops inside.',
-    ],
-    solution: `function fasttextHash(ngram, numBuckets) {
-  let hash = 5381;
-  for (let i = 0; i < ngram.length; i++) {
-    hash = (hash * 33) + ngram.charCodeAt(i);
+    hints: ['hash = (hash * 33) + ngram.charCodeAt(i);'],
+    solution: `function fastTextEmbed(word, buckets, numBuckets, vectorDim, n) {
+  function fasttextHash(ngram, m) {
+    let hash = 5381;
+    for (let i = 0; i < ngram.length; i++) {
+      hash = (hash * 33) + ngram.charCodeAt(i);
+    }
+    return (hash >>> 0) % m;
   }
-  return (hash >>> 0) % numBuckets;
+  return [fasttextHash('app', numBuckets), fasttextHash('ple', numBuckets)];
 }`,
-    explanation: 'Hashing avoids the need to store a separate dictionary for millions of rare n-grams, saving massive amounts of memory.',
+    explanation: 'Hashing avoids storing explicit embeddings for all possible n-grams.',
   },
   {
-    id: 'fasttext-sum-vectors',
+    id: 'fasttext-embed-sum',
     stepLabel: '3.3',
-    group: 'Subword vector sum',
-    title: 'Assemble subword embeddings',
-    concept: 'A FastText word vector is the sum of its n-gram embeddings.',
-    objective: 'Look up subword vector indices via hashing, and add their coordinates to the sum.',
-    difficulty: 'challenge',
-    starterCode: `function sumSubwordVectors(ngrams, buckets, numBuckets, vectorDim) {
-  const sum = Array(vectorDim).fill(0);
-  
-  function fasttextHash(ngram, numBuckets) {
+    group: 'FastText word vector',
+    title: 'Sum hashed vectors',
+    concept: 'Word embedding is built by summing bucket vectors of its n-grams.',
+    objective: 'Accumulate bucket vectors into sum.',
+    difficulty: 'core',
+    starterCode: `function fastTextEmbed(word, buckets, numBuckets, vectorDim, n) {
+  const decorated = '<' + word + '>';
+  const ngrams = [];
+  for (let i = 0; i <= decorated.length - n; i++) ngrams.push(decorated.slice(i, i + n));
+  function fasttextHash(ngram, m) {
     let hash = 5381;
     for (let i = 0; i < ngram.length; i++) hash = (hash * 33) + ngram.charCodeAt(i);
-    return (hash >>> 0) % numBuckets;
+    return (hash >>> 0) % m;
   }
-
+  const sum = Array(vectorDim).fill(0);
   for (let i = 0; i < ngrams.length; i++) {
-    const bucketIdx = fasttextHash(ngrams[i], numBuckets);
-    const vec = buckets[bucketIdx];
-    
+    const vec = buckets[fasttextHash(ngrams[i], numBuckets)];
     for (let d = 0; d < vectorDim; d++) {
-      // TODO: add vector coordinate vec[d] to sum[d]
+      // TODO: add vec coordinate
       sum[d] += 0;
     }
   }
-  
   return sum;
 }`,
     testCode: `const results = [];
-function sameArray(a, b) {
-  return JSON.stringify(a) === JSON.stringify(b);
+function approxArr(a, b, tol = 1e-6) {
+  return a.length === b.length && a.every((v, i) => Math.abs(v - b[i]) <= tol);
 }
 function check(name, actual, expected) {
-  results.push({ name, actual, expected, passed: sameArray(actual, expected) });
+  results.push({ name, actual: JSON.stringify(actual), expected: JSON.stringify(expected), passed: approxArr(actual, expected) });
 }
-const buckets = [
-  [0.1, 0.2],
-  [0.3, 0.4],
-  [0.5, 0.6],
-  [0.7, 0.8]
-];
-// ngrams 'app' (hash 200 % 4 = 0) and 'ple' (hash 874 % 4 = 2)
-// sums: buckets[0] + buckets[2] = [0.1+0.5, 0.2+0.6] = [0.6, 0.8]
-check('sum 2 ngrams', sumSubwordVectors(['app', 'ple'], buckets, 4, 2), [1.0, 1.2]);
+const buckets = [[0.1, 0.2], [0.3, 0.4], [0.5, 0.6], [0.7, 0.8]];
+check('sum vectors', fastTextEmbed('apple', buckets, 4, 2, 3), [1.9, 2.4]);
 return results;`,
-    hints: [
-      'The coordinate from the subword bucket is vec[d].',
-      'Add it directly to sum[d].',
-      'sum[d] += vec[d];',
-    ],
-    solution: `function sumSubwordVectors(ngrams, buckets, numBuckets, vectorDim) {
-  const sum = Array(vectorDim).fill(0);
-  
-  function fasttextHash(ngram, numBuckets) {
+    hints: ['sum[d] += vec[d];'],
+    solution: `function fastTextEmbed(word, buckets, numBuckets, vectorDim, n) {
+  const decorated = '<' + word + '>';
+  const ngrams = [];
+  for (let i = 0; i <= decorated.length - n; i++) ngrams.push(decorated.slice(i, i + n));
+  function fasttextHash(ngram, m) {
     let hash = 5381;
     for (let i = 0; i < ngram.length; i++) hash = (hash * 33) + ngram.charCodeAt(i);
-    return (hash >>> 0) % numBuckets;
+    return (hash >>> 0) % m;
   }
-
+  const sum = Array(vectorDim).fill(0);
   for (let i = 0; i < ngrams.length; i++) {
-    const bucketIdx = fasttextHash(ngrams[i], numBuckets);
-    const vec = buckets[bucketIdx];
-    
+    const vec = buckets[fasttextHash(ngrams[i], numBuckets)];
     for (let d = 0; d < vectorDim; d++) {
       sum[d] += vec[d];
     }
   }
-  
   return sum;
 }`,
-    explanation: 'Summing n-grams preserves shared morphological patterns, so words like "learning" and "learnable" share subword vector paths.',
+    explanation: 'Summed subword vectors encode shared morphology across words.',
+  },
+  {
+    id: 'fasttext-sum-vectors',
+    stepLabel: '3.4',
+    group: 'FastText word vector',
+    title: 'Two n-gram sum check',
+    concept: 'Directly summing known n-grams validates hash/bucket behavior.',
+    objective: 'Return sum for provided n-grams.',
+    difficulty: 'core',
+    starterCode: `function sumSubwordVectors(ngrams, buckets, numBuckets, vectorDim) {
+  function fasttextHash(ngram, m) {
+    let hash = 5381;
+    for (let i = 0; i < ngram.length; i++) hash = (hash * 33) + ngram.charCodeAt(i);
+    return (hash >>> 0) % m;
   }
+  const sum = Array(vectorDim).fill(0);
+  for (let i = 0; i < ngrams.length; i++) {
+    const vec = buckets[fasttextHash(ngrams[i], numBuckets)];
+    for (let d = 0; d < vectorDim; d++) {
+      // TODO: add bucket vector
+      sum[d] += 0;
+    }
+  }
+  return sum;
+}`,
+    testCode: `const results = [];
+function same(a, b) { return JSON.stringify(a) === JSON.stringify(b); }
+function check(name, actual, expected) {
+  results.push({ name, actual: JSON.stringify(actual), expected: JSON.stringify(expected), passed: same(actual, expected) });
+}
+const buckets = [[0.1, 0.2], [0.3, 0.4], [0.5, 0.6], [0.7, 0.8]];
+// app % 4 = 2 and ple % 4 = 2 => [0.5,0.6] + [0.5,0.6] = [1.0,1.2]
+check('sum 2 ngrams', sumSubwordVectors(['app', 'ple'], buckets, 4, 2), [1.0, 1.2]);
+return results;`,
+    hints: ['sum[d] += vec[d];'],
+    solution: `function sumSubwordVectors(ngrams, buckets, numBuckets, vectorDim) {
+  function fasttextHash(ngram, m) {
+    let hash = 5381;
+    for (let i = 0; i < ngram.length; i++) hash = (hash * 33) + ngram.charCodeAt(i);
+    return (hash >>> 0) % m;
+  }
+  const sum = Array(vectorDim).fill(0);
+  for (let i = 0; i < ngrams.length; i++) {
+    const vec = buckets[fasttextHash(ngrams[i], numBuckets)];
+    for (let d = 0; d < vectorDim; d++) {
+      sum[d] += vec[d];
+    }
+  }
+  return sum;
+}`,
+    explanation: 'This unit test isolates hash path correctness from n-gram extraction.',
+  },
+  {
+    id: 'fasttext-embed-dispatch',
+    stepLabel: '3.5',
+    group: 'FastText word vector',
+    title: 'Embed dispatch by n',
+    concept: 'Embedding utility should respect chosen n-gram size n.',
+    objective: 'Use function argument n for extraction loop.',
+    difficulty: 'core',
+    starterCode: `function fastTextEmbed(word, buckets, numBuckets, vectorDim, n) {
+  const decorated = '<' + word + '>';
+  const ngrams = [];
+  // TODO: use n (not fixed size) in loop bounds/slices
+  for (let i = 0; i <= decorated.length - 3; i++) {
+    ngrams.push(decorated.slice(i, i + 3));
+  }
+  return ngrams;
+}`,
+    testCode: `const results = [];
+function same(a, b) { return JSON.stringify(a) === JSON.stringify(b); }
+function check(name, actual, expected) {
+  results.push({ name, actual: JSON.stringify(actual), expected: JSON.stringify(expected), passed: same(actual, expected) });
+}
+check('n=2', fastTextEmbed('cat', [], 4, 2, 2), ['<c', 'ca', 'at', 't>']);
+return results;`,
+    hints: ['for (let i = 0; i <= decorated.length - n; i++) ngrams.push(decorated.slice(i, i + n));'],
+    solution: `function fastTextEmbed(word, buckets, numBuckets, vectorDim, n) {
+  const decorated = '<' + word + '>';
+  const ngrams = [];
+  for (let i = 0; i <= decorated.length - n; i++) {
+    ngrams.push(decorated.slice(i, i + n));
+  }
+  return ngrams;
+}`,
+    explanation: 'n controls granularity of morphological decomposition.',
+  },
+  {
+    id: 'fasttext-embed-full',
+    stepLabel: '3.6',
+    group: 'FastText word vector',
+    title: 'Complete fastTextEmbed',
+    concept: 'Final embedding utility extracts n-grams, hashes each, and sums vectors.',
+    objective: 'Implement fastTextEmbed(word, buckets, numBuckets, vectorDim, n) with empty-word guard.',
+    difficulty: 'challenge',
+    starterCode: `function fastTextEmbed(word, buckets, numBuckets, vectorDim, n) {
+  // TODO: return zeros for empty word
+  const decorated = '<' + word + '>';
+  const ngrams = [];
+  for (let i = 0; i <= decorated.length - n; i++) {
+    ngrams.push(decorated.slice(i, i + n));
+  }
+  function fasttextHash(ngram, m) {
+    let hash = 5381;
+    for (let i = 0; i < ngram.length; i++) hash = (hash * 33) + ngram.charCodeAt(i);
+    return (hash >>> 0) % m;
+  }
+  const sum = Array(vectorDim).fill(0);
+  for (let i = 0; i < ngrams.length; i++) {
+    const vec = buckets[fasttextHash(ngrams[i], numBuckets)];
+    for (let d = 0; d < vectorDim; d++) sum[d] += vec[d];
+  }
+  return sum;
+}`,
+    testCode: `const results = [];
+function approxArr(a, b, tol = 1e-6) {
+  return a.length === b.length && a.every((v, i) => Math.abs(v - b[i]) <= tol);
+}
+function check(name, actual, expected) {
+  results.push({ name, actual: JSON.stringify(actual), expected: JSON.stringify(expected), passed: approxArr(actual, expected) });
+}
+const buckets = [[0.1, 0.2], [0.3, 0.4], [0.5, 0.6], [0.7, 0.8]];
+check('empty word', fastTextEmbed('', buckets, 4, 2, 3), [0, 0]);
+check('apple full', fastTextEmbed('apple', buckets, 4, 2, 3), [1.9, 2.4]);
+return results;`,
+    hints: ["if (word.length === 0) return Array(vectorDim).fill(0);"],
+    solution: `function fastTextEmbed(word, buckets, numBuckets, vectorDim, n) {
+  if (word.length === 0) return Array(vectorDim).fill(0);
+  const decorated = '<' + word + '>';
+  const ngrams = [];
+  for (let i = 0; i <= decorated.length - n; i++) {
+    ngrams.push(decorated.slice(i, i + n));
+  }
+  function fasttextHash(ngram, m) {
+    let hash = 5381;
+    for (let i = 0; i < ngram.length; i++) hash = (hash * 33) + ngram.charCodeAt(i);
+    return (hash >>> 0) % m;
+  }
+  const sum = Array(vectorDim).fill(0);
+  for (let i = 0; i < ngrams.length; i++) {
+    const vec = buckets[fasttextHash(ngrams[i], numBuckets)];
+    for (let d = 0; d < vectorDim; d++) sum[d] += vec[d];
+  }
+  return sum;
+}`,
+    explanation: 'This is the complete FastText-style subword embedding step.',
+  },
+
 ];

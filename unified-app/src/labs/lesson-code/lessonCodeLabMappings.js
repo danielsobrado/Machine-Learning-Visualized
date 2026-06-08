@@ -119,11 +119,11 @@ export const LESSON_GROUP_MAPPINGS = {
   'regularization': { source: 'nn', groups: ['Regularization'] },
   'overfitting': { source: 'nn', groups: ['Regularization', 'Training loop mechanics'] },
   'bias-variance-tradeoff': { source: 'nn', groups: ['Regularization', 'Training loop mechanics'] },
-  'train-validation-test-split': { source: 'core', groups: ['Shuffle', 'Train slice', 'No leakage check'] },
+  'train-validation-test-split': { source: 'core', groups: ['Dataset split pipeline'] },
   'cross-validation': { source: 'core', groups: ['K-fold split'] },
   'data-leakage-deep-dive': { source: 'core', groups: ['Leak-safe scaling'] },
-  'feature-scaling-preprocessing': { source: 'core', groups: ['Mean', 'Transform'] },
-  'k-means': { source: 'core', groups: ['Distance to centroid', 'Assignment', 'Mean update'] },
+  'feature-scaling-preprocessing': { source: 'core', groups: ['Feature scaling pipeline'] },
+  'k-means': { source: 'core', groups: ['K-means iteration'] },
   'knn-naive-bayes-svm': { source: 'core', groups: ['kNN predict'] },
   'tree-ensembles': { source: 'core', groups: ['Ensemble predict'] },
   'time-series-forecasting-track': { source: 'core', groups: ['Forecast smooth'] },
@@ -256,14 +256,8 @@ export const LESSON_GROUP_MAPPINGS = {
     source: 'nlp',
     groups: ['Similarity score', 'Sigmoid activation', 'Positive pair likelihood', 'Negative sample loss', 'Skip-gram gradient update'],
   },
-  'glove': {
-    source: 'nlp',
-    groups: ['Co-occurrence weight', 'Dot-plus-bias prediction', 'Full scalar loss'],
-  },
-  'fasttext': {
-    source: 'nlp',
-    groups: ['Character n-gram enumerate', 'Hash bucket', 'Subword vector sum'],
-  },
+  'glove': { source: 'nlp', groups: ['GloVe pair loss'] },
+  'fasttext': { source: 'nlp', groups: ['FastText word vector'] },
 
   // Advanced models / RAG
   'rag': {
@@ -286,7 +280,7 @@ export const LESSON_GROUP_MAPPINGS = {
     source: 'nn',
     groups: ['Reparameterize z', 'Reconstruction MSE', 'KL closed form', 'Combined ELBO', 'Latent edge cases'],
   },
-  'multimodal-llm': { source: 'nn', groups: ['Linear project'] },
+  'multimodal-llm': { source: 'nn', groups: ['Multimodal projection'] },
 
   // Experimentation & causal ML
   'ab-testing-foundations': {
@@ -302,7 +296,7 @@ export const LESSON_GROUP_MAPPINGS = {
   'confounding-simpsons-paradox': { source: 'exp', groups: ['DAG adjustment-set checks'] },
 
   // Algorithms
-  'bloom-filter': { source: 'algo', groups: ['Hash positions', 'Query all bits'] },
+  'bloom-filter': { source: 'algo', groups: ['Bloom filter step'] },
   'pagerank': { source: 'algo', groups: ['PageRank iteration'] },
 
   // Diffusion Models
@@ -322,7 +316,7 @@ export const LESSON_GROUP_MAPPINGS = {
   'tokenizer-bpe': { source: 'diffusion', groups: ['BPE train step'] },
   'clip-encoder': { source: 'diffusion', groups: ['L2 normalize'] },
   't5-encoder': { source: 'diffusion', groups: ['pad mask'] },
-  'joint-attention': { source: 'diffusion', groups: ['Concat Q'] },
+  'joint-attention': { source: 'diffusion', groups: ['Joint attention sequence'] },
   'dit': {
     source: 'diffusion',
     groups: ['Time embed inject', 'adaLN scale/shift', 'Self-attn residual', 'MLP residual'],

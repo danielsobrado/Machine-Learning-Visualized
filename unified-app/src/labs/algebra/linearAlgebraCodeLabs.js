@@ -751,190 +751,210 @@ function norm(v) {
   },
 
   {
-    id: 'cosine-numerator',
+    id: 'cosine-dot',
     stepLabel: '5.1',
     group: 'Cosine similarity',
-    title: 'Cosine numerator',
-    concept: 'Cosine similarity uses the dot product as its numerator.',
-    objective: 'Replace one expression with the dot product of u and v.',
+    title: 'Dot product',
+    concept: 'Cosine similarity starts with the vector dot product.',
+    objective: 'Implement dot(u, v).',
     difficulty: 'warmup',
-    starterCode: `function dot(a, b) {
-  let total = 0;
-  for (let i = 0; i < a.length; i++) {
-    total += a[i] * b[i];
+    starterCode: `function cosineSimilarity(u, v) {
+  let dot = 0;
+  for (let i = 0; i < u.length; i++) {
+    // TODO: add pairwise product
+    dot += 0;
   }
-  return total;
-}
-
-function cosineNumerator(u, v) {
-  // TODO: return the dot product of u and v.
-  return 0;
+  return dot;
 }`,
     testCode: `const results = [];
-
 function check(name, actual, expected) {
-  results.push({
-    name,
-    actual,
-    expected,
-    passed: Object.is(actual, expected),
-  });
+  results.push({ name, actual, expected, passed: Object.is(actual, expected) });
 }
-
-check('numerator [1, 0] and [0, 1]', cosineNumerator([1, 0], [0, 1]), 0);
-check('numerator [1, 2] and [3, 4]', cosineNumerator([1, 2], [3, 4]), 11);
-check('numerator [-1, 2] and [3, 5]', cosineNumerator([-1, 2], [3, 5]), 7);
-
+check('dot', cosineSimilarity([1, 2], [3, 4]), 11);
 return results;`,
-    hints: [
-      'The helper function dot(a, b) is already available.',
-      'Cosine similarity starts with u dot v.',
-      'return dot(u, v);',
-    ],
-    solution: `function dot(a, b) {
-  let total = 0;
-  for (let i = 0; i < a.length; i++) {
-    total += a[i] * b[i];
+    hints: ['dot += u[i] * v[i];'],
+    solution: `function cosineSimilarity(u, v) {
+  let dot = 0;
+  for (let i = 0; i < u.length; i++) {
+    dot += u[i] * v[i];
   }
-  return total;
-}
-
-function cosineNumerator(u, v) {
-  return dot(u, v);
+  return dot;
 }`,
-    explanation: 'The dot product measures alignment, but its raw size also depends on vector lengths.',
+    explanation: 'Dot product captures directional alignment weighted by magnitude.',
   },
-
   {
-    id: 'cosine-denominator',
+    id: 'cosine-norms',
     stepLabel: '5.2',
     group: 'Cosine similarity',
-    title: 'Cosine denominator',
-    concept: 'Cosine similarity divides by both vector lengths so only direction remains.',
-    objective: 'Replace one expression with norm(u) times norm(v).',
-    difficulty: 'core',
-    starterCode: `function norm(v) {
-  let total = 0;
-  for (let i = 0; i < v.length; i++) {
-    total += v[i] * v[i];
+    title: 'Compute norms',
+    concept: 'Cosine denominator uses both vector lengths.',
+    objective: 'Compute ||u|| and ||v||.',
+    difficulty: 'warmup',
+    starterCode: `function cosineSimilarity(u, v) {
+  let uu = 0;
+  let vv = 0;
+  for (let i = 0; i < u.length; i++) {
+    // TODO: accumulate squared terms
   }
-  return Math.sqrt(total);
-}
-
-function cosineDenominator(u, v) {
-  // TODO: return the product of the two norms.
-  return 1;
+  return [Math.sqrt(uu), Math.sqrt(vv)];
 }`,
     testCode: `const results = [];
-
-function approxEqual(a, b, tolerance = 1e-9) {
-  return Math.abs(a - b) <= tolerance;
-}
-
+function approxEqual(a, b, tol = 1e-9) { return Math.abs(a - b) <= tol; }
 function check(name, actual, expected) {
-  results.push({
-    name,
-    actual,
-    expected,
-    passed: approxEqual(actual, expected),
-  });
+  results.push({ name, actual, expected, passed: approxEqual(actual, expected) });
 }
-
-check('denominator [3, 4] and [1, 0]', cosineDenominator([3, 4], [1, 0]), 5);
-check('denominator [3, 4] and [0, 5]', cosineDenominator([3, 4], [0, 5]), 25);
-check('denominator [1, 2, 2] and [2, 0, 0]', cosineDenominator([1, 2, 2], [2, 0, 0]), 6);
-
+const out = cosineSimilarity([3, 4], [0, 5]);
+check('u norm', out[0], 5);
+check('v norm', out[1], 5);
 return results;`,
-    hints: [
-      'The denominator removes the effect of vector length.',
-      'Use norm(u) and norm(v).',
-      'return norm(u) * norm(v);',
-    ],
-    solution: `function norm(v) {
-  let total = 0;
-  for (let i = 0; i < v.length; i++) {
-    total += v[i] * v[i];
+    hints: ['uu += u[i] * u[i]; vv += v[i] * v[i];'],
+    solution: `function cosineSimilarity(u, v) {
+  let uu = 0;
+  let vv = 0;
+  for (let i = 0; i < u.length; i++) {
+    uu += u[i] * u[i];
+    vv += v[i] * v[i];
   }
-  return Math.sqrt(total);
-}
-
-function cosineDenominator(u, v) {
-  return norm(u) * norm(v);
+  return [Math.sqrt(uu), Math.sqrt(vv)];
 }`,
-    explanation: 'Dividing by both norms turns raw dot product into directional similarity.',
+    explanation: 'Normalization removes raw length effects from similarity.',
   },
-
   {
-    id: 'cosine-similarity-full',
+    id: 'cosine-divide',
     stepLabel: '5.3',
     group: 'Cosine similarity',
-    title: 'Cosine similarity',
-    concept: 'Cosine similarity is dot product divided by the product of vector lengths.',
-    objective: 'Complete the final cosine formula.',
+    title: 'Dot over norm product',
+    concept: 'Cosine similarity is dot divided by product of norms.',
+    objective: 'Return dot / (nu * nv).',
     difficulty: 'core',
-    starterCode: `function dot(a, b) {
-  let total = 0;
-  for (let i = 0; i < a.length; i++) {
-    total += a[i] * b[i];
+    starterCode: `function cosineSimilarity(u, v) {
+  let dot = 0;
+  let uu = 0;
+  let vv = 0;
+  for (let i = 0; i < u.length; i++) {
+    dot += u[i] * v[i];
+    uu += u[i] * u[i];
+    vv += v[i] * v[i];
   }
-  return total;
-}
-
-function norm(v) {
-  return Math.sqrt(dot(v, v));
-}
-
-function cosineSimilarity(u, v) {
-  const numerator = dot(u, v);
-  const denominator = norm(u) * norm(v);
-
-  // TODO: return cosine similarity.
+  const nu = Math.sqrt(uu);
+  const nv = Math.sqrt(vv);
+  // TODO: return cosine ratio
   return 0;
 }`,
     testCode: `const results = [];
-
-function approxEqual(a, b, tolerance = 1e-9) {
-  return Math.abs(a - b) <= tolerance;
-}
-
+function approxEqual(a, b, tol = 1e-9) { return Math.abs(a - b) <= tol; }
 function check(name, actual, expected) {
-  results.push({
-    name,
-    actual,
-    expected,
-    passed: approxEqual(actual, expected),
-  });
+  results.push({ name, actual, expected, passed: approxEqual(actual, expected) });
 }
-
+check('perpendicular', cosineSimilarity([1, 0], [0, 1]), 0);
+check('same direction', cosineSimilarity([1, 0], [5, 0]), 1);
+return results;`,
+    hints: ['return dot / (nu * nv);'],
+    solution: `function cosineSimilarity(u, v) {
+  let dot = 0;
+  let uu = 0;
+  let vv = 0;
+  for (let i = 0; i < u.length; i++) {
+    dot += u[i] * v[i];
+    uu += u[i] * u[i];
+    vv += v[i] * v[i];
+  }
+  const nu = Math.sqrt(uu);
+  const nv = Math.sqrt(vv);
+  return dot / (nu * nv);
+}`,
+    explanation: 'The quotient yields pure angular similarity.',
+  },
+  {
+    id: 'cosine-zero-guard',
+    stepLabel: '5.4',
+    group: 'Cosine similarity',
+    title: 'Zero-vector guard',
+    concept: 'Cosine is undefined when either vector has zero norm.',
+    objective: 'Return 0 when denominator is zero.',
+    difficulty: 'core',
+    starterCode: `function cosineSimilarity(u, v) {
+  let dot = 0;
+  let uu = 0;
+  let vv = 0;
+  for (let i = 0; i < u.length; i++) {
+    dot += u[i] * v[i];
+    uu += u[i] * u[i];
+    vv += v[i] * v[i];
+  }
+  const den = Math.sqrt(uu) * Math.sqrt(vv);
+  // TODO: guard den === 0
+  return dot / den;
+}`,
+    testCode: `const results = [];
+function check(name, actual, expected) {
+  results.push({ name, actual, expected, passed: Object.is(actual, expected) });
+}
+check('zero guard', cosineSimilarity([0, 0], [1, 2]), 0);
+check('normal', cosineSimilarity([1, 0], [0, 1]), 0);
+return results;`,
+    hints: ['if (den === 0) return 0;'],
+    solution: `function cosineSimilarity(u, v) {
+  let dot = 0;
+  let uu = 0;
+  let vv = 0;
+  for (let i = 0; i < u.length; i++) {
+    dot += u[i] * v[i];
+    uu += u[i] * u[i];
+    vv += v[i] * v[i];
+  }
+  const den = Math.sqrt(uu) * Math.sqrt(vv);
+  if (den === 0) return 0;
+  return dot / den;
+}`,
+    explanation: 'Defensive guards keep numeric utilities stable on degenerate inputs.',
+  },
+  {
+    id: 'cosine-similarity-full',
+    stepLabel: '5.5',
+    group: 'Cosine similarity',
+    title: 'Full cosineSimilarity(u,v)',
+    concept: 'The complete utility combines dot, norms, division, and zero checks.',
+    objective: 'Implement cosineSimilarity(u, v) end to end.',
+    difficulty: 'challenge',
+    starterCode: `function cosineSimilarity(u, v) {
+  let dot = 0;
+  let uu = 0;
+  let vv = 0;
+  for (let i = 0; i < u.length; i++) {
+    dot += u[i] * v[i];
+    uu += u[i] * u[i];
+    vv += v[i] * v[i];
+  }
+  const den = Math.sqrt(uu) * Math.sqrt(vv);
+  // TODO: return 0 when den is zero else dot / den
+  return 0;
+}`,
+    testCode: `const results = [];
+function approxEqual(a, b, tol = 1e-9) { return Math.abs(a - b) <= tol; }
+function check(name, actual, expected) {
+  results.push({ name, actual, expected, passed: approxEqual(actual, expected) });
+}
 check('same direction', cosineSimilarity([1, 0], [5, 0]), 1);
 check('perpendicular', cosineSimilarity([1, 0], [0, 1]), 0);
-check('opposite direction', cosineSimilarity([1, 0], [-2, 0]), -1);
-check('classic example', cosineSimilarity([1, 2], [3, 4]), 11 / (Math.sqrt(5) * 5));
-
+check('opposite', cosineSimilarity([1, 0], [-2, 0]), -1);
+check('zero vector', cosineSimilarity([0, 0], [1, 1]), 0);
 return results;`,
-    hints: [
-      'The numerator and denominator are already computed.',
-      'Cosine similarity = numerator / denominator.',
-      'return numerator / denominator;',
-    ],
-    solution: `function dot(a, b) {
-  let total = 0;
-  for (let i = 0; i < a.length; i++) {
-    total += a[i] * b[i];
+    hints: ['if (den === 0) return 0;', 'return dot / den;'],
+    solution: `function cosineSimilarity(u, v) {
+  let dot = 0;
+  let uu = 0;
+  let vv = 0;
+  for (let i = 0; i < u.length; i++) {
+    dot += u[i] * v[i];
+    uu += u[i] * u[i];
+    vv += v[i] * v[i];
   }
-  return total;
-}
-
-function norm(v) {
-  return Math.sqrt(dot(v, v));
-}
-
-function cosineSimilarity(u, v) {
-  const numerator = dot(u, v);
-  const denominator = norm(u) * norm(v);
-  return numerator / denominator;
+  const den = Math.sqrt(uu) * Math.sqrt(vv);
+  if (den === 0) return 0;
+  return dot / den;
 }`,
-    explanation: 'Cosine similarity compares direction. It equals 1 for same direction, 0 for perpendicular, and -1 for opposite direction.',
+    explanation: 'Cosine similarity maps directional agreement to [-1, 1].',
   },
 
   {
@@ -3514,719 +3534,1159 @@ function reconstructFromQR(Q, R) {
   },
 
   {
-    id: 'determinant-2x2',
+    id: 'det2-basic',
     stepLabel: '20.1',
     group: 'Determinant and invertibility',
-    title: '2x2 determinant',
-    concept: 'The determinant of [[a,b],[c,d]] is ad - bc.',
-    objective: 'Complete the determinant formula.',
-    difficulty: 'core',
+    title: 'det2 formula',
+    concept: 'For [[a,b],[c,d]], det2 = ad - bc.',
+    objective: 'Implement det2(M).',
+    difficulty: 'warmup',
     starterCode: `function det2(M) {
   const a = M[0][0];
   const b = M[0][1];
   const c = M[1][0];
   const d = M[1][1];
-
-  // TODO: return ad - bc.
+  // TODO: return ad - bc
   return 0;
 }`,
     testCode: `const results = [];
-
 function check(name, actual, expected) {
   results.push({ name, actual, expected, passed: Object.is(actual, expected) });
 }
-
-check('identity determinant', det2([[1, 0], [0, 1]]), 1);
-check('scale determinant', det2([[2, 0], [0, 3]]), 6);
-check('shear determinant', det2([[1, 2], [3, 4]]), -2);
-check('singular determinant', det2([[1, 2], [2, 4]]), 0);
-
+check('identity', det2([[1, 0], [0, 1]]), 1);
+check('shear', det2([[1, 2], [3, 4]]), -2);
 return results;`,
-    hints: [
-      'Use the variables a, b, c, and d.',
-      'Multiply the diagonal a*d, then subtract the off-diagonal b*c.',
-      'return a * d - b * c;',
-    ],
+    hints: ['return a * d - b * c;'],
     solution: `function det2(M) {
   const a = M[0][0];
   const b = M[0][1];
   const c = M[1][0];
   const d = M[1][1];
-
   return a * d - b * c;
 }`,
-    explanation: 'For 2D matrices, determinant measures signed area scaling.',
+    explanation: '2x2 determinants encode signed area scaling.',
   },
-
   {
-    id: 'determinant-invertible',
+    id: 'det2-area-scale',
     stepLabel: '20.2',
     group: 'Determinant and invertibility',
-    title: 'Is the matrix invertible?',
-    concept: 'A square matrix is invertible only if its determinant is nonzero.',
-    objective: 'Return whether the 2x2 matrix is invertible.',
+    title: 'Area scaling',
+    concept: 'Absolute determinant gives area scaling factor.',
+    objective: 'Implement areaScale(M) = Math.abs(det2(M)).',
+    difficulty: 'warmup',
+    starterCode: `function det2(M) {
+  const a = M[0][0];
+  const b = M[0][1];
+  const c = M[1][0];
+  const d = M[1][1];
+  return a * d - b * c;
+}
+function areaScale(M) {
+  // TODO: absolute determinant
+  return 0;
+}`,
+    testCode: `const results = [];
+function check(name, actual, expected) {
+  results.push({ name, actual, expected, passed: Object.is(actual, expected) });
+}
+check('positive scale', areaScale([[2, 0], [0, 3]]), 6);
+check('negative det still area', areaScale([[1, 2], [3, 4]]), 2);
+return results;`,
+    hints: ['return Math.abs(det2(M));'],
+    solution: `function det2(M) {
+  const a = M[0][0];
+  const b = M[0][1];
+  const c = M[1][0];
+  const d = M[1][1];
+  return a * d - b * c;
+}
+function areaScale(M) {
+  return Math.abs(det2(M));
+}`,
+    explanation: 'Sign encodes orientation flips; magnitude encodes area stretch.',
+  },
+  {
+    id: 'det2-invertible',
+    stepLabel: '20.3',
+    group: 'Determinant and invertibility',
+    title: 'Invertibility check',
+    concept: 'A 2x2 matrix is invertible iff determinant is non-zero.',
+    objective: 'Implement isInvertible2(M).',
     difficulty: 'core',
     starterCode: `function det2(M) {
   const a = M[0][0];
   const b = M[0][1];
   const c = M[1][0];
   const d = M[1][1];
-
   return a * d - b * c;
 }
-
 function isInvertible2(M) {
-  // TODO: return true when det2(M) is not zero.
+  // TODO: return det2(M) !== 0
   return false;
 }`,
     testCode: `const results = [];
-
 function check(name, actual, expected) {
   results.push({ name, actual, expected, passed: Object.is(actual, expected) });
 }
-
-check('identity is invertible', isInvertible2([[1, 0], [0, 1]]), true);
-check('scale is invertible', isInvertible2([[2, 0], [0, 3]]), true);
-check('rank-deficient is not invertible', isInvertible2([[1, 2], [2, 4]]), false);
-check('zero matrix is not invertible', isInvertible2([[0, 0], [0, 0]]), false);
-
+check('invertible', isInvertible2([[1, 2], [3, 4]]), true);
+check('singular', isInvertible2([[1, 2], [2, 4]]), false);
 return results;`,
-    hints: [
-      'A zero determinant means area collapses to zero.',
-      'Check det2(M) !== 0.',
-      'return det2(M) !== 0;',
-    ],
+    hints: ['return det2(M) !== 0;'],
     solution: `function det2(M) {
   const a = M[0][0];
   const b = M[0][1];
   const c = M[1][0];
   const d = M[1][1];
-
   return a * d - b * c;
 }
-
 function isInvertible2(M) {
   return det2(M) !== 0;
 }`,
-    explanation: 'If the determinant is zero, the transformation collapses area and cannot be reversed.',
+    explanation: 'Zero determinant means transformation collapses dimension.',
   },
-
   {
-    id: 'inverse-2x2',
-    stepLabel: '20.3',
+    id: 'det2-inverse',
+    stepLabel: '20.4',
     group: 'Determinant and invertibility',
-    title: '2x2 inverse',
-    concept: 'The inverse of [[a,b],[c,d]] is 1/det times [[d,-b],[-c,a]].',
-    objective: 'Complete the inverse matrix entries.',
+    title: 'Inverse formula',
+    concept: 'Inverse2 uses adjugate scaled by 1/det.',
+    objective: 'Implement inverse2(M).',
+    difficulty: 'core',
+    starterCode: `function inverse2(M) {
+  const a = M[0][0];
+  const b = M[0][1];
+  const c = M[1][0];
+  const d = M[1][1];
+  const det = a * d - b * c;
+  // TODO: return [[d/det, -b/det], [-c/det, a/det]]
+  return [[0, 0], [0, 0]];
+}`,
+    testCode: `const results = [];
+function approxEqual(a, b, tol = 1e-9) { return Math.abs(a - b) <= tol; }
+function check(name, actual, expected) {
+  results.push({ name, actual, expected, passed: approxEqual(actual, expected) });
+}
+const inv = inverse2([[1, 2], [3, 4]]);
+check('inv00', inv[0][0], -2);
+check('inv01', inv[0][1], 1);
+check('inv10', inv[1][0], 1.5);
+check('inv11', inv[1][1], -0.5);
+return results;`,
+    hints: ['return [[d / det, -b / det], [-c / det, a / det]];'],
+    solution: `function inverse2(M) {
+  const a = M[0][0];
+  const b = M[0][1];
+  const c = M[1][0];
+  const d = M[1][1];
+  const det = a * d - b * c;
+  return [[d / det, -b / det], [-c / det, a / det]];
+}`,
+    explanation: 'Inverse reverts the linear transform when det != 0.',
+  },
+  {
+    id: 'det2-verify-entry',
+    stepLabel: '20.5',
+    group: 'Determinant and invertibility',
+    title: 'Verify inverse entry',
+    concept: 'M * inv(M) should equal identity.',
+    objective: 'Implement verifyInverseEntry(M, row, col).',
     difficulty: 'challenge',
     starterCode: `function inverse2(M) {
   const a = M[0][0];
   const b = M[0][1];
   const c = M[1][0];
   const d = M[1][1];
-
   const det = a * d - b * c;
-
-  // TODO: return the 2x2 inverse.
-  return [
-    [0, 0],
-    [0, 0],
-  ];
+  return [[d / det, -b / det], [-c / det, a / det]];
+}
+function verifyInverseEntry(M, row, col) {
+  const inv = inverse2(M);
+  let total = 0;
+  for (let k = 0; k < 2; k++) {
+    // TODO: multiply M[row][k] by inv[k][col]
+    total += 0;
+  }
+  return total;
 }`,
     testCode: `const results = [];
-
-function approxMatrix(a, b, tolerance = 1e-9) {
-  return a.length === b.length && a.every((row, i) =>
-    row.length === b[i].length &&
-    row.every((value, j) => Math.abs(value - b[i][j]) <= tolerance)
-  );
-}
-
+function approxEqual(a, b, tol = 1e-9) { return Math.abs(a - b) <= tol; }
 function check(name, actual, expected) {
-  results.push({
-    name,
-    actual: JSON.stringify(actual),
-    expected: JSON.stringify(expected),
-    passed: approxMatrix(actual, expected),
-  });
+  results.push({ name, actual, expected, passed: approxEqual(actual, expected) });
 }
-
-check('inverse identity', inverse2([[1, 0], [0, 1]]), [[1, 0], [0, 1]]);
-check('inverse diagonal', inverse2([[2, 0], [0, 4]]), [[0.5, 0], [0, 0.25]]);
-check('inverse [[1,2],[3,4]]', inverse2([[1, 2], [3, 4]]), [[-2, 1], [1.5, -0.5]]);
-
+const M = [[1, 2], [3, 4]];
+check('I00', verifyInverseEntry(M, 0, 0), 1);
+check('I01', verifyInverseEntry(M, 0, 1), 0);
+check('I10', verifyInverseEntry(M, 1, 0), 0);
+check('I11', verifyInverseEntry(M, 1, 1), 1);
 return results;`,
-    hints: [
-      'Use the formula 1/det times [[d, -b], [-c, a]].',
-      'Each entry should be divided by det.',
-      'return [[d / det, -b / det], [-c / det, a / det]];',
-    ],
+    hints: ['total += M[row][k] * inv[k][col];'],
     solution: `function inverse2(M) {
   const a = M[0][0];
   const b = M[0][1];
   const c = M[1][0];
   const d = M[1][1];
-
   const det = a * d - b * c;
-
-  return [
-    [d / det, -b / det],
-    [-c / det, a / det],
-  ];
+  return [[d / det, -b / det], [-c / det, a / det]];
+}
+function verifyInverseEntry(M, row, col) {
+  const inv = inverse2(M);
+  let total = 0;
+  for (let k = 0; k < 2; k++) {
+    total += M[row][k] * inv[k][col];
+  }
+  return total;
 }`,
-    explanation: 'The inverse reverses a linear transformation when the determinant is nonzero.',
+    explanation: 'Entrywise checks validate inverse correctness directly.',
+  },
+  {
+    id: 'det2-full-pipeline',
+    stepLabel: '20.6',
+    group: 'Determinant and invertibility',
+    title: 'Full determinant pipeline',
+    concept: 'A complete utility reports determinant, area scaling, invertibility, and optional inverse.',
+    objective: 'Return {det, areaScale, invertible, inverse}.',
+    difficulty: 'challenge',
+    starterCode: `function det2(M) {
+  const a = M[0][0];
+  const b = M[0][1];
+  const c = M[1][0];
+  const d = M[1][1];
+  return a * d - b * c;
+}
+function inverse2(M) {
+  const a = M[0][0];
+  const b = M[0][1];
+  const c = M[1][0];
+  const d = M[1][1];
+  const det = a * d - b * c;
+  return [[d / det, -b / det], [-c / det, a / det]];
+}
+function determinantReport(M) {
+  const det = det2(M);
+  const areaScale = Math.abs(det);
+  const invertible = det !== 0;
+  // TODO: inverse should be null when singular
+  const inverse = [];
+  return { det, areaScale, invertible, inverse };
+}`,
+    testCode: `const results = [];
+function same(a, b) { return JSON.stringify(a) === JSON.stringify(b); }
+function check(name, actual, expected) {
+  const passed = typeof expected === 'object' ? same(actual, expected) : Object.is(actual, expected);
+  results.push({ name, actual: JSON.stringify(actual), expected: JSON.stringify(expected), passed });
+}
+const good = determinantReport([[1, 2], [3, 4]]);
+check('det', good.det, -2);
+check('area', good.areaScale, 2);
+check('invertible', good.invertible, true);
+check('inverse', good.inverse, [[-2, 1], [1.5, -0.5]]);
+const bad = determinantReport([[1, 2], [2, 4]]);
+check('singular inverse null', bad.inverse, null);
+return results;`,
+    hints: ['const inverse = invertible ? inverse2(M) : null;'],
+    solution: `function det2(M) {
+  const a = M[0][0];
+  const b = M[0][1];
+  const c = M[1][0];
+  const d = M[1][1];
+  return a * d - b * c;
+}
+function inverse2(M) {
+  const a = M[0][0];
+  const b = M[0][1];
+  const c = M[1][0];
+  const d = M[1][1];
+  const det = a * d - b * c;
+  return [[d / det, -b / det], [-c / det, a / det]];
+}
+function determinantReport(M) {
+  const det = det2(M);
+  const areaScale = Math.abs(det);
+  const invertible = det !== 0;
+  const inverse = invertible ? inverse2(M) : null;
+  return { det, areaScale, invertible, inverse };
+}`,
+    explanation: 'This packages determinant reasoning into one practical diagnostic.',
   },
 
   {
-    id: 'change-basis-one-coordinate',
+    id: 'basis-coordinate-one',
     stepLabel: '21.1',
     group: 'Change of basis',
-    title: 'One coordinate in a new basis',
-    concept: 'For an orthonormal basis, a coordinate is a dot product with the basis vector.',
-    objective: 'Return v dot basisVector.',
-    difficulty: 'core',
-    starterCode: `function dot(a, b) {
+    title: 'Single basis coordinate',
+    concept: 'Coordinate along an orthonormal basis vector is a dot product.',
+    objective: 'Implement coordinateInBasis(v, basisVector).',
+    difficulty: 'warmup',
+    starterCode: `function coordinateInBasis(v, basisVector) {
   let total = 0;
-  for (let i = 0; i < a.length; i++) {
-    total += a[i] * b[i];
+  for (let i = 0; i < v.length; i++) {
+    // TODO: accumulate dot contribution
+    total += 0;
   }
   return total;
-}
-
-function coordinateInBasis(v, basisVector) {
-  // TODO: return the coordinate of v along basisVector.
-  return 0;
 }`,
     testCode: `const results = [];
-
-function approxEqual(a, b, tolerance = 1e-9) {
-  return Math.abs(a - b) <= tolerance;
-}
-
+function approxEqual(a, b, tol = 1e-9) { return Math.abs(a - b) <= tol; }
 function check(name, actual, expected) {
-  results.push({
-    name,
-    actual,
-    expected,
-    passed: approxEqual(actual, expected),
-  });
+  results.push({ name, actual, expected, passed: approxEqual(actual, expected) });
 }
-
-check('x-coordinate', coordinateInBasis([3, 4], [1, 0]), 3);
-check('y-coordinate', coordinateInBasis([3, 4], [0, 1]), 4);
-check('diagonal coordinate', coordinateInBasis([2, 0], [1 / Math.sqrt(2), 1 / Math.sqrt(2)]), Math.sqrt(2));
-
+check('x axis', coordinateInBasis([3, 4], [1, 0]), 3);
 return results;`,
-    hints: [
-      'In an orthonormal basis, projection coordinates are dot products.',
-      'Use the dot helper.',
-      'return dot(v, basisVector);',
-    ],
-    solution: `function dot(a, b) {
+    hints: ['total += v[i] * basisVector[i];'],
+    solution: `function coordinateInBasis(v, basisVector) {
   let total = 0;
-  for (let i = 0; i < a.length; i++) {
-    total += a[i] * b[i];
+  for (let i = 0; i < v.length; i++) {
+    total += v[i] * basisVector[i];
   }
   return total;
-}
-
-function coordinateInBasis(v, basisVector) {
-  return dot(v, basisVector);
 }`,
-    explanation: 'A coordinate says how much of the vector points along a basis direction.',
+    explanation: 'Coordinates are projections onto basis directions.',
   },
-
   {
-    id: 'change-basis-all-coordinates',
+    id: 'basis-coordinates-all',
     stepLabel: '21.2',
     group: 'Change of basis',
-    title: 'All coordinates in a new basis',
-    concept: 'Coordinates in an orthonormal basis come from dotting with every basis vector.',
-    objective: 'Push each basis coordinate into the result.',
-    difficulty: 'core',
-    starterCode: `function dot(a, b) {
+    title: 'All basis coordinates',
+    concept: 'Coordinates in a new basis are one projection per basis vector.',
+    objective: 'Implement coordinatesInBasis(v, basisVectors).',
+    difficulty: 'warmup',
+    starterCode: `function coordinateInBasis(v, basisVector) {
   let total = 0;
-  for (let i = 0; i < a.length; i++) {
-    total += a[i] * b[i];
-  }
+  for (let i = 0; i < v.length; i++) total += v[i] * basisVector[i];
   return total;
 }
-
 function coordinatesInBasis(v, basisVectors) {
   const coords = [];
-
-  for (let i = 0; i < basisVectors.length; i++) {
-    // TODO: push the coordinate along this basis vector.
+  for (let j = 0; j < basisVectors.length; j++) {
+    // TODO: push coordinate in this basis direction
     coords.push(0);
   }
-
   return coords;
 }`,
     testCode: `const results = [];
-
-function approxArray(a, b, tolerance = 1e-9) {
-  return a.length === b.length && a.every((value, index) => Math.abs(value - b[index]) <= tolerance);
-}
-
+function same(a, b) { return JSON.stringify(a) === JSON.stringify(b); }
 function check(name, actual, expected) {
-  results.push({
-    name,
-    actual: JSON.stringify(actual),
-    expected: JSON.stringify(expected),
-    passed: approxArray(actual, expected),
-  });
+  results.push({ name, actual: JSON.stringify(actual), expected: JSON.stringify(expected), passed: same(actual, expected) });
 }
-
 check('standard basis', coordinatesInBasis([3, 4], [[1, 0], [0, 1]]), [3, 4]);
-check('swapped basis', coordinatesInBasis([3, 4], [[0, 1], [1, 0]]), [4, 3]);
-check('diagonal basis', coordinatesInBasis([2, 0], [[1 / Math.sqrt(2), 1 / Math.sqrt(2)], [1 / Math.sqrt(2), -1 / Math.sqrt(2)]]), [Math.sqrt(2), Math.sqrt(2)]);
-
 return results;`,
-    hints: [
-      'Loop over every basis vector.',
-      'Each coordinate is dot(v, basisVectors[i]).',
-      'coords.push(dot(v, basisVectors[i]));',
-    ],
-    solution: `function dot(a, b) {
+    hints: ['coords.push(coordinateInBasis(v, basisVectors[j]));'],
+    solution: `function coordinateInBasis(v, basisVector) {
   let total = 0;
-  for (let i = 0; i < a.length; i++) {
-    total += a[i] * b[i];
-  }
+  for (let i = 0; i < v.length; i++) total += v[i] * basisVector[i];
   return total;
 }
-
 function coordinatesInBasis(v, basisVectors) {
   const coords = [];
-
-  for (let i = 0; i < basisVectors.length; i++) {
-    coords.push(dot(v, basisVectors[i]));
+  for (let j = 0; j < basisVectors.length; j++) {
+    coords.push(coordinateInBasis(v, basisVectors[j]));
   }
-
   return coords;
 }`,
-    explanation: 'Changing to an orthonormal basis is measuring the vector along each new direction.',
+    explanation: 'Basis change collects all directional components.',
   },
-
   {
-    id: 'change-basis-reconstruct',
+    id: 'basis-reconstruct',
     stepLabel: '21.3',
     group: 'Change of basis',
-    title: 'Reconstruct from coordinates',
-    concept: 'A vector can be rebuilt by adding coordinate-scaled basis vectors.',
-    objective: 'Add coords[j] times basisVectors[j][i] to each output coordinate.',
-    difficulty: 'challenge',
+    title: 'Reconstruct vector',
+    concept: 'Original vector is reconstructed from coordinate-weighted basis vectors.',
+    objective: 'Implement reconstructFromBasis(coords, basisVectors).',
+    difficulty: 'core',
     starterCode: `function reconstructFromBasis(coords, basisVectors) {
-  const dimension = basisVectors[0].length;
-  const v = Array(dimension).fill(0);
-
+  const dim = basisVectors[0].length;
+  const out = Array(dim).fill(0);
   for (let j = 0; j < basisVectors.length; j++) {
-    for (let i = 0; i < dimension; i++) {
-      // TODO: add this coordinate-scaled basis entry.
-      v[i] += 0;
+    for (let i = 0; i < dim; i++) {
+      // TODO: add coordinate contribution
+      out[i] += 0;
     }
   }
-
-  return v;
+  return out;
 }`,
     testCode: `const results = [];
-
-function approxArray(a, b, tolerance = 1e-9) {
-  return a.length === b.length && a.every((value, index) => Math.abs(value - b[index]) <= tolerance);
-}
-
+function same(a, b) { return JSON.stringify(a) === JSON.stringify(b); }
 function check(name, actual, expected) {
-  results.push({
-    name,
-    actual: JSON.stringify(actual),
-    expected: JSON.stringify(expected),
-    passed: approxArray(actual, expected),
-  });
+  results.push({ name, actual: JSON.stringify(actual), expected: JSON.stringify(expected), passed: same(actual, expected) });
 }
-
-check('standard basis', reconstructFromBasis([3, 4], [[1, 0], [0, 1]]), [3, 4]);
-check('swapped basis', reconstructFromBasis([4, 3], [[0, 1], [1, 0]]), [3, 4]);
-check('diagonal basis', reconstructFromBasis([Math.sqrt(2), Math.sqrt(2)], [[1 / Math.sqrt(2), 1 / Math.sqrt(2)], [1 / Math.sqrt(2), -1 / Math.sqrt(2)]]), [2, 0]);
-
+check('reconstruct', reconstructFromBasis([3, 4], [[1, 0], [0, 1]]), [3, 4]);
 return results;`,
-    hints: [
-      'Each coordinate scales one basis vector.',
-      'Add coords[j] * basisVectors[j][i] into v[i].',
-      'v[i] += coords[j] * basisVectors[j][i];',
-    ],
+    hints: ['out[i] += coords[j] * basisVectors[j][i];'],
     solution: `function reconstructFromBasis(coords, basisVectors) {
-  const dimension = basisVectors[0].length;
-  const v = Array(dimension).fill(0);
-
+  const dim = basisVectors[0].length;
+  const out = Array(dim).fill(0);
   for (let j = 0; j < basisVectors.length; j++) {
-    for (let i = 0; i < dimension; i++) {
-      v[i] += coords[j] * basisVectors[j][i];
+    for (let i = 0; i < dim; i++) {
+      out[i] += coords[j] * basisVectors[j][i];
     }
   }
-
-  return v;
+  return out;
 }`,
-    explanation: 'Coordinates are not the vector itself; they are instructions for combining basis directions.',
+    explanation: 'Coordinates become concrete vector entries via linear combination.',
+  },
+  {
+    id: 'basis-roundtrip',
+    stepLabel: '21.4',
+    group: 'Change of basis',
+    title: 'Round-trip basis conversion',
+    concept: 'Round-trip means convert to basis coordinates then reconstruct back.',
+    objective: 'Implement roundTripBasis(v, basisVectors).',
+    difficulty: 'core',
+    starterCode: `function coordinateInBasis(v, basisVector) {
+  let total = 0;
+  for (let i = 0; i < v.length; i++) total += v[i] * basisVector[i];
+  return total;
+}
+function coordinatesInBasis(v, basisVectors) {
+  const coords = [];
+  for (let j = 0; j < basisVectors.length; j++) coords.push(coordinateInBasis(v, basisVectors[j]));
+  return coords;
+}
+function reconstructFromBasis(coords, basisVectors) {
+  const dim = basisVectors[0].length;
+  const out = Array(dim).fill(0);
+  for (let j = 0; j < basisVectors.length; j++) {
+    for (let i = 0; i < dim; i++) out[i] += coords[j] * basisVectors[j][i];
+  }
+  return out;
+}
+function roundTripBasis(v, basisVectors) {
+  // TODO: use coordinatesInBasis + reconstructFromBasis
+  return [];
+}`,
+    testCode: `const results = [];
+function same(a, b, tol = 1e-9) { return a.length === b.length && a.every((x, i) => Math.abs(x - b[i]) <= tol); }
+function check(name, actual, expected) {
+  results.push({ name, actual: JSON.stringify(actual), expected: JSON.stringify(expected), passed: same(actual, expected) });
+}
+const basis = [[1, 0], [0, 1]];
+check('round trip identity basis', roundTripBasis([3, 4], basis), [3, 4]);
+return results;`,
+    hints: ['const coords = coordinatesInBasis(v, basisVectors); return reconstructFromBasis(coords, basisVectors);'],
+    solution: `function coordinateInBasis(v, basisVector) {
+  let total = 0;
+  for (let i = 0; i < v.length; i++) total += v[i] * basisVector[i];
+  return total;
+}
+function coordinatesInBasis(v, basisVectors) {
+  const coords = [];
+  for (let j = 0; j < basisVectors.length; j++) coords.push(coordinateInBasis(v, basisVectors[j]));
+  return coords;
+}
+function reconstructFromBasis(coords, basisVectors) {
+  const dim = basisVectors[0].length;
+  const out = Array(dim).fill(0);
+  for (let j = 0; j < basisVectors.length; j++) {
+    for (let i = 0; i < dim; i++) out[i] += coords[j] * basisVectors[j][i];
+  }
+  return out;
+}
+function roundTripBasis(v, basisVectors) {
+  const coords = coordinatesInBasis(v, basisVectors);
+  return reconstructFromBasis(coords, basisVectors);
+}`,
+    explanation: 'Round-tripping verifies that basis conversion is consistent.',
+  },
+  {
+    id: 'basis-swapped-example',
+    stepLabel: '21.5',
+    group: 'Change of basis',
+    title: 'Swapped basis sanity check',
+    concept: 'Different basis order changes coordinate order but not represented vector.',
+    objective: 'Return swapped-basis coordinates then reconstruction.',
+    difficulty: 'core',
+    starterCode: `function coordinateInBasis(v, basisVector) {
+  let total = 0;
+  for (let i = 0; i < v.length; i++) total += v[i] * basisVector[i];
+  return total;
+}
+function coordinatesInBasis(v, basisVectors) {
+  return basisVectors.map((b) => coordinateInBasis(v, b));
+}
+function reconstructFromBasis(coords, basisVectors) {
+  const dim = basisVectors[0].length;
+  const out = Array(dim).fill(0);
+  for (let j = 0; j < basisVectors.length; j++) {
+    for (let i = 0; i < dim; i++) out[i] += coords[j] * basisVectors[j][i];
+  }
+  return out;
+}
+function basisSummary(v, basisVectors) {
+  const coords = coordinatesInBasis(v, basisVectors);
+  // TODO: also reconstruct vector and return both
+  return { coords, reconstructed: [] };
+}`,
+    testCode: `const results = [];
+function same(a, b) { return JSON.stringify(a) === JSON.stringify(b); }
+function check(name, actual, expected) {
+  results.push({ name, actual: JSON.stringify(actual), expected: JSON.stringify(expected), passed: same(actual, expected) });
+}
+const basis = [[0, 1], [1, 0]];
+const out = basisSummary([3, 4], basis);
+check('coords swapped', out.coords, [4, 3]);
+check('reconstruct original', out.reconstructed, [3, 4]);
+return results;`,
+    hints: ['const reconstructed = reconstructFromBasis(coords, basisVectors);'],
+    solution: `function coordinateInBasis(v, basisVector) {
+  let total = 0;
+  for (let i = 0; i < v.length; i++) total += v[i] * basisVector[i];
+  return total;
+}
+function coordinatesInBasis(v, basisVectors) {
+  return basisVectors.map((b) => coordinateInBasis(v, b));
+}
+function reconstructFromBasis(coords, basisVectors) {
+  const dim = basisVectors[0].length;
+  const out = Array(dim).fill(0);
+  for (let j = 0; j < basisVectors.length; j++) {
+    for (let i = 0; i < dim; i++) out[i] += coords[j] * basisVectors[j][i];
+  }
+  return out;
+}
+function basisSummary(v, basisVectors) {
+  const coords = coordinatesInBasis(v, basisVectors);
+  const reconstructed = reconstructFromBasis(coords, basisVectors);
+  return { coords, reconstructed };
+}`,
+    explanation: 'Coordinates depend on basis order, but reconstructed vector stays invariant.',
+  },
+  {
+    id: 'basis-full',
+    stepLabel: '21.6',
+    group: 'Change of basis',
+    title: 'Complete basis utility',
+    concept: 'Complete basis conversion utility supports round-trip and coordinate inspection.',
+    objective: 'Return coords and roundTrip from roundTripBasis.',
+    difficulty: 'challenge',
+    starterCode: `function coordinateInBasis(v, basisVector) {
+  let total = 0;
+  for (let i = 0; i < v.length; i++) total += v[i] * basisVector[i];
+  return total;
+}
+function coordinatesInBasis(v, basisVectors) {
+  return basisVectors.map((b) => coordinateInBasis(v, b));
+}
+function reconstructFromBasis(coords, basisVectors) {
+  const dim = basisVectors[0].length;
+  const out = Array(dim).fill(0);
+  for (let j = 0; j < basisVectors.length; j++) {
+    for (let i = 0; i < dim; i++) out[i] += coords[j] * basisVectors[j][i];
+  }
+  return out;
+}
+function roundTripBasis(v, basisVectors) {
+  const coords = coordinatesInBasis(v, basisVectors);
+  return reconstructFromBasis(coords, basisVectors);
+}
+function changeBasisSummary(v, basisVectors) {
+  const coords = coordinatesInBasis(v, basisVectors);
+  // TODO: include roundTrip result
+  return { coords, roundTrip: [] };
+}`,
+    testCode: `const results = [];
+function same(a, b, tol = 1e-9) { return a.length === b.length && a.every((x, i) => Math.abs(x - b[i]) <= tol); }
+function check(name, actual, expected) {
+  const passed = Array.isArray(expected) ? same(actual, expected) : Object.is(actual, expected);
+  results.push({ name, actual: JSON.stringify(actual), expected: JSON.stringify(expected), passed });
+}
+const basis = [[1, 0], [0, 1]];
+const out = changeBasisSummary([5, -2], basis);
+check('coords', out.coords, [5, -2]);
+check('roundTrip', out.roundTrip, [5, -2]);
+return results;`,
+    hints: ['return { coords, roundTrip: roundTripBasis(v, basisVectors) };'],
+    solution: `function coordinateInBasis(v, basisVector) {
+  let total = 0;
+  for (let i = 0; i < v.length; i++) total += v[i] * basisVector[i];
+  return total;
+}
+function coordinatesInBasis(v, basisVectors) {
+  return basisVectors.map((b) => coordinateInBasis(v, b));
+}
+function reconstructFromBasis(coords, basisVectors) {
+  const dim = basisVectors[0].length;
+  const out = Array(dim).fill(0);
+  for (let j = 0; j < basisVectors.length; j++) {
+    for (let i = 0; i < dim; i++) out[i] += coords[j] * basisVectors[j][i];
+  }
+  return out;
+}
+function roundTripBasis(v, basisVectors) {
+  const coords = coordinatesInBasis(v, basisVectors);
+  return reconstructFromBasis(coords, basisVectors);
+}
+function changeBasisSummary(v, basisVectors) {
+  const coords = coordinatesInBasis(v, basisVectors);
+  return { coords, roundTrip: roundTripBasis(v, basisVectors) };
+}`,
+    explanation: 'The full summary exposes both transformed and reconstructed representations.',
   },
 
   {
-    id: 'eigen-rayleigh-numerator',
+    id: 'eigen-matvec-entry',
     stepLabel: '22.1',
     group: 'Eigenvalues',
-    title: 'Rayleigh numerator',
-    concept: 'The Rayleigh quotient estimates how much A scales a direction v.',
-    objective: 'Return v dot Av.',
-    difficulty: 'core',
-    starterCode: `function dot(a, b) {
+    title: 'matvec row dot',
+    concept: 'Matrix-vector multiplication builds each output entry from a row dot product.',
+    objective: 'Implement rowDot(row, x).',
+    difficulty: 'warmup',
+    starterCode: `function rowDot(row, x) {
   let total = 0;
-  for (let i = 0; i < a.length; i++) {
-    total += a[i] * b[i];
+  for (let i = 0; i < row.length; i++) {
+    // TODO: accumulate row[i] * x[i]
+    total += 0;
   }
   return total;
-}
-
-function rayleighNumerator(v, Av) {
-  // TODO: return v dotted with Av.
-  return 0;
 }`,
     testCode: `const results = [];
-
 function check(name, actual, expected) {
   results.push({ name, actual, expected, passed: Object.is(actual, expected) });
 }
-
-check('v dot Av', rayleighNumerator([1, 0], [3, 0]), 3);
-check('v dot Av 2d', rayleighNumerator([1, 2], [5, 6]), 17);
-check('negative', rayleighNumerator([-1, 2], [3, 5]), 7);
-
+check('row dot', rowDot([3, 4], [1, 2]), 11);
 return results;`,
-    hints: [
-      'The dot helper is already available.',
-      'Rayleigh numerator is dot(v, Av).',
-      'return dot(v, Av);',
-    ],
-    solution: `function dot(a, b) {
+    hints: ['total += row[i] * x[i];'],
+    solution: `function rowDot(row, x) {
   let total = 0;
-  for (let i = 0; i < a.length; i++) {
-    total += a[i] * b[i];
+  for (let i = 0; i < row.length; i++) {
+    total += row[i] * x[i];
   }
   return total;
-}
-
-function rayleighNumerator(v, Av) {
-  return dot(v, Av);
 }`,
-    explanation: 'If v is an eigenvector, Av points in the same direction and the Rayleigh quotient returns its eigenvalue.',
+    explanation: 'matvec repeatedly applies this row-wise dot primitive.',
   },
-
   {
-    id: 'eigen-rayleigh-quotient',
+    id: 'eigen-matvec',
     stepLabel: '22.2',
     group: 'Eigenvalues',
-    title: 'Rayleigh quotient',
-    concept: 'The Rayleigh quotient is (v dot Av) / (v dot v).',
-    objective: 'Complete the quotient formula.',
-    difficulty: 'core',
-    starterCode: `function dot(a, b) {
+    title: 'matvec full',
+    concept: 'matvec(A, x) maps each row of A to one output component.',
+    objective: 'Implement matvec(A, x).',
+    difficulty: 'warmup',
+    starterCode: `function rowDot(row, x) {
   let total = 0;
-  for (let i = 0; i < a.length; i++) {
-    total += a[i] * b[i];
-  }
+  for (let i = 0; i < row.length; i++) total += row[i] * x[i];
   return total;
 }
-
-function rayleighQuotient(v, Av) {
-  const numerator = dot(v, Av);
-  const denominator = dot(v, v);
-
-  // TODO: return numerator divided by denominator.
-  return 0;
+function matvec(A, x) {
+  const out = [];
+  for (let r = 0; r < A.length; r++) {
+    // TODO: push rowDot(A[r], x)
+    out.push(0);
+  }
+  return out;
 }`,
     testCode: `const results = [];
-
-function approxEqual(a, b, tolerance = 1e-9) {
-  return Math.abs(a - b) <= tolerance;
-}
-
+function same(a, b) { return JSON.stringify(a) === JSON.stringify(b); }
 function check(name, actual, expected) {
-  results.push({
-    name,
-    actual,
-    expected,
-    passed: approxEqual(actual, expected),
-  });
+  results.push({ name, actual: JSON.stringify(actual), expected: JSON.stringify(expected), passed: same(actual, expected) });
 }
-
-check('eigen direction scale 3', rayleighQuotient([1, 0], [3, 0]), 3);
-check('eigen direction scale 2', rayleighQuotient([0, 2], [0, 4]), 2);
-check('general vector', rayleighQuotient([1, 1], [3, 5]), 4);
-
+check('matvec', matvec([[2, 0], [0, 3]], [4, 5]), [8, 15]);
 return results;`,
-    hints: [
-      'The numerator and denominator are already computed.',
-      'The quotient is numerator / denominator.',
-      'return numerator / denominator;',
-    ],
-    solution: `function dot(a, b) {
+    hints: ['out.push(rowDot(A[r], x));'],
+    solution: `function rowDot(row, x) {
   let total = 0;
-  for (let i = 0; i < a.length; i++) {
-    total += a[i] * b[i];
-  }
+  for (let i = 0; i < row.length; i++) total += row[i] * x[i];
   return total;
 }
-
-function rayleighQuotient(v, Av) {
-  const numerator = dot(v, Av);
-  const denominator = dot(v, v);
-  return numerator / denominator;
+function matvec(A, x) {
+  const out = [];
+  for (let r = 0; r < A.length; r++) {
+    out.push(rowDot(A[r], x));
+  }
+  return out;
 }`,
-    explanation: 'The Rayleigh quotient estimates the scaling factor of A along the direction v.',
+    explanation: 'matvec is the core linear transform in eigen methods.',
   },
-
   {
     id: 'eigen-power-step',
     stepLabel: '22.3',
     group: 'Eigenvalues',
-    title: 'One power iteration step',
-    concept: 'Power iteration repeatedly applies A and normalizes to find a dominant eigenvector.',
-    objective: 'Return the normalized version of Av.',
-    difficulty: 'challenge',
-    starterCode: `function dot(a, b) {
-  let total = 0;
-  for (let i = 0; i < a.length; i++) {
-    total += a[i] * b[i];
-  }
-  return total;
+    title: 'Power normalization step',
+    concept: 'Power iteration applies matvec then normalizes.',
+    objective: 'Implement powerStep(A, v).',
+    difficulty: 'core',
+    starterCode: `function matvec(A, x) {
+  return A.map((row) => row.reduce((s, v, i) => s + v * x[i], 0));
 }
-
-function matvec(A, x) {
-  return A.map((row) => dot(row, x));
-}
-
-function norm(v) {
-  return Math.sqrt(dot(v, v));
-}
-
 function powerStep(A, v) {
   const Av = matvec(A, v);
-  const length = norm(Av);
-
-  // TODO: return Av normalized to unit length.
+  let norm2 = 0;
+  for (let i = 0; i < Av.length; i++) norm2 += Av[i] * Av[i];
+  const norm = Math.sqrt(norm2);
+  // TODO: return normalized Av
   return Av;
 }`,
     testCode: `const results = [];
-
-function approxArray(a, b, tolerance = 1e-9) {
-  return a.length === b.length && a.every((value, index) => Math.abs(value - b[index]) <= tolerance);
-}
-
+function same(a, b, tol = 1e-9) { return a.length === b.length && a.every((x, i) => Math.abs(x - b[i]) <= tol); }
 function check(name, actual, expected) {
-  results.push({
-    name,
-    actual: JSON.stringify(actual),
-    expected: JSON.stringify(expected),
-    passed: approxArray(actual, expected),
-  });
+  results.push({ name, actual: JSON.stringify(actual), expected: JSON.stringify(expected), passed: same(actual, expected) });
 }
-
-check('diagonal matrix favors x', powerStep([[3, 0], [0, 1]], [1, 0]), [1, 0]);
-check('diagonal matrix favors y', powerStep([[1, 0], [0, 4]], [0, 1]), [0, 1]);
-check('scale vector', powerStep([[2, 0], [0, 2]], [3, 4]), [0.6, 0.8]);
-
+check('normalize', powerStep([[2, 0], [0, 2]], [3, 4]), [0.6, 0.8]);
 return results;`,
-    hints: [
-      'Av and length are already computed.',
-      'Normalize by dividing each entry of Av by length.',
-      'return Av.map((entry) => entry / length);',
-    ],
-    solution: `function dot(a, b) {
-  let total = 0;
-  for (let i = 0; i < a.length; i++) {
-    total += a[i] * b[i];
-  }
-  return total;
+    hints: ['return Av.map((x) => x / norm);'],
+    solution: `function matvec(A, x) {
+  return A.map((row) => row.reduce((s, v, i) => s + v * x[i], 0));
 }
-
-function matvec(A, x) {
-  return A.map((row) => dot(row, x));
-}
-
-function norm(v) {
-  return Math.sqrt(dot(v, v));
-}
-
 function powerStep(A, v) {
   const Av = matvec(A, v);
-  const length = norm(Av);
-  return Av.map((entry) => entry / length);
+  let norm2 = 0;
+  for (let i = 0; i < Av.length; i++) norm2 += Av[i] * Av[i];
+  const norm = Math.sqrt(norm2);
+  return Av.map((x) => x / norm);
 }`,
-    explanation: 'Power iteration applies the matrix, then rescales the result so the vector does not explode in length.',
+    explanation: 'Normalization stabilizes iterative eigenvector estimation.',
   },
-
   {
-    id: 'low-rank-scaled-outer-entry',
-    stepLabel: '23.1',
-    group: 'Low-rank approximation',
-    title: 'Scaled outer product entry',
-    concept: 'A rank-1 matrix can be written as sigma times u v^T.',
-    objective: 'Return sigma times u[row] times v[col].',
+    id: 'eigen-rayleigh',
+    stepLabel: '22.4',
+    group: 'Eigenvalues',
+    title: 'Rayleigh quotient',
+    concept: 'Rayleigh quotient approximates eigenvalue along direction v.',
+    objective: 'Implement rayleigh(v, Av).',
     difficulty: 'core',
-    starterCode: `function rankOneEntry(sigma, u, v, row, col) {
-  // TODO: return sigma * u[row] * v[col].
+    starterCode: `function rayleigh(v, Av) {
+  let num = 0;
+  let den = 0;
+  for (let i = 0; i < v.length; i++) {
+    num += v[i] * Av[i];
+    den += v[i] * v[i];
+  }
+  // TODO: return quotient
   return 0;
 }`,
     testCode: `const results = [];
-
-function approxEqual(a, b, tolerance = 1e-9) {
-  return Math.abs(a - b) <= tolerance;
-}
-
+function approxEqual(a, b, tol = 1e-9) { return Math.abs(a - b) <= tol; }
 function check(name, actual, expected) {
-  results.push({
-    name,
-    actual,
-    expected,
-    passed: approxEqual(actual, expected),
-  });
+  results.push({ name, actual, expected, passed: approxEqual(actual, expected) });
 }
-
-check('entry 0,0', rankOneEntry(2, [1, 0], [3, 4], 0, 0), 6);
-check('entry 0,1', rankOneEntry(2, [1, 0], [3, 4], 0, 1), 8);
-check('entry 1,0 zero', rankOneEntry(2, [1, 0], [3, 4], 1, 0), 0);
-check('fractional', rankOneEntry(5, [0.6, 0.8], [1, 0], 1, 0), 4);
-
+check('rayleigh', rayleigh([1, 0], [3, 0]), 3);
 return results;`,
-    hints: [
-      'A rank-1 approximation uses one singular value and two direction vectors.',
-      'Use sigma, u[row], and v[col].',
-      'return sigma * u[row] * v[col];',
-    ],
-    solution: `function rankOneEntry(sigma, u, v, row, col) {
-  return sigma * u[row] * v[col];
+    hints: ['return num / den;'],
+    solution: `function rayleigh(v, Av) {
+  let num = 0;
+  let den = 0;
+  for (let i = 0; i < v.length; i++) {
+    num += v[i] * Av[i];
+    den += v[i] * v[i];
+  }
+  return num / den;
 }`,
-    explanation: 'A rank-1 matrix is the outer product u v^T scaled by sigma.',
+    explanation: 'Rayleigh gives scalar scaling estimate for a direction.',
   },
-
   {
-    id: 'low-rank-build-rank-one',
-    stepLabel: '23.2',
-    group: 'Low-rank approximation',
-    title: 'Build a rank-1 matrix',
-    concept: 'A rank-1 approximation fills every cell with sigma * u_i * v_j.',
-    objective: 'Push the scaled outer-product entry into each row.',
+    id: 'eigen-rayleigh-after-power',
+    stepLabel: '22.5',
+    group: 'Eigenvalues',
+    title: 'Rayleigh after power step',
+    concept: 'A better direction from power step gives better Rayleigh estimate.',
+    objective: 'Compute rayleigh(v1, A*v1) where v1 = powerStep(A, v).',
     difficulty: 'core',
-    starterCode: `function rankOneMatrix(sigma, u, v) {
-  const A = [];
-
-  for (let row = 0; row < u.length; row++) {
-    const values = [];
-
-    for (let col = 0; col < v.length; col++) {
-      // TODO: push sigma * u[row] * v[col].
-      values.push(0);
-    }
-
-    A.push(values);
+    starterCode: `function matvec(A, x) {
+  return A.map((row) => row.reduce((s, v, i) => s + v * x[i], 0));
+}
+function powerStep(A, v) {
+  const Av = matvec(A, v);
+  const norm = Math.sqrt(Av.reduce((s, x) => s + x * x, 0));
+  return Av.map((x) => x / norm);
+}
+function rayleigh(v, Av) {
+  let num = 0;
+  let den = 0;
+  for (let i = 0; i < v.length; i++) {
+    num += v[i] * Av[i];
+    den += v[i] * v[i];
   }
-
-  return A;
+  return num / den;
+}
+function rayleighAfterPower(A, v) {
+  const v1 = powerStep(A, v);
+  // TODO: compute Av1 and return rayleigh(v1, Av1)
+  return 0;
 }`,
     testCode: `const results = [];
-
-function approxMatrix(a, b, tolerance = 1e-9) {
-  return a.length === b.length && a.every((row, i) =>
-    row.length === b[i].length &&
-    row.every((value, j) => Math.abs(value - b[i][j]) <= tolerance)
-  );
-}
-
+function approxEqual(a, b, tol = 1e-6) { return Math.abs(a - b) <= tol; }
 function check(name, actual, expected) {
-  results.push({
-    name,
-    actual: JSON.stringify(actual),
-    expected: JSON.stringify(expected),
-    passed: approxMatrix(actual, expected),
-  });
+  results.push({ name, actual, expected, passed: approxEqual(actual, expected) });
 }
-
-check('simple rank one', rankOneMatrix(2, [1, 0], [3, 4]), [[6, 8], [0, 0]]);
-check('column rank one', rankOneMatrix(3, [1, 2], [1]), [[3], [6]]);
-check('identity-like direction', rankOneMatrix(1, [1, 1], [1, -1]), [[1, -1], [1, -1]]);
-
+check('diag close to dominant', rayleighAfterPower([[5, 0], [0, 2]], [1, 1]), 4.5862068966);
 return results;`,
-    hints: [
-      'This is the same formula for every row and column.',
-      'Use sigma * u[row] * v[col].',
-      'values.push(sigma * u[row] * v[col]);',
-    ],
-    solution: `function rankOneMatrix(sigma, u, v) {
-  const A = [];
-
-  for (let row = 0; row < u.length; row++) {
-    const values = [];
-
-    for (let col = 0; col < v.length; col++) {
-      values.push(sigma * u[row] * v[col]);
-    }
-
-    A.push(values);
+    hints: ['const Av1 = matvec(A, v1); return rayleigh(v1, Av1);'],
+    solution: `function matvec(A, x) {
+  return A.map((row) => row.reduce((s, v, i) => s + v * x[i], 0));
+}
+function powerStep(A, v) {
+  const Av = matvec(A, v);
+  const norm = Math.sqrt(Av.reduce((s, x) => s + x * x, 0));
+  return Av.map((x) => x / norm);
+}
+function rayleigh(v, Av) {
+  let num = 0;
+  let den = 0;
+  for (let i = 0; i < v.length; i++) {
+    num += v[i] * Av[i];
+    den += v[i] * v[i];
   }
-
-  return A;
+  return num / den;
+}
+function rayleighAfterPower(A, v) {
+  const v1 = powerStep(A, v);
+  const Av1 = matvec(A, v1);
+  return rayleigh(v1, Av1);
 }`,
-    explanation: 'Low-rank approximation builds a matrix by adding a few simple rank-1 patterns.',
+    explanation: 'Rayleigh quality improves as vector aligns with eigenvector.',
+  },
+  {
+    id: 'eigen-estimate',
+    stepLabel: '22.6',
+    group: 'Eigenvalues',
+    title: 'Eigenvalue estimate helper',
+    concept: 'eigenEstimate combines power iteration and Rayleigh quotient.',
+    objective: 'Implement eigenEstimate(A, v).',
+    difficulty: 'challenge',
+    starterCode: `function matvec(A, x) {
+  return A.map((row) => row.reduce((s, v, i) => s + v * x[i], 0));
+}
+function powerStep(A, v) {
+  const Av = matvec(A, v);
+  const norm = Math.sqrt(Av.reduce((s, x) => s + x * x, 0));
+  return Av.map((x) => x / norm);
+}
+function rayleigh(v, Av) {
+  let num = 0;
+  let den = 0;
+  for (let i = 0; i < v.length; i++) {
+    num += v[i] * Av[i];
+    den += v[i] * v[i];
+  }
+  return num / den;
+}
+function eigenEstimate(A, v) {
+  // TODO: power step then rayleigh estimate
+  return 0;
+}`,
+    testCode: `const results = [];
+function approxEqual(a, b, tol = 1e-6) { return Math.abs(a - b) <= tol; }
+function check(name, actual, expected) {
+  results.push({ name, actual, expected, passed: approxEqual(actual, expected) });
+}
+check('estimate dominant', eigenEstimate([[5, 0], [0, 2]], [1, 1]), 4.5862068966);
+return results;`,
+    hints: ['const v1 = powerStep(A, v); return rayleigh(v1, matvec(A, v1));'],
+    solution: `function matvec(A, x) {
+  return A.map((row) => row.reduce((s, v, i) => s + v * x[i], 0));
+}
+function powerStep(A, v) {
+  const Av = matvec(A, v);
+  const norm = Math.sqrt(Av.reduce((s, x) => s + x * x, 0));
+  return Av.map((x) => x / norm);
+}
+function rayleigh(v, Av) {
+  let num = 0;
+  let den = 0;
+  for (let i = 0; i < v.length; i++) {
+    num += v[i] * Av[i];
+    den += v[i] * v[i];
+  }
+  return num / den;
+}
+function eigenEstimate(A, v) {
+  const v1 = powerStep(A, v);
+  return rayleigh(v1, matvec(A, v1));
+}`,
+    explanation: 'This composition is a practical one-step eigenvalue estimator.',
+  },
+  {
+    id: 'eigen-estimate-guarded',
+    stepLabel: '22.7',
+    group: 'Eigenvalues',
+    title: 'Guarded eigen estimate',
+    concept: 'Guard zero vector before normalization to avoid NaN.',
+    objective: 'Return 0 for all-zero seed vector.',
+    difficulty: 'challenge',
+    starterCode: `function matvec(A, x) {
+  return A.map((row) => row.reduce((s, v, i) => s + v * x[i], 0));
+}
+function eigenEstimate(A, v) {
+  let norm2 = 0;
+  for (let i = 0; i < v.length; i++) norm2 += v[i] * v[i];
+  // TODO: guard norm2 === 0
+  const Av = matvec(A, v);
+  const num = v.reduce((s, x, i) => s + x * Av[i], 0);
+  return num / norm2;
+}`,
+    testCode: `const results = [];
+function approxEqual(a, b, tol = 1e-9) { return Math.abs(a - b) <= tol; }
+function check(name, actual, expected) {
+  results.push({ name, actual, expected, passed: approxEqual(actual, expected) });
+}
+check('zero seed', eigenEstimate([[2, 0], [0, 3]], [0, 0]), 0);
+check('normal seed', eigenEstimate([[2, 0], [0, 3]], [1, 0]), 2);
+return results;`,
+    hints: ['if (norm2 === 0) return 0;'],
+    solution: `function matvec(A, x) {
+  return A.map((row) => row.reduce((s, v, i) => s + v * x[i], 0));
+}
+function eigenEstimate(A, v) {
+  let norm2 = 0;
+  for (let i = 0; i < v.length; i++) norm2 += v[i] * v[i];
+  if (norm2 === 0) return 0;
+  const Av = matvec(A, v);
+  const num = v.reduce((s, x, i) => s + x * Av[i], 0);
+  return num / norm2;
+}`,
+    explanation: 'Input guards prevent undefined quotient behavior.',
   },
 
   {
-    id: 'low-rank-frobenius-error',
-    stepLabel: '23.3',
+    id: 'low-rank-entry',
+    stepLabel: '23.1',
     group: 'Low-rank approximation',
-    title: 'Approximation error',
-    concept: 'The Frobenius error is the sum of squared entrywise differences between a matrix and its approximation.',
-    objective: 'Add the squared difference for each cell.',
-    difficulty: 'challenge',
-    starterCode: `function frobeniusErrorSquared(A, Ahat) {
-  let total = 0;
-
-  for (let row = 0; row < A.length; row++) {
-    for (let col = 0; col < A[0].length; col++) {
-      const diff = A[row][col] - Ahat[row][col];
-
-      // TODO: add squared difference.
-      total += 0;
-    }
-  }
-
-  return total;
+    title: 'Rank-1 entry',
+    concept: 'Rank-1 approximation entry is sigma*u_i*v_j.',
+    objective: 'Implement rankOneEntry.',
+    difficulty: 'warmup',
+    starterCode: `function rankOneEntry(sigma, u, v, row, col) {
+  // TODO: sigma * u[row] * v[col]
+  return 0;
 }`,
     testCode: `const results = [];
-
 function check(name, actual, expected) {
   results.push({ name, actual, expected, passed: Object.is(actual, expected) });
 }
-
-check('zero error', frobeniusErrorSquared([[1, 2], [3, 4]], [[1, 2], [3, 4]]), 0);
-check('single difference', frobeniusErrorSquared([[1, 2], [3, 4]], [[1, 2], [3, 5]]), 1);
-check('multiple differences', frobeniusErrorSquared([[1, 2], [3, 4]], [[0, 0], [0, 0]]), 30);
-
+check('entry', rankOneEntry(2, [1, 0], [3, 4], 0, 1), 8);
 return results;`,
-    hints: [
-      'Frobenius error squares every entry difference.',
-      'The difference is already stored in diff.',
-      'total += diff * diff;',
-    ],
+    hints: ['return sigma * u[row] * v[col];'],
+    solution: `function rankOneEntry(sigma, u, v, row, col) {
+  return sigma * u[row] * v[col];
+}`,
+    explanation: 'Every rank-1 matrix cell follows one separable formula.',
+  },
+  {
+    id: 'low-rank-build',
+    stepLabel: '23.2',
+    group: 'Low-rank approximation',
+    title: 'Build rank-1 matrix',
+    concept: 'A rank-1 matrix is built by filling each cell with sigma*u_i*v_j.',
+    objective: 'Implement rankOneMatrix.',
+    difficulty: 'warmup',
+    starterCode: `function rankOneMatrix(sigma, u, v) {
+  const A = [];
+  for (let i = 0; i < u.length; i++) {
+    const row = [];
+    for (let j = 0; j < v.length; j++) {
+      // TODO: push rank-1 entry
+      row.push(0);
+    }
+    A.push(row);
+  }
+  return A;
+}`,
+    testCode: `const results = [];
+function same(a, b) { return JSON.stringify(a) === JSON.stringify(b); }
+function check(name, actual, expected) {
+  results.push({ name, actual: JSON.stringify(actual), expected: JSON.stringify(expected), passed: same(actual, expected) });
+}
+check('rank one', rankOneMatrix(2, [1, 0], [3, 4]), [[6, 8], [0, 0]]);
+return results;`,
+    hints: ['row.push(sigma * u[i] * v[j]);'],
+    solution: `function rankOneMatrix(sigma, u, v) {
+  const A = [];
+  for (let i = 0; i < u.length; i++) {
+    const row = [];
+    for (let j = 0; j < v.length; j++) {
+      row.push(sigma * u[i] * v[j]);
+    }
+    A.push(row);
+  }
+  return A;
+}`,
+    explanation: 'Rank-1 structure is cheap to store and compute.',
+  },
+  {
+    id: 'low-rank-frobenius',
+    stepLabel: '23.3',
+    group: 'Low-rank approximation',
+    title: 'Frobenius error',
+    concept: 'Frobenius error sums squared differences across all entries.',
+    objective: 'Implement frobeniusErrorSquared.',
+    difficulty: 'core',
+    starterCode: `function frobeniusErrorSquared(A, Ahat) {
+  let total = 0;
+  for (let i = 0; i < A.length; i++) {
+    for (let j = 0; j < A[0].length; j++) {
+      const diff = A[i][j] - Ahat[i][j];
+      // TODO: add squared diff
+      total += 0;
+    }
+  }
+  return total;
+}`,
+    testCode: `const results = [];
+function check(name, actual, expected) {
+  results.push({ name, actual, expected, passed: Object.is(actual, expected) });
+}
+check('zero', frobeniusErrorSquared([[1, 2], [3, 4]], [[1, 2], [3, 4]]), 0);
+check('all zero approx', frobeniusErrorSquared([[1, 2], [3, 4]], [[0, 0], [0, 0]]), 30);
+return results;`,
+    hints: ['total += diff * diff;'],
     solution: `function frobeniusErrorSquared(A, Ahat) {
   let total = 0;
-
-  for (let row = 0; row < A.length; row++) {
-    for (let col = 0; col < A[0].length; col++) {
-      const diff = A[row][col] - Ahat[row][col];
+  for (let i = 0; i < A.length; i++) {
+    for (let j = 0; j < A[0].length; j++) {
+      const diff = A[i][j] - Ahat[i][j];
       total += diff * diff;
     }
   }
-
   return total;
 }`,
-    explanation: 'Low-rank approximation keeps the most important patterns and measures what was lost with reconstruction error.',
+    explanation: 'This is the standard reconstruction error metric for low-rank approximations.',
+  },
+  {
+    id: 'low-rank-k-error',
+    stepLabel: '23.4',
+    group: 'Low-rank approximation',
+    title: 'rankKApproxError',
+    concept: 'Rank-k approximation error compares original and approximated matrices.',
+    objective: 'Implement rankKApproxError(A, Ahat).',
+    difficulty: 'core',
+    starterCode: `function frobeniusErrorSquared(A, Ahat) {
+  let total = 0;
+  for (let i = 0; i < A.length; i++) {
+    for (let j = 0; j < A[0].length; j++) {
+      const diff = A[i][j] - Ahat[i][j];
+      total += diff * diff;
+    }
+  }
+  return total;
+}
+function rankKApproxError(A, Ahat) {
+  // TODO: delegate to frobeniusErrorSquared
+  return 0;
+}`,
+    testCode: `const results = [];
+function check(name, actual, expected) {
+  results.push({ name, actual, expected, passed: Object.is(actual, expected) });
+}
+check('rankK error', rankKApproxError([[1, 2], [3, 4]], [[1, 2], [3, 5]]), 1);
+return results;`,
+    hints: ['return frobeniusErrorSquared(A, Ahat);'],
+    solution: `function frobeniusErrorSquared(A, Ahat) {
+  let total = 0;
+  for (let i = 0; i < A.length; i++) {
+    for (let j = 0; j < A[0].length; j++) {
+      const diff = A[i][j] - Ahat[i][j];
+      total += diff * diff;
+    }
+  }
+  return total;
+}
+function rankKApproxError(A, Ahat) {
+  return frobeniusErrorSquared(A, Ahat);
+}`,
+    explanation: 'Wrapping the metric clarifies intent at call sites.',
+  },
+  {
+    id: 'low-rank-step-wrapper',
+    stepLabel: '23.5',
+    group: 'Low-rank approximation',
+    title: 'lowRankStep wrapper',
+    concept: 'A low-rank step can package approximation and its error together.',
+    objective: 'Implement lowRankStep(A, Ahat).',
+    difficulty: 'core',
+    starterCode: `function frobeniusErrorSquared(A, Ahat) {
+  let total = 0;
+  for (let i = 0; i < A.length; i++) {
+    for (let j = 0; j < A[0].length; j++) {
+      const diff = A[i][j] - Ahat[i][j];
+      total += diff * diff;
+    }
+  }
+  return total;
+}
+function rankKApproxError(A, Ahat) {
+  return frobeniusErrorSquared(A, Ahat);
+}
+function lowRankStep(A, Ahat) {
+  // TODO: return object with approximation and error
+  return { approximation: [], error: 0 };
+}`,
+    testCode: `const results = [];
+function same(a, b) { return JSON.stringify(a) === JSON.stringify(b); }
+function check(name, actual, expected) {
+  const passed = typeof expected === 'object' ? same(actual, expected) : Object.is(actual, expected);
+  results.push({ name, actual: JSON.stringify(actual), expected: JSON.stringify(expected), passed });
+}
+const A = [[1, 2], [3, 4]];
+const Ahat = [[1, 2], [3, 5]];
+const out = lowRankStep(A, Ahat);
+check('approx returned', out.approximation, Ahat);
+check('error returned', out.error, 1);
+return results;`,
+    hints: ['return { approximation: Ahat, error: rankKApproxError(A, Ahat) };'],
+    solution: `function frobeniusErrorSquared(A, Ahat) {
+  let total = 0;
+  for (let i = 0; i < A.length; i++) {
+    for (let j = 0; j < A[0].length; j++) {
+      const diff = A[i][j] - Ahat[i][j];
+      total += diff * diff;
+    }
+  }
+  return total;
+}
+function rankKApproxError(A, Ahat) {
+  return frobeniusErrorSquared(A, Ahat);
+}
+function lowRankStep(A, Ahat) {
+  return { approximation: Ahat, error: rankKApproxError(A, Ahat) };
+}`,
+    explanation: 'The wrapper mirrors practical training/evaluation logging shape.',
+  },
+  {
+    id: 'low-rank-step-full',
+    stepLabel: '23.6',
+    group: 'Low-rank approximation',
+    title: 'Complete low-rank step',
+    concept: 'Complete wrapper guards dimension mismatch before error computation.',
+    objective: 'Return null when shapes mismatch, else lowRankStep report.',
+    difficulty: 'challenge',
+    starterCode: `function rankKApproxError(A, Ahat) {
+  let total = 0;
+  for (let i = 0; i < A.length; i++) {
+    for (let j = 0; j < A[0].length; j++) {
+      const diff = A[i][j] - Ahat[i][j];
+      total += diff * diff;
+    }
+  }
+  return total;
+}
+function lowRankStep(A, Ahat) {
+  // TODO: guard shape mismatch
+  return { approximation: Ahat, error: rankKApproxError(A, Ahat) };
+}`,
+    testCode: `const results = [];
+function check(name, actual, expected) {
+  const passed = JSON.stringify(actual) === JSON.stringify(expected);
+  results.push({ name, actual: JSON.stringify(actual), expected: JSON.stringify(expected), passed });
+}
+check('shape mismatch', lowRankStep([[1, 2]], [[1], [2]]), null);
+check('shape match', lowRankStep([[1, 2], [3, 4]], [[1, 2], [3, 5]]), { approximation: [[1, 2], [3, 5]], error: 1 });
+return results;`,
+    hints: ['if (A.length !== Ahat.length || A[0].length !== Ahat[0].length) return null;'],
+    solution: `function rankKApproxError(A, Ahat) {
+  let total = 0;
+  for (let i = 0; i < A.length; i++) {
+    for (let j = 0; j < A[0].length; j++) {
+      const diff = A[i][j] - Ahat[i][j];
+      total += diff * diff;
+    }
+  }
+  return total;
+}
+function lowRankStep(A, Ahat) {
+  if (A.length !== Ahat.length || A[0].length !== Ahat[0].length) return null;
+  return { approximation: Ahat, error: rankKApproxError(A, Ahat) };
+}`,
+    explanation: 'Shape guards make low-rank diagnostics safer and easier to debug.',
   },
 
   {

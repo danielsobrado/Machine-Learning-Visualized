@@ -2196,96 +2196,240 @@ return results;`,
 
   // --- joint-attention ---
   {
-    id: 'joint-attn-concat-init',
+    id: 'joint-attn-concat',
     stepLabel: '82.1',
-    group: 'Concat Q',
-    title: 'Array Expansion',
-    concept: "SD3's Joint Attention block concatenates text and image tokens along the sequence dimension. We start by copying the text embeddings.",
-    objective: 'Create a new array containing all elements of textEmbeds.',
+    group: 'Joint attention sequence',
+    title: 'Concatenate embeddings',
+    concept: 'Joint attention starts by concatenating text and image embeddings.',
+    objective: 'Implement concatEmbeddings(textEmbeds, imageEmbeds).',
     difficulty: 'warmup',
     starterCode: `function concatEmbeddings(textEmbeds, imageEmbeds) {
-  // TODO: Create a new array from textEmbeds
-  const joint = [];
-  
-  return joint;
-}`,
-    testCode: `const results = [];
-function check(name, actual, expected) {
-  results.push({ name, actual: JSON.stringify(actual), expected: JSON.stringify(expected), passed: JSON.stringify(actual) === JSON.stringify(expected) });
-}
-check('copy text', concatEmbeddings([[1, 2]], []), [[1, 2]]);
-return results;`,
-    hints: [
-      'Use the spread operator [...textEmbeds].',
-    ],
-    solution: `function concatEmbeddings(textEmbeds, imageEmbeds) {
-  const joint = [...textEmbeds];
-  
-  return joint;
-}`,
-    explanation: 'We must not mutate the original sequence, so we create a new joint sequence array.',
-  },
-  {
-    id: 'joint-attn-concat-loop',
-    stepLabel: '82.2',
-    group: 'Concat Q',
-    title: 'Image Append Loop',
-    concept: 'Next, we append each image token sequentially to the end of the text tokens.',
-    objective: 'Loop through imageEmbeds and push each token to joint.',
-    difficulty: 'warmup',
-    starterCode: `function concatEmbeddings(textEmbeds, imageEmbeds) {
-  const joint = [...textEmbeds];
-  
-  // TODO: Loop over imageEmbeds and push to joint
-  
-  return joint;
-}`,
-    testCode: `const results = [];
-function check(name, actual, expected) {
-  results.push({ name, actual: JSON.stringify(actual), expected: JSON.stringify(expected), passed: JSON.stringify(actual) === JSON.stringify(expected) });
-}
-check('concat sequences', concatEmbeddings([[1, 2]], [[3, 4], [5, 6]]), [[1, 2], [3, 4], [5, 6]]);
-return results;`,
-    hints: [
-      'for (let i = 0; i < imageEmbeds.length; i++) { joint.push(imageEmbeds[i]); }',
-    ],
-    solution: `function concatEmbeddings(textEmbeds, imageEmbeds) {
-  const joint = [...textEmbeds];
-  
-  for (let i = 0; i < imageEmbeds.length; i++) {
-    joint.push(imageEmbeds[i]);
-  }
-  
-  return joint;
-}`,
-    explanation: 'The resulting sequence length is seq_txt + seq_img.',
-  },
-  {
-    id: 'joint-attn-concat-seq',
-    stepLabel: '82.3',
-    group: 'Concat Q',
-    title: 'Multimodal Sequence Concatenation',
-    concept: 'We can optimize this significantly using native array concatenation methods.',
-    objective: 'Concatenate text and image token lists into a combined multimodal sequence in one line.',
-    difficulty: 'warmup',
-    starterCode: `function concatEmbeddings(textEmbeds, imageEmbeds) {
-  // textEmbeds and imageEmbeds are arrays of vectors
-  // TODO: return a single array containing textEmbeds followed by imageEmbeds
+  // TODO: return concatenated sequence
   return [];
 }`,
     testCode: `const results = [];
+function same(a, b) { return JSON.stringify(a) === JSON.stringify(b); }
 function check(name, actual, expected) {
-  results.push({ name, actual: JSON.stringify(actual), expected: JSON.stringify(expected), passed: JSON.stringify(actual) === JSON.stringify(expected) });
+  results.push({ name, actual: JSON.stringify(actual), expected: JSON.stringify(expected), passed: same(actual, expected) });
 }
-check('concat sequences', concatEmbeddings([[1, 2]], [[3, 4], [5, 6]]), [[1, 2], [3, 4], [5, 6]]);
+check('concat', concatEmbeddings([[1], [2]], [[3]]), [[1], [2], [3]]);
 return results;`,
-    hints: [
-      'Use the JavaScript concat method: textEmbeds.concat(imageEmbeds) or spread operator [...textEmbeds, ...imageEmbeds].',
-    ],
+    hints: ['return textEmbeds.concat(imageEmbeds);'],
     solution: `function concatEmbeddings(textEmbeds, imageEmbeds) {
   return textEmbeds.concat(imageEmbeds);
 }`,
-    explanation: 'Concatenating modalities enables bidirectional cross-attention without separate cross-attention layers.',
+    explanation: 'Both modalities become one sequence for shared self-attention.',
+  },
+  {
+    id: 'joint-attn-seq-length',
+    stepLabel: '82.2',
+    group: 'Joint attention sequence',
+    title: 'Joint sequence length',
+    concept: 'Sequence length is text token count plus image token count.',
+    objective: 'Implement jointSeqLength.',
+    difficulty: 'warmup',
+    starterCode: `function jointSeqLength(textEmbeds, imageEmbeds) {
+  // TODO: return combined token length
+  return 0;
+}`,
+    testCode: `const results = [];
+function check(name, actual, expected) {
+  results.push({ name, actual, expected, passed: Object.is(actual, expected) });
+}
+check('len', jointSeqLength([[1], [2]], [[3], [4], [5]]), 5);
+return results;`,
+    hints: ['return textEmbeds.length + imageEmbeds.length;'],
+    solution: `function jointSeqLength(textEmbeds, imageEmbeds) {
+  return textEmbeds.length + imageEmbeds.length;
+}`,
+    explanation: 'Joint sequence length defines Q/K/V attention matrix sizes.',
+  },
+  {
+    id: 'joint-attn-modality-mask',
+    stepLabel: '82.3',
+    group: 'Joint attention sequence',
+    title: 'Build modality mask',
+    concept: 'A modality mask distinguishes text tokens from image tokens.',
+    objective: 'Implement buildModalityMask(textLen, imageLen).',
+    difficulty: 'core',
+    starterCode: `function buildModalityMask(textLen, imageLen) {
+  const mask = [];
+  for (let i = 0; i < textLen; i++) {
+    // TODO: push text marker
+  }
+  for (let i = 0; i < imageLen; i++) {
+    // TODO: push image marker
+  }
+  return mask;
+}`,
+    testCode: `const results = [];
+function same(a, b) { return JSON.stringify(a) === JSON.stringify(b); }
+function check(name, actual, expected) {
+  results.push({ name, actual: JSON.stringify(actual), expected: JSON.stringify(expected), passed: same(actual, expected) });
+}
+check('mask', buildModalityMask(2, 3), ['text', 'text', 'image', 'image', 'image']);
+return results;`,
+    hints: ["mask.push('text');", "mask.push('image');"],
+    solution: `function buildModalityMask(textLen, imageLen) {
+  const mask = [];
+  for (let i = 0; i < textLen; i++) mask.push('text');
+  for (let i = 0; i < imageLen; i++) mask.push('image');
+  return mask;
+}`,
+    explanation: 'Modality masks are useful for debugging and optional routing logic.',
+  },
+  {
+    id: 'joint-attn-concat-length',
+    stepLabel: '82.4',
+    group: 'Joint attention sequence',
+    title: 'Concat with length check',
+    concept: 'Helpers can return both concatenated sequence and its length.',
+    objective: 'Return {joint, seqLen} using concatEmbeddings and jointSeqLength.',
+    difficulty: 'core',
+    starterCode: `function concatEmbeddings(textEmbeds, imageEmbeds) {
+  return textEmbeds.concat(imageEmbeds);
+}
+function jointSeqLength(textEmbeds, imageEmbeds) {
+  return textEmbeds.length + imageEmbeds.length;
+}
+function jointSummary(textEmbeds, imageEmbeds) {
+  const joint = concatEmbeddings(textEmbeds, imageEmbeds);
+  // TODO: compute seqLen with helper
+  return { joint, seqLen: 0 };
+}`,
+    testCode: `const results = [];
+function same(a, b) { return JSON.stringify(a) === JSON.stringify(b); }
+function check(name, actual, expected) {
+  const passed = typeof expected === 'object' ? same(actual, expected) : Object.is(actual, expected);
+  results.push({ name, actual: JSON.stringify(actual), expected: JSON.stringify(expected), passed });
+}
+const out = jointSummary([[1], [2]], [[3]]);
+check('joint', out.joint, [[1], [2], [3]]);
+check('seqLen', out.seqLen, 3);
+return results;`,
+    hints: ['const seqLen = jointSeqLength(textEmbeds, imageEmbeds);'],
+    solution: `function concatEmbeddings(textEmbeds, imageEmbeds) {
+  return textEmbeds.concat(imageEmbeds);
+}
+function jointSeqLength(textEmbeds, imageEmbeds) {
+  return textEmbeds.length + imageEmbeds.length;
+}
+function jointSummary(textEmbeds, imageEmbeds) {
+  const joint = concatEmbeddings(textEmbeds, imageEmbeds);
+  const seqLen = jointSeqLength(textEmbeds, imageEmbeds);
+  return { joint, seqLen };
+}`,
+    explanation: 'Small summaries help validate sequence assembly in tests.',
+  },
+  {
+    id: 'joint-attn-with-mask',
+    stepLabel: '82.5',
+    group: 'Joint attention sequence',
+    title: 'Joint summary with mask',
+    concept: 'Combined utility can expose both sequence and modality mask.',
+    objective: 'Return {joint, mask}.',
+    difficulty: 'core',
+    starterCode: `function concatEmbeddings(textEmbeds, imageEmbeds) {
+  return textEmbeds.concat(imageEmbeds);
+}
+function buildModalityMask(textLen, imageLen) {
+  const mask = [];
+  for (let i = 0; i < textLen; i++) mask.push('text');
+  for (let i = 0; i < imageLen; i++) mask.push('image');
+  return mask;
+}
+function jointWithMask(textEmbeds, imageEmbeds) {
+  const joint = concatEmbeddings(textEmbeds, imageEmbeds);
+  // TODO: compute modality mask
+  return { joint, mask: [] };
+}`,
+    testCode: `const results = [];
+function same(a, b) { return JSON.stringify(a) === JSON.stringify(b); }
+function check(name, actual, expected) {
+  const passed = same(actual, expected);
+  results.push({ name, actual: JSON.stringify(actual), expected: JSON.stringify(expected), passed });
+}
+const out = jointWithMask([[1], [2]], [[3]]);
+check('mask', out.mask, ['text', 'text', 'image']);
+return results;`,
+    hints: ['const mask = buildModalityMask(textEmbeds.length, imageEmbeds.length);'],
+    solution: `function concatEmbeddings(textEmbeds, imageEmbeds) {
+  return textEmbeds.concat(imageEmbeds);
+}
+function buildModalityMask(textLen, imageLen) {
+  const mask = [];
+  for (let i = 0; i < textLen; i++) mask.push('text');
+  for (let i = 0; i < imageLen; i++) mask.push('image');
+  return mask;
+}
+function jointWithMask(textEmbeds, imageEmbeds) {
+  const joint = concatEmbeddings(textEmbeds, imageEmbeds);
+  const mask = buildModalityMask(textEmbeds.length, imageEmbeds.length);
+  return { joint, mask };
+}`,
+    explanation: 'Mask output helps inspect modality layout before attention.',
+  },
+  {
+    id: 'joint-attn-sequence-full',
+    stepLabel: '82.6',
+    group: 'Joint attention sequence',
+    title: 'Complete joint attention sequence',
+    concept: 'Final helper reports concatenated sequence, length, and modality mask.',
+    objective: 'Implement buildJointAttentionSequence with empty-input guard.',
+    difficulty: 'challenge',
+    starterCode: `function concatEmbeddings(textEmbeds, imageEmbeds) {
+  return textEmbeds.concat(imageEmbeds);
+}
+function jointSeqLength(textEmbeds, imageEmbeds) {
+  return textEmbeds.length + imageEmbeds.length;
+}
+function buildModalityMask(textLen, imageLen) {
+  const mask = [];
+  for (let i = 0; i < textLen; i++) mask.push('text');
+  for (let i = 0; i < imageLen; i++) mask.push('image');
+  return mask;
+}
+function buildJointAttentionSequence(textEmbeds, imageEmbeds) {
+  // TODO: guard both empty
+  const joint = concatEmbeddings(textEmbeds, imageEmbeds);
+  const seqLen = jointSeqLength(textEmbeds, imageEmbeds);
+  const modalityMask = buildModalityMask(textEmbeds.length, imageEmbeds.length);
+  return { joint, seqLen, modalityMask };
+}`,
+    testCode: `const results = [];
+function same(a, b) { return JSON.stringify(a) === JSON.stringify(b); }
+function check(name, actual, expected) {
+  const passed = typeof expected === 'object' ? same(actual, expected) : Object.is(actual, expected);
+  results.push({ name, actual: JSON.stringify(actual), expected: JSON.stringify(expected), passed });
+}
+check('both empty', buildJointAttentionSequence([], []), { joint: [], seqLen: 0, modalityMask: [] });
+const out = buildJointAttentionSequence([[1], [2]], [[3]]);
+check('seqLen', out.seqLen, 3);
+check('mask', out.modalityMask, ['text', 'text', 'image']);
+return results;`,
+    hints: ['if (textEmbeds.length === 0 && imageEmbeds.length === 0) return { joint: [], seqLen: 0, modalityMask: [] };'],
+    solution: `function concatEmbeddings(textEmbeds, imageEmbeds) {
+  return textEmbeds.concat(imageEmbeds);
+}
+function jointSeqLength(textEmbeds, imageEmbeds) {
+  return textEmbeds.length + imageEmbeds.length;
+}
+function buildModalityMask(textLen, imageLen) {
+  const mask = [];
+  for (let i = 0; i < textLen; i++) mask.push('text');
+  for (let i = 0; i < imageLen; i++) mask.push('image');
+  return mask;
+}
+function buildJointAttentionSequence(textEmbeds, imageEmbeds) {
+  if (textEmbeds.length === 0 && imageEmbeds.length === 0) {
+    return { joint: [], seqLen: 0, modalityMask: [] };
+  }
+  const joint = concatEmbeddings(textEmbeds, imageEmbeds);
+  const seqLen = jointSeqLength(textEmbeds, imageEmbeds);
+  const modalityMask = buildModalityMask(textEmbeds.length, imageEmbeds.length);
+  return { joint, seqLen, modalityMask };
+}`,
+    explanation: 'This complete utility mirrors sequence prep in joint-modality transformers.',
   },
 
   // --- dit ---

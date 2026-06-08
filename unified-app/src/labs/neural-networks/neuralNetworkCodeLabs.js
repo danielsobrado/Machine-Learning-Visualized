@@ -4026,144 +4026,289 @@ return results;`,
     explanation: 'This proves that a standard Normal distribution incurs zero penalty from the KL divergence term.',
   },
   {
-    id: 'multimodal-llm-dot',
+    id: 'multimodal-project-dot',
     stepLabel: '37.1',
-    group: 'Linear project',
-    title: 'Modality Dot Product',
-    concept: 'Multimodal LLMs project visual token embeddings into the text vocabulary hidden space using a learned projection matrix. First, we compute the dot product between the input patch and a single row of the projection matrix.',
-    objective: 'Compute the dot product of patch and projector[j].',
+    group: 'Multimodal projection',
+    title: 'Single output dimension',
+    concept: 'Projection computes dot product between patch features and projection column.',
+    objective: 'Fill projectPatch first output dimension.',
     difficulty: 'warmup',
     starterCode: `function projectPatch(patch, projector, outDim) {
   const projected = Array(outDim).fill(0);
-  
-  const j = 0; // Focus on the first dimension
+  const j = 0;
   let sum = 0;
   for (let d = 0; d < patch.length; d++) {
-    // TODO: multiply patch[d] by projector[d][j] and accumulate in sum
+    // TODO: multiply and accumulate
     sum += 0;
   }
   projected[j] = sum;
-  
   return projected;
 }`,
     testCode: `const results = [];
-function sameArray(a, b) {
-  return JSON.stringify(a) === JSON.stringify(b);
-}
+function same(a, b) { return JSON.stringify(a) === JSON.stringify(b); }
 function check(name, actual, expected) {
-  results.push({ name, actual: JSON.stringify(actual), expected: JSON.stringify(expected), passed: sameArray(actual, expected) });
+  results.push({ name, actual: JSON.stringify(actual), expected: JSON.stringify(expected), passed: same(actual, expected) });
 }
-check('project 2D to 3D first dim', projectPatch([1, 2], [[0.5, 0, 1], [0, 0.5, 2]], 3), [0.5, 0, 0]);
+check('first dim', projectPatch([1, 2], [[0.5, 0, 1], [0, 0.5, 2]], 3), [0.5, 0, 0]);
 return results;`,
-    hints: [
-      'sum += patch[d] * projector[d][j];',
-    ],
+    hints: ['sum += patch[d] * projector[d][j];'],
     solution: `function projectPatch(patch, projector, outDim) {
   const projected = Array(outDim).fill(0);
-  
   const j = 0;
   let sum = 0;
   for (let d = 0; d < patch.length; d++) {
     sum += patch[d] * projector[d][j];
   }
   projected[j] = sum;
-  
   return projected;
 }`,
-    explanation: 'A dot product measures the similarity and maps the spatial patch features into the text embedding space.',
+    explanation: 'One projected dimension is one learned linear combination of patch features.',
   },
   {
-    id: 'multimodal-llm-loop',
+    id: 'multimodal-project-loop',
     stepLabel: '37.2',
-    group: 'Linear project',
-    title: 'Matrix Vector Loop',
-    concept: 'We iterate over all output dimensions to perform a full matrix-vector multiplication.',
-    objective: 'Wrap the dot product logic in a loop over j from 0 to outDim.',
-    difficulty: 'core',
+    group: 'Multimodal projection',
+    title: 'All output dimensions',
+    concept: 'Full projection loops over every output column.',
+    objective: 'Implement complete projectPatch loop over j.',
+    difficulty: 'warmup',
     starterCode: `function projectPatch(patch, projector, outDim) {
   const projected = Array(outDim).fill(0);
-  
-  // TODO: Loop over j from 0 to outDim
+  // TODO: loop over all output dims
   let j = 0;
   let sum = 0;
-  for (let d = 0; d < patch.length; d++) {
-    sum += patch[d] * projector[d][j];
-  }
+  for (let d = 0; d < patch.length; d++) sum += patch[d] * projector[d][j];
   projected[j] = sum;
-  
   return projected;
 }`,
     testCode: `const results = [];
-function sameArray(a, b) {
-  return JSON.stringify(a) === JSON.stringify(b);
-}
+function same(a, b) { return JSON.stringify(a) === JSON.stringify(b); }
 function check(name, actual, expected) {
-  results.push({ name, actual: JSON.stringify(actual), expected: JSON.stringify(expected), passed: sameArray(actual, expected) });
+  results.push({ name, actual: JSON.stringify(actual), expected: JSON.stringify(expected), passed: same(actual, expected) });
 }
-check('project 2D to 3D', projectPatch([1, 2], [[0.5, 0, 1], [0, 0.5, 2]], 3), [0.5, 1, 5]);
+check('all dims', projectPatch([1, 2], [[0.5, 0, 1], [0, 0.5, 2]], 3), [0.5, 1, 5]);
 return results;`,
-    hints: [
-      'Add a for loop for j.',
-      'for (let j = 0; j < outDim; j++) { ... }',
-    ],
+    hints: ['for (let j = 0; j < outDim; j++) { ... }'],
     solution: `function projectPatch(patch, projector, outDim) {
   const projected = Array(outDim).fill(0);
-  
   for (let j = 0; j < outDim; j++) {
     let sum = 0;
-    for (let d = 0; d < patch.length; d++) {
-      sum += patch[d] * projector[d][j];
-    }
+    for (let d = 0; d < patch.length; d++) sum += patch[d] * projector[d][j];
     projected[j] = sum;
   }
-  
   return projected;
 }`,
-    explanation: 'This operation acts as a translator, taking raw visual features and converting them into a language the text model understands.',
+    explanation: 'Matrix-vector multiplication projects visual patch into language hidden space.',
   },
   {
-    id: 'multimodal-llm-project',
+    id: 'multimodal-project-bias',
     stepLabel: '37.3',
-    group: 'Linear project',
-    title: 'Multimodal token projection',
-    concept: 'The full linear projection is the core bridging mechanism connecting distinct modality encoders to a single unified LLM backbone.',
-    objective: 'Finalize and return the projected token.',
+    group: 'Multimodal projection',
+    title: 'Projection with bias',
+    concept: 'Many projection layers include additive bias after linear transform.',
+    objective: 'Implement projectWithBias.',
+    difficulty: 'core',
+    starterCode: `function projectPatch(patch, projector, outDim) {
+  const projected = Array(outDim).fill(0);
+  for (let j = 0; j < outDim; j++) {
+    let sum = 0;
+    for (let d = 0; d < patch.length; d++) sum += patch[d] * projector[d][j];
+    projected[j] = sum;
+  }
+  return projected;
+}
+function projectWithBias(patch, projector, bias) {
+  const base = projectPatch(patch, projector, bias.length);
+  // TODO: add bias per output dimension
+  return base;
+}`,
+    testCode: `const results = [];
+function same(a, b) { return JSON.stringify(a) === JSON.stringify(b); }
+function check(name, actual, expected) {
+  results.push({ name, actual: JSON.stringify(actual), expected: JSON.stringify(expected), passed: same(actual, expected) });
+}
+check('with bias', projectWithBias([1, 2], [[0.5, 0], [0, 0.5]], [0.1, -0.2]), [0.6, 0.8]);
+return results;`,
+    hints: ['return base.map((x, i) => x + bias[i]);'],
+    solution: `function projectPatch(patch, projector, outDim) {
+  const projected = Array(outDim).fill(0);
+  for (let j = 0; j < outDim; j++) {
+    let sum = 0;
+    for (let d = 0; d < patch.length; d++) sum += patch[d] * projector[d][j];
+    projected[j] = sum;
+  }
+  return projected;
+}
+function projectWithBias(patch, projector, bias) {
+  const base = projectPatch(patch, projector, bias.length);
+  return base.map((x, i) => x + bias[i]);
+}`,
+    explanation: 'Bias shifts each projected feature independently.',
+  },
+  {
+    id: 'multimodal-project-batch-shape',
+    stepLabel: '37.4',
+    group: 'Multimodal projection',
+    title: 'Batch projection shape',
+    concept: 'Batch projection applies the same projection to all patches.',
+    objective: 'Project each patch and return batch output.',
+    difficulty: 'core',
+    starterCode: `function projectPatch(patch, projector, outDim) {
+  const projected = Array(outDim).fill(0);
+  for (let j = 0; j < outDim; j++) {
+    let sum = 0;
+    for (let d = 0; d < patch.length; d++) sum += patch[d] * projector[d][j];
+    projected[j] = sum;
+  }
+  return projected;
+}
+function projectBatch(patches, projector, outDim) {
+  const out = [];
+  for (let i = 0; i < patches.length; i++) {
+    // TODO: push projected patch
+  }
+  return out;
+}`,
+    testCode: `const results = [];
+function same(a, b) { return JSON.stringify(a) === JSON.stringify(b); }
+function check(name, actual, expected) {
+  results.push({ name, actual: JSON.stringify(actual), expected: JSON.stringify(expected), passed: same(actual, expected) });
+}
+check('batch', projectBatch([[1, 2], [2, 1]], [[1, 0], [0, 1]], 2), [[1, 2], [2, 1]]);
+return results;`,
+    hints: ['out.push(projectPatch(patches[i], projector, outDim));'],
+    solution: `function projectPatch(patch, projector, outDim) {
+  const projected = Array(outDim).fill(0);
+  for (let j = 0; j < outDim; j++) {
+    let sum = 0;
+    for (let d = 0; d < patch.length; d++) sum += patch[d] * projector[d][j];
+    projected[j] = sum;
+  }
+  return projected;
+}
+function projectBatch(patches, projector, outDim) {
+  const out = [];
+  for (let i = 0; i < patches.length; i++) {
+    out.push(projectPatch(patches[i], projector, outDim));
+  }
+  return out;
+}`,
+    explanation: 'Batch projection is needed for multi-patch image token streams.',
+  },
+  {
+    id: 'multimodal-project-batch-bias',
+    stepLabel: '37.5',
+    group: 'Multimodal projection',
+    title: 'Batch projection with bias',
+    concept: 'Combined helpers apply linear projection and bias to each patch.',
+    objective: 'Use projectWithBias inside projectBatch.',
+    difficulty: 'core',
+    starterCode: `function projectPatch(patch, projector, outDim) {
+  const projected = Array(outDim).fill(0);
+  for (let j = 0; j < outDim; j++) {
+    let sum = 0;
+    for (let d = 0; d < patch.length; d++) sum += patch[d] * projector[d][j];
+    projected[j] = sum;
+  }
+  return projected;
+}
+function projectWithBias(patch, projector, bias) {
+  const base = projectPatch(patch, projector, bias.length);
+  return base.map((x, i) => x + bias[i]);
+}
+function projectBatch(patches, projector, bias) {
+  const out = [];
+  for (let i = 0; i < patches.length; i++) {
+    // TODO: push bias-projected patch
+    out.push([]);
+  }
+  return out;
+}`,
+    testCode: `const results = [];
+function same(a, b) { return JSON.stringify(a) === JSON.stringify(b); }
+function check(name, actual, expected) {
+  results.push({ name, actual: JSON.stringify(actual), expected: JSON.stringify(expected), passed: same(actual, expected) });
+}
+check('batch+bias', projectBatch([[1, 2], [2, 1]], [[1, 0], [0, 1]], [0.1, -0.1]), [[1.1, 1.9], [2.1, 0.9]]);
+return results;`,
+    hints: ['out.push(projectWithBias(patches[i], projector, bias));'],
+    solution: `function projectPatch(patch, projector, outDim) {
+  const projected = Array(outDim).fill(0);
+  for (let j = 0; j < outDim; j++) {
+    let sum = 0;
+    for (let d = 0; d < patch.length; d++) sum += patch[d] * projector[d][j];
+    projected[j] = sum;
+  }
+  return projected;
+}
+function projectWithBias(patch, projector, bias) {
+  const base = projectPatch(patch, projector, bias.length);
+  return base.map((x, i) => x + bias[i]);
+}
+function projectBatch(patches, projector, bias) {
+  const out = [];
+  for (let i = 0; i < patches.length; i++) {
+    out.push(projectWithBias(patches[i], projector, bias));
+  }
+  return out;
+}`,
+    explanation: 'Bias-aware batch projection mirrors real multimodal adapter layers.',
+  },
+  {
+    id: 'multimodal-projection-full',
+    stepLabel: '37.6',
+    group: 'Multimodal projection',
+    title: 'Complete multimodal projection',
+    concept: 'Complete projection utilities should gracefully handle empty batches.',
+    objective: 'Return [] on empty patches in projectBatch.',
     difficulty: 'challenge',
     starterCode: `function projectPatch(patch, projector, outDim) {
   const projected = Array(outDim).fill(0);
   for (let j = 0; j < outDim; j++) {
     let sum = 0;
-    for (let d = 0; d < patch.length; d++) {
-      sum += patch[d] * projector[d][j];
-    }
+    for (let d = 0; d < patch.length; d++) sum += patch[d] * projector[d][j];
     projected[j] = sum;
   }
-  // TODO: return the projected vector
-  return [];
+  return projected;
+}
+function projectWithBias(patch, projector, bias) {
+  const base = projectPatch(patch, projector, bias.length);
+  return base.map((x, i) => x + bias[i]);
+}
+function projectBatch(patches, projector, bias) {
+  // TODO: empty batch guard
+  const out = [];
+  for (let i = 0; i < patches.length; i++) out.push(projectWithBias(patches[i], projector, bias));
+  return out;
 }`,
     testCode: `const results = [];
-function sameArray(a, b) {
-  return JSON.stringify(a) === JSON.stringify(b);
-}
+function same(a, b) { return JSON.stringify(a) === JSON.stringify(b); }
 function check(name, actual, expected) {
-  results.push({ name, actual: JSON.stringify(actual), expected: JSON.stringify(expected), passed: sameArray(actual, expected) });
+  results.push({ name, actual: JSON.stringify(actual), expected: JSON.stringify(expected), passed: same(actual, expected) });
 }
-check('project 2D to 3D', projectPatch([1, 2], [[0.5, 0, 1], [0, 0.5, 2]], 3), [0.5, 1, 5]);
+check('empty batch', projectBatch([], [[1]], [0]), []);
+check('normal batch', projectBatch([[1], [2]], [[2]], [1]), [[3], [5]]);
 return results;`,
-    hints: [
-      'Return projected.',
-    ],
+    hints: ['if (patches.length === 0) return [];'],
     solution: `function projectPatch(patch, projector, outDim) {
   const projected = Array(outDim).fill(0);
   for (let j = 0; j < outDim; j++) {
     let sum = 0;
-    for (let d = 0; d < patch.length; d++) {
-      sum += patch[d] * projector[d][j];
-    }
+    for (let d = 0; d < patch.length; d++) sum += patch[d] * projector[d][j];
     projected[j] = sum;
   }
   return projected;
+}
+function projectWithBias(patch, projector, bias) {
+  const base = projectPatch(patch, projector, bias.length);
+  return base.map((x, i) => x + bias[i]);
+}
+function projectBatch(patches, projector, bias) {
+  if (patches.length === 0) return [];
+  const out = [];
+  for (let i = 0; i < patches.length; i++) out.push(projectWithBias(patches[i], projector, bias));
+  return out;
 }`,
-    explanation: 'By converting images into text-like embeddings, multimodal models can smoothly alternate between seeing and speaking.',
+    explanation: 'These helpers form a practical multimodal adapter mini-pipeline.',
   },
 ];
