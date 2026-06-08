@@ -18,7 +18,10 @@ HARD RULES (non-negotiable)
 1. NEVER generate placeholder drills from lessonLabFactory.js:
    - No "Recognize the lesson keyword" / hasXKeyword exercises
    - No term-counting, best-candidate routing, or stage-checklist filler
-2. Show the FULL canonical function for the lesson (with JSDoc @param / @returns when helpful).
+2. Show the FULL canonical function for the lesson with JSDoc on every learner-facing function.
+   - @param {type} name - what it is and a short example when useful (e.g. tokens is string[] like ['cat', 'dog']).
+   - @returns {type} - what the function returns.
+   - Add a // name: type — purpose comment above each non-obvious local initialization (empty arrays, counters, copies).
    - Loops, structure, and variable names stay visible.
    - Only the smallest targeted blank per exercise: // TODO: ... or a single 0 / false / [] placeholder.
 3. Difficulty must ramp gradually within a lesson:

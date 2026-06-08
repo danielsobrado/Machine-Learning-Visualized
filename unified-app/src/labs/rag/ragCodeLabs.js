@@ -7,7 +7,13 @@ export const RAG_CODE_LABS = [
     concept: 'A simple token budget starts by counting how many tokens a piece of text uses.',
     objective: 'Return the number of whitespace-separated tokens.',
     difficulty: 'warmup',
-    starterCode: `function countTokens(text) {
+    starterCode: `/**
+ * Count whitespace-separated tokens in a text string.
+ * @param {string} text - Raw text (e.g. 'the cat sat').
+ * @returns {number} Token count; 0 for empty or whitespace-only text.
+ */
+function countTokens(text) {
+  // trimmed: string — text with leading/trailing whitespace removed
   const trimmed = text.trim();
 
   if (trimmed === '') return 0;
@@ -32,7 +38,13 @@ return results;`,
       'trimmed.split(/\\\\s+/) gives an array of simple tokens.',
       'return trimmed.split(/\\\\s+/).length;',
     ],
-    solution: `function countTokens(text) {
+    solution: `/**
+ * Count whitespace-separated tokens in a text string.
+ * @param {string} text - Raw text (e.g. 'the cat sat').
+ * @returns {number} Token count; 0 for empty or whitespace-only text.
+ */
+function countTokens(text) {
+  // trimmed: string — text with leading/trailing whitespace removed
   const trimmed = text.trim();
 
   if (trimmed === '') return 0;
@@ -50,7 +62,13 @@ return results;`,
     concept: 'A chunk can be packed only if its token count is within the remaining context budget.',
     objective: 'Return whether chunkTokens is less than or equal to remainingBudget.',
     difficulty: 'warmup',
-    starterCode: `function chunkFits(chunkTokens, remainingBudget) {
+    starterCode: `/**
+ * Check whether a chunk fits in the remaining context budget.
+ * @param {number} chunkTokens - Token count of the candidate chunk.
+ * @param {number} remainingBudget - Tokens still available in the context window.
+ * @returns {boolean} True when chunkTokens <= remainingBudget.
+ */
+function chunkFits(chunkTokens, remainingBudget) {
   // TODO: return true when the chunk fits in the remaining budget.
   return false;
 }`,
@@ -70,7 +88,13 @@ return results;`,
       'Use <=.',
       'return chunkTokens <= remainingBudget;',
     ],
-    solution: `function chunkFits(chunkTokens, remainingBudget) {
+    solution: `/**
+ * Check whether a chunk fits in the remaining context budget.
+ * @param {number} chunkTokens - Token count of the candidate chunk.
+ * @param {number} remainingBudget - Tokens still available in the context window.
+ * @returns {boolean} True when chunkTokens <= remainingBudget.
+ */
+function chunkFits(chunkTokens, remainingBudget) {
   return chunkTokens <= remainingBudget;
 }`,
     explanation: 'RAG systems often fail not because evidence is unavailable, but because the right chunks do not fit into the final prompt.',
@@ -84,7 +108,14 @@ return results;`,
     concept: 'Chunking splits a token list into smaller windows.',
     objective: 'Push slices of size chunkSize.',
     difficulty: 'core',
-    starterCode: `function fixedChunks(tokens, chunkSize) {
+    starterCode: `/**
+ * Split a token list into fixed-size windows.
+ * @param {string[]} tokens - Ordered tokens from a document.
+ * @param {number} chunkSize - Maximum tokens per chunk (last chunk may be smaller).
+ * @returns {string[][]} Array of token slices.
+ */
+function fixedChunks(tokens, chunkSize) {
+  // chunks: string[][] — starts empty; each entry is one token window
   const chunks = [];
 
   for (let start = 0; start < tokens.length; start += chunkSize) {
@@ -119,7 +150,14 @@ return results;`,
       'The end should be start + chunkSize.',
       'chunks.push(tokens.slice(start, start + chunkSize));',
     ],
-    solution: `function fixedChunks(tokens, chunkSize) {
+    solution: `/**
+ * Split a token list into fixed-size windows.
+ * @param {string[]} tokens - Ordered tokens from a document.
+ * @param {number} chunkSize - Maximum tokens per chunk (last chunk may be smaller).
+ * @returns {string[][]} Array of token slices.
+ */
+function fixedChunks(tokens, chunkSize) {
+  // chunks: string[][] — starts empty; each entry is one token window
   const chunks = [];
 
   for (let start = 0; start < tokens.length; start += chunkSize) {
@@ -139,8 +177,17 @@ return results;`,
     concept: 'Overlap preserves context near chunk boundaries.',
     objective: 'Advance by chunkSize - overlap instead of chunkSize.',
     difficulty: 'challenge',
-    starterCode: `function overlappingChunks(tokens, chunkSize, overlap) {
+    starterCode: `/**
+ * Split tokens into overlapping windows to preserve boundary context.
+ * @param {string[]} tokens - Ordered tokens from a document.
+ * @param {number} chunkSize - Maximum tokens per chunk.
+ * @param {number} overlap - Shared tokens between consecutive chunks.
+ * @returns {string[][]} Overlapping token slices.
+ */
+function overlappingChunks(tokens, chunkSize, overlap) {
+  // chunks: string[][] — starts empty; each entry is one overlapping window
   const chunks = [];
+  // step: number — how far to advance the window start each iteration
   const step = chunkSize - overlap;
 
   for (let start = 0; start < tokens.length; start += step) {
@@ -174,8 +221,17 @@ return results;`,
       'Each chunk is still tokens.slice(start, start + chunkSize).',
       'chunks.push(tokens.slice(start, start + chunkSize));',
     ],
-    solution: `function overlappingChunks(tokens, chunkSize, overlap) {
+    solution: `/**
+ * Split tokens into overlapping windows to preserve boundary context.
+ * @param {string[]} tokens - Ordered tokens from a document.
+ * @param {number} chunkSize - Maximum tokens per chunk.
+ * @param {number} overlap - Shared tokens between consecutive chunks.
+ * @returns {string[][]} Overlapping token slices.
+ */
+function overlappingChunks(tokens, chunkSize, overlap) {
+  // chunks: string[][] — starts empty; each entry is one overlapping window
   const chunks = [];
+  // step: number — how far to advance the window start each iteration
   const step = chunkSize - overlap;
 
   for (let start = 0; start < tokens.length; start += step) {
@@ -195,10 +251,17 @@ return results;`,
     concept: 'A bag-of-words vector needs a fixed vocabulary of known terms.',
     objective: 'Return the unique words in first-seen order.',
     difficulty: 'core',
-    starterCode: `function buildVocabulary(tokens) {
+    starterCode: `/**
+ * Build a vocabulary from a tokenized document.
+ * @param {string[]} tokens - Ordered words from one document (e.g. ['cat', 'dog', 'cat']).
+ * @returns {string[]} Unique words in first-seen order.
+ */
+function buildVocabulary(tokens) {
+  // vocab: string[] — starts empty; collect each distinct word once, in first-seen order
   const vocab = [];
 
   for (let i = 0; i < tokens.length; i++) {
+    // token: string — current word at position i in tokens
     const token = tokens[i];
 
     // TODO: push token only if it is not already in vocab.
@@ -231,10 +294,17 @@ return results;`,
       'Only push when it is not included.',
       'if (!vocab.includes(token)) vocab.push(token);',
     ],
-    solution: `function buildVocabulary(tokens) {
+    solution: `/**
+ * Build a vocabulary from a tokenized document.
+ * @param {string[]} tokens - Ordered words from one document (e.g. ['cat', 'dog', 'cat']).
+ * @returns {string[]} Unique words in first-seen order.
+ */
+function buildVocabulary(tokens) {
+  // vocab: string[] — starts empty; collect each distinct word once, in first-seen order
   const vocab = [];
 
   for (let i = 0; i < tokens.length; i++) {
+    // token: string — current word at position i in tokens
     const token = tokens[i];
 
     if (!vocab.includes(token)) vocab.push(token);
@@ -253,7 +323,14 @@ return results;`,
     concept: 'A bag-of-words entry counts how often a vocabulary word appears.',
     objective: 'Count occurrences of target in tokens.',
     difficulty: 'warmup',
-    starterCode: `function countWord(tokens, target) {
+    starterCode: `/**
+ * Count how many times a target word appears in a token list.
+ * @param {string[]} tokens - Ordered words from one document.
+ * @param {string} target - Vocabulary word to count (e.g. 'cat').
+ * @returns {number} Occurrence count of target in tokens.
+ */
+function countWord(tokens, target) {
+  // count: number — running tally of matches; starts at 0
   let count = 0;
 
   for (let i = 0; i < tokens.length; i++) {
@@ -278,7 +355,14 @@ return results;`,
       'If tokens[i] === target, add one.',
       'if (tokens[i] === target) count += 1;',
     ],
-    solution: `function countWord(tokens, target) {
+    solution: `/**
+ * Count how many times a target word appears in a token list.
+ * @param {string[]} tokens - Ordered words from one document.
+ * @param {string} target - Vocabulary word to count (e.g. 'cat').
+ * @returns {number} Occurrence count of target in tokens.
+ */
+function countWord(tokens, target) {
+  // count: number — running tally of matches; starts at 0
   let count = 0;
 
   for (let i = 0; i < tokens.length; i++) {
@@ -298,7 +382,13 @@ return results;`,
     concept: 'A bag-of-words vector has one count per vocabulary word.',
     objective: 'Push countWord(tokens, vocab[i]) for each vocabulary word.',
     difficulty: 'core',
-    starterCode: `function countWord(tokens, target) {
+    starterCode: `/**
+ * Count how many times a target word appears in a token list.
+ * @param {string[]} tokens - Ordered words from one document.
+ * @param {string} target - Vocabulary word to count.
+ * @returns {number} Occurrence count of target in tokens.
+ */
+function countWord(tokens, target) {
   let count = 0;
 
   for (let i = 0; i < tokens.length; i++) {
@@ -308,7 +398,14 @@ return results;`,
   return count;
 }
 
+/**
+ * Turn a tokenized document into a bag-of-words count vector.
+ * @param {string[]} tokens - Ordered words from one document.
+ * @param {string[]} vocab - Fixed vocabulary; vector index i matches vocab[i].
+ * @returns {number[]} Count per vocabulary word (same length as vocab).
+ */
 function bowVector(tokens, vocab) {
+  // vector: number[] — starts empty; one count per vocab word
   const vector = [];
 
   for (let i = 0; i < vocab.length; i++) {
@@ -345,7 +442,13 @@ return results;`,
       'Use countWord(tokens, vocab[i]).',
       'vector.push(countWord(tokens, vocab[i]));',
     ],
-    solution: `function countWord(tokens, target) {
+    solution: `/**
+ * Count how many times a target word appears in a token list.
+ * @param {string[]} tokens - Ordered words from one document.
+ * @param {string} target - Vocabulary word to count.
+ * @returns {number} Occurrence count of target in tokens.
+ */
+function countWord(tokens, target) {
   let count = 0;
 
   for (let i = 0; i < tokens.length; i++) {
@@ -355,7 +458,14 @@ return results;`,
   return count;
 }
 
+/**
+ * Turn a tokenized document into a bag-of-words count vector.
+ * @param {string[]} tokens - Ordered words from one document.
+ * @param {string[]} vocab - Fixed vocabulary; vector index i matches vocab[i].
+ * @returns {number[]} Count per vocabulary word (same length as vocab).
+ */
 function bowVector(tokens, vocab) {
+  // vector: number[] — starts empty; one count per vocab word
   const vector = [];
 
   for (let i = 0; i < vocab.length; i++) {
@@ -375,11 +485,18 @@ function bowVector(tokens, vocab) {
     concept: 'Normalizing counts can reduce the effect of document length.',
     objective: 'Divide each count by total count.',
     difficulty: 'core',
-    starterCode: `function normalizeCounts(counts) {
+    starterCode: `/**
+ * Scale raw word counts into proportions that sum to 1.
+ * @param {number[]} counts - Non-negative bag-of-words counts (e.g. [2, 1, 0]).
+ * @returns {number[]} Each count divided by the total; all zeros when total is 0.
+ */
+function normalizeCounts(counts) {
+  // total: number — sum of all counts in the document
   const total = counts.reduce((sum, value) => sum + value, 0);
 
   if (total === 0) return counts.map(() => 0);
 
+  // normalized: number[] — starts empty; proportional counts
   const normalized = [];
 
   for (let i = 0; i < counts.length; i++) {
@@ -414,11 +531,18 @@ return results;`,
       'Each normalized value is counts[i] / total.',
       'normalized.push(counts[i] / total);',
     ],
-    solution: `function normalizeCounts(counts) {
+    solution: `/**
+ * Scale raw word counts into proportions that sum to 1.
+ * @param {number[]} counts - Non-negative bag-of-words counts (e.g. [2, 1, 0]).
+ * @returns {number[]} Each count divided by the total; all zeros when total is 0.
+ */
+function normalizeCounts(counts) {
+  // total: number — sum of all counts in the document
   const total = counts.reduce((sum, value) => sum + value, 0);
 
   if (total === 0) return counts.map(() => 0);
 
+  // normalized: number[] — starts empty; proportional counts
   const normalized = [];
 
   for (let i = 0; i < counts.length; i++) {
@@ -438,7 +562,8 @@ return results;`,
     concept: 'A simple retrieval score compares a query vector with a document vector.',
     objective: 'Return dot(query, document).',
     difficulty: 'warmup',
-    starterCode: `function dot(a, b) {
+    starterCode: `/** @param {number[]} a @param {number[]} b @returns {number} */
+function dot(a, b) {
   let total = 0;
 
   for (let i = 0; i < a.length; i++) {
@@ -448,6 +573,12 @@ return results;`,
   return total;
 }
 
+/**
+ * Score a document by dot product with the query embedding.
+ * @param {number[]} query - Query vector.
+ * @param {number[]} document - Document embedding (same length as query).
+ * @returns {number} Dot-product similarity score.
+ */
 function retrievalDotScore(query, document) {
   // TODO: return query dotted with document.
   return 0;
@@ -468,7 +599,8 @@ return results;`,
       'Retrieval score is a similarity score.',
       'return dot(query, document);',
     ],
-    solution: `function dot(a, b) {
+    solution: `/** @param {number[]} a @param {number[]} b @returns {number} */
+function dot(a, b) {
   let total = 0;
 
   for (let i = 0; i < a.length; i++) {
@@ -478,6 +610,12 @@ return results;`,
   return total;
 }
 
+/**
+ * Score a document by dot product with the query embedding.
+ * @param {number[]} query - Query vector.
+ * @param {number[]} document - Document embedding (same length as query).
+ * @returns {number} Dot-product similarity score.
+ */
 function retrievalDotScore(query, document) {
   return dot(query, document);
 }`,
@@ -492,7 +630,8 @@ function retrievalDotScore(query, document) {
     concept: 'Cosine similarity compares direction instead of raw vector length.',
     objective: 'Return dot(query, document) divided by both norms.',
     difficulty: 'core',
-    starterCode: `function dot(a, b) {
+    starterCode: `/** @param {number[]} a @param {number[]} b @returns {number} */
+function dot(a, b) {
   let total = 0;
 
   for (let i = 0; i < a.length; i++) {
@@ -502,10 +641,17 @@ function retrievalDotScore(query, document) {
   return total;
 }
 
+/** @param {number[]} v @returns {number} L2 norm of v */
 function norm(v) {
   return Math.sqrt(dot(v, v));
 }
 
+/**
+ * Cosine similarity between query and document embeddings.
+ * @param {number[]} query - Query vector.
+ * @param {number[]} document - Document embedding (same length as query).
+ * @returns {number} Value in [-1, 1]; 1 means same direction.
+ */
 function cosineScore(query, document) {
   // TODO: return cosine similarity.
   return 0;
@@ -531,7 +677,8 @@ return results;`,
       'Use the dot and norm helpers.',
       'return dot(query, document) / (norm(query) * norm(document));',
     ],
-    solution: `function dot(a, b) {
+    solution: `/** @param {number[]} a @param {number[]} b @returns {number} */
+function dot(a, b) {
   let total = 0;
 
   for (let i = 0; i < a.length; i++) {
@@ -541,10 +688,17 @@ return results;`,
   return total;
 }
 
+/** @param {number[]} v @returns {number} L2 norm of v */
 function norm(v) {
   return Math.sqrt(dot(v, v));
 }
 
+/**
+ * Cosine similarity between query and document embeddings.
+ * @param {number[]} query - Query vector.
+ * @param {number[]} document - Document embedding (same length as query).
+ * @returns {number} Value in [-1, 1]; 1 means same direction.
+ */
 function cosineScore(query, document) {
   return dot(query, document) / (norm(query) * norm(document));
 }`,
@@ -559,19 +713,29 @@ function cosineScore(query, document) {
     concept: 'A retriever scores every candidate document before ranking.',
     objective: 'Push cosineScore(query, documents[i]) for each document.',
     difficulty: 'core',
-    starterCode: `function dot(a, b) {
+    starterCode: `/** @param {number[]} a @param {number[]} b @returns {number} */
+function dot(a, b) {
   return a.reduce((total, value, i) => total + value * b[i], 0);
 }
 
+/** @param {number[]} v @returns {number} */
 function norm(v) {
   return Math.sqrt(dot(v, v));
 }
 
+/** @param {number[]} query @param {number[]} document @returns {number} */
 function cosineScore(query, document) {
   return dot(query, document) / (norm(query) * norm(document));
 }
 
+/**
+ * Score every candidate document against one query.
+ * @param {number[]} query - Query embedding.
+ * @param {number[][]} documents - One embedding per document (same dimension as query).
+ * @returns {number[]} Cosine score per document, same order as documents.
+ */
 function scoreDocuments(query, documents) {
+  // scores: number[] — starts empty; one similarity per document
   const scores = [];
 
   for (let i = 0; i < documents.length; i++) {
@@ -604,19 +768,29 @@ return results;`,
       'Use cosineScore(query, documents[i]).',
       'scores.push(cosineScore(query, documents[i]));',
     ],
-    solution: `function dot(a, b) {
+    solution: `/** @param {number[]} a @param {number[]} b @returns {number} */
+function dot(a, b) {
   return a.reduce((total, value, i) => total + value * b[i], 0);
 }
 
+/** @param {number[]} v @returns {number} */
 function norm(v) {
   return Math.sqrt(dot(v, v));
 }
 
+/** @param {number[]} query @param {number[]} document @returns {number} */
 function cosineScore(query, document) {
   return dot(query, document) / (norm(query) * norm(document));
 }
 
+/**
+ * Score every candidate document against one query.
+ * @param {number[]} query - Query embedding.
+ * @param {number[][]} documents - One embedding per document (same dimension as query).
+ * @returns {number[]} Cosine score per document, same order as documents.
+ */
 function scoreDocuments(query, documents) {
+  // scores: number[] — starts empty; one similarity per document
   const scores = [];
 
   for (let i = 0; i < documents.length; i++) {
@@ -636,7 +810,13 @@ function scoreDocuments(query, documents) {
     concept: 'Retrieval returns document IDs sorted by descending score.',
     objective: 'Return document IDs sorted from highest score to lowest.',
     difficulty: 'challenge',
-    starterCode: `function rankDocuments(scores) {
+    starterCode: `/**
+ * Rank document IDs by descending retrieval score.
+ * @param {number[]} scores - Similarity score per document (index = document ID).
+ * @returns {number[]} Document indices sorted best-first.
+ */
+function rankDocuments(scores) {
+  // indexed: {score: number, index: number}[] — pairs score with original document index
   const indexed = scores.map((score, index) => ({ score, index }));
 
   indexed.sort((a, b) => b.score - a.score);
@@ -669,7 +849,13 @@ return results;`,
       'Map each item to item.index.',
       'return indexed.map((item) => item.index);',
     ],
-    solution: `function rankDocuments(scores) {
+    solution: `/**
+ * Rank document IDs by descending retrieval score.
+ * @param {number[]} scores - Similarity score per document (index = document ID).
+ * @returns {number[]} Document indices sorted best-first.
+ */
+function rankDocuments(scores) {
+  // indexed: {score: number, index: number}[] — pairs score with original document index
   const indexed = scores.map((score, index) => ({ score, index }));
 
   indexed.sort((a, b) => b.score - a.score);
@@ -687,7 +873,15 @@ return results;`,
     concept: 'Hit@k checks whether at least one relevant document appears in the top k.',
     objective: 'Return true if any of the top-k retrieved IDs are relevant.',
     difficulty: 'core',
-    starterCode: `function hitAtK(retrievedIds, relevantIds, k) {
+    starterCode: `/**
+ * Hit@k: did at least one relevant document appear in the top k results?
+ * @param {string[]} retrievedIds - Ranked document IDs (best first).
+ * @param {string[]} relevantIds - Ground-truth relevant document IDs.
+ * @param {number} k - Cutoff rank (top k only).
+ * @returns {boolean} True when any top-k ID is in relevantIds.
+ */
+function hitAtK(retrievedIds, relevantIds, k) {
+  // topK: string[] — first k retrieved IDs
   const topK = retrievedIds.slice(0, k);
 
   for (let i = 0; i < topK.length; i++) {
@@ -713,7 +907,15 @@ return results;`,
       'If you find a relevant item, return true immediately.',
       'if (relevantIds.includes(topK[i])) return true;',
     ],
-    solution: `function hitAtK(retrievedIds, relevantIds, k) {
+    solution: `/**
+ * Hit@k: did at least one relevant document appear in the top k results?
+ * @param {string[]} retrievedIds - Ranked document IDs (best first).
+ * @param {string[]} relevantIds - Ground-truth relevant document IDs.
+ * @param {number} k - Cutoff rank (top k only).
+ * @returns {boolean} True when any top-k ID is in relevantIds.
+ */
+function hitAtK(retrievedIds, relevantIds, k) {
+  // topK: string[] — first k retrieved IDs
   const topK = retrievedIds.slice(0, k);
 
   for (let i = 0; i < topK.length; i++) {
@@ -733,8 +935,17 @@ return results;`,
     concept: 'Recall@k measures how many relevant documents were retrieved in the top k.',
     objective: 'Count relevant docs in top-k and divide by total relevant docs.',
     difficulty: 'core',
-    starterCode: `function recallAtK(retrievedIds, relevantIds, k) {
+    starterCode: `/**
+ * Recall@k: fraction of relevant documents found in the top k.
+ * @param {string[]} retrievedIds - Ranked document IDs (best first).
+ * @param {string[]} relevantIds - Ground-truth relevant document IDs.
+ * @param {number} k - Cutoff rank (top k only).
+ * @returns {number} found / relevantIds.length.
+ */
+function recallAtK(retrievedIds, relevantIds, k) {
+  // topK: string[] — first k retrieved IDs
   const topK = retrievedIds.slice(0, k);
+  // found: number — count of relevant docs in topK; starts at 0
   let found = 0;
 
   for (let i = 0; i < topK.length; i++) {
@@ -764,8 +975,17 @@ return results;`,
       'Increment found for each relevant retrieved doc.',
       'if (relevantIds.includes(topK[i])) found += 1;',
     ],
-    solution: `function recallAtK(retrievedIds, relevantIds, k) {
+    solution: `/**
+ * Recall@k: fraction of relevant documents found in the top k.
+ * @param {string[]} retrievedIds - Ranked document IDs (best first).
+ * @param {string[]} relevantIds - Ground-truth relevant document IDs.
+ * @param {number} k - Cutoff rank (top k only).
+ * @returns {number} found / relevantIds.length.
+ */
+function recallAtK(retrievedIds, relevantIds, k) {
+  // topK: string[] — first k retrieved IDs
   const topK = retrievedIds.slice(0, k);
+  // found: number — count of relevant docs in topK; starts at 0
   let found = 0;
 
   for (let i = 0; i < topK.length; i++) {
@@ -785,7 +1005,13 @@ return results;`,
     concept: 'MRR rewards placing the first relevant result early.',
     objective: 'Return 1 / rank of the first relevant result.',
     difficulty: 'challenge',
-    starterCode: `function reciprocalRank(retrievedIds, relevantIds) {
+    starterCode: `/**
+ * Reciprocal rank of the first relevant result (MRR for one query).
+ * @param {string[]} retrievedIds - Ranked document IDs (best first).
+ * @param {string[]} relevantIds - Ground-truth relevant document IDs.
+ * @returns {number} 1/rank of first hit, or 0 when none found.
+ */
+function reciprocalRank(retrievedIds, relevantIds) {
   for (let i = 0; i < retrievedIds.length; i++) {
     // TODO: if retrievedIds[i] is relevant, return 1 / (i + 1).
   }
@@ -813,7 +1039,13 @@ return results;`,
       'Use relevantIds.includes(retrievedIds[i]).',
       'if (relevantIds.includes(retrievedIds[i])) return 1 / (i + 1);',
     ],
-    solution: `function reciprocalRank(retrievedIds, relevantIds) {
+    solution: `/**
+ * Reciprocal rank of the first relevant result (MRR for one query).
+ * @param {string[]} retrievedIds - Ranked document IDs (best first).
+ * @param {string[]} relevantIds - Ground-truth relevant document IDs.
+ * @returns {number} 1/rank of first hit, or 0 when none found.
+ */
+function reciprocalRank(retrievedIds, relevantIds) {
   for (let i = 0; i < retrievedIds.length; i++) {
     if (relevantIds.includes(retrievedIds[i])) return 1 / (i + 1);
   }
@@ -831,10 +1063,18 @@ return results;`,
     concept: 'DCG gives more credit to relevant documents that appear earlier in the ranking.',
     objective: 'Add relevance / log2(rank + 1) for each top-k result.',
     difficulty: 'challenge',
-    starterCode: `function dcgAtK(relevances, k) {
+    starterCode: `/**
+ * Discounted cumulative gain at rank k.
+ * @param {number[]} relevances - Graded relevance per rank position (index 0 = rank 1).
+ * @param {number} k - Maximum rank to include.
+ * @returns {number} Sum of relevance / log2(rank + 1).
+ */
+function dcgAtK(relevances, k) {
+  // total: number — accumulated DCG; starts at 0
   let total = 0;
 
   for (let i = 0; i < Math.min(k, relevances.length); i++) {
+    // rank: number — 1-based position (i=0 → rank 1)
     const rank = i + 1;
 
     // TODO: add discounted relevance.
@@ -863,10 +1103,18 @@ return results;`,
       'Discount denominator is Math.log2(rank + 1).',
       'total += relevances[i] / Math.log2(rank + 1);',
     ],
-    solution: `function dcgAtK(relevances, k) {
+    solution: `/**
+ * Discounted cumulative gain at rank k.
+ * @param {number[]} relevances - Graded relevance per rank position (index 0 = rank 1).
+ * @param {number} k - Maximum rank to include.
+ * @returns {number} Sum of relevance / log2(rank + 1).
+ */
+function dcgAtK(relevances, k) {
+  // total: number — accumulated DCG; starts at 0
   let total = 0;
 
   for (let i = 0; i < Math.min(k, relevances.length); i++) {
+    // rank: number — 1-based position (i=0 → rank 1)
     const rank = i + 1;
     total += relevances[i] / Math.log2(rank + 1);
   }
@@ -884,7 +1132,13 @@ return results;`,
     concept: 'A reranker reorders retrieved chunks using a more expensive relevance score.',
     objective: 'Return chunk IDs sorted by descending reranker score.',
     difficulty: 'core',
-    starterCode: `function rerank(chunkScores) {
+    starterCode: `/**
+ * Rerank chunks by descending reranker score.
+ * @param {{ id: string, score: number }[]} chunkScores - Chunk ID and reranker score pairs.
+ * @returns {string[]} Chunk IDs sorted best-first.
+ */
+function rerank(chunkScores) {
+  // indexed: {id: string, score: number}[] — copy for sorting
   const indexed = chunkScores.map((item) => ({
     id: item.id,
     score: item.score,
@@ -918,7 +1172,13 @@ return results;`,
       'Map each item to item.id.',
       'return indexed.map((item) => item.id);',
     ],
-    solution: `function rerank(chunkScores) {
+    solution: `/**
+ * Rerank chunks by descending reranker score.
+ * @param {{ id: string, score: number }[]} chunkScores - Chunk ID and reranker score pairs.
+ * @returns {string[]} Chunk IDs sorted best-first.
+ */
+function rerank(chunkScores) {
+  // indexed: {id: string, score: number}[] — copy for sorting
   const indexed = chunkScores.map((item) => ({
     id: item.id,
     score: item.score,
@@ -939,7 +1199,13 @@ return results;`,
     concept: 'A simple grounding check asks whether the cited chunk contains the answer phrase.',
     objective: 'Return whether chunkText includes answerPhrase.',
     difficulty: 'warmup',
-    starterCode: `function chunkContainsAnswer(chunkText, answerPhrase) {
+    starterCode: `/**
+ * Simple grounding check: does the cited chunk contain the answer phrase?
+ * @param {string} chunkText - Retrieved evidence text.
+ * @param {string} answerPhrase - Substring the answer should be grounded in.
+ * @returns {boolean} True when answerPhrase appears in chunkText.
+ */
+function chunkContainsAnswer(chunkText, answerPhrase) {
   // TODO: return whether answerPhrase appears in chunkText.
   return false;
 }`,
@@ -959,7 +1225,13 @@ return results;`,
       'chunkText.includes(answerPhrase) checks for substring support.',
       'return chunkText.includes(answerPhrase);',
     ],
-    solution: `function chunkContainsAnswer(chunkText, answerPhrase) {
+    solution: `/**
+ * Simple grounding check: does the cited chunk contain the answer phrase?
+ * @param {string} chunkText - Retrieved evidence text.
+ * @param {string} answerPhrase - Substring the answer should be grounded in.
+ * @returns {boolean} True when answerPhrase appears in chunkText.
+ */
+function chunkContainsAnswer(chunkText, answerPhrase) {
   return chunkText.includes(answerPhrase);
 }`,
     explanation: 'This is a toy grounding check. Real grounding needs entailment, not just substring matching.',
@@ -973,7 +1245,14 @@ return results;`,
     concept: 'A citation is suspicious when the cited chunk does not contain the required answer evidence.',
     objective: 'Return true when the citation is unsupported.',
     difficulty: 'core',
-    starterCode: `function isUnsupportedCitation(chunkText, answerPhrase) {
+    starterCode: `/**
+ * Flag a citation when the chunk does not support the answer phrase.
+ * @param {string} chunkText - Retrieved evidence text.
+ * @param {string} answerPhrase - Substring the answer claims.
+ * @returns {boolean} True when the chunk does not contain answerPhrase.
+ */
+function isUnsupportedCitation(chunkText, answerPhrase) {
+  // supports: boolean — whether chunkText contains the answer phrase
   const supports = chunkText.includes(answerPhrase);
 
   // TODO: return true when supports is false.
@@ -995,7 +1274,14 @@ return results;`,
       'supports is already computed.',
       'return !supports;',
     ],
-    solution: `function isUnsupportedCitation(chunkText, answerPhrase) {
+    solution: `/**
+ * Flag a citation when the chunk does not support the answer phrase.
+ * @param {string} chunkText - Retrieved evidence text.
+ * @param {string} answerPhrase - Substring the answer claims.
+ * @returns {boolean} True when the chunk does not contain answerPhrase.
+ */
+function isUnsupportedCitation(chunkText, answerPhrase) {
+  // supports: boolean — whether chunkText contains the answer phrase
   const supports = chunkText.includes(answerPhrase);
   return !supports;
 }`,
@@ -1010,7 +1296,13 @@ return results;`,
     concept: 'RAG systems should detect when retrieved chunks disagree.',
     objective: 'Return true when two chunks contain different claimed values.',
     difficulty: 'challenge',
-    starterCode: `function hasConflict(valueA, valueB) {
+    starterCode: `/**
+ * Detect conflicting evidence between two retrieved values.
+ * @param {string|number} valueA - Claimed value from one chunk.
+ * @param {string|number} valueB - Claimed value from another chunk.
+ * @returns {boolean} True when valueA and valueB differ.
+ */
+function hasConflict(valueA, valueB) {
   // TODO: return true when values disagree.
   return false;
 }`,
@@ -1031,7 +1323,13 @@ return results;`,
       'Use !==.',
       'return valueA !== valueB;',
     ],
-    solution: `function hasConflict(valueA, valueB) {
+    solution: `/**
+ * Detect conflicting evidence between two retrieved values.
+ * @param {string|number} valueA - Claimed value from one chunk.
+ * @param {string|number} valueB - Claimed value from another chunk.
+ * @returns {boolean} True when valueA and valueB differ.
+ */
+function hasConflict(valueA, valueB) {
   return valueA !== valueB;
 }`,
     explanation: 'A good RAG system should not silently choose one source when retrieved evidence conflicts.',
@@ -1045,7 +1343,13 @@ return results;`,
     concept: 'A prompt packer should leave room for the model response.',
     objective: 'Return totalContext - answerBudget.',
     difficulty: 'warmup',
-    starterCode: `function inputBudget(totalContext, answerBudget) {
+    starterCode: `/**
+ * Reserve tokens for the model answer; return what remains for input.
+ * @param {number} totalContext - Full context window size in tokens.
+ * @param {number} answerBudget - Tokens reserved for the model response.
+ * @returns {number} Tokens available for retrieved chunks and prompt.
+ */
+function inputBudget(totalContext, answerBudget) {
   // TODO: return how many tokens are available for input.
   return totalContext;
 }`,
@@ -1065,7 +1369,13 @@ return results;`,
       'Subtract answerBudget from totalContext.',
       'return totalContext - answerBudget;',
     ],
-    solution: `function inputBudget(totalContext, answerBudget) {
+    solution: `/**
+ * Reserve tokens for the model answer; return what remains for input.
+ * @param {number} totalContext - Full context window size in tokens.
+ * @param {number} answerBudget - Tokens reserved for the model response.
+ * @returns {number} Tokens available for retrieved chunks and prompt.
+ */
+function inputBudget(totalContext, answerBudget) {
   return totalContext - answerBudget;
 }`,
     explanation: 'If you fill the whole context with input, there may be no room left for the answer.',
@@ -1079,11 +1389,20 @@ return results;`,
     concept: 'A simple prompt packer adds chunks until the budget is exhausted.',
     objective: 'Add a chunk only if it fits.',
     difficulty: 'core',
-    starterCode: `function packChunksGreedy(chunks, budget) {
+    starterCode: `/**
+ * Greedily pack chunks in order until the token budget is exhausted.
+ * @param {{ id: string, tokens: number }[]} chunks - Candidate chunks with token counts.
+ * @param {number} budget - Maximum total tokens for packed chunks.
+ * @returns {string[]} IDs of chunks that fit, in original order.
+ */
+function packChunksGreedy(chunks, budget) {
+  // packed: string[] — IDs of chunks added so far
   const packed = [];
+  // used: number — tokens consumed; starts at 0
   let used = 0;
 
   for (let i = 0; i < chunks.length; i++) {
+    // chunk: {id: string, tokens: number} — current candidate
     const chunk = chunks[i];
 
     // TODO: if used + chunk.tokens <= budget, pack the chunk and update used.
@@ -1125,11 +1444,20 @@ return results;`,
   used += chunk.tokens;
 }`,
     ],
-    solution: `function packChunksGreedy(chunks, budget) {
+    solution: `/**
+ * Greedily pack chunks in order until the token budget is exhausted.
+ * @param {{ id: string, tokens: number }[]} chunks - Candidate chunks with token counts.
+ * @param {number} budget - Maximum total tokens for packed chunks.
+ * @returns {string[]} IDs of chunks that fit, in original order.
+ */
+function packChunksGreedy(chunks, budget) {
+  // packed: string[] — IDs of chunks added so far
   const packed = [];
+  // used: number — tokens consumed; starts at 0
   let used = 0;
 
   for (let i = 0; i < chunks.length; i++) {
+    // chunk: {id: string, tokens: number} — current candidate
     const chunk = chunks[i];
 
     if (used + chunk.tokens <= budget) {
@@ -1151,7 +1479,13 @@ return results;`,
     concept: 'Prompt packing usually prioritizes high-relevance chunks before filling the budget.',
     objective: 'Sort chunks by descending relevance.',
     difficulty: 'core',
-    starterCode: `function sortByRelevance(chunks) {
+    starterCode: `/**
+ * Sort chunks by descending relevance score.
+ * @param {{ id: string, relevance: number }[]} chunks - Candidate chunks with relevance scores.
+ * @returns {{ id: string, relevance: number }[]} New array sorted best-first.
+ */
+function sortByRelevance(chunks) {
+  // sorted: object[] — shallow copy of chunks to sort in place
   const sorted = chunks.slice();
 
   // TODO: sort highest relevance first.
@@ -1180,7 +1514,13 @@ return results;`,
       'Descending means b.relevance - a.relevance.',
       'sorted.sort((a, b) => b.relevance - a.relevance);',
     ],
-    solution: `function sortByRelevance(chunks) {
+    solution: `/**
+ * Sort chunks by descending relevance score.
+ * @param {{ id: string, relevance: number }[]} chunks - Candidate chunks with relevance scores.
+ * @returns {{ id: string, relevance: number }[]} New array sorted best-first.
+ */
+function sortByRelevance(chunks) {
+  // sorted: object[] — shallow copy of chunks to sort in place
   const sorted = chunks.slice();
 
   sorted.sort((a, b) => b.relevance - a.relevance);
@@ -1198,14 +1538,24 @@ return results;`,
     concept: 'A practical packer sorts by relevance, then greedily adds chunks that fit.',
     objective: 'Sort by relevance and pack fitting chunks.',
     difficulty: 'challenge',
-    starterCode: `function packRelevantChunks(chunks, budget) {
+    starterCode: `/**
+ * Sort by relevance, then greedily pack chunks that fit the budget.
+ * @param {{ id: string, tokens: number, relevance: number }[]} chunks - Candidates with size and score.
+ * @param {number} budget - Maximum total tokens for packed chunks.
+ * @returns {string[]} IDs of packed chunks, highest relevance first.
+ */
+function packRelevantChunks(chunks, budget) {
+  // sorted: object[] — chunks ordered by descending relevance
   const sorted = chunks.slice();
   sorted.sort((a, b) => b.relevance - a.relevance);
 
+  // packed: string[] — IDs of chunks added so far
   const packed = [];
+  // used: number — tokens consumed; starts at 0
   let used = 0;
 
   for (let i = 0; i < sorted.length; i++) {
+    // chunk: {id, tokens, relevance} — current candidate (already sorted)
     const chunk = sorted[i];
 
     // TODO: pack this chunk if it fits.
@@ -1249,14 +1599,24 @@ return results;`,
   used += chunk.tokens;
 }`,
     ],
-    solution: `function packRelevantChunks(chunks, budget) {
+    solution: `/**
+ * Sort by relevance, then greedily pack chunks that fit the budget.
+ * @param {{ id: string, tokens: number, relevance: number }[]} chunks - Candidates with size and score.
+ * @param {number} budget - Maximum total tokens for packed chunks.
+ * @returns {string[]} IDs of packed chunks, highest relevance first.
+ */
+function packRelevantChunks(chunks, budget) {
+  // sorted: object[] — chunks ordered by descending relevance
   const sorted = chunks.slice();
   sorted.sort((a, b) => b.relevance - a.relevance);
 
+  // packed: string[] — IDs of chunks added so far
   const packed = [];
+  // used: number — tokens consumed; starts at 0
   let used = 0;
 
   for (let i = 0; i < sorted.length; i++) {
+    // chunk: {id, tokens, relevance} — current candidate (already sorted)
     const chunk = sorted[i];
 
     if (used + chunk.tokens <= budget) {
