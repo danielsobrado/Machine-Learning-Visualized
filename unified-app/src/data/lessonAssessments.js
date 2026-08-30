@@ -3,6 +3,7 @@ import { getAssessmentSource } from './assessmentQuality.js';
 import { ASSESSMENT_QUALITY_PRIORITY_LESSON_IDS } from './assessmentQualityManifest.js';
 import { getP0ExperimentationScenariosForLesson } from './p0ExperimentationScenarioQuestions.js';
 import { getP0ScenarioQuestionsForLesson } from './p0ScenarioQuestions.js';
+import { getP1GenerativeRlScenariosForLesson } from './p1GenerativeRlScenarioQuestions.js';
 import { getP1MathScenariosForLesson } from './p1MathScenarioQuestions.js';
 import { getP1NeuralScenariosForLesson } from './p1NeuralScenarioQuestions.js';
 import { getP1NlpTransformerScenariosForLesson } from './p1NlpTransformerScenarioQuestions.js';
@@ -47,6 +48,7 @@ function buildAssessment(lessonId, assessment) {
     ...getP1MathScenariosForLesson(lessonId),
     ...getP1NeuralScenariosForLesson(lessonId),
     ...getP1NlpTransformerScenariosForLesson(lessonId),
+    ...getP1GenerativeRlScenariosForLesson(lessonId),
   ];
 
   return Object.freeze({
