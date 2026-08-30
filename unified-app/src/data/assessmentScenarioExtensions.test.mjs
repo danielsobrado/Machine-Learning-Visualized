@@ -6,6 +6,7 @@ import {
   ASSESSMENT_SCENARIO_EXTENSION_SOURCES,
   getAssessmentScenarioExtensionEntries,
 } from './assessmentScenarioExtensions.js';
+import { lessonAssessments as baseLessonAssessments } from './lessonAssessmentsBase.js';
 import { getLessonAssessment } from './lessonAssessments.js';
 
 const MAX_SCENARIO_ANSWER_SHARE = 0.6;
@@ -69,6 +70,17 @@ test('all assessment scenario extensions are live and collision-free', async (t)
         extensionPrompts.length,
         `${lessonId}: extension sources contain duplicate normalized prompts`,
       );
+
+      const basePromptSet = new Set(
+        (baseLessonAssessments[lessonId]?.scenarioQuestions || [])
+          .map((question) => normalizeAssessmentText(question.prompt)),
+      );
+      for (const { question } of entries) {
+        assert.ok(
+          !basePromptSet.has(normalizeAssessmentText(question.prompt)),
+          `${lessonId}: ${question.id} duplicates a base scenario prompt`,
+        );
+      }
 
       const assessment = getLessonAssessment(lessonId);
       const liveScenarios = assessment.scenarioQuestions || [];
