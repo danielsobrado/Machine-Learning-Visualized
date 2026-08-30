@@ -1,7 +1,9 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 
+import { normalizeAssessmentText } from './assessmentQuality.js';
 import {
+  ASSESSMENT_QUALITY_MANIFEST,
   P0_ASSESSMENT_COVERAGE,
   P0_PRIORITY_ASSESSMENT_LESSON_IDS,
 } from './assessmentQualityManifest.js';
@@ -20,7 +22,11 @@ function validateScenarioSchema(lessonId, question) {
   assert.ok(question.prompt && /\S/.test(question.prompt), `${question.id}: prompt is required`);
   assert.ok(Array.isArray(question.choices), `${question.id}: choices must be an array`);
   assert.equal(question.choices.length, 3, `${question.id}: exactly three choices are required`);
-  assert.equal(new Set(question.choices).size, 3, `${question.id}: choices must be distinct`);
+  assert.equal(
+    new Set(question.choices.map(normalizeAssessmentText)).size,
+    3,
+    `${question.id}: choices must be distinct after normalization`,
+  );
   assert.ok(Number.isInteger(question.answerIndex), `${question.id}: answerIndex must be an integer`);
   assert.ok(question.answerIndex >= 0 && question.answerIndex < 3, `${question.id}: answerIndex is out of range`);
   assert.ok(question.explanation && question.explanation.length >= 30, `${question.id}: explanation is too short`);
@@ -30,6 +36,16 @@ function validateScenarioSchema(lessonId, question) {
     assert.ok(Object.keys(question.visualState).length > 0, `${question.id}: visual-state metadata cannot be empty`);
   }
 }
+
+test('assessment quality manifest covers every priority lesson', () => {
+  const priority = [...PRIORITY_ASSESSMENT_LESSON_IDS].sort();
+  const manifestIds = Object.keys(ASSESSMENT_QUALITY_MANIFEST).sort();
+
+  assert.deepEqual(manifestIds, priority);
+  for (const lessonId of priority) {
+    assert.equal(ASSESSMENT_QUALITY_MANIFEST[lessonId].source, 'curated', `${lessonId}: manifest must require curated source`);
+  }
+});
 
 test('P0 promoted assessments are included in the shared priority contract', () => {
   const priority = new Set(PRIORITY_ASSESSMENT_LESSON_IDS);
@@ -46,9 +62,13 @@ test('P0 assessment scenarios cover required gaps', async (t) => {
       const assessment = getLessonAssessment(lessonId);
       const scenarios = assessment.scenarioQuestions || [];
       const ids = scenarioIds(assessment);
+      const quizIds = new Set((assessment.quiz || []).map((question) => question.id));
 
       assert.equal(ids.size, scenarios.length, `${lessonId}: scenario ids must be unique`);
-      for (const question of scenarios) validateScenarioSchema(lessonId, question);
+      for (const question of scenarios) {
+        validateScenarioSchema(lessonId, question);
+        assert.ok(!quizIds.has(question.id), `${lessonId}: scenario id ${question.id} collides with a quiz id`);
+      }
 
       for (const scenarioId of requirement.scenarioIds || []) {
         assert.ok(ids.has(scenarioId), `${lessonId}: missing required P0 scenario ${scenarioId}`);
