@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { BookOpen, CheckCircle2, ChevronLeft, ChevronRight, Circle, Eye, FlaskConical } from 'lucide-react';
 import InlineMathText from '../common/InlineMathText';
+import AssessmentVisualState from './AssessmentVisualState';
 import {
   CODE_LAB_PROGRESS_EVENT,
   readCodeLabProgress,
@@ -204,6 +205,7 @@ export default function AssessmentPanel({
                   <span className="ua-quiz-kicker">Scenario {questionIndex + 1} of {scenarioItems.length}</span>
                   {question.level && <span className="ua-question-level">{question.level}</span>}
                 </div>
+                {question.kind === 'visual-state' && <AssessmentVisualState state={question.visualState} />}
                 <p className="ua-scenario-text"><InlineMathText>{question.scenario}</InlineMathText></p>
                 <h3><InlineMathText>{question.prompt}</InlineMathText></h3>
                 <div className="ua-choice-list">
