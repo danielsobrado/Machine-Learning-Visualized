@@ -1,0 +1,49 @@
+name: Unified App Quality
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'unified-app/**'
+      - '.github/workflows/unified-app-quality.yml'
+  pull_request:
+    paths:
+      - 'unified-app/**'
+      - '.github/workflows/unified-app-quality.yml'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: unified-app-quality-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  quality:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: unified-app
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+          cache-dependency-path: unified-app/package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run tests
+        run: npm test
+
+      - name: Generate curriculum audit
+        run: npm run audit:quality
+
+      - name: Build application
+        run: npm run build
