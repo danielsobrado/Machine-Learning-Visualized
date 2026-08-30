@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 
+import { ASSESSMENT_SCENARIO_EXTENSION_SOURCES } from './assessmentScenarioExtensions.js';
 import { P2_SCENARIOS_BY_LESSON } from './p2ScenarioQuestions.js';
 import { getLessonAssessment } from './lessonAssessments.js';
 
@@ -23,6 +24,14 @@ const ALLOWED_LEVELS = new Set(['mechanism', 'comparison', 'diagnosis', 'paper-r
 function normalizeLevel(level) {
   return String(level || '').toLowerCase();
 }
+
+test('P2 scenario catalog is registered exactly once', () => {
+  const p2Sources = ASSESSMENT_SCENARIO_EXTENSION_SOURCES.filter(({ priority }) => priority === 'P2');
+
+  assert.equal(p2Sources.length, 1, 'P2 scenarios should have one centralized extension source');
+  assert.equal(p2Sources[0].id, 'p2-cleanup');
+  assert.equal(p2Sources[0].questionsByLesson, P2_SCENARIOS_BY_LESSON);
+});
 
 test('P2 scenario catalog covers the intended cleanup topics', () => {
   assert.deepEqual(
