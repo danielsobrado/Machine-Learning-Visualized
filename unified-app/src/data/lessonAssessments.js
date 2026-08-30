@@ -3,6 +3,7 @@ import { getAssessmentSource } from './assessmentQuality.js';
 import { ASSESSMENT_QUALITY_PRIORITY_LESSON_IDS } from './assessmentQualityManifest.js';
 import { getP0ExperimentationScenariosForLesson } from './p0ExperimentationScenarioQuestions.js';
 import { getP0ScenarioQuestionsForLesson } from './p0ScenarioQuestions.js';
+import { getP1MathScenariosForLesson } from './p1MathScenarioQuestions.js';
 import { getP1ScenarioQuestionsForLesson } from './p1ScenarioQuestions.js';
 import { getP1StatisticsScenariosForLesson } from './p1StatisticsScenarioQuestions.js';
 import { PROBABILITY_DISTRIBUTIONS_QUIZ } from './probabilityDistributionsAssessment.js';
@@ -41,6 +42,7 @@ function buildAssessment(lessonId, assessment) {
     ...getP0ExperimentationScenariosForLesson(lessonId),
     ...getP1ScenarioQuestionsForLesson(lessonId),
     ...getP1StatisticsScenariosForLesson(lessonId),
+    ...getP1MathScenariosForLesson(lessonId),
   ];
 
   return Object.freeze({
