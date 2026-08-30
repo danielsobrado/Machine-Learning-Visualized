@@ -4,6 +4,7 @@ import test from 'node:test';
 import { normalizeAssessmentText } from './assessmentQuality.js';
 import { P0_EXPERIMENTATION_SCENARIOS_BY_LESSON } from './p0ExperimentationScenarioQuestions.js';
 import { P0_SCENARIO_QUESTIONS_BY_LESSON } from './p0ScenarioQuestions.js';
+import { P1_GENERATIVE_RL_SCENARIOS_BY_LESSON } from './p1GenerativeRlScenarioQuestions.js';
 import { P1_MATH_SCENARIOS_BY_LESSON } from './p1MathScenarioQuestions.js';
 import { P1_NEURAL_SCENARIOS_BY_LESSON } from './p1NeuralScenarioQuestions.js';
 import { P1_NLP_TRANSFORMER_SCENARIOS_BY_LESSON } from './p1NlpTransformerScenarioQuestions.js';
@@ -19,6 +20,7 @@ const EXTENSION_SOURCES = Object.freeze([
   P1_MATH_SCENARIOS_BY_LESSON,
   P1_NEURAL_SCENARIOS_BY_LESSON,
   P1_NLP_TRANSFORMER_SCENARIOS_BY_LESSON,
+  P1_GENERATIVE_RL_SCENARIOS_BY_LESSON,
 ]);
 
 function collectExtensions() {
