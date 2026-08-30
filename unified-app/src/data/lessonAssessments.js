@@ -64,3 +64,13 @@ export const lessonAssessments = Object.freeze(Object.fromEntries(
 export function getLessonAssessment(lessonId) {
   return lessonAssessments[lessonId] || base.EMPTY_ASSESSMENT;
 }
+
+export function getAssessmentStats(assessments = lessonAssessments) {
+  return Object.values(assessments).reduce(
+    (stats, assessment) => ({
+      totalQuizQuestions: stats.totalQuizQuestions + (assessment.quiz?.length || 0),
+      totalLabs: stats.totalLabs + (assessment.labs?.length || 0),
+    }),
+    { totalQuizQuestions: 0, totalLabs: 0 },
+  );
+}
