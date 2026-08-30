@@ -18,6 +18,24 @@ const CURATED_QUIZ_OVERRIDES = Object.freeze({
   'probability-distributions': PROBABILITY_DISTRIBUTIONS_QUIZ,
 });
 
+function stableHash(value) {
+  return [...String(value)].reduce((hash, char) => ((hash * 31) + char.charCodeAt(0)) >>> 0, 0);
+}
+
+function rotateScenarioChoices(lessonId, question) {
+  if (!Array.isArray(question.choices) || question.choices.length < 2) return question;
+
+  const correctChoice = question.choices[question.answerIndex];
+  const rotation = stableHash(`${lessonId}:${question.id}`) % question.choices.length;
+  const choices = [...question.choices.slice(rotation), ...question.choices.slice(0, rotation)];
+
+  return {
+    ...question,
+    choices,
+    answerIndex: choices.indexOf(correctChoice),
+  };
+}
+
 function questionSkill(level) {
   if (level === 'Foundation') return 'recall';
   if (level === 'Mechanism') return 'mechanism';
@@ -51,7 +69,7 @@ function buildAssessment(lessonId, assessment) {
     ...getP1NlpTransformerScenariosForLesson(lessonId),
     ...getP1GenerativeRlScenariosForLesson(lessonId),
     ...getP1ProductionScenariosForLesson(lessonId),
-  ];
+  ].map((question) => rotateScenarioChoices(lessonId, question));
 
   return Object.freeze({
     ...withOverride,
