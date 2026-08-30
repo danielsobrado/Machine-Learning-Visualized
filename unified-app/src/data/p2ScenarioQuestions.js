@@ -74,6 +74,33 @@ export const P2_SCENARIOS_BY_LESSON = Object.freeze({
       misconceptionTested: 'ReLU units always recover automatically after becoming inactive.',
     },
   ],
+  'leaky-relu': [
+    {
+      id: 'leaky-relu-negative-gradient',
+      level: 'comparison',
+      relatedComparison: 'relu-leaky-relu-negative-region',
+      scenario: 'A unit spends most of training with negative pre-activation. Standard ReLU gives zero output and zero local derivative there, while Leaky ReLU uses a small negative-side slope.',
+      prompt: 'What advantage can the Leaky ReLU slope provide?',
+      choices: ['It can preserve a small gradient through the negative region and reduce the risk of permanently inactive units', 'It guarantees the network cannot overfit', 'It makes positive activations exactly linear with slope zero'],
+      answerIndex: 0,
+      explanation: 'The small negative-side slope lets gradients continue through negative activations, which can help units recover, though it does not guarantee better performance in every network.',
+      misconceptionTested: 'Leaky ReLU completely solves every optimization or dead-unit problem.',
+    },
+  ],
+  'conv-relu': [
+    {
+      id: 'conv-relu-feature-map-meaning',
+      level: 'diagnosis',
+      kind: 'visual-state',
+      visualState: { convolutionResponse: 'positive on vertical edges, negative elsewhere', afterRelu: 'vertical edges remain, negative responses clipped' },
+      scenario: 'Visual state: a convolution filter responds positively on vertical edges and negatively in other regions. After ReLU, only the positive edge responses remain visible.',
+      prompt: 'What should the learner infer from the Conv+ReLU feature map?',
+      choices: ['The convolution detects a pattern and ReLU gates the sign of that response rather than creating the feature by itself', 'ReLU performs the spatial convolution and the filter is decorative', 'Negative convolution responses are converted into equally strong positive edges'],
+      answerIndex: 0,
+      explanation: 'The convolution produces the spatial feature response; ReLU then applies a pointwise nonlinearity that keeps positive activations and clips negative ones.',
+      misconceptionTested: 'Conv+ReLU can be understood as ReLU creating the spatial feature instead of gating a convolution response.',
+    },
+  ],
   'max-pooling': [
     {
       id: 'pooling-robustness-information-loss',
