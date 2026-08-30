@@ -8,6 +8,7 @@ import { P1_GENERATIVE_RL_SCENARIOS_BY_LESSON } from './p1GenerativeRlScenarioQu
 import { P1_MATH_SCENARIOS_BY_LESSON } from './p1MathScenarioQuestions.js';
 import { P1_NEURAL_SCENARIOS_BY_LESSON } from './p1NeuralScenarioQuestions.js';
 import { P1_NLP_TRANSFORMER_SCENARIOS_BY_LESSON } from './p1NlpTransformerScenarioQuestions.js';
+import { P1_PRODUCTION_SCENARIOS_BY_LESSON } from './p1ProductionScenarioQuestions.js';
 import { P1_SCENARIO_QUESTIONS_BY_LESSON } from './p1ScenarioQuestions.js';
 import { P1_STATISTICS_SCENARIOS_BY_LESSON } from './p1StatisticsScenarioQuestions.js';
 import { getLessonAssessment } from './lessonAssessments.js';
@@ -21,6 +22,7 @@ const EXTENSION_SOURCES = Object.freeze([
   P1_NEURAL_SCENARIOS_BY_LESSON,
   P1_NLP_TRANSFORMER_SCENARIOS_BY_LESSON,
   P1_GENERATIVE_RL_SCENARIOS_BY_LESSON,
+  P1_PRODUCTION_SCENARIOS_BY_LESSON,
 ]);
 
 function collectExtensions() {
