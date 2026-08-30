@@ -39,8 +39,42 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
+      - name: Check P2 coverage
+        continue-on-error: true
+        run: node --test src/data/assessmentP2Coverage.test.mjs
+
+      - name: Check scenario extensions
+        continue-on-error: true
+        run: node --test src/data/assessmentScenarioExtensions.test.mjs
+
+      - name: Check visual-state integration
+        continue-on-error: true
+        run: node --test src/data/assessmentVisualState.test.mjs
+
+      - name: Check shared assessment contract
+        continue-on-error: true
+        run: node --test src/data/assessmentQuality.test.mjs
+
+      - name: Check P0 coverage
+        continue-on-error: true
+        run: node --test src/data/assessmentP0Coverage.test.mjs
+
+      - name: Check Probability Distributions assessment
+        continue-on-error: true
+        run: node --test src/data/probabilityDistributionsAssessment.test.mjs
+
       - name: Run tests
-        run: npm test
+        run: |
+          set -o pipefail
+          npm test 2>&1 | tee test-output.log
+
+      - name: Upload test output
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: node-test-output
+          path: unified-app/test-output.log
+          if-no-files-found: ignore
 
       - name: Generate curriculum audit
         run: npm run audit:quality
