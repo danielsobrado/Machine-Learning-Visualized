@@ -25,6 +25,8 @@ const EXTENSION_SOURCES = Object.freeze([
   P1_PRODUCTION_SCENARIOS_BY_LESSON,
 ]);
 
+const MAX_SCENARIO_ANSWER_SHARE = 0.6;
+
 function collectExtensions() {
   const byLesson = new Map();
 
@@ -81,4 +83,29 @@ test('all assessment scenario extensions are live and collision-free', async (t)
       }
     });
   }
+});
+
+test('live extension scenarios do not expose a dominant correct-answer position', () => {
+  const byLesson = collectExtensions();
+  const counts = [0, 0, 0];
+
+  for (const [lessonId, extensionQuestions] of byLesson.entries()) {
+    const liveById = new Map(
+      (getLessonAssessment(lessonId).scenarioQuestions || []).map((question) => [question.id, question]),
+    );
+
+    for (const extension of extensionQuestions) {
+      const live = liveById.get(extension.id);
+      assert.ok(live, `${lessonId}: missing live scenario ${extension.id}`);
+      counts[live.answerIndex] += 1;
+    }
+  }
+
+  const total = counts.reduce((sum, count) => sum + count, 0);
+  assert.ok(total > 0, 'extension scenarios should exist');
+  assert.ok(counts.every((count) => count > 0), `all answer positions should be used, got ${counts.join(', ')}`);
+  assert.ok(
+    Math.max(...counts) / total <= MAX_SCENARIO_ANSWER_SHARE,
+    `no answer position should exceed ${MAX_SCENARIO_ANSWER_SHARE * 100}% of scenarios, got ${counts.join(', ')}`,
+  );
 });
