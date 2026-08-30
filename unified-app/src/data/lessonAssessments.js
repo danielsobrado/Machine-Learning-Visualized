@@ -5,6 +5,7 @@ import { getP0ExperimentationScenariosForLesson } from './p0ExperimentationScena
 import { getP0ScenarioQuestionsForLesson } from './p0ScenarioQuestions.js';
 import { getP1MathScenariosForLesson } from './p1MathScenarioQuestions.js';
 import { getP1NeuralScenariosForLesson } from './p1NeuralScenarioQuestions.js';
+import { getP1NlpTransformerScenariosForLesson } from './p1NlpTransformerScenarioQuestions.js';
 import { getP1ScenarioQuestionsForLesson } from './p1ScenarioQuestions.js';
 import { getP1StatisticsScenariosForLesson } from './p1StatisticsScenarioQuestions.js';
 import { PROBABILITY_DISTRIBUTIONS_QUIZ } from './probabilityDistributionsAssessment.js';
@@ -45,6 +46,7 @@ function buildAssessment(lessonId, assessment) {
     ...getP1StatisticsScenariosForLesson(lessonId),
     ...getP1MathScenariosForLesson(lessonId),
     ...getP1NeuralScenariosForLesson(lessonId),
+    ...getP1NlpTransformerScenariosForLesson(lessonId),
   ];
 
   return Object.freeze({
