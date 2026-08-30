@@ -1,17 +1,7 @@
 import * as base from './lessonAssessmentsBase.js';
 import { getAssessmentSource } from './assessmentQuality.js';
 import { ASSESSMENT_QUALITY_PRIORITY_LESSON_IDS } from './assessmentQualityManifest.js';
-import { getP0ExperimentationScenariosForLesson } from './p0ExperimentationScenarioQuestions.js';
-import { getP0ScenarioQuestionsForLesson } from './p0ScenarioQuestions.js';
-import { getP1AdditionalScenariosForLesson } from './p1AdditionalScenarioQuestions.js';
-import { getP1GenerativeRlScenariosForLesson } from './p1GenerativeRlScenarioQuestions.js';
-import { getP1MathScenariosForLesson } from './p1MathScenarioQuestions.js';
-import { getP1NeuralScenariosForLesson } from './p1NeuralScenarioQuestions.js';
-import { getP1NlpTransformerScenariosForLesson } from './p1NlpTransformerScenarioQuestions.js';
-import { getP1ProductionScenariosForLesson } from './p1ProductionScenarioQuestions.js';
-import { getP1RemainingScenariosForLesson } from './p1RemainingScenarioQuestions.js';
-import { getP1ScenarioQuestionsForLesson } from './p1ScenarioQuestions.js';
-import { getP1StatisticsScenariosForLesson } from './p1StatisticsScenarioQuestions.js';
+import { getAssessmentScenarioExtensions } from './assessmentScenarioExtensions.js';
 import { PROBABILITY_DISTRIBUTIONS_QUIZ } from './probabilityDistributionsAssessment.js';
 
 export * from './lessonAssessmentsBase.js';
@@ -62,17 +52,7 @@ function buildAssessment(lessonId, assessment) {
   const withOverride = applyQuizOverride(assessment, CURATED_QUIZ_OVERRIDES[lessonId]);
   const scenarioQuestions = [
     ...(withOverride.scenarioQuestions || []),
-    ...getP0ScenarioQuestionsForLesson(lessonId),
-    ...getP0ExperimentationScenariosForLesson(lessonId),
-    ...getP1ScenarioQuestionsForLesson(lessonId),
-    ...getP1StatisticsScenariosForLesson(lessonId),
-    ...getP1MathScenariosForLesson(lessonId),
-    ...getP1NeuralScenariosForLesson(lessonId),
-    ...getP1NlpTransformerScenariosForLesson(lessonId),
-    ...getP1GenerativeRlScenariosForLesson(lessonId),
-    ...getP1ProductionScenariosForLesson(lessonId),
-    ...getP1RemainingScenariosForLesson(lessonId),
-    ...getP1AdditionalScenariosForLesson(lessonId),
+    ...getAssessmentScenarioExtensions(lessonId),
   ].map((question) => rotateScenarioChoices(lessonId, question));
 
   return Object.freeze({
