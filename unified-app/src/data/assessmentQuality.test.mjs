@@ -180,8 +180,10 @@ test('priority assessment registry has unique lesson ids', () => {
 test('priority assessments satisfy the shared quality contract', async (t) => {
   for (const lessonId of PRIORITY_ASSESSMENT_LESSON_IDS) {
     await t.test(lessonId, () => {
-      const { quiz } = getLessonAssessment(lessonId);
+      const assessment = getLessonAssessment(lessonId);
+      const { quiz } = assessment;
 
+      assert.equal(assessment.source, 'curated', `${lessonId}: priority assessment must resolve to curated source`);
       assert.ok(Array.isArray(quiz), `${lessonId}: quiz must be an array`);
       assert.equal(
         quiz.length,
