@@ -30,6 +30,10 @@ export const P0_ASSESSMENT_COVERAGE = Object.freeze({
     scenarioIds: Object.freeze(['lr-visual-residual-curve']),
     minVisualStateQuestions: 1,
   }),
+  'ab-testing-foundations': Object.freeze({
+    scenarioIds: Object.freeze(['ab-peeking-false-positive', 'ab-alpha-spending']),
+    minComparisonQuestions: 2,
+  }),
   'classification-metrics': Object.freeze({
     scenarioIds: Object.freeze(['metrics-visual-threshold-cost']),
     minVisualStateQuestions: 1,
