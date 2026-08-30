@@ -10,14 +10,15 @@ This document records the implementation corresponding to the P0 items identifie
 |---|---|---|
 | Common assessment-quality contract | Done | `assessmentQuality.js`, `assessmentQualityManifest.js`, `assessmentQuality.test.mjs`, `assessmentP0Coverage.test.mjs` |
 | Probability Distributions curated assessment | Done | `probabilityDistributionsAssessment.js` plus focused semantic test |
-| Visual-state assessment questions | Done | Structured `kind: 'visual-state'` scenarios with deterministic `visualState` metadata |
+| Visual-state assessment questions | Done | Structured `kind: 'visual-state'` scenarios rendered by `AssessmentVisualState.jsx` |
 | Cross-topic comparison questions | Done | Comparison scenarios for attention families, decompositions, metrics, RAG, and optimization |
 | Promote Debugging / Monitoring / Interpretability | Done | Added to shared priority assessment validation |
 | Strengthen leakage / forecasting / RAG / security / data-engineering coverage | Done | P0 scenario bank plus coverage manifest/test |
+| A/B testing peeking / alpha spending | Done | `p0ExperimentationScenarioQuestions.js` plus P0 coverage enforcement |
 
 ## Shared contract
 
-The common contract now enforces the repository-wide structural baseline for every priority assessment:
+The common contract enforces the repository-wide structural baseline for every priority assessment:
 
 - curated source only;
 - exactly 100 questions;
@@ -37,7 +38,7 @@ Generic structural logic lives in `unified-app/src/data/assessmentQuality.js`. T
 
 ## Assessment source metadata
 
-`lessonAssessments.js` now exposes an explicit assessment source:
+`lessonAssessments.js` exposes an explicit assessment source:
 
 ```text
 curated
@@ -47,11 +48,11 @@ empty
 
 A priority lesson must resolve to `curated` or the shared contract fails.
 
-The original registry implementation is preserved unchanged in `lessonAssessmentsBase.js`. The public `lessonAssessments.js` module is a compatibility layer that applies curated overrides, P0 scenario additions, source metadata, and the expanded priority list without duplicating the legacy registry body.
+The original registry implementation remains in `lessonAssessmentsBase.js`. The public `lessonAssessments.js` module applies curated overrides, source metadata, deterministic scenario choice rotation, and scenario extensions through the centralized `assessmentScenarioExtensions.js` registry.
 
 ## Probability Distributions
 
-`probability-distributions` now has a dedicated 100-question bank with the canonical bands:
+`probability-distributions` has a dedicated 100-question bank with the canonical bands:
 
 ```text
 1-20   Foundation
@@ -67,7 +68,7 @@ Coverage includes discrete and continuous distributions, PMF/PDF/CDF, expectatio
 
 ## Visual-state questions
 
-P0 scenarios may carry:
+Assessment scenarios may carry:
 
 ```js
 {
@@ -78,20 +79,26 @@ P0 scenarios may carry:
 }
 ```
 
-The scenario text also describes the state so it is usable by the current assessment panel. The metadata gives future UI work a stable structured representation rather than requiring question text parsing.
+`AssessmentPanel.jsx` sends this metadata to `AssessmentVisualState.jsx`, which renders a compact visual state before the scenario text. Text remains present as an accessible explanation of the state rather than being the only representation.
 
-Current P0 visual-state coverage includes:
+Current visual-state coverage includes examples such as:
 
 - probability distributions;
 - linear-regression residual diagnostics;
 - classification threshold trade-offs;
 - time-series horizon error;
 - RAG context dilution;
-- data-engineering train/serve skew.
+- data-engineering train/serve skew;
+- k-means geometry;
+- optimization diagnostics;
+- neural-network activation states;
+- systems-performance comparisons.
+
+`assessmentVisualState.test.mjs` verifies the renderer remains wired into the assessment panel.
 
 ## Cross-topic comparisons
 
-The P0 comparison scenarios explicitly test distinctions that should not be learned as isolated vocabulary:
+The comparison scenarios explicitly test distinctions that should not be learned as isolated vocabulary:
 
 - MHA/GQA/FlashAttention/sparse-attention behavior;
 - QR versus SVD decomposition choice;
@@ -102,11 +109,11 @@ The P0 comparison scenarios explicitly test distinctions that should not be lear
 - robustness versus security;
 - drift-type distinctions in monitoring.
 
-`relatedComparison` is the stable metadata field used by the coverage test.
+`relatedComparison` is the stable metadata field used for comparison coverage.
 
 ## Production-priority lessons
 
-These lessons are now part of the same priority validation set as the existing core assessments:
+These lessons are part of the same priority validation set as the existing core assessments:
 
 - `model-debugging`
 - `model-monitoring`
@@ -117,7 +124,7 @@ They must satisfy the full 100-question contract and resolve to curated source.
 
 ## P0 scenario coverage
 
-The coverage manifest and test now require the identified gaps explicitly rather than relying on manual memory.
+The coverage manifest and tests require the identified gaps explicitly rather than relying on manual memory.
 
 Required scenarios cover:
 
@@ -139,19 +146,40 @@ Required scenarios cover:
 - robustness versus security;
 - point-in-time feature joins;
 - split-aware target-derived feature materialization;
-- semantic train/serve skew.
+- semantic train/serve skew;
+- repeated A/B test peeking and sequential error control.
+
+## Scenario extension integrity
+
+P0, P1, and P2 scenario additions now share `assessmentScenarioExtensions.js` as their single source registry.
+
+The integrity test rejects:
+
+- duplicate source IDs;
+- duplicate scenario IDs;
+- duplicate normalized extension prompts;
+- exact prompt duplication against existing base scenarios;
+- scenario IDs colliding with core quiz IDs;
+- orphaned extension questions not merged into the public registry;
+- malformed visual states;
+- strongly dominant correct-answer positions.
+
+This prevents scenario additions from bypassing the same quality discipline as the core question banks.
 
 ## Verification
 
-The repository has no CI status attached to the implementation commit, and the available environment cannot execute the repository checkout.
+The repository now has a GitHub Actions quality gate at:
 
-Required local verification remains:
+`.github/workflows/unified-app-quality.yml`
+
+For relevant pushes to `main` and pull requests it runs:
 
 ```bash
 cd unified-app
+npm ci
 npm test
 npm run audit:quality
 npm run build
 ```
 
-Any failure from those commands should be treated as a release blocker for this P0 rather than bypassed with test exceptions.
+A green workflow run is the authoritative runtime verification for the current head commit. Assessment failures should be fixed rather than bypassed with exceptions.
