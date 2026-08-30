@@ -8,6 +8,7 @@ import { getP1MathScenariosForLesson } from './p1MathScenarioQuestions.js';
 import { getP1NeuralScenariosForLesson } from './p1NeuralScenarioQuestions.js';
 import { getP1NlpTransformerScenariosForLesson } from './p1NlpTransformerScenarioQuestions.js';
 import { getP1ProductionScenariosForLesson } from './p1ProductionScenarioQuestions.js';
+import { getP1RemainingScenariosForLesson } from './p1RemainingScenarioQuestions.js';
 import { getP1ScenarioQuestionsForLesson } from './p1ScenarioQuestions.js';
 import { getP1StatisticsScenariosForLesson } from './p1StatisticsScenarioQuestions.js';
 import { PROBABILITY_DISTRIBUTIONS_QUIZ } from './probabilityDistributionsAssessment.js';
@@ -69,6 +70,7 @@ function buildAssessment(lessonId, assessment) {
     ...getP1NlpTransformerScenariosForLesson(lessonId),
     ...getP1GenerativeRlScenariosForLesson(lessonId),
     ...getP1ProductionScenariosForLesson(lessonId),
+    ...getP1RemainingScenariosForLesson(lessonId),
   ].map((question) => rotateScenarioChoices(lessonId, question));
 
   return Object.freeze({
