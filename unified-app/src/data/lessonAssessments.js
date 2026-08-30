@@ -1,6 +1,6 @@
 import * as base from './lessonAssessmentsBase.js';
 import { getAssessmentSource } from './assessmentQuality.js';
-import { P0_PRIORITY_ASSESSMENT_LESSON_IDS } from './assessmentQualityManifest.js';
+import { ASSESSMENT_QUALITY_PRIORITY_LESSON_IDS } from './assessmentQualityManifest.js';
 import { getP0ScenarioQuestionsForLesson } from './p0ScenarioQuestions.js';
 import { PROBABILITY_DISTRIBUTIONS_QUIZ } from './probabilityDistributionsAssessment.js';
 
@@ -47,12 +47,7 @@ function buildAssessment(lessonId, assessment) {
   });
 }
 
-export const PRIORITY_ASSESSMENT_LESSON_IDS = Object.freeze([
-  ...new Set([
-    ...base.PRIORITY_ASSESSMENT_LESSON_IDS,
-    ...P0_PRIORITY_ASSESSMENT_LESSON_IDS,
-  ]),
-]);
+export const PRIORITY_ASSESSMENT_LESSON_IDS = ASSESSMENT_QUALITY_PRIORITY_LESSON_IDS;
 
 export const lessonAssessments = Object.freeze(Object.fromEntries(
   Object.entries(base.lessonAssessments).map(([lessonId, assessment]) => [
