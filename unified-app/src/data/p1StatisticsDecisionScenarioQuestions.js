@@ -1,0 +1,136 @@
+export const P1_STATISTICS_DECISION_SCENARIOS_BY_LESSON = Object.freeze({
+  'logistic-regression': [
+    {
+      id: 'logreg-cost-threshold-worked',
+      level: 'calculation',
+      relatedComparison: 'default-vs-cost-optimal-threshold',
+      scenario: 'A calibrated fraud model outputs probability p. Missing a fraud costs 9 units and investigating a false alarm costs 1 unit. Predicting fraud costs (1 - p) × 1, while predicting non-fraud costs p × 9.',
+      prompt: 'At what probability should the two expected costs be equal?',
+      choices: ['0.10', '0.50', '0.90'],
+      answerIndex: 0,
+      explanation: 'Set (1 - p) × 1 = p × 9. This gives 1 - p = 9p, so p = 0.10. With calibrated probabilities and these stated costs, the business-optimal threshold is therefore far below the default 0.50.',
+      misconceptionTested: 'A 0.50 classification threshold is optimal even when false negatives and false positives have very different costs.',
+    },
+  ],
+  'classification-metrics': [
+    {
+      id: 'metrics-subgroup-tpr-worked',
+      level: 'calculation',
+      relatedComparison: 'aggregate-vs-subgroup-recall',
+      scenario: 'For eligible positives, subgroup A has TP = 80 and FN = 20. Subgroup B has TP = 45 and FN = 45. The aggregate metric is considered acceptable.',
+      prompt: 'What subgroup recall difference should the review surface?',
+      choices: ['A has 80% recall and B has 50%, a 30 percentage-point gap', 'A has 80% recall and B has 50%, a 30% relative gap', 'Both groups have 80% recall because the aggregate metric is acceptable'],
+      answerIndex: 0,
+      explanation: 'Recall is TP / (TP + FN). Subgroup A is 80 / 100 = 80%, while subgroup B is 45 / 90 = 50%. The absolute difference is 30 percentage points, which an aggregate metric can conceal.',
+      misconceptionTested: 'Acceptable aggregate classification metrics guarantee similar error rates across important subgroups.',
+    },
+  ],
+  'roc-pr-curves': [
+    {
+      id: 'roc-pr-rare-positive-worked',
+      level: 'calculation',
+      relatedComparison: 'fpr-vs-precision-under-imbalance',
+      scenario: 'A test set has 100 positives and 9,900 negatives. At one threshold, TPR = 90% and FPR = 1%, so the model finds 90 true positives and flags about 99 false positives.',
+      prompt: 'Approximately what precision does this operating point achieve?',
+      choices: ['48%', '90%', '99%'],
+      answerIndex: 0,
+      explanation: 'Precision is TP / (TP + FP) = 90 / (90 + 99), about 47.6%. A seemingly small 1% false-positive rate can therefore produce mediocre precision when negatives vastly outnumber positives.',
+      misconceptionTested: 'A low false-positive rate or strong ROC view guarantees high precision on a rare-positive problem.',
+    },
+  ],
+  'feature-scaling-preprocessing': [
+    {
+      id: 'scaling-skew-transform-decision',
+      level: 'decision',
+      relatedComparison: 'log-transform-robust-scale-vs-naive-scaling',
+      scenario: 'A strictly non-negative transaction-size feature spans 1 to 1,000,000, is heavily right-skewed, and contains legitimate extreme values. It feeds a distance-based model together with features on much smaller scales.',
+      prompt: 'Which preprocessing experiment is the most defensible?',
+      choices: ['Fit a log-like transform and robust scaling on training data only, then apply the fitted transforms to validation and serving data', 'Fit min-max scaling on the combined train and validation data so the future range is known', 'Leave the feature unchanged because distance-based models are invariant to feature scale and skew'],
+      answerIndex: 0,
+      explanation: 'A log-like transform can compress multiplicative skew, while robust scaling reduces domination by extreme magnitudes. Both transformations must be fit inside the training boundary to avoid evaluation leakage and reproduced at serving time.',
+      misconceptionTested: 'Standard or min-max scaling are the only useful transformations, and distance-based models do not care about skewed scale.',
+    },
+  ],
+  'recommender-systems-ranking-track': [
+    {
+      id: 'rec-ndcg-worked-calculation',
+      level: 'calculation',
+      relatedComparison: 'dcg-vs-ideal-dcg',
+      scenario: 'At rank 3, a recommender returns binary relevance [1, 0, 1]. Use DCG@3 = rel1 + rel2/log2(3) + rel3/log2(4). The ideal ordering is [1, 1, 0], whose DCG is about 1.631.',
+      prompt: 'What is the approximate nDCG@3 of the returned ranking?',
+      choices: ['0.92', '0.67', '1.00'],
+      answerIndex: 0,
+      explanation: 'The returned DCG is 1 + 0 + 1/2 = 1.5. Dividing by the ideal DCG gives 1.5 / 1.631 ≈ 0.92. nDCG rewards placing relevant items earlier and normalizes against the best possible ordering.',
+      misconceptionTested: 'nDCG is just the fraction of relevant items retrieved and ignores their rank positions.',
+    },
+  ],
+  'maximum-likelihood-estimation': [
+    {
+      id: 'mle-map-bernoulli-worked',
+      level: 'calculation',
+      relatedComparison: 'bernoulli-mle-vs-beta-map',
+      scenario: 'A Bernoulli dataset has 8 successes and 2 failures. The MLE is successes / trials. With a Beta(2, 2) prior, the MAP estimate is (successes + 2 - 1) / (trials + 2 + 2 - 2).',
+      prompt: 'Which pair gives the MLE and MAP estimates?',
+      choices: ['MLE = 0.80 and MAP = 0.75', 'MLE = 0.75 and MAP = 0.80', 'MLE = 0.50 and MAP = 0.50'],
+      answerIndex: 0,
+      explanation: 'The MLE is 8 / 10 = 0.80. The Beta(2, 2) MAP is 9 / 12 = 0.75, showing concretely how an informative symmetric prior pulls a small-sample estimate toward the prior center.',
+      misconceptionTested: 'Adding a prior changes terminology but cannot change the numerical parameter estimate.',
+    },
+  ],
+  'power-sample-size': [
+    {
+      id: 'power-continuous-outcome-variance',
+      level: 'decision',
+      relatedComparison: 'continuous-effect-size-vs-raw-lift',
+      scenario: 'Two experiments both seek to detect a 2-unit increase in a continuous outcome. Experiment A has outcome standard deviation 5, while experiment B has standard deviation 20. Their alpha, desired power, and allocation are otherwise the same.',
+      prompt: 'Which experiment generally requires more observations?',
+      choices: ['Experiment B because the same 2-unit lift is a much smaller standardized effect when variability is 20', 'Both require the same sample size because the raw lift is identical', 'Experiment A because lower variance always reduces statistical power'],
+      answerIndex: 0,
+      explanation: 'For continuous outcomes, detectability depends on the effect relative to outcome variability. A 2-unit effect is 0.4 standard deviations when SD = 5 but only 0.1 when SD = 20, so the noisier experiment generally needs more data.',
+      misconceptionTested: 'Raw effect size alone determines power for continuous outcomes regardless of outcome variance.',
+    },
+  ],
+  'hypothesis-testing-intuition': [
+    {
+      id: 'hypothesis-fdr-vs-fwer-decision',
+      level: 'decision',
+      relatedComparison: 'benjamini-hochberg-vs-bonferroni',
+      scenario: 'A discovery screen tests 500 candidate signals. The team can tolerate some false discoveries among the reported candidates because every candidate will receive an independent confirmatory study before deployment.',
+      prompt: 'Which multiplicity objective best matches this discovery stage?',
+      choices: ['Control false discovery rate, for example with Benjamini-Hochberg, rather than requiring near-zero probability of any false positive', 'Use no multiplicity control because confirmation happens later', 'Treat each p-value below 0.05 as having a 95% probability of being a true signal'],
+      answerIndex: 0,
+      explanation: 'When the goal is exploratory discovery and some false leads are acceptable, FDR control can preserve more power than strict family-wise error control. The later confirmatory stage should use its own pre-specified validation design.',
+      misconceptionTested: 'All multiple-testing problems require the same error criterion regardless of the downstream decision process.',
+    },
+  ],
+  'causal-graphs-dags': [
+    {
+      id: 'dag-mediator-total-effect-decision',
+      level: 'decision',
+      relatedComparison: 'total-vs-direct-effect-adjustment',
+      scenario: 'The causal graph is X → M → Y, with an additional direct path X → Y. M is a genuine post-treatment mediator. The analysis goal is the total causal effect of X on Y.',
+      prompt: 'Should the primary total-effect adjustment set include M?',
+      choices: ['No; conditioning on M would block part of the causal effect the total-effect estimand is intended to include', 'Yes; every variable associated with the outcome should always be controlled', 'Yes; mediators are pre-treatment confounders by definition'],
+      answerIndex: 0,
+      explanation: 'The total effect includes both the direct X → Y path and the mediated X → M → Y path. Adjusting for a post-treatment mediator blocks the mediated component and changes the estimand toward a direct-effect question.',
+      misconceptionTested: 'Causal adjustment always improves by conditioning on every predictive variable, including post-treatment mediators.',
+    },
+  ],
+  'propensity-scores': [
+    {
+      id: 'propensity-positivity-overlap-decision',
+      level: 'decision',
+      relatedComparison: 'extreme-weights-vs-overlap-population',
+      scenario: 'In one covariate region almost everyone is treated: estimated propensity scores are 0.98 to 0.995, and inverse-probability weights become extremely large for the few controls. There is little empirical treatment-control overlap there.',
+      prompt: 'What is the most defensible next step?',
+      choices: ['Diagnose the positivity problem and consider restricting or trimming to an overlap population while stating the resulting change in estimand', 'Keep all observations with unbounded weights because more weight always repairs missing overlap', 'Interpret the extreme weights as proof that treatment was randomized in that region'],
+      answerIndex: 0,
+      explanation: 'Extreme propensity scores signal weak overlap and unstable inverse weighting. Restricting to supported regions or using overlap-oriented estimands can reduce extrapolation, but the target population changes and must be reported explicitly.',
+      misconceptionTested: 'Inverse-probability weighting can recover causal comparisons even where one treatment arm is essentially absent.',
+    },
+  ],
+});
+
+export function getP1StatisticsDecisionScenariosForLesson(lessonId) {
+  return P1_STATISTICS_DECISION_SCENARIOS_BY_LESSON[lessonId] || [];
+}
