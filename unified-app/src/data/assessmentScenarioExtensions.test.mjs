@@ -58,10 +58,16 @@ test('all assessment scenario extensions are live and collision-free', async (t)
   for (const [lessonId, entries] of byLesson.entries()) {
     await t.test(lessonId, () => {
       const extensionIds = entries.map(({ question }) => question.id);
+      const extensionPrompts = entries.map(({ question }) => normalizeAssessmentText(question.prompt));
       assert.equal(
         new Set(extensionIds).size,
         extensionIds.length,
         `${lessonId}: extension sources contain duplicate scenario ids`,
+      );
+      assert.equal(
+        new Set(extensionPrompts).size,
+        extensionPrompts.length,
+        `${lessonId}: extension sources contain duplicate normalized prompts`,
       );
 
       const assessment = getLessonAssessment(lessonId);
