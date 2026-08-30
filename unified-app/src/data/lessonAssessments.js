@@ -4,6 +4,7 @@ import { ASSESSMENT_QUALITY_PRIORITY_LESSON_IDS } from './assessmentQualityManif
 import { getP0ExperimentationScenariosForLesson } from './p0ExperimentationScenarioQuestions.js';
 import { getP0ScenarioQuestionsForLesson } from './p0ScenarioQuestions.js';
 import { getP1ScenarioQuestionsForLesson } from './p1ScenarioQuestions.js';
+import { getP1StatisticsScenariosForLesson } from './p1StatisticsScenarioQuestions.js';
 import { PROBABILITY_DISTRIBUTIONS_QUIZ } from './probabilityDistributionsAssessment.js';
 
 export * from './lessonAssessmentsBase.js';
@@ -39,6 +40,7 @@ function buildAssessment(lessonId, assessment) {
     ...getP0ScenarioQuestionsForLesson(lessonId),
     ...getP0ExperimentationScenariosForLesson(lessonId),
     ...getP1ScenarioQuestionsForLesson(lessonId),
+    ...getP1StatisticsScenariosForLesson(lessonId),
   ];
 
   return Object.freeze({
