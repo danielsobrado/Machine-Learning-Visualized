@@ -1,6 +1,7 @@
 import * as base from './lessonAssessmentsBase.js';
 import { getAssessmentSource } from './assessmentQuality.js';
 import { ASSESSMENT_QUALITY_PRIORITY_LESSON_IDS } from './assessmentQualityManifest.js';
+import { getP0ExperimentationScenariosForLesson } from './p0ExperimentationScenarioQuestions.js';
 import { getP0ScenarioQuestionsForLesson } from './p0ScenarioQuestions.js';
 import { getP1ScenarioQuestionsForLesson } from './p1ScenarioQuestions.js';
 import { PROBABILITY_DISTRIBUTIONS_QUIZ } from './probabilityDistributionsAssessment.js';
@@ -36,6 +37,7 @@ function buildAssessment(lessonId, assessment) {
   const scenarioQuestions = [
     ...(withOverride.scenarioQuestions || []),
     ...getP0ScenarioQuestionsForLesson(lessonId),
+    ...getP0ExperimentationScenariosForLesson(lessonId),
     ...getP1ScenarioQuestionsForLesson(lessonId),
   ];
 
