@@ -17,6 +17,7 @@ export const CLASSICAL_ML_STATISTICS_COVERAGE = Object.freeze({
   'linear-regression': requirement([
     'lr-heteroscedastic-residuals',
     'lr-influential-outlier',
+    'lr-heteroscedastic-binned-residuals-worked',
   ]),
   'logistic-regression': requirement([
     'logreg-imbalance-threshold-cost',
@@ -46,6 +47,7 @@ export const CLASSICAL_ML_STATISTICS_COVERAGE = Object.freeze({
     'cv-grouped-time-boundary',
     'cv-nested-model-selection',
     'cv-rolling-origin-time-series',
+    'cv-nested-selection-design-worked',
   ]),
   'data-leakage-deep-dive': requirement([
     'leakage-point-in-time-feature',
@@ -61,6 +63,7 @@ export const CLASSICAL_ML_STATISTICS_COVERAGE = Object.freeze({
   overfitting: requirement([
     'overfit-validation-reuse',
     'overfit-final-untouched-test',
+    'overfit-model-selection-reuse-worked',
   ]),
   'bias-variance-tradeoff': requirement([
     'bias-variance-noisy-labels',
@@ -77,6 +80,7 @@ export const CLASSICAL_ML_STATISTICS_COVERAGE = Object.freeze({
     'kmeans-initialization-instability',
     'kmeans-choose-k-stability',
     'kmeans-centroid-drift',
+    'kmeans-k-stability-worked-decision',
   ]),
   'knn-naive-bayes-svm': requirement([
     'classifier-family-scaling',
@@ -88,6 +92,7 @@ export const CLASSICAL_ML_STATISTICS_COVERAGE = Object.freeze({
     'tree-attribution-correlated-features',
     'boosting-overfit-rounds',
     'tree-target-like-leakage',
+    'tree-post-outcome-feature-diagnosis',
   ]),
   'time-series-forecasting-track': requirement([
     'ts-metric-rmse-vs-mae',
@@ -182,6 +187,9 @@ export const CLASSICAL_ML_STATISTICS_COVERAGE = Object.freeze({
 });
 
 export const CLASSICAL_ML_STATISTICS_DEPTH_REQUIREMENTS = Object.freeze([
+  depthRequirement('heteroscedasticity-diagnostic-evidence', 'linear-regression', [
+    'lr-heteroscedastic-binned-residuals-worked',
+  ]),
   depthRequirement('cost-sensitive-threshold-calculation', 'logistic-regression', [
     'logreg-cost-threshold-worked',
   ]),
@@ -191,11 +199,23 @@ export const CLASSICAL_ML_STATISTICS_DEPTH_REQUIREMENTS = Object.freeze([
   depthRequirement('rare-class-operating-point-calculation', 'roc-pr-curves', [
     'roc-pr-rare-positive-worked',
   ]),
+  depthRequirement('nested-model-selection-design', 'cross-validation', [
+    'cv-nested-selection-design-worked',
+  ]),
   depthRequirement('supervised-preprocessing-evaluation-boundary', 'data-leakage-deep-dive', [
     'leakage-target-encoding-oof-worked',
   ]),
   depthRequirement('skew-and-scale-preprocessing-decision', 'feature-scaling-preprocessing', [
     'scaling-skew-transform-decision',
+  ]),
+  depthRequirement('model-selection-reuse-diagnosis', 'overfitting', [
+    'overfit-model-selection-reuse-worked',
+  ]),
+  depthRequirement('cluster-count-stability-decision', 'k-means', [
+    'kmeans-k-stability-worked-decision',
+  ]),
+  depthRequirement('prediction-time-feature-leakage-diagnosis', 'tree-ensembles', [
+    'tree-post-outcome-feature-diagnosis',
   ]),
   depthRequirement('zero-safe-forecast-metric-choice', 'time-series-forecasting-track', [
     'ts-mape-zero-worked',
