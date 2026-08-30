@@ -1,4 +1,5 @@
 import * as base from './lessonAssessmentsBase.js';
+import { getP0ScenarioQuestionsForLesson } from './p0ScenarioQuestions.js';
 import { PROBABILITY_DISTRIBUTIONS_QUIZ } from './probabilityDistributionsAssessment.js';
 
 export * from './lessonAssessmentsBase.js';
@@ -44,11 +45,17 @@ function assessmentSource(assessment) {
 
 function buildAssessment(lessonId, assessment) {
   const withOverride = applyQuizOverride(assessment, CURATED_QUIZ_OVERRIDES[lessonId]);
+  const p0Scenarios = getP0ScenarioQuestionsForLesson(lessonId);
+  const scenarioQuestions = [
+    ...(withOverride.scenarioQuestions || []),
+    ...p0Scenarios,
+  ];
+
   return Object.freeze({
     ...withOverride,
     source: assessmentSource(withOverride),
     quiz: Object.freeze([...(withOverride.quiz || [])]),
-    scenarioQuestions: Object.freeze([...(withOverride.scenarioQuestions || [])]),
+    scenarioQuestions: Object.freeze(scenarioQuestions),
     strategyReview: Object.freeze([...(withOverride.strategyReview || [])]),
     labs: Object.freeze([...(withOverride.labs || [])]),
   });
