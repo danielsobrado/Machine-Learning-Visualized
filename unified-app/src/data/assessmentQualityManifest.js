@@ -1,9 +1,25 @@
+import { PRIORITY_ASSESSMENT_LESSON_IDS as BASE_PRIORITY_ASSESSMENT_LESSON_IDS } from './lessonAssessmentsBase.js';
+
 export const P0_PRIORITY_ASSESSMENT_LESSON_IDS = Object.freeze([
   'probability-distributions',
   'model-debugging',
   'model-monitoring',
   'model-interpretability',
 ]);
+
+export const ASSESSMENT_QUALITY_PRIORITY_LESSON_IDS = Object.freeze([
+  ...new Set([
+    ...BASE_PRIORITY_ASSESSMENT_LESSON_IDS,
+    ...P0_PRIORITY_ASSESSMENT_LESSON_IDS,
+  ]),
+]);
+
+export const ASSESSMENT_QUALITY_MANIFEST = Object.freeze(Object.fromEntries(
+  ASSESSMENT_QUALITY_PRIORITY_LESSON_IDS.map((lessonId) => [
+    lessonId,
+    Object.freeze({ source: 'curated' }),
+  ]),
+));
 
 export const P0_ASSESSMENT_COVERAGE = Object.freeze({
   'probability-distributions': Object.freeze({
