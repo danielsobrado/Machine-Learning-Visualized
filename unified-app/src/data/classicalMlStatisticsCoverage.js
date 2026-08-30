@@ -5,6 +5,14 @@ function requirement(scenarioIds, quizIds = []) {
   });
 }
 
+function depthRequirement(id, lessonId, scenarioIds) {
+  return Object.freeze({
+    id,
+    lessonId,
+    scenarioIds: Object.freeze(scenarioIds),
+  });
+}
+
 export const CLASSICAL_ML_STATISTICS_COVERAGE = Object.freeze({
   'linear-regression': requirement([
     'lr-heteroscedastic-residuals',
@@ -12,15 +20,18 @@ export const CLASSICAL_ML_STATISTICS_COVERAGE = Object.freeze({
   ]),
   'logistic-regression': requirement([
     'logreg-imbalance-threshold-cost',
+    'logreg-cost-threshold-worked',
   ]),
   'classification-metrics': requirement([
     'metrics-subgroup-slicing',
     'metrics-visual-threshold-cost',
     'metrics-calibration-cost-threshold',
+    'metrics-subgroup-tpr-worked',
   ]),
   'roc-pr-curves': requirement([
     'roc-pr-rare-positive',
     'roc-pr-threshold-operating-point',
+    'roc-pr-rare-positive-worked',
   ]),
   calibration: requirement([
     'calibration-shift-recalibration',
@@ -40,10 +51,12 @@ export const CLASSICAL_ML_STATISTICS_COVERAGE = Object.freeze({
     'leakage-point-in-time-feature',
     'leakage-target-encoding-scope',
     'leakage-temporal-split',
+    'leakage-target-encoding-oof-worked',
   ]),
   'feature-scaling-preprocessing': requirement([
     'scaling-robust-outliers',
     'scaling-model-family',
+    'scaling-skew-transform-decision',
   ]),
   overfitting: requirement([
     'overfit-validation-reuse',
@@ -82,12 +95,15 @@ export const CLASSICAL_ML_STATISTICS_COVERAGE = Object.freeze({
     'ts-metric-pinball',
     'ts-visual-horizon-error',
     'ts-prediction-interval-coverage',
+    'ts-mape-zero-worked',
+    'ts-pinball-loss-worked',
   ]),
   'recommender-systems-ranking-track': requirement([
     'rec-ndcg-graded-ranking',
     'rec-matrix-factorization',
     'rec-offline-online-metrics',
     'rec-feedback-loop',
+    'rec-ndcg-worked-calculation',
   ]),
   'bayes-rule-ml': requirement([
     'bayes-classifier-posterior-threshold',
@@ -96,6 +112,7 @@ export const CLASSICAL_ML_STATISTICS_COVERAGE = Object.freeze({
   'maximum-likelihood-estimation': requirement([
     'mle-vs-map-prior',
     'mle-likelihood-prior-posterior',
+    'mle-map-bernoulli-worked',
   ]),
   'loss-functions-likelihoods': requirement([
     'loss-categorical-nll',
@@ -106,6 +123,7 @@ export const CLASSICAL_ML_STATISTICS_COVERAGE = Object.freeze({
     'prob-visual-normal-spread',
     'prob-visual-poisson-dispersion',
     'prob-heavy-tail-assumption',
+    'prob-overdispersion-poisson',
   ], [
     'prob-001-purpose',
     'prob-041-bayes-link',
@@ -119,14 +137,17 @@ export const CLASSICAL_ML_STATISTICS_COVERAGE = Object.freeze({
     'hypothesis-one-vs-two-sided',
     'hypothesis-multiple-testing',
     'hypothesis-practical-significance',
+    'hypothesis-fdr-vs-fwer-decision',
   ]),
   'ab-testing-foundations': requirement([
     'ab-peeking-false-positive',
     'ab-alpha-spending',
+    'ab-alpha-spending-worked-decision',
   ]),
   'power-sample-size': requirement([
     'power-paired-design',
     'power-proportion-baseline-rate',
+    'power-continuous-outcome-variance',
   ]),
   'sequential-testing-peeking': requirement([
     'sequential-boundary-shape',
@@ -143,6 +164,7 @@ export const CLASSICAL_ML_STATISTICS_COVERAGE = Object.freeze({
     'dag-mediator-adjustment',
     'dag-collider-m-bias',
     'dag-front-door-identification',
+    'dag-mediator-total-effect-decision',
   ]),
   'treatment-effects': requirement([
     'cate-subgroup-uncertainty',
@@ -151,9 +173,58 @@ export const CLASSICAL_ML_STATISTICS_COVERAGE = Object.freeze({
   'propensity-scores': requirement([
     'propensity-balance-smd',
     'propensity-extreme-weight-trim',
+    'propensity-positivity-overlap-decision',
   ]),
   'spearman-correlation': requirement([
     'spearman-tied-ranks',
     'spearman-nonmonotonic',
   ]),
 });
+
+export const CLASSICAL_ML_STATISTICS_DEPTH_REQUIREMENTS = Object.freeze([
+  depthRequirement('cost-sensitive-threshold-calculation', 'logistic-regression', [
+    'logreg-cost-threshold-worked',
+  ]),
+  depthRequirement('subgroup-metric-calculation', 'classification-metrics', [
+    'metrics-subgroup-tpr-worked',
+  ]),
+  depthRequirement('rare-class-operating-point-calculation', 'roc-pr-curves', [
+    'roc-pr-rare-positive-worked',
+  ]),
+  depthRequirement('supervised-preprocessing-evaluation-boundary', 'data-leakage-deep-dive', [
+    'leakage-target-encoding-oof-worked',
+  ]),
+  depthRequirement('skew-and-scale-preprocessing-decision', 'feature-scaling-preprocessing', [
+    'scaling-skew-transform-decision',
+  ]),
+  depthRequirement('zero-safe-forecast-metric-choice', 'time-series-forecasting-track', [
+    'ts-mape-zero-worked',
+  ]),
+  depthRequirement('quantile-loss-calculation', 'time-series-forecasting-track', [
+    'ts-pinball-loss-worked',
+  ]),
+  depthRequirement('count-distribution-assumption-diagnosis', 'probability-distributions', [
+    'prob-overdispersion-poisson',
+  ]),
+  depthRequirement('ranking-metric-calculation', 'recommender-systems-ranking-track', [
+    'rec-ndcg-worked-calculation',
+  ]),
+  depthRequirement('mle-map-worked-estimate', 'maximum-likelihood-estimation', [
+    'mle-map-bernoulli-worked',
+  ]),
+  depthRequirement('multiplicity-objective-choice', 'hypothesis-testing-intuition', [
+    'hypothesis-fdr-vs-fwer-decision',
+  ]),
+  depthRequirement('planned-sequential-boundary-decision', 'ab-testing-foundations', [
+    'ab-alpha-spending-worked-decision',
+  ]),
+  depthRequirement('continuous-outcome-power-reasoning', 'power-sample-size', [
+    'power-continuous-outcome-variance',
+  ]),
+  depthRequirement('causal-estimand-mediator-decision', 'causal-graphs-dags', [
+    'dag-mediator-total-effect-decision',
+  ]),
+  depthRequirement('positivity-overlap-estimand-decision', 'propensity-scores', [
+    'propensity-positivity-overlap-decision',
+  ]),
+]);
