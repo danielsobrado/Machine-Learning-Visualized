@@ -2,41 +2,21 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 
 import { normalizeAssessmentText } from './assessmentQuality.js';
-import { P0_EXPERIMENTATION_SCENARIOS_BY_LESSON } from './p0ExperimentationScenarioQuestions.js';
-import { P0_SCENARIO_QUESTIONS_BY_LESSON } from './p0ScenarioQuestions.js';
-import { P1_GENERATIVE_RL_SCENARIOS_BY_LESSON } from './p1GenerativeRlScenarioQuestions.js';
-import { P1_MATH_SCENARIOS_BY_LESSON } from './p1MathScenarioQuestions.js';
-import { P1_NEURAL_SCENARIOS_BY_LESSON } from './p1NeuralScenarioQuestions.js';
-import { P1_NLP_TRANSFORMER_SCENARIOS_BY_LESSON } from './p1NlpTransformerScenarioQuestions.js';
-import { P1_PRODUCTION_SCENARIOS_BY_LESSON } from './p1ProductionScenarioQuestions.js';
-import { P1_REMAINING_SCENARIOS_BY_LESSON } from './p1RemainingScenarioQuestions.js';
-import { P1_SCENARIO_QUESTIONS_BY_LESSON } from './p1ScenarioQuestions.js';
-import { P1_STATISTICS_SCENARIOS_BY_LESSON } from './p1StatisticsScenarioQuestions.js';
+import {
+  ASSESSMENT_SCENARIO_EXTENSION_SOURCES,
+  getAssessmentScenarioExtensionEntries,
+} from './assessmentScenarioExtensions.js';
 import { getLessonAssessment } from './lessonAssessments.js';
 
-const EXTENSION_SOURCES = Object.freeze([
-  P0_SCENARIO_QUESTIONS_BY_LESSON,
-  P0_EXPERIMENTATION_SCENARIOS_BY_LESSON,
-  P1_SCENARIO_QUESTIONS_BY_LESSON,
-  P1_STATISTICS_SCENARIOS_BY_LESSON,
-  P1_MATH_SCENARIOS_BY_LESSON,
-  P1_NEURAL_SCENARIOS_BY_LESSON,
-  P1_NLP_TRANSFORMER_SCENARIOS_BY_LESSON,
-  P1_GENERATIVE_RL_SCENARIOS_BY_LESSON,
-  P1_PRODUCTION_SCENARIOS_BY_LESSON,
-  P1_REMAINING_SCENARIOS_BY_LESSON,
-]);
-
 const MAX_SCENARIO_ANSWER_SHARE = 0.6;
+const VALID_PRIORITIES = new Set(['P0', 'P1', 'P2']);
 
-function collectExtensions() {
+function collectExtensionsByLesson() {
   const byLesson = new Map();
 
-  for (const source of EXTENSION_SOURCES) {
-    for (const [lessonId, questions] of Object.entries(source)) {
-      const existing = byLesson.get(lessonId) || [];
-      byLesson.set(lessonId, [...existing, ...questions]);
-    }
+  for (const entry of getAssessmentScenarioExtensionEntries()) {
+    const existing = byLesson.get(entry.lessonId) || [];
+    byLesson.set(entry.lessonId, [...existing, entry]);
   }
 
   return byLesson;
@@ -62,12 +42,22 @@ function validateQuestion(lessonId, question) {
   }
 }
 
-test('all assessment scenario extensions are live and collision-free', async (t) => {
-  const byLesson = collectExtensions();
+test('scenario extension sources have unique ids and valid priorities', () => {
+  const sourceIds = ASSESSMENT_SCENARIO_EXTENSION_SOURCES.map((source) => source.id);
+  assert.equal(new Set(sourceIds).size, sourceIds.length, 'scenario extension source ids must be unique');
 
-  for (const [lessonId, extensionQuestions] of byLesson.entries()) {
+  for (const source of ASSESSMENT_SCENARIO_EXTENSION_SOURCES) {
+    assert.ok(VALID_PRIORITIES.has(source.priority), `${source.id}: invalid priority ${source.priority}`);
+    assert.ok(source.questionsByLesson && typeof source.questionsByLesson === 'object', `${source.id}: questionsByLesson is required`);
+  }
+});
+
+test('all assessment scenario extensions are live and collision-free', async (t) => {
+  const byLesson = collectExtensionsByLesson();
+
+  for (const [lessonId, entries] of byLesson.entries()) {
     await t.test(lessonId, () => {
-      const extensionIds = extensionQuestions.map((question) => question.id);
+      const extensionIds = entries.map(({ question }) => question.id);
       assert.equal(
         new Set(extensionIds).size,
         extensionIds.length,
@@ -75,30 +65,39 @@ test('all assessment scenario extensions are live and collision-free', async (t)
       );
 
       const assessment = getLessonAssessment(lessonId);
-      const liveScenarioIds = new Set((assessment.scenarioQuestions || []).map((question) => question.id));
+      const liveScenarios = assessment.scenarioQuestions || [];
+      const liveScenarioIds = liveScenarios.map((question) => question.id);
+      const liveScenarioIdSet = new Set(liveScenarioIds);
       const quizIds = new Set((assessment.quiz || []).map((question) => question.id));
 
-      for (const question of extensionQuestions) {
+      assert.equal(
+        liveScenarioIdSet.size,
+        liveScenarioIds.length,
+        `${lessonId}: live scenario ids must be unique across base and extension sources`,
+      );
+
+      for (const { sourceId, priority, question } of entries) {
         validateQuestion(lessonId, question);
-        assert.ok(liveScenarioIds.has(question.id), `${lessonId}: ${question.id} is not merged into the public assessment`);
+        assert.ok(liveScenarioIdSet.has(question.id), `${lessonId}: ${question.id} from ${sourceId} is not merged into the public assessment`);
         assert.ok(!quizIds.has(question.id), `${lessonId}: ${question.id} collides with a quiz id`);
+        assert.ok(VALID_PRIORITIES.has(priority), `${lessonId}: ${question.id} has invalid priority ${priority}`);
       }
     });
   }
 });
 
 test('live extension scenarios do not expose a dominant correct-answer position', () => {
-  const byLesson = collectExtensions();
+  const byLesson = collectExtensionsByLesson();
   const counts = [0, 0, 0];
 
-  for (const [lessonId, extensionQuestions] of byLesson.entries()) {
+  for (const [lessonId, entries] of byLesson.entries()) {
     const liveById = new Map(
       (getLessonAssessment(lessonId).scenarioQuestions || []).map((question) => [question.id, question]),
     );
 
-    for (const extension of extensionQuestions) {
-      const live = liveById.get(extension.id);
-      assert.ok(live, `${lessonId}: missing live scenario ${extension.id}`);
+    for (const { question } of entries) {
+      const live = liveById.get(question.id);
+      assert.ok(live, `${lessonId}: missing live scenario ${question.id}`);
       counts[live.answerIndex] += 1;
     }
   }
