@@ -1,15 +1,10 @@
 import * as base from './lessonAssessmentsBase.js';
+import { getAssessmentSource } from './assessmentQuality.js';
+import { P0_PRIORITY_ASSESSMENT_LESSON_IDS } from './assessmentQualityManifest.js';
 import { getP0ScenarioQuestionsForLesson } from './p0ScenarioQuestions.js';
 import { PROBABILITY_DISTRIBUTIONS_QUIZ } from './probabilityDistributionsAssessment.js';
 
 export * from './lessonAssessmentsBase.js';
-
-const P0_PRIORITY_LESSON_IDS = Object.freeze([
-  'probability-distributions',
-  'model-debugging',
-  'model-monitoring',
-  'model-interpretability',
-]);
 
 const CURATED_QUIZ_OVERRIDES = Object.freeze({
   'probability-distributions': PROBABILITY_DISTRIBUTIONS_QUIZ,
@@ -35,25 +30,16 @@ function applyQuizOverride(assessment, quiz) {
   };
 }
 
-function assessmentSource(assessment) {
-  const quiz = assessment?.quiz || [];
-  if (quiz.length === 0) return 'empty';
-  return quiz.some((question) => String(question.id || '').startsWith('generated-'))
-    ? 'fallback'
-    : 'curated';
-}
-
 function buildAssessment(lessonId, assessment) {
   const withOverride = applyQuizOverride(assessment, CURATED_QUIZ_OVERRIDES[lessonId]);
-  const p0Scenarios = getP0ScenarioQuestionsForLesson(lessonId);
   const scenarioQuestions = [
     ...(withOverride.scenarioQuestions || []),
-    ...p0Scenarios,
+    ...getP0ScenarioQuestionsForLesson(lessonId),
   ];
 
   return Object.freeze({
     ...withOverride,
-    source: assessmentSource(withOverride),
+    source: getAssessmentSource(withOverride.quiz || []),
     quiz: Object.freeze([...(withOverride.quiz || [])]),
     scenarioQuestions: Object.freeze(scenarioQuestions),
     strategyReview: Object.freeze([...(withOverride.strategyReview || [])]),
@@ -64,7 +50,7 @@ function buildAssessment(lessonId, assessment) {
 export const PRIORITY_ASSESSMENT_LESSON_IDS = Object.freeze([
   ...new Set([
     ...base.PRIORITY_ASSESSMENT_LESSON_IDS,
-    ...P0_PRIORITY_LESSON_IDS,
+    ...P0_PRIORITY_ASSESSMENT_LESSON_IDS,
   ]),
 ]);
 
