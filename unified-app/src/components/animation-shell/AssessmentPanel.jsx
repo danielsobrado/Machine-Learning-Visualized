@@ -18,6 +18,7 @@ import {
 import { getLessonCodeLabExercises } from '../../labs/lesson-code/lessonCodeLabs';
 
 const QUESTIONS_PER_PAGE = 10;
+const SCENARIOS_PER_PAGE = 4;
 
 function renderAssessmentTitle(title) {
   if (typeof title !== 'string') return title;
@@ -66,6 +67,7 @@ export default function AssessmentPanel({
   const quizItems = assessment.quiz || [];
   const reviewItems = assessment.strategyReview || [];
   const codeLabExercises = useMemo(() => getLessonCodeLabExercises(lessonId), [lessonId]);
+  const [scenarioPage, setScenarioPage] = useState(0);
   const [quizPage, setQuizPage] = useState(0);
   const [reviewPage, setReviewPage] = useState(0);
   const [showReview, setShowReview] = useState(false);
@@ -76,6 +78,7 @@ export default function AssessmentPanel({
   ));
 
   useEffect(() => {
+    setScenarioPage(0);
     setQuizPage(0);
     setReviewPage(0);
     setShowReview(false);
@@ -103,6 +106,10 @@ export default function AssessmentPanel({
 
   const complete = isAssessmentComplete(assessment, lessonProgress);
   const completionStatus = getCompletionStatus(assessment, lessonProgress);
+  const scenarioPageCount = Math.max(1, Math.ceil(scenarioItems.length / SCENARIOS_PER_PAGE));
+  const activeScenarioPage = Math.min(scenarioPage, scenarioPageCount - 1);
+  const scenarioPageStart = activeScenarioPage * SCENARIOS_PER_PAGE;
+  const pageScenarioItems = scenarioItems.slice(scenarioPageStart, scenarioPageStart + SCENARIOS_PER_PAGE);
   const quizPageCount = Math.max(1, Math.ceil(quizItems.length / QUESTIONS_PER_PAGE));
   const activeQuizPage = Math.min(quizPage, quizPageCount - 1);
   const pageStart = activeQuizPage * QUESTIONS_PER_PAGE;
@@ -194,15 +201,41 @@ export default function AssessmentPanel({
             <FlaskConical size={15} />
             Scenario questions
           </div>
-          {scenarioItems.map((question, questionIndex) => {
+          {scenarioItems.length > SCENARIOS_PER_PAGE && (
+            <nav className="ua-assessment-pager" aria-label="Scenario pages">
+              <button
+                type="button"
+                className="ua-pager-button"
+                onClick={() => setScenarioPage((value) => Math.max(0, value - 1))}
+                disabled={activeScenarioPage === 0}
+              >
+                <ChevronLeft size={15} />
+                Prev
+              </button>
+              <span>
+                Scenarios {scenarioPageStart + 1}-{Math.min(scenarioItems.length, scenarioPageStart + pageScenarioItems.length)} of {scenarioItems.length}
+              </span>
+              <button
+                type="button"
+                className="ua-pager-button"
+                onClick={() => setScenarioPage((value) => Math.min(scenarioPageCount - 1, value + 1))}
+                disabled={activeScenarioPage === scenarioPageCount - 1}
+              >
+                Next
+                <ChevronRight size={15} />
+              </button>
+            </nav>
+          )}
+          {pageScenarioItems.map((question, questionIndex) => {
             const state = lessonProgress.quiz?.[question.id] || {};
             const answered = Number.isInteger(state.selectedIndex);
             const revealed = answered || state.revealed;
+            const absoluteScenarioIndex = scenarioPageStart + questionIndex;
 
             return (
               <article className="ua-quiz-card ua-scenario-card" key={question.id}>
                 <div className="ua-quiz-meta">
-                  <span className="ua-quiz-kicker">Scenario {questionIndex + 1} of {scenarioItems.length}</span>
+                  <span className="ua-quiz-kicker">Scenario {absoluteScenarioIndex + 1} of {scenarioItems.length}</span>
                   {question.level && <span className="ua-question-level">{question.level}</span>}
                 </div>
                 {question.kind === 'visual-state' && <AssessmentVisualState state={question.visualState} />}
@@ -453,40 +486,40 @@ export default function AssessmentPanel({
                 const revealed = revealedReview.has(reviewKey);
 
                 return (
-                <article className="ua-quiz-card ua-review-card" key={question.id}>
-                  <div className="ua-quiz-meta">
-                    <span className="ua-quiz-kicker">Review {reviewPageStart + questionIndex + 1}</span>
-                    {question.level && <span className="ua-question-level">{question.level}</span>}
-                  </div>
-                  <h3><InlineMathText>{question.prompt}</InlineMathText></h3>
-                  <div className="ua-choice-list">
-                    {question.choices.map((choice, choiceIndex) => (
-                      <div
-                        key={choice}
-                        className={`ua-choice-button ${revealed && choiceIndex === question.answerIndex ? 'answer' : ''}`}
-                      >
-                        <span>{String.fromCharCode(65 + choiceIndex)}</span>
-                        <InlineMathText>{choice}</InlineMathText>
-                      </div>
-                    ))}
-                  </div>
-                  {!revealed && (
-                    <button
-                      type="button"
-                      className="ua-reveal-button ua-review-reveal"
-                      onClick={() => setRevealedReview((current) => new Set(current).add(reviewKey))}
-                    >
-                      <Eye size={15} />
-                      Reveal answer
-                    </button>
-                  )}
-                  {revealed && (
-                    <div className="ua-answer-panel correct">
-                      <strong>Review answer: <InlineMathText>{question.choices[question.answerIndex]}</InlineMathText></strong>
-                      <p><InlineMathText>{question.explanation}</InlineMathText></p>
+                  <article className="ua-quiz-card ua-review-card" key={question.id}>
+                    <div className="ua-quiz-meta">
+                      <span className="ua-quiz-kicker">Review {reviewPageStart + questionIndex + 1}</span>
+                      {question.level && <span className="ua-question-level">{question.level}</span>}
                     </div>
-                  )}
-                </article>
+                    <h3><InlineMathText>{question.prompt}</InlineMathText></h3>
+                    <div className="ua-choice-list">
+                      {question.choices.map((choice, choiceIndex) => (
+                        <div
+                          key={choice}
+                          className={`ua-choice-button ${revealed && choiceIndex === question.answerIndex ? 'answer' : ''}`}
+                        >
+                          <span>{String.fromCharCode(65 + choiceIndex)}</span>
+                          <InlineMathText>{choice}</InlineMathText>
+                        </div>
+                      ))}
+                    </div>
+                    {!revealed && (
+                      <button
+                        type="button"
+                        className="ua-reveal-button ua-review-reveal"
+                        onClick={() => setRevealedReview((current) => new Set(current).add(reviewKey))}
+                      >
+                        <Eye size={15} />
+                        Reveal answer
+                      </button>
+                    )}
+                    {revealed && (
+                      <div className="ua-answer-panel correct">
+                        <strong>Review answer: <InlineMathText>{question.choices[question.answerIndex]}</InlineMathText></strong>
+                        <p><InlineMathText>{question.explanation}</InlineMathText></p>
+                      </div>
+                    )}
+                  </article>
                 );
               })}
             </>
