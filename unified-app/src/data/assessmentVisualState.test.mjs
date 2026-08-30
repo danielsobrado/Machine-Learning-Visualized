@@ -33,6 +33,16 @@ test('visual-state assessment metadata is wired to a real renderer', () => {
   assert.match(rendererSource, /function ComparisonPreview/);
 });
 
+test('scenario deck is paginated instead of rendering every scenario at once', () => {
+  const panelSource = fs.readFileSync(PANEL_PATH, 'utf8');
+
+  assert.match(panelSource, /const SCENARIOS_PER_PAGE = 4;/);
+  assert.match(panelSource, /const \[scenarioPage, setScenarioPage\] = useState\(0\);/);
+  assert.match(panelSource, /scenarioItems\.slice\(scenarioPageStart, scenarioPageStart \+ SCENARIOS_PER_PAGE\)/);
+  assert.match(panelSource, /pageScenarioItems\.map/);
+  assert.match(panelSource, /aria-label="Scenario pages"/);
+});
+
 test('required P0 visual-state questions remain renderable', () => {
   let visualCount = 0;
 
