@@ -79,6 +79,10 @@ jobs:
         continue-on-error: true
         run: node --test src/data/generativeRlCoverage.test.mjs
 
+      - name: Check RAG depth
+        continue-on-error: true
+        run: node --test src/data/ragCoverage.test.mjs
+
       - name: Run tests
         run: |
           set -o pipefail

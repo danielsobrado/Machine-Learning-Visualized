@@ -16,6 +16,8 @@ import { P1_NLP_TRANSFORMER_APPLIED_REPRESENTATION_SCENARIOS_BY_LESSON } from '.
 import { P1_NLP_TRANSFORMER_APPLIED_SYSTEMS_SCENARIOS_BY_LESSON } from './p1NlpTransformerAppliedSystemsScenarioQuestions.js';
 import { P1_NLP_TRANSFORMER_SCENARIOS_BY_LESSON } from './p1NlpTransformerScenarioQuestions.js';
 import { P1_PRODUCTION_SCENARIOS_BY_LESSON } from './p1ProductionScenarioQuestions.js';
+import { P1_RAG_GROUNDING_APPLIED_SCENARIOS_BY_LESSON } from './p1RagGroundingAppliedScenarioQuestions.js';
+import { P1_RAG_RETRIEVAL_APPLIED_SCENARIOS_BY_LESSON } from './p1RagRetrievalAppliedScenarioQuestions.js';
 import { P1_REINFORCEMENT_LEARNING_APPLIED_SCENARIOS_BY_LESSON } from './p1ReinforcementLearningAppliedScenarioQuestions.js';
 import { P1_REMAINING_SCENARIOS_BY_LESSON } from './p1RemainingScenarioQuestions.js';
 import { P1_SCENARIO_QUESTIONS_BY_LESSON } from './p1ScenarioQuestions.js';
@@ -48,6 +50,8 @@ export const ASSESSMENT_SCENARIO_EXTENSION_SOURCES = Object.freeze([
   Object.freeze({ id: 'p1-generative-applied', priority: 'P1', questionsByLesson: P1_GENERATIVE_APPLIED_SCENARIOS_BY_LESSON }),
   Object.freeze({ id: 'p1-reinforcement-learning-applied', priority: 'P1', questionsByLesson: P1_REINFORCEMENT_LEARNING_APPLIED_SCENARIOS_BY_LESSON }),
   Object.freeze({ id: 'p1-generative-rl', priority: 'P1', questionsByLesson: P1_GENERATIVE_RL_SCENARIOS_BY_LESSON }),
+  Object.freeze({ id: 'p1-rag-retrieval-applied', priority: 'P1', questionsByLesson: P1_RAG_RETRIEVAL_APPLIED_SCENARIOS_BY_LESSON }),
+  Object.freeze({ id: 'p1-rag-grounding-applied', priority: 'P1', questionsByLesson: P1_RAG_GROUNDING_APPLIED_SCENARIOS_BY_LESSON }),
   Object.freeze({ id: 'p1-production', priority: 'P1', questionsByLesson: P1_PRODUCTION_SCENARIOS_BY_LESSON }),
   Object.freeze({ id: 'p1-remaining', priority: 'P1', questionsByLesson: P1_REMAINING_SCENARIOS_BY_LESSON }),
   Object.freeze({ id: 'p1-additional', priority: 'P1', questionsByLesson: P1_ADDITIONAL_SCENARIOS_BY_LESSON }),
