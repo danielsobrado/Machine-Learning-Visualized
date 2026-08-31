@@ -29,7 +29,9 @@ jobs:
           cache-dependency-path: unified-app/package-lock.json
 
       - name: Apply guarded source fixes
-        run: node unified-app/scripts/fix-assessment-baseline.mjs
+        run: |
+          node unified-app/scripts/fix-assessment-baseline.mjs
+          node unified-app/scripts/fix-assessment-baseline-extra.mjs
 
       - name: Install dependencies
         working-directory: unified-app
