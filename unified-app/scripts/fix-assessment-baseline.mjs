@@ -178,4 +178,16 @@ replaceOnce(
   "q('logreg-052-scenario-high-logit', 'Application', 'A point has a large positive logit. What class-1 score should you expect?', 'Close to 1', ['Below 0.5 despite the positive logit', 'Always exactly 0.5'],",
 );
 
+replaceOnce(
+  'unified-app/src/data/linearRegressionAssessment.js',
+  "['A residual of -3', 'A residual of 17']",
+  "['A negative residual with magnitude 3', 'A residual of 17']",
+);
+
+replaceOnce(
+  'unified-app/src/data/fundamentalSubspacesAssessment.js',
+  "q('fs-008-column-ambient', 'Foundation', 'Where does Col(A) live?', 'In the output codomain R^m', ['In the input domain R^n', 'In the null space by definition'],",
+  "q('fs-008-column-ambient', 'Foundation', 'Where does Col(A) live?', 'In the output codomain R^m', ['Inside the coefficient matrix rather than a vector space', 'In the null space by definition'],",
+);
+
 console.log('Assessment baseline source fixes applied.');
