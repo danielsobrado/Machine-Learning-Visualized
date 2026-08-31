@@ -71,6 +71,10 @@ jobs:
         continue-on-error: true
         run: node --test src/data/neuralNetworkCoverage.test.mjs
 
+      - name: Check NLP and transformer depth
+        continue-on-error: true
+        run: node --test src/data/nlpTransformerCoverage.test.mjs
+
       - name: Run tests
         run: |
           set -o pipefail
