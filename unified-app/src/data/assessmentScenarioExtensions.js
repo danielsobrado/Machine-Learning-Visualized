@@ -3,9 +3,11 @@ import { P0_SCENARIO_QUESTIONS_BY_LESSON } from './p0ScenarioQuestions.js';
 import { P0_STATISTICS_DECISION_SCENARIOS_BY_LESSON } from './p0StatisticsDecisionScenarioQuestions.js';
 import { P0_STATISTICS_GAP_SCENARIOS_BY_LESSON } from './p0StatisticsGapScenarioQuestions.js';
 import { P1_ADDITIONAL_SCENARIOS_BY_LESSON } from './p1AdditionalScenarioQuestions.js';
+import { P1_AGENTIC_APPLIED_SCENARIOS_BY_LESSON } from './p1AgenticAppliedScenarioQuestions.js';
 import { P1_CLASSICAL_ML_APPLIED_DECISION_SCENARIOS_BY_LESSON } from './p1ClassicalMlAppliedDecisionScenarioQuestions.js';
 import { P1_CLASSICAL_ML_DECISION_SCENARIOS_BY_LESSON } from './p1ClassicalMlDecisionScenarioQuestions.js';
 import { P1_CLASSICAL_ML_GAP_SCENARIOS_BY_LESSON } from './p1ClassicalMlGapScenarioQuestions.js';
+import { P1_FRONTIER_SYSTEMS_APPLIED_SCENARIOS_BY_LESSON } from './p1FrontierSystemsAppliedScenarioQuestions.js';
 import { P1_GENERATIVE_APPLIED_SCENARIOS_BY_LESSON } from './p1GenerativeAppliedScenarioQuestions.js';
 import { P1_GENERATIVE_RL_SCENARIOS_BY_LESSON } from './p1GenerativeRlScenarioQuestions.js';
 import { P1_MATH_SCENARIOS_BY_LESSON } from './p1MathScenarioQuestions.js';
@@ -56,6 +58,8 @@ export const ASSESSMENT_SCENARIO_EXTENSION_SOURCES = Object.freeze([
   Object.freeze({ id: 'p1-rag-grounding-applied', priority: 'P1', questionsByLesson: P1_RAG_GROUNDING_APPLIED_SCENARIOS_BY_LESSON }),
   Object.freeze({ id: 'p1-production-serving-applied', priority: 'P1', questionsByLesson: P1_PRODUCTION_SERVING_APPLIED_SCENARIOS_BY_LESSON }),
   Object.freeze({ id: 'p1-production-governance-applied', priority: 'P1', questionsByLesson: P1_PRODUCTION_GOVERNANCE_APPLIED_SCENARIOS_BY_LESSON }),
+  Object.freeze({ id: 'p1-frontier-systems-applied', priority: 'P1', questionsByLesson: P1_FRONTIER_SYSTEMS_APPLIED_SCENARIOS_BY_LESSON }),
+  Object.freeze({ id: 'p1-agentic-applied', priority: 'P1', questionsByLesson: P1_AGENTIC_APPLIED_SCENARIOS_BY_LESSON }),
   Object.freeze({ id: 'p1-production', priority: 'P1', questionsByLesson: P1_PRODUCTION_SCENARIOS_BY_LESSON }),
   Object.freeze({ id: 'p1-remaining', priority: 'P1', questionsByLesson: P1_REMAINING_SCENARIOS_BY_LESSON }),
   Object.freeze({ id: 'p1-additional', priority: 'P1', questionsByLesson: P1_ADDITIONAL_SCENARIOS_BY_LESSON }),
