@@ -75,6 +75,10 @@ jobs:
         continue-on-error: true
         run: node --test src/data/nlpTransformerCoverage.test.mjs
 
+      - name: Check generative AI and RL depth
+        continue-on-error: true
+        run: node --test src/data/generativeRlCoverage.test.mjs
+
       - name: Run tests
         run: |
           set -o pipefail

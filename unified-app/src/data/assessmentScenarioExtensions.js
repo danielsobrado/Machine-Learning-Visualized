@@ -6,6 +6,7 @@ import { P1_ADDITIONAL_SCENARIOS_BY_LESSON } from './p1AdditionalScenarioQuestio
 import { P1_CLASSICAL_ML_APPLIED_DECISION_SCENARIOS_BY_LESSON } from './p1ClassicalMlAppliedDecisionScenarioQuestions.js';
 import { P1_CLASSICAL_ML_DECISION_SCENARIOS_BY_LESSON } from './p1ClassicalMlDecisionScenarioQuestions.js';
 import { P1_CLASSICAL_ML_GAP_SCENARIOS_BY_LESSON } from './p1ClassicalMlGapScenarioQuestions.js';
+import { P1_GENERATIVE_APPLIED_SCENARIOS_BY_LESSON } from './p1GenerativeAppliedScenarioQuestions.js';
 import { P1_GENERATIVE_RL_SCENARIOS_BY_LESSON } from './p1GenerativeRlScenarioQuestions.js';
 import { P1_MATH_SCENARIOS_BY_LESSON } from './p1MathScenarioQuestions.js';
 import { P1_NEURAL_APPLIED_ARCHITECTURE_SCENARIOS_BY_LESSON } from './p1NeuralAppliedArchitectureScenarioQuestions.js';
@@ -15,6 +16,7 @@ import { P1_NLP_TRANSFORMER_APPLIED_REPRESENTATION_SCENARIOS_BY_LESSON } from '.
 import { P1_NLP_TRANSFORMER_APPLIED_SYSTEMS_SCENARIOS_BY_LESSON } from './p1NlpTransformerAppliedSystemsScenarioQuestions.js';
 import { P1_NLP_TRANSFORMER_SCENARIOS_BY_LESSON } from './p1NlpTransformerScenarioQuestions.js';
 import { P1_PRODUCTION_SCENARIOS_BY_LESSON } from './p1ProductionScenarioQuestions.js';
+import { P1_REINFORCEMENT_LEARNING_APPLIED_SCENARIOS_BY_LESSON } from './p1ReinforcementLearningAppliedScenarioQuestions.js';
 import { P1_REMAINING_SCENARIOS_BY_LESSON } from './p1RemainingScenarioQuestions.js';
 import { P1_SCENARIO_QUESTIONS_BY_LESSON } from './p1ScenarioQuestions.js';
 import { P1_STATISTICS_APPLIED_DECISION_SCENARIOS_BY_LESSON } from './p1StatisticsAppliedDecisionScenarioQuestions.js';
@@ -43,6 +45,8 @@ export const ASSESSMENT_SCENARIO_EXTENSION_SOURCES = Object.freeze([
   Object.freeze({ id: 'p1-nlp-transformers-applied-representation', priority: 'P1', questionsByLesson: P1_NLP_TRANSFORMER_APPLIED_REPRESENTATION_SCENARIOS_BY_LESSON }),
   Object.freeze({ id: 'p1-nlp-transformers-applied-systems', priority: 'P1', questionsByLesson: P1_NLP_TRANSFORMER_APPLIED_SYSTEMS_SCENARIOS_BY_LESSON }),
   Object.freeze({ id: 'p1-nlp-transformers', priority: 'P1', questionsByLesson: P1_NLP_TRANSFORMER_SCENARIOS_BY_LESSON }),
+  Object.freeze({ id: 'p1-generative-applied', priority: 'P1', questionsByLesson: P1_GENERATIVE_APPLIED_SCENARIOS_BY_LESSON }),
+  Object.freeze({ id: 'p1-reinforcement-learning-applied', priority: 'P1', questionsByLesson: P1_REINFORCEMENT_LEARNING_APPLIED_SCENARIOS_BY_LESSON }),
   Object.freeze({ id: 'p1-generative-rl', priority: 'P1', questionsByLesson: P1_GENERATIVE_RL_SCENARIOS_BY_LESSON }),
   Object.freeze({ id: 'p1-production', priority: 'P1', questionsByLesson: P1_PRODUCTION_SCENARIOS_BY_LESSON }),
   Object.freeze({ id: 'p1-remaining', priority: 'P1', questionsByLesson: P1_REMAINING_SCENARIOS_BY_LESSON }),
