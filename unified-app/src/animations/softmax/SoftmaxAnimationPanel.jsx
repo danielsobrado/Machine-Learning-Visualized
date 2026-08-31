@@ -54,9 +54,9 @@ export default function SoftmaxAnimationPanel({ onStepChange }) {
     const rendererRef = useRef(null);
     const sceneRef = useRef(null);
     const objectsRef = useRef({});
-    const [step, setStep] = useState(0);
+    const [step, setStep] = useState(1);
     const [isPlaying, setIsPlaying] = useState(false);
-    const [explanation, setExplanation] = useState('Click Play to see how Softmax works');
+    const [explanation, setExplanation] = useState(`${STEPS[0].title}\n${STEPS[0].desc}`);
 
     useEffect(() => {
         if (onStepChange) {
@@ -243,6 +243,9 @@ export default function SoftmaxAnimationPanel({ onStepChange }) {
             arrows1, arrows2, arrowToSum, plusSymbols, divSymbols
         };
 
+        // Begin with a useful figure instead of an empty canvas.
+        logitCells.forEach(cell => { cell.visible = true; });
+
         let animationId;
         const animate = () => {
             animationId = requestAnimationFrame(animate);
@@ -316,9 +319,8 @@ export default function SoftmaxAnimationPanel({ onStepChange }) {
     const playAnimation = async () => {
         if (isPlaying) return;
         setIsPlaying(true);
-        reset();
 
-        for (let i = 0; i < STEPS.length; i++) {
+        for (let i = step; i < STEPS.length; i++) {
             setStep(i + 1);
             setExplanation(`${STEPS[i].title}\n${STEPS[i].desc}`);
             animateStep(i + 1);
@@ -338,17 +340,15 @@ export default function SoftmaxAnimationPanel({ onStepChange }) {
     };
 
     const prevStep = () => {
-        if (isPlaying || step <= 0) return;
+        if (isPlaying || step <= 1) return;
         reset();
         const targetStep = step - 1;
         setTimeout(() => {
-            for (let i = 1; i <= targetStep; i++) {
+            for (let i = 2; i <= targetStep; i++) {
                 animateStep(i);
             }
             setStep(targetStep);
-            if (targetStep > 0) {
-                setExplanation(`${STEPS[targetStep - 1].title}\n${STEPS[targetStep - 1].desc}`);
-            }
+            setExplanation(`${STEPS[targetStep - 1].title}\n${STEPS[targetStep - 1].desc}`);
         }, 100);
     };
 
@@ -361,8 +361,9 @@ export default function SoftmaxAnimationPanel({ onStepChange }) {
             if (obj) obj.visible = false;
         });
 
-        setStep(0);
-        setExplanation('Click Play to see how Softmax works');
+        objs.logitCells.forEach(cell => { cell.visible = true; });
+        setStep(1);
+        setExplanation(`${STEPS[0].title}\n${STEPS[0].desc}`);
     };
 
     return (
@@ -378,7 +379,7 @@ export default function SoftmaxAnimationPanel({ onStepChange }) {
             <div className="flex items-center gap-2 mt-2">
                 <button
                     onClick={prevStep}
-                    disabled={isPlaying || step <= 0}
+                    disabled={isPlaying || step <= 1}
                     className="px-3 py-1 bg-blue-500 hover:bg-blue-600 disabled:bg-gray-400 disabled:cursor-not-allowed text-white font-bold rounded-lg transition-colors text-sm"
                 >
                     ← Prev

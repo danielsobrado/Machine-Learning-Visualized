@@ -35,9 +35,9 @@ export default function AnimationPanel() {
     const containerRef = useRef(null);
     const sceneRef = useRef(null);
     const rendererRef = useRef(null);
-    const [step, setStep] = useState(0);
+    const [step, setStep] = useState(1);
     const [isPlaying, setIsPlaying] = useState(false);
-    const [explanation, setExplanation] = useState('Click Play to see SVD step-by-step');
+    const [explanation, setExplanation] = useState(`${STEPS[0].title}\n${STEPS[0].desc}`);
     const objectsRef = useRef({ cellsA: [], cellsU: [], cellsSigma: [], cellsVT: [], labels: [] });
 
     useEffect(() => {
@@ -211,6 +211,10 @@ export default function AnimationPanel() {
         const equalsLabel = createLabel('=', aX - 70, aY - 40, 32);
         objectsRef.current.labels.push(multLabel1, multLabel2, equalsLabel);
 
+        // Begin with a useful figure instead of an empty canvas.
+        objectsRef.current.cellsA.forEach(cell => { cell.visible = true; });
+        objectsRef.current.labels[0].visible = true;
+
         rendererRef.current = renderer;
 
         let animationId;
@@ -349,17 +353,15 @@ export default function AnimationPanel() {
     };
 
     const prevStep = () => {
-        if (isPlaying || step <= 0) return;
+        if (isPlaying || step <= 1) return;
         reset();
         const targetStep = step - 1;
         setTimeout(() => {
-            for (let i = 1; i <= targetStep; i++) {
+            for (let i = 2; i <= targetStep; i++) {
                 animateStep(i);
             }
             setStep(targetStep);
-            if (targetStep > 0) {
-                setExplanation(`${STEPS[targetStep - 1].title}\n${STEPS[targetStep - 1].desc}`);
-            }
+            setExplanation(`${STEPS[targetStep - 1].title}\n${STEPS[targetStep - 1].desc}`);
         }, 100);
     };
 
@@ -381,8 +383,10 @@ export default function AnimationPanel() {
             if (label) label.visible = false;
         });
 
-        setStep(0);
-        setExplanation('Click Play to see SVD step-by-step');
+        objs.cellsA.forEach(cell => { cell.visible = true; });
+        if (objs.labels[0]) objs.labels[0].visible = true;
+        setStep(1);
+        setExplanation(`${STEPS[0].title}\n${STEPS[0].desc}`);
     };
 
     return (
@@ -398,7 +402,7 @@ export default function AnimationPanel() {
             <div className="flex items-center gap-2 mt-2">
                 <button
                     onClick={prevStep}
-                    disabled={isPlaying || step <= 0}
+                    disabled={isPlaying || step <= 1}
                     className="px-3 py-1 bg-blue-500 hover:bg-blue-600 disabled:bg-gray-400 disabled:cursor-not-allowed text-white font-bold rounded-lg transition-colors text-sm"
                 >
                     ← Prev

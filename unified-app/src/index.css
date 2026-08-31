@@ -6972,3 +6972,48 @@ html.ua-concept-map-expanded .ua-concept-map--expanded:not(.ua-concept-map--cura
     flex-direction: column;
   }
 }
+
+/* Keep legacy dark demos legible inside the notebook shell. Their outer app
+   chrome becomes paper, while SVG/canvas plotting surfaces remain dark like
+   instrument readouts. */
+#root .ua-stage-wrap div.min-h-full[class*="bg-slate-950"],
+#root .ua-stage-wrap div.min-h-full[class*="bg-gray-950"],
+#root .ua-stage-wrap div.min-h-full[class*="bg-neutral-950"],
+#root .ua-stage-wrap div.min-h-full[class*="bg-stone-950"],
+#root .ua-stage-wrap div.min-h-full[class*="bg-zinc-950"] {
+  background: var(--ds-paper) !important;
+  color: var(--ds-ink) !important;
+}
+
+#root .ua-stage-wrap :where(section, article, aside)[class*="bg-neutral-900"],
+#root .ua-stage-wrap :where(section, article, aside)[class*="bg-neutral-800"],
+#root .ua-stage-wrap :where(section, article, aside)[class*="bg-stone-900"],
+#root .ua-stage-wrap :where(section, article, aside)[class*="bg-stone-800"],
+#root .ua-stage-wrap :where(section, article, aside)[class*="bg-zinc-900"],
+#root .ua-stage-wrap :where(section, article, aside)[class*="bg-zinc-800"] {
+  background: var(--ds-panel) !important;
+  border-color: var(--ds-rule) !important;
+  box-shadow: none !important;
+}
+
+#root .ua-stage-wrap aside > div[class*="bg-neutral-900"],
+#root .ua-stage-wrap aside > div[class*="bg-stone-900"],
+#root .ua-stage-wrap aside > div[class*="bg-zinc-900"] {
+  background: var(--ds-panel) !important;
+  border-color: var(--ds-rule) !important;
+}
+
+#root .ua-stage-wrap :where(h1, h2, h3, h4, p, span, li, label, strong, div)[class*="text-neutral-100"],
+#root .ua-stage-wrap :where(h1, h2, h3, h4, p, span, li, label, strong, div)[class*="text-stone-100"],
+#root .ua-stage-wrap :where(h1, h2, h3, h4, p, span, li, label, strong, div)[class*="text-zinc-100"] {
+  color: var(--ds-ink) !important;
+}
+
+#root .ua-stage-wrap :where(p, span, li, label, div)[class*="text-neutral-300"],
+#root .ua-stage-wrap :where(p, span, li, label, div)[class*="text-neutral-400"],
+#root .ua-stage-wrap :where(p, span, li, label, div)[class*="text-stone-300"],
+#root .ua-stage-wrap :where(p, span, li, label, div)[class*="text-stone-400"],
+#root .ua-stage-wrap :where(p, span, li, label, div)[class*="text-zinc-300"],
+#root .ua-stage-wrap :where(p, span, li, label, div)[class*="text-zinc-400"] {
+  color: var(--ds-faint) !important;
+}

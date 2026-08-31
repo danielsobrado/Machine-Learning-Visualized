@@ -63,9 +63,9 @@ export default function AnimationPanel({ onStepChange }) {
   const rendererRef = useRef(null);
   const sceneRef = useRef(null);
   const objectsRef = useRef({});
-  const [step, setStep] = useState(0);
+  const [step, setStep] = useState(1);
   const [isPlaying, setIsPlaying] = useState(false);
-  const [explanation, setExplanation] = useState('Click Play to see how ReLU activation works');
+  const [explanation, setExplanation] = useState(`${STEPS[0].title}\n${STEPS[0].desc}`);
 
   // Notify parent of step changes
   useEffect(() => {
@@ -210,6 +210,10 @@ export default function AnimationPanel({ onStepChange }) {
       multLabel, plusLabel, arrowLabel, reluFuncLabel
     };
 
+    // Begin with a useful figure instead of an empty canvas.
+    xCells.forEach(cell => { cell.visible = true; });
+    xLabel.visible = true;
+
     let animationId;
     const animate = () => {
       animationId = requestAnimationFrame(animate);
@@ -316,18 +320,16 @@ export default function AnimationPanel({ onStepChange }) {
   };
 
   const prevStep = () => {
-    if (isPlaying || step <= 0) return;
+    if (isPlaying || step <= 1) return;
     // Reset and replay up to previous step
     reset();
     const targetStep = step - 1;
     setTimeout(() => {
-      for (let i = 1; i <= targetStep; i++) {
+      for (let i = 2; i <= targetStep; i++) {
         animateStep(i);
       }
       setStep(targetStep);
-      if (targetStep > 0) {
-        setExplanation(`${STEPS[targetStep - 1].title}\n${STEPS[targetStep - 1].desc}`);
-      }
+      setExplanation(`${STEPS[targetStep - 1].title}\n${STEPS[targetStep - 1].desc}`);
     }, 100);
   };
 
@@ -348,8 +350,10 @@ export default function AnimationPanel({ onStepChange }) {
       if (label) label.visible = false;
     });
 
-    setStep(0);
-    setExplanation('Click Play to see how ReLU activation works');
+    objs.xCells.forEach(cell => { cell.visible = true; });
+    if (objs.xLabel) objs.xLabel.visible = true;
+    setStep(1);
+    setExplanation(`${STEPS[0].title}\n${STEPS[0].desc}`);
   };
 
   return (
@@ -365,7 +369,7 @@ export default function AnimationPanel({ onStepChange }) {
       <div className="flex items-center gap-2 mt-2">
         <button
           onClick={prevStep}
-          disabled={isPlaying || step <= 0}
+          disabled={isPlaying || step <= 1}
           className="px-3 py-1 bg-blue-500 hover:bg-blue-600 disabled:bg-gray-400 disabled:cursor-not-allowed text-white font-bold rounded-lg transition-colors text-sm"
         >
           ← Prev
