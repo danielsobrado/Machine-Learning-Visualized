@@ -1,0 +1,94 @@
+name: Validate Assessment Baseline Fix
+
+on:
+  push:
+    branches: [assessment-baseline-fix]
+
+permissions:
+  contents: write
+
+concurrency:
+  group: assessment-baseline-fix
+  cancel-in-progress: true
+
+jobs:
+  validate-and-stage:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout fix branch
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+          cache-dependency-path: unified-app/package-lock.json
+
+      - name: Apply guarded source fixes
+        run: node unified-app/scripts/fix-assessment-baseline.mjs
+
+      - name: Install dependencies
+        working-directory: unified-app
+        run: npm ci
+
+      - name: Run focused assessment contracts
+        working-directory: unified-app
+        run: |
+          node --test \
+            src/data/assessmentP0Coverage.test.mjs \
+            src/data/assessmentQuality.test.mjs \
+            src/data/assessmentScenarioExtensions.test.mjs \
+            src/data/probabilityDistributionsAssessment.test.mjs
+
+      - name: Run full test suite
+        working-directory: unified-app
+        run: npm test
+
+      - name: Generate curriculum audit
+        working-directory: unified-app
+        run: npm run audit:quality
+
+      - name: Build application
+        working-directory: unified-app
+        run: npm run build
+
+      - name: Create clean candidate commit
+        shell: bash
+        run: |
+          set -euo pipefail
+          git diff --check
+          git diff -- \
+            unified-app/src/data/animationLearning.js \
+            unified-app/src/data/lessonAssessments.js \
+            unified-app/src/data/probabilityDistributionsAssessment.js \
+            unified-app/src/data/matrixMultiplicationAssessment.js \
+            unified-app/src/data/linearRegressionAssessment.js \
+            unified-app/src/data/fundamentalSubspacesAssessment.js \
+            unified-app/src/data/matrixDecompositionsAssessment.js \
+            unified-app/src/data/trainValidationTestSplitAssessment.js \
+            unified-app/src/data/bayesRuleAssessment.js \
+            unified-app/src/data/causalGraphsDagsAssessment.js \
+            unified-app/src/data/logisticRegressionAssessment.js \
+            unified-app/src/data/rocPrCurvesAssessment.js \
+            unified-app/src/data/p1ProductionScenarioQuestions.js \
+            unified-app/src/data/p2ScenarioQuestions.js \
+            unified-app/src/data/p1NlpTransformerScenarioQuestions.js \
+            unified-app/src/data/p1RemainingScenarioQuestions.js \
+            > /tmp/assessment-baseline.patch
+
+          test -s /tmp/assessment-baseline.patch
+          git fetch origin main
+          git checkout -B assessment-baseline-candidate origin/main
+          git apply /tmp/assessment-baseline.patch
+          git diff --check
+
+          git config user.name "Daniel Sobrado"
+          git config user.email "35833752+danielsobrado@users.noreply.github.com"
+          git add unified-app/src/data
+          git commit -m "Fix inherited assessment quality failures"
+          git push origin HEAD:assessment-baseline-candidate
+          echo "Candidate: $(git rev-parse HEAD)"
