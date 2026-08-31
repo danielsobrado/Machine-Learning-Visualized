@@ -148,4 +148,34 @@ replaceOnce(
   "  'frontier-moe-systems': [",
 );
 
+replaceOnce(
+  'unified-app/src/data/matrixMultiplicationAssessment.js',
+  "['The right matrix B', 'The smaller of the two matrices']",
+  "['Whichever factor has more columns', 'The smaller of the two matrices']",
+);
+
+replaceOnce(
+  'unified-app/src/data/linearRegressionAssessment.js',
+  "'Compute 2*4 + 3 = 11.'",
+  "'Substitute x = 4 into the fitted line: 2*4 + 3 = 11, so the predicted target value is 11.'",
+);
+
+replaceOnce(
+  'unified-app/src/data/fundamentalSubspacesAssessment.js',
+  "'A subspace must include zero.'",
+  "'Every vector subspace must contain the zero vector, so Null(A) is never empty even when its only member is zero.'",
+);
+
+replaceOnce(
+  'unified-app/src/data/matrixDecompositionsAssessment.js',
+  "q('md-055-scenario-nonnegative-parts', 'Application', 'You need additive parts for a nonnegative document-term matrix. What is a good fit?', 'NMF', ['QR', 'Cholesky'],",
+  "q('md-055-scenario-nonnegative-parts', 'Application', 'You need additive parts for a nonnegative document-term matrix. What is a good fit?', 'NMF', ['An orthogonal-triangular solve with no nonnegativity constraint', 'A positive-definite triangular solve'],",
+);
+
+replaceOnce(
+  'unified-app/src/data/logisticRegressionAssessment.js',
+  "q('logreg-052-scenario-high-logit', 'Application', 'A point has a large positive logit. What class-1 score should you expect?', 'Close to 1', ['Close to 0', 'Always exactly 0.5'],",
+  "q('logreg-052-scenario-high-logit', 'Application', 'A point has a large positive logit. What class-1 score should you expect?', 'Close to 1', ['Below 0.5 despite the positive logit', 'Always exactly 0.5'],",
+);
+
 console.log('Assessment baseline source fixes applied.');
