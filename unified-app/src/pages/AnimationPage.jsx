@@ -1,6 +1,5 @@
 import React, { Suspense } from 'react';
 import { Link, useParams } from 'react-router-dom';
-import { ArrowLeft, ArrowRight } from 'lucide-react';
 import { allAnimations, getAnimationById } from '../data/animations';
 import { getLessonCatalogNumber } from '../data/lessonCatalogNumbers';
 import { getAnimationComponent, isAnimationAvailable } from '../animations';
@@ -35,7 +34,7 @@ export default function AnimationPage() {
     <div className="ua-animation-page">
       <header className="ua-animation-header">
         <div className="ds-eyebrow">
-          <Link to="/">Catalog</Link>
+          <Link to="/">Index</Link>
           <span className="sep">/</span>
           <span>{animation.categoryName}</span>
           <span className="right">{lessonNumber}</span>
@@ -55,8 +54,7 @@ export default function AnimationPage() {
       <footer className="ua-animation-footer">
         {prevAnimation ? (
           <Link to={`/animation/${prevAnimation.id}`}>
-            <ArrowLeft size={16} />
-            <span>{prevAnimation.name}</span>
+            <span>← {prevAnimation.name}</span>
           </Link>
         ) : (
           <span />
@@ -64,8 +62,7 @@ export default function AnimationPage() {
         <Link to="/">All animations</Link>
         {nextAnimation ? (
           <Link to={`/animation/${nextAnimation.id}`}>
-            <span>{nextAnimation.name}</span>
-            <ArrowRight size={16} />
+            <span>{nextAnimation.name} →</span>
           </Link>
         ) : (
           <span />

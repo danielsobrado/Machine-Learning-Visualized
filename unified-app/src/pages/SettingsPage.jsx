@@ -1,5 +1,4 @@
 import React from 'react';
-import { Download, FileDown, FileUp, Github, RefreshCcw, Save, ShieldCheck, UploadCloud } from 'lucide-react';
 import {
   disconnectGitHubSession,
   disconnectGitHubSyncSettings,
@@ -190,7 +189,6 @@ export default function SettingsPage() {
       <section className="ds-panel ua-settings-grid">
         <div className="ua-settings-main">
           <div className="ua-settings-section-head">
-            <Github size={18} />
             <div>
               <h2>GitHub Sync</h2>
               <p>No exercise source code is stored. Only passed exercise metadata is synced.</p>
@@ -229,7 +227,6 @@ export default function SettingsPage() {
                       placeholder="owner/repo"
                     />
                     <button type="button" onClick={loadRepos} disabled={!canUseStorage || busy === 'repos'}>
-                      <RefreshCcw size={14} />
                       Load
                     </button>
                   </div>
@@ -304,7 +301,6 @@ export default function SettingsPage() {
 
           <div className="ua-settings-actions">
             <button type="button" onClick={() => saveSettings()} disabled={busy !== ''}>
-              <Save size={15} />
               Save settings
             </button>
             <button
@@ -312,11 +308,9 @@ export default function SettingsPage() {
               onClick={() => startGitHubSignIn(settings, window.location.href)}
               disabled={!canUseStorage || busy !== ''}
             >
-              <Github size={15} />
               Sign in with GitHub
             </button>
             <button type="button" onClick={checkSession} disabled={!canUseStorage || busy !== ''}>
-              <ShieldCheck size={15} />
               Check sign-in
             </button>
           </div>
@@ -327,7 +321,6 @@ export default function SettingsPage() {
               onClick={pullRemote}
               disabled={!canSync || busy !== ''}
             >
-              <Download size={15} />
               Pull remote
             </button>
             <button
@@ -335,7 +328,6 @@ export default function SettingsPage() {
               onClick={syncNow}
               disabled={!canSync || busy !== ''}
             >
-              <UploadCloud size={15} />
               Sync now
             </button>
             <button type="button" onClick={disconnect} disabled={busy !== ''}>
@@ -345,11 +337,9 @@ export default function SettingsPage() {
 
           <div className="ua-settings-actions ua-settings-local-actions">
             <button type="button" onClick={exportLocalProgress} disabled={busy !== ''}>
-              <FileDown size={15} />
               Export JSON
             </button>
             <button type="button" onClick={() => importInputRef.current?.click()} disabled={busy !== ''}>
-              <FileUp size={15} />
               Import JSON
             </button>
             <input

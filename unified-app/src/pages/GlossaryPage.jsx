@@ -1,6 +1,5 @@
 import React from 'react';
 import { Link, useParams } from 'react-router-dom';
-import { AlertTriangle, ArrowLeft, BookOpen, GitBranch, Lightbulb, Sigma } from 'lucide-react';
 import InlineMathText from '../components/common/InlineMathText';
 import { allAnimations } from '../data/animations.js';
 import { getGlossaryTerm, glossaryTerms } from '../data/glossaryRepository.js';
@@ -93,7 +92,7 @@ function RelationshipSection({ title, eyebrow, ids, fallback, excludeIds, prefer
               <img src={entry.image.src} alt={entry.image.alt} />
             ) : (
               <span className="ua-lesson-ref-icon">
-                <BookOpen size={18} />
+                §
               </span>
             )}
             <span>{entry.kind}</span>
@@ -192,8 +191,7 @@ export default function GlossaryPage() {
     return (
       <main className="ua-glossary-page">
         <Link to="/glossary" className="ua-back-link">
-          <ArrowLeft size={15} />
-          Back to glossary
+          ← Back to glossary
         </Link>
         <section className="ds-header">
           <div className="ds-eyebrow">Glossary</div>
@@ -212,8 +210,7 @@ export default function GlossaryPage() {
   return (
     <main className="ua-glossary-page">
       <Link to="/glossary" className="ua-back-link">
-        <ArrowLeft size={15} />
-        Back to glossary
+        ← Back to glossary
       </Link>
 
       <section className="ua-term-hero">
@@ -232,22 +229,18 @@ export default function GlossaryPage() {
 
       <section className="ua-term-notes">
         <article className="wide">
-          <BookOpen size={17} />
           <h2>What it means</h2>
           <p><InlineMathText>{term.explanation}</InlineMathText></p>
         </article>
         <article>
-          <Lightbulb size={17} />
           <h2>Intuition</h2>
           <p><InlineMathText>{term.intuition}</InlineMathText></p>
         </article>
         <article>
-          <Sigma size={17} />
           <h2>Example</h2>
           <p><InlineMathText>{term.example}</InlineMathText></p>
         </article>
         <article>
-          <AlertTriangle size={17} />
           <h2>Common pitfall</h2>
           <p><InlineMathText>{term.pitfall}</InlineMathText></p>
         </article>
@@ -258,7 +251,6 @@ export default function GlossaryPage() {
 
       <section className="ua-concept-graph" aria-label={`${term.term} concept graph`}>
         <div className="ua-concept-graph-head">
-          <GitBranch size={18} />
           <span>Concept graph</span>
         </div>
         <RelationshipSection

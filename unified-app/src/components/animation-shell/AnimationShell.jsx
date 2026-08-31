@@ -3,7 +3,6 @@ import { createPortal } from 'react-dom';
 import { Link } from 'react-router-dom';
 import {
   AlertTriangle,
-  BookOpen,
   ChevronLeft,
   ChevronRight,
   ClipboardCheck,
@@ -74,15 +73,14 @@ function MindmapFallback() {
 
 function LearningCards({ cards }) {
   return (
-    <aside className="ua-card-stack" aria-label="Learning cards">
+    <aside className="ua-card-stack" aria-label="Observations and notes">
       <div className="ua-learning-rail-head">
-        <BookOpen size={15} />
-        <span>Learning Cards</span>
+        <span>Field notes</span>
       </div>
-      {cards.map((card) => (
+      {cards.map((card, index) => (
         <section key={card.type} className={`ua-learning-card ${card.type}`}>
           <div className="ua-learning-card-head">
-            <span>{card.label}</span>
+            <span>{String(index + 1).padStart(2, '0')} / {card.label}</span>
             <h3>{card.title}</h3>
           </div>
           <p>{card.body}</p>
@@ -797,7 +795,7 @@ export default function AnimationShell({ animation, children }) {
 
   if (!model) {
     return (
-      <div className="ua-learning-shell">
+      <div className="ua-learning-shell" data-lesson-family={animation.categoryId}>
         <header className="ua-learning-strip">
           <div>
             <span>{animation.categoryName}</span>
@@ -810,6 +808,7 @@ export default function AnimationShell({ animation, children }) {
 
         <div className="ua-learning-grid">
           <main id="math-main-stage" className="ua-main-stage" aria-label={`${animation.name} animation stage`}>
+            <div className="ua-stage-annotation"><span>Fig. {animation.id}</span><span>Main visual / interactive</span></div>
             <div key={resetNonce} className="ua-stage-wrap">
               {children}
             </div>
@@ -817,8 +816,7 @@ export default function AnimationShell({ animation, children }) {
 
           <aside className="ua-card-stack" aria-label="Learning cards">
             <div className="ua-learning-rail-head">
-              <BookOpen size={15} />
-              <span>Learning Cards</span>
+              <span>Field notes</span>
             </div>
             <section className="ua-learning-card">
               <div className="ua-learning-card-head">
@@ -834,7 +832,7 @@ export default function AnimationShell({ animation, children }) {
   }
 
   return (
-    <div className="ua-learning-shell">
+    <div className="ua-learning-shell" data-lesson-family={animation.categoryId}>
       <header className="ua-learning-strip">
         <div>
           <span>{model.chips.category}</span>
@@ -850,22 +848,12 @@ export default function AnimationShell({ animation, children }) {
         </div>
       </header>
 
-      <MathControls
-        model={model}
-        activeWorkspaceTab={workspaceTab}
-        hasImages={lessonImages.length > 0}
-        onReset={resetStage}
-        onFocusStage={focusStage}
-        onOpenGlossary={() => openWorkspaceTab('glossary')}
-        onOpenImages={() => openWorkspaceTab('images')}
-      />
-
-      <Suspense fallback={<MindmapFallback />}>
-        <ConceptMindmap mindmap={model.mindmap} />
-      </Suspense>
-
       <div className="ua-learning-grid">
         <main id="math-main-stage" className="ua-main-stage" aria-label={`${animation.name} animation stage`}>
+          <div className="ua-stage-annotation">
+            <span>Fig. {animation.id}</span>
+            <span>Main visual / manipulate the experiment</span>
+          </div>
           <WorkspaceTabPortal
             activeTab={workspaceTab}
             tabs={workspaceTabs}
@@ -890,6 +878,23 @@ export default function AnimationShell({ animation, children }) {
 
         <LearningCards cards={model.learningCards} />
       </div>
+
+      <section className="ua-control-bench" aria-label="Lesson controls and references">
+        <div className="ua-control-bench-label"><span>What changes if…</span><small>Controls / references</small></div>
+        <MathControls
+          model={model}
+          activeWorkspaceTab={workspaceTab}
+          hasImages={lessonImages.length > 0}
+          onReset={resetStage}
+          onFocusStage={focusStage}
+          onOpenGlossary={() => openWorkspaceTab('glossary')}
+          onOpenImages={() => openWorkspaceTab('images')}
+        />
+      </section>
+
+      <Suspense fallback={<MindmapFallback />}>
+        <ConceptMindmap mindmap={model.mindmap} />
+      </Suspense>
     </div>
   );
 }

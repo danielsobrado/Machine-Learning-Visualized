@@ -1,6 +1,6 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
-import { BookOpen, Code2, Github, Menu, PanelLeft, PanelLeftClose, Settings } from 'lucide-react';
+import { Github, Menu, PanelLeft, PanelLeftClose, Settings } from 'lucide-react';
 import { readGitHubSyncSettings, GITHUB_SYNC_EVENT } from '../../data/githubProgressSync.js';
 
 export default function Header({
@@ -72,12 +72,10 @@ export default function Header({
           onClick={onOpenCommandPalette}
           aria-label="Open glossary search"
         >
-          <BookOpen size={16} />
-          Glossary
+          Search / Glossary
         </button>
         <Link to="/labs" className="ua-header-action">
-          <Code2 size={16} />
-          Labs
+          Code labs
         </Link>
         <Link
           to="/settings"

@@ -1,6 +1,5 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
-import { ArrowLeft, BookOpen } from 'lucide-react';
 import { getGlossaryTermsGroupedByCategory, glossaryTerms } from '../data/glossaryRepository.js';
 
 export default function GlossaryIndexPage() {
@@ -9,13 +8,11 @@ export default function GlossaryIndexPage() {
   return (
     <main className="ua-glossary-page">
       <Link to="/" className="ua-back-link">
-        <ArrowLeft size={15} />
-        Back to catalog
+        ← Back to index
       </Link>
 
       <section className="ds-header">
         <div className="ds-eyebrow">
-          <BookOpen size={14} />
           <span>Glossary</span>
           <span className="sep">/</span>
           <span>{glossaryTerms.length} terms</span>

@@ -16,11 +16,13 @@ const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
 const outDir = path.join(screenshotRoot, timestamp);
 const port = Number(process.env.THEME_AUDIT_PORT || 5317);
 const serverUrl = `http://127.0.0.1:${port}`;
-const baseUrl = `${serverUrl}/ml-animations`;
+const basePath = process.env.THEME_AUDIT_BASE_PATH || '/Machine-Learning-Visualized';
+const baseUrl = `${serverUrl}${basePath.replace(/\/$/, '')}`;
 const channel = process.env.THEME_AUDIT_CHANNEL || 'chrome';
 
 const args = new Set(process.argv.slice(2));
 const quick = args.has('--quick');
+const utilitiesOnly = args.has('--utilities');
 const keepServer = args.has('--keep-server');
 const routeFilter = valueAfter('--route');
 const limit = Number(valueAfter('--limit') || 0);
@@ -39,6 +41,7 @@ function slug(input) {
 }
 
 async function readCatalog() {
+  if (utilitiesOnly) return [];
   const source = await readFile(path.join(appRoot, 'src', 'data', 'animations.js'), 'utf8');
   const matches = [...source.matchAll(/\{\s*id:\s*'([^']+)',\s*name:\s*'([^']+)',\s*icon:\s*[^,]+,\s*description:\s*'([^']*)'/g)];
   let routes = matches.map((match) => ({
@@ -293,6 +296,34 @@ async function captureRoute(page, route, manifest) {
   }
 }
 
+async function captureUtilityRoute(browser, route, manifest) {
+  for (const viewport of [
+    { state: 'desktop', width: 1365, height: 900 },
+    { state: 'mobile', width: 390, height: 844 },
+  ]) {
+    const page = await newAuditPage(browser, { width: viewport.width, height: viewport.height });
+    try {
+      await page.goto(`${baseUrl}${route.path}`);
+      await waitForPage(page);
+      const file = path.join(outDir, 'utilities', route.id, `${viewport.state}.png`);
+      const bytes = await capture(page, file);
+      manifest.screens.push({
+        route: route.id,
+        state: viewport.state,
+        file: path.relative(repoRoot, file).replaceAll('\\', '/'),
+        screenshotBytes: bytes,
+        runtimeIssues: drainRuntimeIssues(page),
+        findings: [
+          ...(await themeFindings(page)),
+          ...(await healthFindings(page, bytes)),
+        ],
+      });
+    } finally {
+      await page.close();
+    }
+  }
+}
+
 async function newAuditPage(browser, viewport = { width: 1365, height: 900 }) {
   const page = await browser.newPage({ viewport, deviceScaleFactor: 1 });
   page.__themeAuditRuntimeIssues = [];
@@ -385,6 +416,15 @@ async function main() {
     });
 
     await page.setViewportSize({ width: 1365, height: 900 });
+    for (const utilityRoute of [
+      { id: 'labs', path: '/labs' },
+      { id: 'settings', path: '/settings' },
+      { id: 'glossary', path: '/glossary' },
+    ]) {
+      console.log(`Capturing ${utilityRoute.id}`);
+      await captureUtilityRoute(browser, utilityRoute, manifest);
+    }
+
     const routes = await readCatalog();
     for (const route of routes) {
       console.log(`Capturing ${route.id}`);

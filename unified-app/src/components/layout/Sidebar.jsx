@@ -1,6 +1,5 @@
 import React from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import { Search } from 'lucide-react';
 import { categories } from '../../data/animations';
 import { formatLessonCatalogNumber } from '../../data/lessonCatalogNumbers';
 
@@ -21,7 +20,6 @@ export default function Sidebar({ isOpen, isCollapsed, onClose, onOpenCommandPal
         <nav className="ua-sidebar-nav">
           {!isCollapsed && (
             <button type="button" className="ua-sidebar-search" onClick={onOpenCommandPalette}>
-              <Search size={14} />
               <span>Search lessons</span>
               <kbd>/</kbd>
             </button>
