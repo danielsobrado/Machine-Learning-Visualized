@@ -63,6 +63,10 @@ jobs:
         continue-on-error: true
         run: node --test src/data/probabilityDistributionsAssessment.test.mjs
 
+      - name: Check classical ML and statistics depth
+        continue-on-error: true
+        run: node --test src/data/classicalMlStatisticsCoverage.test.mjs
+
       - name: Run tests
         run: |
           set -o pipefail

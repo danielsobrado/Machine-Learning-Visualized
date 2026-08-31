@@ -36,11 +36,13 @@ export const CLASSICAL_ML_STATISTICS_COVERAGE = Object.freeze({
   ]),
   calibration: requirement([
     'calibration-shift-recalibration',
+    'calibration-reliability-gap-worked',
   ]),
   'train-validation-test-split': requirement([
     'split-grouped-entity',
     'split-train-serve-semantics',
     'split-reused-selection-contamination',
+    'split-entity-generalization-worked',
   ]),
   'cross-validation': requirement([
     'cv-repeated-stratified',
@@ -69,10 +71,12 @@ export const CLASSICAL_ML_STATISTICS_COVERAGE = Object.freeze({
     'bias-variance-noisy-labels',
     'bias-variance-more-data',
     'bias-variance-regularization-tradeoff',
+    'bias-variance-learning-curve-worked',
   ]),
   regularization: requirement([
     'regularization-family-comparison',
     'regularization-early-stopping-augmentation',
+    'regularization-validation-curve-worked',
   ]),
   'k-means': requirement([
     'kmeans-nonspherical-failure',
@@ -87,6 +91,7 @@ export const CLASSICAL_ML_STATISTICS_COVERAGE = Object.freeze({
     'classifier-family-imbalance',
     'classifier-family-model-choice',
     'classifier-boundary-brittleness',
+    'classifier-family-latency-tradeoff-worked',
   ]),
   'tree-ensembles': requirement([
     'tree-attribution-correlated-features',
@@ -113,6 +118,7 @@ export const CLASSICAL_ML_STATISTICS_COVERAGE = Object.freeze({
   'bayes-rule-ml': requirement([
     'bayes-classifier-posterior-threshold',
     'bayes-confusion-matrix-bridge',
+    'bayes-base-rate-worked',
   ]),
   'maximum-likelihood-estimation': requirement([
     'mle-vs-map-prior',
@@ -123,6 +129,7 @@ export const CLASSICAL_ML_STATISTICS_COVERAGE = Object.freeze({
     'loss-categorical-nll',
     'loss-label-smoothing',
     'loss-robust-outliers',
+    'loss-huber-outlier-worked',
   ]),
   'probability-distributions': requirement([
     'prob-visual-normal-spread',
@@ -137,6 +144,7 @@ export const CLASSICAL_ML_STATISTICS_COVERAGE = Object.freeze({
   'sampling-confidence-intervals': requirement([
     'ci-bootstrap-skewed-statistic',
     'ci-frequentist-interpretation',
+    'ci-clustered-sampling-unit-decision',
   ]),
   'hypothesis-testing-intuition': requirement([
     'hypothesis-one-vs-two-sided',
@@ -156,14 +164,17 @@ export const CLASSICAL_ML_STATISTICS_COVERAGE = Object.freeze({
   ]),
   'sequential-testing-peeking': requirement([
     'sequential-boundary-shape',
+    'sequential-three-look-boundary-worked',
   ]),
   'cuped-variance-reduction': requirement([
     'cuped-bad-covariate',
     'cuped-multiple-pretreatment-covariates',
+    'cuped-variance-reduction-worked',
   ]),
   'confounding-simpsons-paradox': requirement([
     'simpson-standardization',
     'simpson-effect-modification-vs-confounding',
+    'simpson-standardized-rate-worked',
   ]),
   'causal-graphs-dags': requirement([
     'dag-mediator-adjustment',
@@ -174,6 +185,7 @@ export const CLASSICAL_ML_STATISTICS_COVERAGE = Object.freeze({
   'treatment-effects': requirement([
     'cate-subgroup-uncertainty',
     'cate-subgroup-multiple-testing',
+    'cate-uncertainty-worked-decision',
   ]),
   'propensity-scores': requirement([
     'propensity-balance-smd',
@@ -183,6 +195,7 @@ export const CLASSICAL_ML_STATISTICS_COVERAGE = Object.freeze({
   'spearman-correlation': requirement([
     'spearman-tied-ranks',
     'spearman-nonmonotonic',
+    'spearman-tied-ranks-worked',
   ]),
 });
 
@@ -199,6 +212,12 @@ export const CLASSICAL_ML_STATISTICS_DEPTH_REQUIREMENTS = Object.freeze([
   depthRequirement('rare-class-operating-point-calculation', 'roc-pr-curves', [
     'roc-pr-rare-positive-worked',
   ]),
+  depthRequirement('calibration-reliability-gap-calculation', 'calibration', [
+    'calibration-reliability-gap-worked',
+  ]),
+  depthRequirement('entity-generalization-split-decision', 'train-validation-test-split', [
+    'split-entity-generalization-worked',
+  ]),
   depthRequirement('nested-model-selection-design', 'cross-validation', [
     'cv-nested-selection-design-worked',
   ]),
@@ -211,8 +230,17 @@ export const CLASSICAL_ML_STATISTICS_DEPTH_REQUIREMENTS = Object.freeze([
   depthRequirement('model-selection-reuse-diagnosis', 'overfitting', [
     'overfit-model-selection-reuse-worked',
   ]),
+  depthRequirement('learning-curve-bias-variance-diagnosis', 'bias-variance-tradeoff', [
+    'bias-variance-learning-curve-worked',
+  ]),
+  depthRequirement('regularization-validation-tradeoff-decision', 'regularization', [
+    'regularization-validation-curve-worked',
+  ]),
   depthRequirement('cluster-count-stability-decision', 'k-means', [
     'kmeans-k-stability-worked-decision',
+  ]),
+  depthRequirement('classifier-serving-tradeoff-decision', 'knn-naive-bayes-svm', [
+    'classifier-family-latency-tradeoff-worked',
   ]),
   depthRequirement('prediction-time-feature-leakage-diagnosis', 'tree-ensembles', [
     'tree-post-outcome-feature-diagnosis',
@@ -223,14 +251,23 @@ export const CLASSICAL_ML_STATISTICS_DEPTH_REQUIREMENTS = Object.freeze([
   depthRequirement('quantile-loss-calculation', 'time-series-forecasting-track', [
     'ts-pinball-loss-worked',
   ]),
-  depthRequirement('count-distribution-assumption-diagnosis', 'probability-distributions', [
-    'prob-overdispersion-poisson',
-  ]),
   depthRequirement('ranking-metric-calculation', 'recommender-systems-ranking-track', [
     'rec-ndcg-worked-calculation',
   ]),
+  depthRequirement('bayes-base-rate-calculation', 'bayes-rule-ml', [
+    'bayes-base-rate-worked',
+  ]),
   depthRequirement('mle-map-worked-estimate', 'maximum-likelihood-estimation', [
     'mle-map-bernoulli-worked',
+  ]),
+  depthRequirement('robust-loss-outlier-calculation', 'loss-functions-likelihoods', [
+    'loss-huber-outlier-worked',
+  ]),
+  depthRequirement('count-distribution-assumption-diagnosis', 'probability-distributions', [
+    'prob-overdispersion-poisson',
+  ]),
+  depthRequirement('clustered-sampling-unit-design', 'sampling-confidence-intervals', [
+    'ci-clustered-sampling-unit-decision',
   ]),
   depthRequirement('multiplicity-objective-choice', 'hypothesis-testing-intuition', [
     'hypothesis-fdr-vs-fwer-decision',
@@ -241,10 +278,25 @@ export const CLASSICAL_ML_STATISTICS_DEPTH_REQUIREMENTS = Object.freeze([
   depthRequirement('continuous-outcome-power-reasoning', 'power-sample-size', [
     'power-continuous-outcome-variance',
   ]),
+  depthRequirement('planned-multiple-look-threshold-calculation', 'sequential-testing-peeking', [
+    'sequential-three-look-boundary-worked',
+  ]),
+  depthRequirement('cuped-variance-reduction-calculation', 'cuped-variance-reduction', [
+    'cuped-variance-reduction-worked',
+  ]),
+  depthRequirement('simpson-standardization-calculation', 'confounding-simpsons-paradox', [
+    'simpson-standardized-rate-worked',
+  ]),
   depthRequirement('causal-estimand-mediator-decision', 'causal-graphs-dags', [
     'dag-mediator-total-effect-decision',
   ]),
+  depthRequirement('cate-uncertainty-decision', 'treatment-effects', [
+    'cate-uncertainty-worked-decision',
+  ]),
   depthRequirement('positivity-overlap-estimand-decision', 'propensity-scores', [
     'propensity-positivity-overlap-decision',
+  ]),
+  depthRequirement('spearman-tied-rank-calculation', 'spearman-correlation', [
+    'spearman-tied-ranks-worked',
   ]),
 ]);
