@@ -83,6 +83,10 @@ jobs:
         continue-on-error: true
         run: node --test src/data/ragCoverage.test.mjs
 
+      - name: Check production ML depth
+        continue-on-error: true
+        run: node --test src/data/productionMlCoverage.test.mjs
+
       - name: Run tests
         run: |
           set -o pipefail
