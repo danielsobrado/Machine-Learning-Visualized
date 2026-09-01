@@ -1,0 +1,38 @@
+/* Shared Recharts tooltip theme.
+   Inline legacy colours are intentionally overridden so every chart uses the
+   same paper, ink, rule, and type hierarchy. */
+#root .recharts-default-tooltip {
+  margin: 0 !important;
+  padding: 9px 11px !important;
+  border: 1px solid var(--ds-rule) !important;
+  border-radius: 2px !important;
+  background: var(--ds-panel) !important;
+  box-shadow: none !important;
+  color: var(--ds-ink) !important;
+  font-family: var(--ds-font-sans) !important;
+  font-size: 12px !important;
+}
+
+#root .recharts-tooltip-label {
+  margin: 0 0 5px !important;
+  color: var(--ds-ink) !important;
+  font-family: var(--ds-font-mono) !important;
+  font-size: 10px !important;
+  font-weight: 600 !important;
+  letter-spacing: 0.08em !important;
+}
+
+#root .recharts-tooltip-item-list {
+  margin: 0 !important;
+  padding: 0 !important;
+}
+
+#root .recharts-tooltip-item,
+#root .recharts-tooltip-item-name,
+#root .recharts-tooltip-item-separator,
+#root .recharts-tooltip-item-value {
+  color: var(--ds-faint) !important;
+  font-family: var(--ds-font-sans) !important;
+  font-size: 12px !important;
+}
+

@@ -140,8 +140,6 @@ export default function DiscretePanel() {
                         <XAxis dataKey="k" stroke="#94a3b8" tick={{ fill: '#cbd5e1' }} label={{ value: 'k (outcome)', position: 'insideBottom', offset: -5, fill: '#cbd5e1' }} />
                         <YAxis stroke="#94a3b8" tick={{ fill: '#cbd5e1' }} label={{ value: 'P(X = k)', angle: -90, position: 'insideLeft', fill: '#cbd5e1' }} />
                         <Tooltip
-                            contentStyle={{ backgroundColor: 'var(--ds-panel)', border: 'var(--ds-border)', borderRadius: '2px', color: 'var(--ds-ink)' }}
-                            labelStyle={{ color: '#e2e8f0' }}
                             formatter={(value) => [(value * 100).toFixed(2) + '%', 'Probability']}
                         />
                         <Bar dataKey="prob" radius={[8, 8, 0, 0]}>

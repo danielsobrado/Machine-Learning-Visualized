@@ -98,8 +98,6 @@ export default function BayesPanel() {
                         <XAxis dataKey="name" stroke="#94a3b8" tick={{ fill: '#cbd5e1' }} />
                         <YAxis domain={[0, 100]} stroke="#94a3b8" tick={{ fill: '#cbd5e1' }} label={{ value: 'Probability (%)', angle: -90, position: 'insideLeft', fill: '#cbd5e1' }} />
                         <Tooltip
-                            contentStyle={{ backgroundColor: 'var(--ds-panel)', border: 'var(--ds-border)', borderRadius: '2px', color: 'var(--ds-ink)' }}
-                            labelStyle={{ color: '#e2e8f0' }}
                         />
                         <Bar dataKey="value" radius={[8, 8, 0, 0]}>
                             {chartData.map((entry, index) => (

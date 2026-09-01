@@ -103,8 +103,6 @@ export default function SearchPanel() {
                             <XAxis type="number" domain={[0, 100]} stroke="#94a3b8" tick={{ fill: '#cbd5e1' }} />
                             <YAxis type="category" dataKey="name" stroke="#94a3b8" tick={{ fill: '#cbd5e1' }} />
                             <Tooltip
-                                contentStyle={{ backgroundColor: 'var(--ds-panel)', border: 'var(--ds-border)', borderRadius: '2px', color: 'var(--ds-ink)' }}
-                                labelStyle={{ color: '#e2e8f0' }}
                                 itemStyle={{ color: '#22d3ee' }}
                             />
                             <Bar dataKey="score" radius={[0, 8, 8, 0]}>

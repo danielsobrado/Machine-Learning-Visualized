@@ -99,7 +99,7 @@ export default function EntropyPanel() {
                                 <CartesianGrid strokeDasharray="3 3" stroke="#374151" />
                                 <XAxis dataKey="name" stroke="#94a3b8" />
                                 <YAxis domain={[0, 1]} stroke="#94a3b8" />
-                                <Tooltip cursor={{ fill: 'var(--ds-paper-2)' }} contentStyle={{ backgroundColor: 'var(--ds-panel)', border: 'var(--ds-border)', borderRadius: '2px', color: 'var(--ds-ink)' }} />
+                                <Tooltip cursor={{ fill: 'var(--ds-paper-2)' }} />
                                 <Bar dataKey="prob" fill="#fb7185" radius={[4, 4, 0, 0]}>
                                     {data.map((entry, index) => (
                                         <Cell key={`cell-${index}`} fillOpacity={0.6 + (entry.prob * 0.4)} />

@@ -188,8 +188,6 @@ export default function ContinuousPanel() {
                         <XAxis dataKey="x" stroke="#94a3b8" tick={{ fill: '#cbd5e1' }} label={{ value: 'x', position: 'insideBottom', offset: -5, fill: '#cbd5e1' }} />
                         <YAxis stroke="#94a3b8" tick={{ fill: '#cbd5e1' }} label={{ value: 'f(x)', angle: -90, position: 'insideLeft', fill: '#cbd5e1' }} />
                         <Tooltip
-                            contentStyle={{ backgroundColor: 'var(--ds-panel)', border: 'var(--ds-border)', borderRadius: '2px', color: 'var(--ds-ink)' }}
-                            labelStyle={{ color: '#e2e8f0' }}
                         />
                         <Area type="monotone" dataKey="pdf" stroke={distType === 'normal' ? '#a855f7' : '#ec4899'} fillOpacity={1} fill="url(#colorPdf)" />
                         <ReferenceLine x={rangeA} stroke="#22d3ee" strokeWidth={2} strokeDasharray="5 5" />

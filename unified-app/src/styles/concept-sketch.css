@@ -1,0 +1,43 @@
+.ua-concept-sketch .soft-fill {
+  fill: var(--ds-accent-w);
+}
+
+.ua-concept-sketch .accent-stroke {
+  fill: none;
+  stroke: var(--ds-accent);
+  stroke-width: 1.8;
+}
+
+.ua-concept-sketch .rust-stroke {
+  fill: none;
+  stroke: var(--ds-warm);
+  stroke-width: 1.6;
+}
+
+.ua-concept-sketch .muted-stroke {
+  fill: none;
+  stroke: var(--ds-hair);
+}
+
+.ua-concept-sketch .dash {
+  stroke-dasharray: 3 3;
+}
+
+.ua-concept-sketch .thin {
+  stroke-width: 0.8;
+}
+
+.ua-concept-sketch .ink-fill {
+  fill: var(--ds-ink);
+}
+
+.ua-concept-sketch .accent-soft-fill {
+  fill: rgba(38, 66, 115, 0.1);
+  stroke: var(--ds-accent);
+}
+
+.ua-concept-sketch .warm-soft-fill {
+  fill: rgba(168, 90, 58, 0.1);
+  stroke: var(--ds-warm);
+}
+

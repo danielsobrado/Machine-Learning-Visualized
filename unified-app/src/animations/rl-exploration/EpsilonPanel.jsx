@@ -104,7 +104,7 @@ export default function EpsilonPanel() {
                                         <Cell key={`cell-${index}`} fill={entry.color} />
                                     ))}
                                 </Pie>
-                                <Tooltip contentStyle={{ backgroundColor: 'var(--ds-panel)', border: 'var(--ds-border)', borderRadius: '2px', color: 'var(--ds-ink)' }} />
+                                <Tooltip />
                             </PieChart>
                         </ResponsiveContainer>
 

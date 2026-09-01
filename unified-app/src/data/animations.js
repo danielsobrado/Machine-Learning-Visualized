@@ -2026,6 +2026,141 @@ const CANONICAL_CATEGORY_BY_ANIMATION_ID = {
   'coconut-latent-reasoning': 'transformers',
 };
 
+// Concept sketches are curriculum metadata, not decorations inferred from a
+// lesson title. Category defaults provide a deliberate baseline and explicit
+// lesson overrides select the visual grammar that best matches the concept.
+export const VISUAL_SIGNATURES = Object.freeze([
+  'regression',
+  'classification-boundary',
+  'distribution',
+  'bayes',
+  'roc-pr',
+  'calibration',
+  'clustering',
+  'matrix',
+  'tree',
+  'dag',
+  'neural-network',
+  'attention',
+  'sequence',
+  'time-series',
+  'rl-loop',
+  'diffusion',
+  'ranking',
+  'retrieval',
+  'embedding-space',
+  'optimization',
+]);
+
+const DEFAULT_VISUAL_SIGNATURE_BY_CATEGORY = Object.freeze({
+  nlp: 'sequence',
+  transformers: 'attention',
+  papers: 'attention',
+  'frontier-llms': 'attention',
+  'neural-networks': 'neural-network',
+  'advanced-models': 'retrieval',
+  'math-fundamentals': 'matrix',
+  'core-ml': 'classification-boundary',
+  'model-reliability': 'calibration',
+  'experimentation-causal-ml': 'dag',
+  'probability-stats': 'distribution',
+  'reinforcement-learning': 'rl-loop',
+  algorithms: 'ranking',
+  'diffusion-models': 'diffusion',
+});
+
+const VISUAL_SIGNATURE_GROUPS = Object.freeze({
+  regression: [
+    'linear-regression', 'bias-variance-tradeoff', 'regularization',
+    'train-validation-test-split', 'cross-validation', 'overfitting',
+  ],
+  'classification-boundary': [
+    'logistic-regression', 'knn-naive-bayes-svm', 'classification-metrics',
+    'model-debugging', 'model-interpretability', 'ml-security-robustness-track',
+  ],
+  distribution: [
+    'softmax', 'probability-distributions', 'sampling-confidence-intervals',
+    'hypothesis-testing-intuition', 'maximum-likelihood-estimation',
+    'loss-functions-likelihoods', 'expected-value-variance', 'entropy',
+    'cross-entropy', 'sampling-strategies', 'initialization',
+  ],
+  bayes: ['conditional-probability', 'bayes-rule-ml'],
+  'roc-pr': ['roc-pr-curves'],
+  calibration: [
+    'calibration', 'model-monitoring', 'model-fairness', 'uncertainty-estimation',
+    'frontier-evaluation-safety', 'rag-retrieval-evaluation',
+  ],
+  clustering: ['k-means'],
+  matrix: [
+    'matrix-multiplication', 'matrix-decompositions', 'fundamental-subspaces',
+    'least-squares-projection', 'pseudoinverse', 'change-of-basis',
+    'condition-number', 'determinant-volume', 'projection-matrices',
+    'low-rank-approximation', 'eigenvalue', 'svd', 'qr-decomposition',
+    'layer-normalization', 'turboquant',
+  ],
+  tree: ['tree-ensembles', 'moe', 'frontier-moe-systems', 'bloom-filter'],
+  dag: [
+    'confounding-simpsons-paradox', 'causal-graphs-dags', 'treatment-effects',
+    'propensity-scores', 'ab-testing-foundations', 'power-sample-size',
+    'sequential-testing-peeking', 'cuped-variance-reduction',
+  ],
+  'neural-network': [
+    'relu', 'leaky-relu', 'neural-network', 'computation-graph-backprop',
+    'conv2d', 'max-pooling', 'conv-relu', 'dropout-batchnorm',
+    'multimodal-llm', 'omni-multimodal-architectures',
+  ],
+  attention: [
+    'attention-mechanism', 'self-attention', 'attention-masks', 'transformer',
+    'transformer-architecture-families', 'grouped-query-attention', 'kv-cache',
+    'flash-attention', 'spec-sparse-attention', 'multi-head-latent-attention',
+    'native-sparse-attention', 'bert', 'gpt2-comprehensive', 'joint-attention',
+    'frontier-llm-architecture-overview',
+  ],
+  sequence: [
+    'bag-of-words', 'tokenization', 'lstm', 'transformer-token-generation',
+    'coconut-latent-reasoning', 'residual-stream', 'tokenizer-bpe', 'markov-chains',
+  ],
+  'time-series': [
+    'positional-encoding', 'rope', 'time-series-forecasting-track',
+    'long-context-frontier-models', 'training-loop-dynamics',
+  ],
+  'rl-loop': [
+    'rl-foundations', 'mdp-formalism', 'value-iteration', 'policy-iteration',
+    'q-learning', 'rl-exploration', 'policy-gradients', 'actor-critic',
+    'ppo-clipped-policy-gradient', 'reward-shaping', 'grpo-reasoning',
+    'dapo-reasoning-rl', 'reasoning-rlvr-grpo',
+  ],
+  diffusion: [
+    'diffusion-language-models', 'diffusion-basics', 'diffusion-sampling',
+    'classifier-free-guidance', 'unet-vs-dit', 'sd3-overview', 'flow-matching',
+    'dit',
+  ],
+  ranking: [
+    'recommender-systems-ranking-track', 'pagerank',
+    'efficient-inference-compression-track', 'test-time-compute-thinking-budgets',
+  ],
+  retrieval: [
+    'rag', 'rag-chunking-context', 'rag-reranking-grounding', 'rag-failure-modes',
+    'tool-using-reasoning-models', 'agentic-coding-systems',
+    'efficient-llm-serving', 'data-engineering-for-ml-track',
+  ],
+  'embedding-space': [
+    'word2vec', 'glove', 'fasttext', 'embeddings', 'pca', 'cosine-similarity',
+    'rag-vector-indexing', 'vae', 'diffusion-vae', 'clip-encoder', 't5-encoder',
+    'spearman-correlation',
+  ],
+  optimization: [
+    'gradient-descent', 'optimization', 'optimizers', 'gradient-problems',
+    'llm-training-objectives', 'fine-tuning', 'feature-scaling-preprocessing',
+  ],
+});
+
+const VISUAL_SIGNATURE_BY_ANIMATION_ID = Object.freeze(Object.fromEntries(
+  Object.entries(VISUAL_SIGNATURE_GROUPS).flatMap(([signature, ids]) => (
+    ids.map((id) => [id, signature])
+  )),
+));
+
 // Flatten all canonical items for search, labs, and curriculum lookups.
 export const allAnimations = categories.flatMap(category =>
   category.items
@@ -2038,6 +2173,10 @@ export const allAnimations = categories.flatMap(category =>
       categoryId: category.id,
       categoryName: category.name,
       categoryColor: category.color,
+      visualSignature:
+        VISUAL_SIGNATURE_BY_ANIMATION_ID[item.id] ||
+        DEFAULT_VISUAL_SIGNATURE_BY_CATEGORY[category.id] ||
+        'regression',
       ...makeCurriculumMetadata(item, category),
     }))
 );

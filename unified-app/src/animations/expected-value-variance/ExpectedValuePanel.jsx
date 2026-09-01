@@ -48,7 +48,6 @@ export default function ExpectedValuePanel() {
                         <XAxis dataKey="face" stroke="#94a3b8" tick={{ fill: '#cbd5e1' }} label={{ value: 'Die Face', position: 'insideBottom', offset: -5, fill: '#cbd5e1' }} />
                         <YAxis stroke="#94a3b8" tick={{ fill: '#cbd5e1' }} label={{ value: 'Probability', angle: -90, position: 'insideLeft', fill: '#cbd5e1' }} />
                         <Tooltip
-                            contentStyle={{ backgroundColor: 'var(--ds-panel)', border: 'var(--ds-border)', borderRadius: '2px', color: 'var(--ds-ink)' }}
                             formatter={(value) => [(value * 100).toFixed(1) + '%', 'P(X)']}
                         />
                         <ReferenceLine x={expectedValue} stroke="#fbbf24" strokeWidth={3} label={{ value: `E[X] = ${expectedValue.toFixed(2)}`, position: 'top', fill: '#fbbf24', fontWeight: 'bold' }} />

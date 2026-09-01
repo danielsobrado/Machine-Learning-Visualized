@@ -69,7 +69,7 @@ export default function HomePage() {
           Read it as a syllabus; use it as a laboratory notebook.
         </p>
         <div className="ua-hero-notation" aria-hidden="true">
-          <ConceptSketch animation={{ id: 'linear-regression' }} label="Regression sketch" />
+          <ConceptSketch animation={{ visualSignature: 'regression' }} label="Regression sketch" />
           <span>observations → model → prediction</span>
         </div>
       </section>
@@ -168,7 +168,7 @@ export default function HomePage() {
                 <Link className="ua-toc-item" key={item.id} to={`/animation/${item.id}`}>
                   <span className="ua-toc-num">{formatLessonCatalogNumber(categoryIndex, itemIndex)}</span>
                   <span className="ua-toc-title">{item.name}</span><span className="ua-toc-desc">{item.description}</span>
-                  <ConceptSketch animation={{ ...item, categoryId: category.id }} label={item.name} /><span className="ua-toc-open">Open ↗</span>
+                  <ConceptSketch animation={animationById.get(item.id) || item} label={item.name} /><span className="ua-toc-open">Open ↗</span>
                 </Link>
               ))}
             </div>

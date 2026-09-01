@@ -47,7 +47,6 @@ export default function ComparisonPanel() {
                             <XAxis dataKey="k" stroke="#94a3b8" tick={{ fill: '#cbd5e1' }} />
                             <YAxis stroke="#94a3b8" tick={{ fill: '#cbd5e1' }} />
                             <Tooltip
-                                contentStyle={{ backgroundColor: 'var(--ds-panel)', border: 'var(--ds-border)', borderRadius: '2px', color: 'var(--ds-ink)' }}
                                 formatter={(value) => [(value * 100).toFixed(2) + '%', 'P(X = k)']}
                             />
                             <Bar dataKey="prob" fill="#6366f1" radius={[8, 8, 0, 0]} />
@@ -96,7 +95,6 @@ export default function ComparisonPanel() {
                             <XAxis dataKey="x" stroke="#94a3b8" tick={{ fill: '#cbd5e1' }} />
                             <YAxis stroke="#94a3b8" tick={{ fill: '#cbd5e1' }} />
                             <Tooltip
-                                contentStyle={{ backgroundColor: 'var(--ds-panel)', border: 'var(--ds-border)', borderRadius: '2px', color: 'var(--ds-ink)' }}
                                 formatter={(value) => [value.toFixed(4), 'f(x)']}
                             />
                             <Area type="monotone" dataKey="pdf" stroke="#a855f7" fillOpacity={1} fill="url(#colorPdf2)" />

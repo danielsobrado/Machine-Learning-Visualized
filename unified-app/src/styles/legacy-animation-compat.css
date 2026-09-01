@@ -1,0 +1,111 @@
+/* Legacy Tailwind animation surfaces are translated here, away from the app
+   shell and editorial page styles. This bridge can shrink as lessons adopt
+   notebook-native primitives. */
+#root .ua-stage-wrap :where(div, section, article, aside)[class*="bg-black"],
+#root .ua-stage-wrap :where(div, section, article, aside)[class*="bg-slate-900"],
+#root .ua-stage-wrap :where(div, section, article, aside)[class*="bg-gray-900"],
+#root .ua-stage-wrap :where(div, section, article, aside)[class*="bg-slate-800"],
+#root .ua-stage-wrap :where(div, section, article, aside)[class*="bg-gray-800"],
+#root .ua-stage-wrap :where(div, section, article, aside, p, span, code, pre, li, td, th, svg, figure, label, dl, dd, blockquote)[class~="bg-white"],
+#root .ua-stage-wrap :where(div, section, article, aside, p, span, code, pre, li, td, th, svg, figure, label, dl, dd, blockquote)[class*="bg-white/"],
+#root .ua-stage-wrap :where(div, section, article, aside, p, span, code, pre, li, td, th, svg, figure, label, dl, dd, blockquote)[class*="bg-slate-50"],
+#root .ua-stage-wrap :where(div, section, article, aside, p, span, code, pre, li, td, th, svg, figure, label, dl, dd, blockquote)[class*="bg-slate-100"],
+#root .ua-stage-wrap :where(div, section, article, aside, p, span, code, pre, li, td, th, svg, figure, label, dl, dd, blockquote)[class*="bg-gray-50"],
+#root .ua-stage-wrap :where(div, section, article, aside, p, span, code, pre, li, td, th, svg, figure, label, dl, dd, blockquote)[class*="bg-gray-100"],
+#root .ua-stage-wrap :where(div, section, article, aside, p, span, code, pre, li, td, th, svg, figure, label, dl, dd, blockquote)[class*="bg-neutral-50"],
+#root .ua-stage-wrap :where(div, section, article, aside, p, span, code, pre, li, td, th, svg, figure, label, dl, dd, blockquote)[class*="bg-neutral-100"],
+#root .ua-stage-wrap :where(div, section, article, aside, p, span, code, pre, li, td, th, svg, figure, label, dl, dd, blockquote)[class*="bg-zinc-50"],
+#root .ua-stage-wrap :where(div, section, article, aside, p, span, code, pre, li, td, th, svg, figure, label, dl, dd, blockquote)[class*="bg-zinc-100"],
+#root .ua-stage-wrap :where(div, section, article, aside, p, span, code, pre, li, td, th, svg, figure, label, dl, dd, blockquote)[class*="bg-stone-50"],
+#root .ua-stage-wrap :where(div, section, article, aside, p, span, code, pre, li, td, th, svg, figure, label, dl, dd, blockquote)[class*="bg-stone-100"],
+#root .ua-stage-wrap :where(div, section, article, aside)[class*="backdrop-blur"],
+#root .ua-stage-wrap :where(div, section, article, aside)[class*="from-"][class*="to-"] {
+  background: var(--ds-panel) !important;
+  border-color: var(--ds-rule) !important;
+  box-shadow: none !important;
+}
+
+#root .ua-stage-wrap :where(div, section, article, aside)[class*="bg-red-"],
+#root .ua-stage-wrap :where(div, section, article, aside)[class*="bg-orange-"],
+#root .ua-stage-wrap :where(div, section, article, aside)[class*="bg-amber-"],
+#root .ua-stage-wrap :where(div, section, article, aside)[class*="bg-rose-"],
+#root .ua-stage-wrap :where(div, section, article, aside)[class*="bg-yellow-"] {
+  background: var(--ds-warm-w) !important;
+  border-color: rgba(168, 90, 58, 0.28) !important;
+  box-shadow: none !important;
+}
+
+#root .ua-stage-wrap :where(div, section, article, aside)[class*="bg-blue-"],
+#root .ua-stage-wrap :where(div, section, article, aside)[class*="bg-indigo-"],
+#root .ua-stage-wrap :where(div, section, article, aside)[class*="bg-cyan-"],
+#root .ua-stage-wrap :where(div, section, article, aside)[class*="bg-sky-"],
+#root .ua-stage-wrap :where(div, section, article, aside)[class*="bg-purple-"],
+#root .ua-stage-wrap :where(div, section, article, aside)[class*="bg-violet-"],
+#root .ua-stage-wrap :where(div, section, article, aside)[class*="bg-pink-"] {
+  background: var(--ds-accent-w) !important;
+  border-color: rgba(38, 66, 115, 0.22) !important;
+  box-shadow: none !important;
+}
+
+#root .ua-stage-wrap :where(div, section, article, aside)[class*="bg-green-"],
+#root .ua-stage-wrap :where(div, section, article, aside)[class*="bg-emerald-"],
+#root .ua-stage-wrap :where(div, section, article, aside)[class*="bg-teal-"] {
+  background: #f3f9ef !important;
+  border-color: rgba(58, 106, 58, 0.24) !important;
+  box-shadow: none !important;
+}
+
+#root .ua-stage-wrap :where(h1, h2, h3, h4, p, span, li, label, strong, div)[class*="text-white"],
+#root .ua-stage-wrap :where(h1, h2, h3, h4, p, span, li, label, strong, div)[class*="text-gray-100"],
+#root .ua-stage-wrap :where(h1, h2, h3, h4, p, span, li, label, strong, div)[class*="text-slate-100"],
+#root .ua-stage-wrap :where(h1, h2, h3, h4, p, span, li, label, strong, div)[class*="text-neutral-100"],
+#root .ua-stage-wrap :where(h1, h2, h3, h4, p, span, li, label, strong, div)[class*="text-stone-100"],
+#root .ua-stage-wrap :where(h1, h2, h3, h4, p, span, li, label, strong, div)[class*="text-zinc-100"] {
+  color: var(--ds-ink) !important;
+}
+
+#root .ua-stage-wrap :where(p, span, li, label, div)[class*="text-gray-300"],
+#root .ua-stage-wrap :where(p, span, li, label, div)[class*="text-slate-300"],
+#root .ua-stage-wrap :where(p, span, li, label, div)[class*="text-gray-400"],
+#root .ua-stage-wrap :where(p, span, li, label, div)[class*="text-slate-400"],
+#root .ua-stage-wrap :where(p, span, li, label, div)[class*="text-neutral-300"],
+#root .ua-stage-wrap :where(p, span, li, label, div)[class*="text-neutral-400"],
+#root .ua-stage-wrap :where(p, span, li, label, div)[class*="text-stone-300"],
+#root .ua-stage-wrap :where(p, span, li, label, div)[class*="text-stone-400"],
+#root .ua-stage-wrap :where(p, span, li, label, div)[class*="text-zinc-300"],
+#root .ua-stage-wrap :where(p, span, li, label, div)[class*="text-zinc-400"] {
+  color: var(--ds-faint) !important;
+}
+
+#root .ua-stage-wrap [class*="rounded"]:not([class*="rounded-full"]) {
+  border-radius: 2px !important;
+}
+
+/* Dark plotting surfaces remain instrument readouts while their app chrome is paper. */
+#root .ua-stage-wrap div.min-h-full[class*="bg-slate-950"],
+#root .ua-stage-wrap div.min-h-full[class*="bg-gray-950"],
+#root .ua-stage-wrap div.min-h-full[class*="bg-neutral-950"],
+#root .ua-stage-wrap div.min-h-full[class*="bg-stone-950"],
+#root .ua-stage-wrap div.min-h-full[class*="bg-zinc-950"] {
+  background: var(--ds-paper) !important;
+  color: var(--ds-ink) !important;
+}
+
+#root .ua-stage-wrap :where(section, article, aside)[class*="bg-neutral-900"],
+#root .ua-stage-wrap :where(section, article, aside)[class*="bg-neutral-800"],
+#root .ua-stage-wrap :where(section, article, aside)[class*="bg-stone-900"],
+#root .ua-stage-wrap :where(section, article, aside)[class*="bg-stone-800"],
+#root .ua-stage-wrap :where(section, article, aside)[class*="bg-zinc-900"],
+#root .ua-stage-wrap :where(section, article, aside)[class*="bg-zinc-800"] {
+  background: var(--ds-panel) !important;
+  border-color: var(--ds-rule) !important;
+  box-shadow: none !important;
+}
+
+#root .ua-stage-wrap aside > div[class*="bg-neutral-900"],
+#root .ua-stage-wrap aside > div[class*="bg-stone-900"],
+#root .ua-stage-wrap aside > div[class*="bg-zinc-900"] {
+  background: var(--ds-panel) !important;
+  border-color: var(--ds-rule) !important;
+}
+

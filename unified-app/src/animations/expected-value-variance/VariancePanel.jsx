@@ -83,7 +83,6 @@ export default function VariancePanel() {
                         <XAxis dataKey="x" stroke="#94a3b8" tick={{ fill: '#cbd5e1' }} />
                         <YAxis stroke="#94a3b8" tick={{ fill: '#cbd5e1' }} />
                         <Tooltip
-                            contentStyle={{ backgroundColor: 'var(--ds-panel)', border: 'var(--ds-border)', borderRadius: '2px', color: 'var(--ds-ink)' }}
                             formatter={(value, name) => {
                                 if (name === 'prob') return [(value * 100).toFixed(1) + '%', 'Probability'];
                                 return [value.toFixed(2), 'Deviation from mean'];

@@ -99,7 +99,6 @@ export default function StationaryPanel() {
                         <XAxis type="number" domain={[0, 1]} stroke="#94a3b8" tick={{ fill: '#cbd5e1' }} />
                         <YAxis dataKey="name" type="category" stroke="#94a3b8" tick={{ fill: '#cbd5e1' }} width={80} />
                         <Tooltip
-                            contentStyle={{ backgroundColor: 'var(--ds-panel)', border: 'var(--ds-border)', borderRadius: '2px', color: 'var(--ds-ink)' }}
                             formatter={(value) => [(value * 100).toFixed(1) + '%', 'Probability']}
                         />
                         <Bar dataKey="prob" radius={[0, 4, 4, 0]}>

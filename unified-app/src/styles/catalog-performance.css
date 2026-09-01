@@ -1,0 +1,13 @@
+/* The reference index remains complete in the document, but browsers may skip
+   layout and paint work for categories that are far outside the viewport. */
+.ua-toc-section {
+  content-visibility: auto;
+  contain-intrinsic-size: auto 1500px;
+}
+
+@media print {
+  .ua-toc-section {
+    content-visibility: visible;
+    contain-intrinsic-size: none;
+  }
+}

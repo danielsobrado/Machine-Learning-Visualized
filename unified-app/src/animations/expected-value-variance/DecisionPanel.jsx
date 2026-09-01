@@ -140,8 +140,6 @@ export default function DecisionPanel() {
                         <XAxis dataKey="x" stroke="#94a3b8" tick={{ fill: '#cbd5e1' }} label={{ value: 'Return ($)', position: 'insideBottom', offset: -5, fill: '#cbd5e1' }} />
                         <YAxis stroke="#94a3b8" tick={{ fill: '#cbd5e1' }} />
                         <Tooltip
-                            contentStyle={{ backgroundColor: 'var(--ds-panel)', border: 'var(--ds-border)', borderRadius: '2px', color: 'var(--ds-ink)' }}
-                            labelStyle={{ color: '#e2e8f0' }}
                         />
                         <Legend wrapperStyle={{ color: '#e2e8f0' }} />
                         <Area type="monotone" dataKey="safe" stroke="#10b981" fillOpacity={1} fill="url(#colorSafe)" name="Safe" />

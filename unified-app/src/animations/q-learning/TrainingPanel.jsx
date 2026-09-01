@@ -202,7 +202,7 @@ export default function TrainingPanel() {
                                     <CartesianGrid strokeDasharray="3 3" stroke="#374151" />
                                     <XAxis dataKey="episode" stroke="#64748b" />
                                     <YAxis stroke="#64748b" />
-                                    <Tooltip contentStyle={{ backgroundColor: 'var(--ds-panel)', border: 'var(--ds-border)', borderRadius: '2px', color: 'var(--ds-ink)' }} />
+                                    <Tooltip />
                                     <Line type="monotone" dataKey="reward" stroke="#22c55e" strokeWidth={2} dot={false} />
                                 </LineChart>
                             </ResponsiveContainer>

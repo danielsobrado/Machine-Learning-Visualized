@@ -92,8 +92,6 @@ export default function SinusoidalPanel() {
                         <XAxis dataKey="dimension" stroke="#94a3b8" tick={{ fill: '#cbd5e1' }} />
                         <YAxis domain={[-1, 1]} stroke="#94a3b8" tick={{ fill: '#cbd5e1' }} />
                         <Tooltip
-                            contentStyle={{ backgroundColor: 'var(--ds-panel)', border: 'var(--ds-border)', borderRadius: '2px', color: 'var(--ds-ink)' }}
-                            labelStyle={{ color: '#e2e8f0' }}
                         />
                         <Line type="monotone" dataKey="value" stroke="#22d3ee" strokeWidth={2} dot={false} />
                     </LineChart>
@@ -118,8 +116,6 @@ export default function SinusoidalPanel() {
                         />
                         <YAxis domain={[-1, 1]} stroke="#94a3b8" tick={{ fill: '#cbd5e1' }} />
                         <Tooltip
-                            contentStyle={{ backgroundColor: 'var(--ds-panel)', border: 'var(--ds-border)', borderRadius: '2px', color: 'var(--ds-ink)' }}
-                            labelStyle={{ color: '#e2e8f0' }}
                         />
                         <Legend wrapperStyle={{ color: '#e2e8f0' }} />
                         {sampleWaveforms.map(wave => (
