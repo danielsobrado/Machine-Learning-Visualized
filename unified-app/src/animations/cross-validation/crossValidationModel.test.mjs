@@ -1,54 +1,65 @@
-import test from 'node:test';
 import assert from 'node:assert/strict';
+import test from 'node:test';
 
 import {
-  assignFolds,
-  duplicateUserLeakage,
-  scoreFold,
-  summarize,
+  auditFold,
+  buildFolds,
+  nestedSelectionReplay,
+  positiveRate,
+  repeatedStratifiedReplay,
+  summarizeFolds,
 } from './crossValidationModel.js';
 
-test('grouped folds keep repeated users in one fold', () => {
-  const rows = assignFolds(5, 'grouped');
-  const foldsByUser = new Map();
+test('stratified folds keep both classes represented while preserving every row as validation once', () => {
+  const folds = buildFolds(5, 'stratified');
+  const validationIds = folds.flatMap((fold) => fold.validation.map((row) => row.id));
 
-  rows.forEach((row) => {
-    const folds = foldsByUser.get(row.user) || new Set();
-    folds.add(row.fold);
-    foldsByUser.set(row.user, folds);
-  });
-
-  assert.ok([...foldsByUser.values()].every((folds) => folds.size === 1));
-  assert.deepEqual(
-    Array.from({ length: 5 }, (_, fold) => duplicateUserLeakage(rows, fold)),
-    [[], [], [], [], []],
-  );
+  assert.equal(new Set(validationIds).size, 24);
+  assert.equal(validationIds.length, 24);
+  assert.ok(folds.every((fold) => positiveRate(fold.validation) > 0 && positiveRate(fold.validation) < 1));
 });
 
-test('random folds surface duplicate-user leakage for repeated entities', () => {
-  const rows = assignFolds(5, 'random');
-  const leakedUsers = Array.from({ length: 5 }, (_, fold) => duplicateUserLeakage(rows, fold)).flat();
-
-  assert.deepEqual([...new Set(leakedUsers)].sort(), ['u02', 'u04']);
+test('stratification does not prevent repeated-user leakage', () => {
+  const folds = buildFolds(5, 'stratified');
+  assert.ok(folds.some((fold) => auditFold(fold).entityOverlap.length > 0));
 });
 
-test('fold scoring rewards leakage and global preprocessing in the toy diagnostic', () => {
-  const rows = assignFolds(5, 'random');
-  const cleanScore = scoreFold(rows, 1, true).score;
-  const globalPreprocessingScore = scoreFold(rows, 1, false).score;
-  const noLeakScore = scoreFold(assignFolds(5, 'grouped'), 1, true).score;
-
-  assert.ok(cleanScore > noLeakScore);
-  assert.ok(globalPreprocessingScore > cleanScore);
+test('group K-fold eliminates repeated-user leakage', () => {
+  const folds = buildFolds(5, 'grouped');
+  assert.ok(folds.every((fold) => auditFold(fold).entityOverlap.length === 0));
 });
 
-test('summary reports stable aggregate score and leaked fold count', () => {
-  const randomSummary = summarize(assignFolds(5, 'random'), true, 5);
-  const groupedSummary = summarize(assignFolds(5, 'grouped'), true, 5);
+test('expanding time CV never trains on observations at or after its validation window', () => {
+  const folds = buildFolds(5, 'time');
+  assert.ok(folds.every((fold) => auditFold(fold).chronological));
+});
 
-  assert.equal(randomSummary.folds.length, 5);
-  assert.equal(randomSummary.leakedFoldCount, 3);
-  assert.equal(groupedSummary.leakedFoldCount, 0);
-  assert.ok(randomSummary.max >= randomSummary.min);
-  assert.ok(randomSummary.std > 0);
+test('grouped time CV preserves both chronology and entity independence', () => {
+  const folds = buildFolds(5, 'groupedTime');
+  assert.ok(folds.length >= 4);
+  assert.ok(folds.every((fold) => {
+    const audit = auditFold(fold);
+    return audit.chronological && audit.entityOverlap.length === 0;
+  }));
+});
+
+test('global preprocessing makes a CV estimate artificially better in the diagnostic model', () => {
+  const folds = buildFolds(5, 'grouped');
+  const clean = summarizeFolds(folds, true);
+  const leaked = summarizeFolds(folds, false);
+  assert.ok(leaked.mean > clean.mean);
+});
+
+test('repeated stratified replay exposes partition-to-partition variance', () => {
+  const replay = repeatedStratifiedReplay(8, 5);
+  assert.equal(replay.repeats.length, 8);
+  assert.ok(replay.repeatStd > 0);
+  assert.ok(replay.max > replay.min);
+});
+
+test('nested selection separates model search from outer evaluation', () => {
+  const replay = nestedSelectionReplay(12, 5);
+  assert.equal(replay.outerResults.length, 5);
+  assert.ok(replay.optimism > 0.01);
+  assert.ok(replay.naive.fullInnerScore > replay.nestedMean);
 });
