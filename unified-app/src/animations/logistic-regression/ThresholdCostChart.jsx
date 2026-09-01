@@ -1,4 +1,5 @@
 import React from 'react';
+import { THRESHOLD_RANGE } from './logisticRegressionConstants.js';
 
 const CHART = Object.freeze({ width: 720, height: 230, left: 54, right: 18, top: 20, bottom: 42 });
 
@@ -14,7 +15,8 @@ export default function ThresholdCostChart({ sweep, currentThreshold, optimalThr
   const minCost = Math.min(...sweep.map((point) => point.cost));
   const maxCost = Math.max(...sweep.map((point) => point.cost));
   const costSpan = Math.max(1, maxCost - minCost);
-  const x = (threshold) => CHART.left + ((threshold - 0.05) / 0.9) * plotWidth;
+  const thresholdSpan = THRESHOLD_RANGE.max - THRESHOLD_RANGE.min;
+  const x = (threshold) => CHART.left + ((threshold - THRESHOLD_RANGE.min) / thresholdSpan) * plotWidth;
   const y = (cost) => CHART.top + ((maxCost - cost) / costSpan) * plotHeight;
   const current = nearestPoint(sweep, currentThreshold);
   const optimal = nearestPoint(sweep, optimalThreshold);

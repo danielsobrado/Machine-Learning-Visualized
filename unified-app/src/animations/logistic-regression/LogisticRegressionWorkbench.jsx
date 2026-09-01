@@ -67,7 +67,7 @@ export default function LogisticRegressionWorkbench() {
             onClick={() => applyPreset(PRESETS.balanced)}
             className="inline-flex items-center gap-2 rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm font-bold text-slate-800"
           >
-            <RotateCcw size={16} /> Reset
+            <RotateCcw size={16} /> Reset model
           </button>
         </div>
       </section>

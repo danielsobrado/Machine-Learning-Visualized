@@ -61,7 +61,7 @@ export default function DeploymentPolicyLab({ scored, threshold, onThresholdChan
     ),
     [scored, threshold, prevalence, falsePositiveCost, falseNegativeCost],
   );
-  const optimal = useMemo(() => findCostOptimalThreshold(sweep, threshold), [sweep, threshold]);
+  const optimal = useMemo(() => findCostOptimalThreshold(sweep), [sweep]);
   const theoreticalThreshold = calibratedCostThreshold(falsePositiveCost, falseNegativeCost);
   const alwaysNegativeAccuracy = 1 - prevalence;
   const alwaysNegativeCost = DEPLOYMENT_POPULATION * prevalence * falseNegativeCost;
@@ -204,6 +204,13 @@ export default function DeploymentPolicyLab({ scored, threshold, onThresholdChan
             <p className="mt-2 text-sm leading-6 text-emerald-950">
               With calibrated deployment probabilities and only FP/FN costs, the theoretical cutoff is about{' '}
               <strong>{theoreticalThreshold.toFixed(2)}</strong>. The empirical optimum above can differ because this tiny score set is not guaranteed calibrated.
+            </p>
+          </div>
+          <div className="rounded-lg border border-sky-200 bg-sky-50 p-4">
+            <p className="text-xs font-black uppercase tracking-wide text-sky-800">Class weighting is different</p>
+            <p className="mt-2 text-sm leading-6 text-sky-950">
+              Class weights change the training objective and can change the fitted scores. Threshold tuning leaves the fitted scores alone and changes only the operating decision.
+              Use class weighting for the fitting problem, then validate the deployment threshold separately.
             </p>
           </div>
         </div>
