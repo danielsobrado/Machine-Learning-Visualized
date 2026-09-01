@@ -1,48 +1,6 @@
-export const POINTS = Object.freeze([
-  { id: 'A', risk: 16, engagement: 72, y: 0 },
-  { id: 'B', risk: 22, engagement: 50, y: 0 },
-  { id: 'C', risk: 26, engagement: 34, y: 0 },
-  { id: 'D', risk: 31, engagement: 62, y: 0 },
-  { id: 'E', risk: 35, engagement: 20, y: 0 },
-  { id: 'F', risk: 39, engagement: 78, y: 1 },
-  { id: 'G', risk: 45, engagement: 44, y: 0 },
-  { id: 'H', risk: 49, engagement: 25, y: 1 },
-  { id: 'I', risk: 52, engagement: 68, y: 1 },
-  { id: 'J', risk: 58, engagement: 36, y: 1 },
-  { id: 'K', risk: 63, engagement: 58, y: 1 },
-  { id: 'L', risk: 68, engagement: 18, y: 1 },
-  { id: 'M', risk: 72, engagement: 76, y: 1 },
-  { id: 'N', risk: 78, engagement: 42, y: 1 },
-  { id: 'O', risk: 83, engagement: 64, y: 1 },
-  { id: 'P', risk: 89, engagement: 28, y: 1 },
-]);
+import { THRESHOLD_RANGE } from './logisticRegressionConstants.js';
 
-export const PRESETS = Object.freeze({
-  balanced: {
-    label: 'Balanced fit',
-    detail: 'A useful linear separator with moderate probabilities.',
-    weightRisk: 1.35,
-    weightEngagement: -0.45,
-    bias: 0.1,
-    threshold: 0.5,
-  },
-  cautious: {
-    label: 'Cautious positives',
-    detail: 'A higher threshold reduces false alarms but can miss positives.',
-    weightRisk: 1.35,
-    weightEngagement: -0.45,
-    bias: 0.1,
-    threshold: 0.7,
-  },
-  underfit: {
-    label: 'Underfit scores',
-    detail: 'Small weights compress probabilities near 0.5.',
-    weightRisk: 0.45,
-    weightEngagement: -0.15,
-    bias: 0,
-    threshold: 0.5,
-  },
-});
+export { POINTS, PRESETS } from './logisticRegressionConstants.js';
 
 export function sigmoid(value) {
   return 1 / (1 + Math.exp(-value));
@@ -83,6 +41,95 @@ export function safeRatio(numerator, denominator) {
 
 export function metricPercent(value) {
   return `${Math.round(value * 100)}%`;
+}
+
+export function ratesFromCounts(counts) {
+  return {
+    truePositiveRate: safeRatio(counts.tp, counts.tp + counts.fn),
+    falsePositiveRate: safeRatio(counts.fp, counts.fp + counts.tn),
+  };
+}
+
+export function projectConfusion(counts, prevalence, population) {
+  const rates = ratesFromCounts(counts);
+  const positives = population * prevalence;
+  const negatives = population - positives;
+
+  return {
+    tp: positives * rates.truePositiveRate,
+    fn: positives * (1 - rates.truePositiveRate),
+    fp: negatives * rates.falsePositiveRate,
+    tn: negatives * (1 - rates.falsePositiveRate),
+    rates,
+  };
+}
+
+export function decisionCost(confusion, falsePositiveCost, falseNegativeCost) {
+  return confusion.fp * falsePositiveCost + confusion.fn * falseNegativeCost;
+}
+
+export function evaluateThreshold(
+  scored,
+  threshold,
+  prevalence,
+  population,
+  falsePositiveCost,
+  falseNegativeCost,
+) {
+  const classified = scored.map((point) => classifyPoint(point, threshold));
+  const counts = summarize(classified);
+  const projected = projectConfusion(counts, prevalence, population);
+
+  return {
+    threshold,
+    counts,
+    projected,
+    cost: decisionCost(projected, falsePositiveCost, falseNegativeCost),
+    accuracy: safeRatio(projected.tp + projected.tn, population),
+    precision: safeRatio(projected.tp, projected.tp + projected.fp),
+    recall: projected.rates.truePositiveRate,
+  };
+}
+
+export function thresholdSweep(
+  scored,
+  prevalence,
+  population,
+  falsePositiveCost,
+  falseNegativeCost,
+) {
+  const steps = Math.round((THRESHOLD_RANGE.max - THRESHOLD_RANGE.min) / THRESHOLD_RANGE.step);
+
+  return Array.from({ length: steps + 1 }, (_, index) => {
+    const threshold = Number((THRESHOLD_RANGE.min + index * THRESHOLD_RANGE.step).toFixed(2));
+    return evaluateThreshold(
+      scored,
+      threshold,
+      prevalence,
+      population,
+      falsePositiveCost,
+      falseNegativeCost,
+    );
+  });
+}
+
+export function findCostOptimalThreshold(
+  sweep,
+  referenceThreshold = 0.5,
+) {
+  return sweep.reduce((best, candidate) => {
+    if (!best || candidate.cost < best.cost - 1e-9) return candidate;
+    if (Math.abs(candidate.cost - best.cost) > 1e-9) return best;
+
+    const candidateDistance = Math.abs(candidate.threshold - referenceThreshold);
+    const bestDistance = Math.abs(best.threshold - referenceThreshold);
+    return candidateDistance < bestDistance ? candidate : best;
+  }, null);
+}
+
+export function calibratedCostThreshold(falsePositiveCost, falseNegativeCost) {
+  const totalCost = falsePositiveCost + falseNegativeCost;
+  return totalCost === 0 ? 0.5 : falsePositiveCost / totalCost;
 }
 
 export function boundaryLine(weightRisk, weightEngagement, bias, threshold) {
