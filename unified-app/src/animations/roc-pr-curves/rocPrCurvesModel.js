@@ -1,33 +1,33 @@
-export const SCORED_EXAMPLES = Object.freeze([
-  { id: 1, score: 0.96, label: 1 },
-  { id: 2, score: 0.91, label: 1 },
-  { id: 3, score: 0.86, label: 0 },
-  { id: 4, score: 0.78, label: 1 },
-  { id: 5, score: 0.72, label: 0 },
-  { id: 6, score: 0.67, label: 1 },
-  { id: 7, score: 0.61, label: 0 },
-  { id: 8, score: 0.55, label: 1 },
-  { id: 9, score: 0.48, label: 0 },
-  { id: 10, score: 0.43, label: 0 },
-  { id: 11, score: 0.37, label: 1 },
-  { id: 12, score: 0.31, label: 0 },
-  { id: 13, score: 0.25, label: 0 },
-  { id: 14, score: 0.18, label: 1 },
-  { id: 15, score: 0.12, label: 0 },
-  { id: 16, score: 0.06, label: 0 },
-]);
+import { DEPLOYMENT_POPULATION, REFERENCE_BANDS, THRESHOLDS } from './rocPrCurvesConstants.js';
 
-export const THRESHOLDS = Object.freeze(Array.from({ length: 21 }, (_, index) => index / 20));
+export function totalCounts(bands) {
+  return bands.reduce(
+    (totals, band) => ({
+      positives: totals.positives + band.positives,
+      negatives: totals.negatives + band.negatives,
+    }),
+    { positives: 0, negatives: 0 },
+  );
+}
 
-export function confusionAt(threshold, examples = SCORED_EXAMPLES) {
-  return examples.reduce((counts, example) => {
-    const predicted = example.score >= threshold ? 1 : 0;
-    if (predicted === 1 && example.label === 1) counts.tp += 1;
-    if (predicted === 1 && example.label === 0) counts.fp += 1;
-    if (predicted === 0 && example.label === 1) counts.fn += 1;
-    if (predicted === 0 && example.label === 0) counts.tn += 1;
-    return counts;
-  }, { tp: 0, fp: 0, fn: 0, tn: 0 });
+export function prevalenceOf(bands) {
+  const totals = totalCounts(bands);
+  const total = totals.positives + totals.negatives;
+  return total === 0 ? 0 : totals.positives / total;
+}
+
+export function confusionAt(threshold, bands = REFERENCE_BANDS) {
+  const totals = totalCounts(bands);
+  const predictedPositive = bands.filter((band) => band.score >= threshold);
+  const tp = predictedPositive.reduce((sum, band) => sum + band.positives, 0);
+  const fp = predictedPositive.reduce((sum, band) => sum + band.negatives, 0);
+
+  return {
+    tp,
+    fp,
+    fn: totals.positives - tp,
+    tn: totals.negatives - fp,
+  };
 }
 
 function ratio(numerator, denominator) {
@@ -41,14 +41,12 @@ export function metrics(counts) {
   const precision = ratio(counts.tp, predictedPositives);
   const recall = ratio(counts.tp, actualPositives);
   const fpr = ratio(counts.fp, actualNegatives);
-  const specificity = ratio(counts.tn, actualNegatives);
 
   return {
     precision,
     recall,
-    fpr,
-    specificity,
     tpr: recall,
+    fpr,
     predictedPositives,
     actualPositives,
     actualNegatives,
@@ -59,21 +57,81 @@ export function prPrecisionForPlot(point) {
   return point.precision ?? 1;
 }
 
-export function metricPercent(value) {
-  return value === null ? 'N/A' : `${Math.round(value * 100)}%`;
+export function curvePoints(bands = REFERENCE_BANDS, thresholds = THRESHOLDS) {
+  return thresholds.map((threshold) => {
+    const counts = confusionAt(threshold, bands);
+    const summary = metrics(counts);
+    return {
+      threshold,
+      ...counts,
+      ...summary,
+      precisionPlot: prPrecisionForPlot(summary),
+    };
+  });
 }
 
-export function curvePoints(thresholds = THRESHOLDS) {
-  return thresholds
-    .map((threshold) => {
-      const counts = confusionAt(threshold);
-      const summary = metrics(counts);
-      return {
-        threshold,
-        ...counts,
-        ...summary,
-        precisionPlot: prPrecisionForPlot(summary),
-      };
-    })
-    .sort((a, b) => (a.fpr ?? 0) - (b.fpr ?? 0) || (a.recall ?? 0) - (b.recall ?? 0));
+export function trapezoidArea(points, xKey, yKey) {
+  const sorted = [...points].sort((left, right) => left[xKey] - right[xKey] || left[yKey] - right[yKey]);
+  return sorted.slice(1).reduce((area, point, index) => {
+    const previous = sorted[index];
+    const width = point[xKey] - previous[xKey];
+    return area + width * (point[yKey] + previous[yKey]) / 2;
+  }, 0);
+}
+
+export function rocAuc(bands = REFERENCE_BANDS) {
+  return trapezoidArea(curvePoints(bands), 'fpr', 'tpr');
+}
+
+export function prAuc(bands = REFERENCE_BANDS) {
+  return trapezoidArea(curvePoints(bands), 'recall', 'precisionPlot');
+}
+
+export function reweightForPrevalence(
+  bands,
+  targetPrevalence,
+  population = DEPLOYMENT_POPULATION,
+) {
+  const totals = totalCounts(bands);
+  const positiveTarget = population * targetPrevalence;
+  const negativeTarget = population - positiveTarget;
+
+  return bands.map((band) => ({
+    score: band.score,
+    positives: totals.positives === 0 ? 0 : (band.positives / totals.positives) * positiveTarget,
+    negatives: totals.negatives === 0 ? 0 : (band.negatives / totals.negatives) * negativeTarget,
+  }));
+}
+
+export function mergeBands(...collections) {
+  const byScore = new Map();
+  for (const bands of collections) {
+    for (const band of bands) {
+      const current = byScore.get(band.score) ?? { score: band.score, positives: 0, negatives: 0 };
+      current.positives += band.positives;
+      current.negatives += band.negatives;
+      byScore.set(band.score, current);
+    }
+  }
+  return [...byScore.values()].sort((left, right) => right.score - left.score);
+}
+
+export function findCapacityThreshold(bands, maxAlerts, thresholds = THRESHOLDS) {
+  const candidates = thresholds
+    .map((threshold) => ({ threshold, counts: confusionAt(threshold, bands) }))
+    .map((candidate) => ({ ...candidate, summary: metrics(candidate.counts) }))
+    .filter((candidate) => candidate.summary.predictedPositives <= maxAlerts)
+    .sort((left, right) => {
+      const recallDelta = (right.summary.recall ?? 0) - (left.summary.recall ?? 0);
+      if (Math.abs(recallDelta) > 1e-12) return recallDelta;
+      const precisionDelta = (right.summary.precision ?? 0) - (left.summary.precision ?? 0);
+      if (Math.abs(precisionDelta) > 1e-12) return precisionDelta;
+      return left.threshold - right.threshold;
+    });
+
+  return candidates[0] ?? null;
+}
+
+export function metricPercent(value, digits = 0) {
+  return value === null ? 'N/A' : `${(value * 100).toFixed(digits)}%`;
 }
