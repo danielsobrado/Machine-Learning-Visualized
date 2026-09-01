@@ -10,6 +10,7 @@ import { P1_CLASSICAL_ML_GAP_SCENARIOS_BY_LESSON } from './p1ClassicalMlGapScena
 import { P1_FRONTIER_SYSTEMS_APPLIED_SCENARIOS_BY_LESSON } from './p1FrontierSystemsAppliedScenarioQuestions.js';
 import { P1_GENERATIVE_APPLIED_SCENARIOS_BY_LESSON } from './p1GenerativeAppliedScenarioQuestions.js';
 import { P1_GENERATIVE_RL_SCENARIOS_BY_LESSON } from './p1GenerativeRlScenarioQuestions.js';
+import { P1_LINEAR_ALGEBRA_APPLIED_SCENARIOS_BY_LESSON } from './p1LinearAlgebraAppliedScenarioQuestions.js';
 import { P1_MATH_SCENARIOS_BY_LESSON } from './p1MathScenarioQuestions.js';
 import { P1_NEURAL_APPLIED_ARCHITECTURE_SCENARIOS_BY_LESSON } from './p1NeuralAppliedArchitectureScenarioQuestions.js';
 import { P1_NEURAL_APPLIED_TRAINING_SCENARIOS_BY_LESSON } from './p1NeuralAppliedTrainingScenarioQuestions.js';
@@ -47,6 +48,7 @@ export const ASSESSMENT_SCENARIO_EXTENSION_SOURCES = Object.freeze([
   Object.freeze({ id: 'p1-statistics-decisions', priority: 'P1', questionsByLesson: P1_STATISTICS_DECISION_SCENARIOS_BY_LESSON }),
   Object.freeze({ id: 'p1-statistics-gaps', priority: 'P1', questionsByLesson: P1_STATISTICS_GAP_SCENARIOS_BY_LESSON }),
   Object.freeze({ id: 'p1-math', priority: 'P1', questionsByLesson: P1_MATH_SCENARIOS_BY_LESSON }),
+  Object.freeze({ id: 'p1-linear-algebra-applied', priority: 'P1', questionsByLesson: P1_LINEAR_ALGEBRA_APPLIED_SCENARIOS_BY_LESSON }),
   Object.freeze({ id: 'p1-neural-applied-training', priority: 'P1', questionsByLesson: P1_NEURAL_APPLIED_TRAINING_SCENARIOS_BY_LESSON }),
   Object.freeze({ id: 'p1-neural-applied-architecture', priority: 'P1', questionsByLesson: P1_NEURAL_APPLIED_ARCHITECTURE_SCENARIOS_BY_LESSON }),
   Object.freeze({ id: 'p1-neural', priority: 'P1', questionsByLesson: P1_NEURAL_SCENARIOS_BY_LESSON }),
