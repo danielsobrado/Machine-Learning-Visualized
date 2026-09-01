@@ -1,0 +1,1 @@
+import{c as i}from"./assessment-data-BkI2bmW-.js";function o(t,n){return`${String(t+1).padStart(2,"0")}.${String(n+1).padStart(2,"0")}`}function d(t,n){const r=i.findIndex(e=>e.id===n);if(r<0)return null;const a=i[r].items.findIndex(e=>e.id===t);return a<0?null:o(r,a)}export{o as f,d as g};
