@@ -5,7 +5,7 @@
   margin: 0.8rem 0 1rem;
   padding: 0.85rem;
   border: 1px solid color-mix(in srgb, currentColor 16%, transparent);
-  border-radius: 12px;
+  border-radius: 2px;
   background: color-mix(in srgb, currentColor 3%, transparent);
 }
 
@@ -70,7 +70,7 @@
 .ua-visual-ratio-track {
   height: 9px;
   overflow: hidden;
-  border-radius: 999px;
+  border-radius: 2px;
   background: color-mix(in srgb, currentColor 12%, transparent);
 }
 
@@ -98,7 +98,7 @@
   display: grid;
   gap: 0.2rem;
   padding: 0.65rem;
-  border-radius: 9px;
+  border-radius: 2px;
   background: color-mix(in srgb, currentColor 5%, transparent);
 }
 

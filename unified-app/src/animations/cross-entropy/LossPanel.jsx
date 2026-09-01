@@ -89,7 +89,7 @@ export default function LossPanel() {
                                 <CartesianGrid strokeDasharray="3 3" stroke="#374151" />
                                 <XAxis dataKey="name" stroke="#94a3b8" />
                                 <YAxis domain={[0, 1]} stroke="#94a3b8" />
-                                <Tooltip cursor={{ fill: '#334155' }} contentStyle={{ backgroundColor: '#1e293b', border: 'none' }} />
+                                <Tooltip cursor={{ fill: 'var(--ds-paper-2)' }} contentStyle={{ backgroundColor: 'var(--ds-panel)', border: 'var(--ds-border)', borderRadius: '2px', color: 'var(--ds-ink)' }} />
                                 <Bar dataKey="p" name="True (P)" fill="#22c55e" radius={[4, 4, 0, 0]} />
                                 <Bar dataKey="q" name="Predicted (Q)" fill="#fb923c" radius={[4, 4, 0, 0]} />
                             </BarChart>

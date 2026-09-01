@@ -1,6 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Search } from 'lucide-react';
 import { allAnimations } from '../../data/animations';
 import { glossaryTerms } from '../../data/glossaryRepository';
 import { buildCommandPaletteItems, searchCommandPaletteItems } from '../../data/commandPalette';
@@ -64,7 +63,7 @@ export default function CommandPalette({ open, onClose }) {
         onMouseDown={(event) => event.stopPropagation()}
       >
         <label className="ua-command-search">
-          <Search size={18} />
+          <span className="ua-command-search-mark" aria-hidden="true">/</span>
           <input
             autoFocus
             value={query}

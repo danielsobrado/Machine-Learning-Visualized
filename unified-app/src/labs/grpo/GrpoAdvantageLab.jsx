@@ -1,18 +1,4 @@
 import React from 'react';
-import {
-  ArrowDown,
-  ArrowRight,
-  ArrowUp,
-  CheckCircle,
-  Clipboard,
-  Eye,
-  Lightbulb,
-  Minus,
-  Play,
-  RotateCcw,
-  Wand2,
-  XCircle,
-} from 'lucide-react';
 import { GRPO_CANDIDATES, DEFAULT_GRPO_WEIGHTS } from './grpoLabData';
 import { GRPO_STARTER_CODE } from './grpoStarterCode';
 import { buildGrpoCheckScript } from './grpoChecker';
@@ -119,7 +105,7 @@ function directionMeta(direction) {
       label: 'Probability up',
       baseline: 'Above group baseline',
       className: 'ua-grpo-direction up',
-      Icon: ArrowUp,
+      mark: '↑',
     };
   }
 
@@ -128,7 +114,7 @@ function directionMeta(direction) {
       label: 'Probability down',
       baseline: 'Below group baseline',
       className: 'ua-grpo-direction down',
-      Icon: ArrowDown,
+      mark: '↓',
     };
   }
 
@@ -136,7 +122,7 @@ function directionMeta(direction) {
     label: 'Neutral',
     baseline: 'Near baseline',
     className: 'ua-grpo-direction neutral',
-    Icon: ArrowRight,
+    mark: '→',
   };
 }
 
@@ -388,7 +374,7 @@ export default function GrpoAdvantageLab() {
 
       <div className="ua-grpo-stepper" aria-label="GRPO lab steps">
         {steps.map((step, index) => {
-          const CheckIcon = step.status === 'passed' ? CheckCircle : step.status === 'locked' ? Minus : ArrowRight;
+          const stepMark = step.status === 'passed' ? '×' : step.status === 'locked' ? '–' : '→';
           return (
             <button
               key={step.id}
@@ -401,7 +387,7 @@ export default function GrpoAdvantageLab() {
               <span className="ua-grpo-step-index">Step {index + 1}</span>
               <strong>{step.title}</strong>
               <small>{step.checkFocus}</small>
-              <CheckIcon aria-hidden="true" />
+              <span className="ua-step-mark" aria-hidden="true">{stepMark}</span>
             </button>
           );
         })}
@@ -447,8 +433,7 @@ export default function GrpoAdvantageLab() {
             {GRPO_CANDIDATES.map((candidate, index) => {
               const rowResult = getCandidateResult(result, index);
               const meta = directionMeta(rowResult.direction);
-              const DirectionIcon = meta.Icon;
-
+    
               return (
                 <article key={candidate.id} className="ua-grpo-candidate-card">
                   <div>
@@ -467,7 +452,7 @@ export default function GrpoAdvantageLab() {
                     <span>Reward: {rowResult.reward === null ? '-' : formatNumber(rowResult.reward)}</span>
                     <span>Advantage: {rowResult.advantage === null ? '-' : formatNumber(rowResult.advantage)}</span>
                     <span className={meta.className}>
-                      <DirectionIcon aria-hidden="true" />
+                      <span aria-hidden="true">{meta.mark}</span>
                       {rowResult.direction ? meta.label : 'Not run'}
                     </span>
                   </div>
@@ -500,11 +485,9 @@ export default function GrpoAdvantageLab() {
               disabled={running}
               className="ds-btn ua-grpo-run-button"
             >
-              <Play aria-hidden="true" />
               {running && !runtimeHasLoaded ? 'Loading Python runtime...' : running ? 'Running checks...' : 'Run checks'}
             </button>
             <button type="button" data-math-control onClick={runReferenceSolution} disabled={running} className="ds-btn">
-              <Wand2 aria-hidden="true" />
               Run reference solution
             </button>
             <button
@@ -514,7 +497,6 @@ export default function GrpoAdvantageLab() {
               disabled={running}
               className="ds-btn ua-grpo-reset-button"
             >
-              <RotateCcw aria-hidden="true" />
               Reset starter
             </button>
           </div>
@@ -542,7 +524,7 @@ export default function GrpoAdvantageLab() {
                   }}
                   className={activeTodo === todo ? 'active' : ''}
                 >
-                  {check?.passed ? <CheckCircle aria-hidden="true" /> : <Lightbulb aria-hidden="true" />}
+                  <span className="ua-step-mark" aria-hidden="true">{check?.passed ? '×' : '·'}</span>
                   {todo}
                 </button>
               );
@@ -584,7 +566,6 @@ export default function GrpoAdvantageLab() {
             </p>
             <div className="ua-grpo-mini-actions">
               <button type="button" data-math-control onClick={revealCurrentSolution}>
-                <Eye aria-hidden="true" />
                 Reveal current function solution
               </button>
               <button type="button" data-math-control onClick={revealFullSolution}>
@@ -603,7 +584,6 @@ export default function GrpoAdvantageLab() {
                     Apply solution to editor
                   </button>
                   <button type="button" data-math-control onClick={copySolution}>
-                    <Clipboard aria-hidden="true" />
                     {copied ? 'Copied' : 'Copy solution'}
                   </button>
                 </div>
@@ -635,14 +615,14 @@ export default function GrpoAdvantageLab() {
           {result && (
             <div className="ua-grpo-results">
               <div className={`ua-grpo-status ${result.passed ? 'passed' : 'pending'}`}>
-                {result.passed ? <CheckCircle aria-hidden="true" /> : <XCircle aria-hidden="true" />}
+                <span className="ua-step-mark" aria-hidden="true">{result.passed ? '×' : '!'}</span>
                 <strong>{result.passed ? 'All checks passed' : 'Not passed yet'}</strong>
               </div>
 
               <ul className="ua-grpo-check-list">
                 {result.checks.map((check) => (
                   <li key={check.id} className={check.passed ? 'passed' : 'failed'}>
-                    {check.passed ? <CheckCircle aria-hidden="true" /> : <XCircle aria-hidden="true" />}
+                    <span className="ua-step-mark" aria-hidden="true">{check.passed ? '×' : '!'}</span>
                     <span>
                       <strong>
                         {check.id === 'sanity' ? 'sanity' : check.id}: {check.label}
@@ -680,8 +660,7 @@ export default function GrpoAdvantageLab() {
             {GRPO_CANDIDATES.map((candidate, index) => {
               const rowResult = getCandidateResult(result, index);
               const meta = directionMeta(rowResult.direction);
-              const DirectionIcon = meta.Icon;
-              const rewardScale = result ? Math.max(...result.rewards.map((reward) => Math.abs(reward)), 1) : 1;
+                  const rewardScale = result ? Math.max(...result.rewards.map((reward) => Math.abs(reward)), 1) : 1;
               const advantageScale = result ? Math.max(...result.advantages.map((adv) => Math.abs(adv)), 1) : 1;
               const rewardWidth = rowResult.reward === null ? '0%' : `${Math.min(Math.abs(rowResult.reward) / rewardScale, 1) * 100}%`;
               const advantageWidth = rowResult.advantage === null ? '0%' : `${Math.min(Math.abs(rowResult.advantage) / advantageScale, 1) * 100}%`;
@@ -704,7 +683,7 @@ export default function GrpoAdvantageLab() {
                     </label>
                   </div>
                   <span className={meta.className}>
-                    <DirectionIcon aria-hidden="true" />
+                    <span aria-hidden="true">{meta.mark}</span>
                     {rowResult.direction ? meta.baseline : 'Not run'}
                   </span>
                 </div>
@@ -723,7 +702,7 @@ export default function GrpoAdvantageLab() {
 
           {result?.passed && (
             <div className="ua-grpo-success-panel">
-              <CheckCircle aria-hidden="true" />
+              <span className="ua-step-mark" aria-hidden="true">×</span>
               <p>
                 You implemented the core intuition: reward is first designed, then normalized
                 relative to the group. The model would increase probability for above-baseline

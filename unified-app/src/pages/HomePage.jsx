@@ -1,12 +1,14 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
 import ConceptSketch from '../components/catalog/ConceptSketch';
+import PrerequisiteMap from '../components/catalog/PrerequisiteMap';
 import { allAnimations, categories, curriculumBacklog, curriculumTracks } from '../data/animations';
+import { ACTIVE_LESSON_COUNT } from '../data/catalogStats';
 import { formatLessonCatalogNumber } from '../data/lessonCatalogNumbers';
 import { HUB_LEARNING_PATHS } from '../data/learningPaths';
 import { LEARNING_PROGRESS_EVENT, readCompletedLessons } from '../data/learningProgress';
 
-const MAP_WINDOW = 12;
+const MAP_WINDOW = 10;
 
 function ProgressRule({ completed, total }) {
   const percent = total ? Math.round((completed / total) * 100) : 0;
@@ -20,8 +22,9 @@ function ProgressRule({ completed, total }) {
 }
 
 export default function HomePage() {
-  const totalAnimations = categories.reduce((sum, category) => sum + category.items.length, 0);
+  const totalAnimations = ACTIVE_LESSON_COUNT;
   const [activePathId, setActivePathId] = React.useState(HUB_LEARNING_PATHS[0].id);
+  const [showPrerequisites, setShowPrerequisites] = React.useState(true);
   const [showCompleted, setShowCompleted] = React.useState(true);
   const [showEntireMap, setShowEntireMap] = React.useState(false);
   const [completedLessons, setCompletedLessons] = React.useState(() => readCompletedLessons());
@@ -133,27 +136,24 @@ export default function HomePage() {
             ))}
           </div>
           <div className="ua-map-options" aria-label="Knowledge map display">
-            <button type="button" className="active">Show prerequisites</button>
-            <button type="button" className={showCompleted ? 'active' : ''} onClick={() => setShowCompleted((value) => !value)}>Show completed</button>
-            <button type="button" className={showEntireMap ? 'active' : ''} onClick={() => setShowEntireMap((value) => !value)}>Show entire map</button>
+            <button type="button" aria-pressed={showPrerequisites} className={showPrerequisites ? 'active' : ''} onClick={() => setShowPrerequisites((value) => !value)}>Show prerequisites</button>
+            <button type="button" aria-pressed={showCompleted} className={showCompleted ? 'active' : ''} onClick={() => setShowCompleted((value) => !value)}>Show completed</button>
+            <button type="button" aria-pressed={showEntireMap} className={showEntireMap ? 'active' : ''} onClick={() => setShowEntireMap((value) => !value)}>Show entire map</button>
           </div>
         </div>
-        <div className="ua-knowledge-chain" aria-label={`${activePath.label} concept chain`}>
-          {visiblePathNodes.map((animationId, visibleIndex) => {
-            const animation = animationById.get(animationId);
-            const absoluteIndex = activePath.nodes.indexOf(animationId);
-            const isComplete = completedLessons.has(animationId);
-            if (!animation) return null;
-            return (
-              <React.Fragment key={animation.id}>
-                <Link className={`ua-knowledge-node ${isComplete && showCompleted ? 'is-complete' : ''} ${absoluteIndex === activePathProgress.nextIndex ? 'is-next' : ''}`} to={`/animation/${animation.id}`}>
-                  <span>{String(absoluteIndex + 1).padStart(2, '0')}</span><strong>{animation.name}</strong><small>{isComplete && showCompleted ? 'complete' : animation.categoryName}</small>
-                </Link>
-                {visibleIndex < visiblePathNodes.length - 1 && <i className="ua-knowledge-edge" aria-hidden="true">→</i>}
-              </React.Fragment>
-            );
-          })}
-        </div>
+        <PrerequisiteMap
+          pathIds={visiblePathNodes}
+          animationById={animationById}
+          completedLessons={completedLessons}
+          nextId={activePath.nodes[activePathProgress.nextIndex]}
+          showPrerequisites={showPrerequisites}
+          showCompleted={showCompleted}
+        />
+        <p className="ua-map-legend">
+          <span className="ua-map-key is-done" aria-hidden="true" /> studied
+          <span className="ua-map-key is-next" aria-hidden="true" /> next on this route
+          <span className="ua-map-key is-support" aria-hidden="true" /> prerequisite pulled in from elsewhere
+        </p>
       </section>
 
       <div className="ua-toc" aria-label="Complete experiment index">

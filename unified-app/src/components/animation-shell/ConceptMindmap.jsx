@@ -1,6 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ArrowLeft, FlaskConical, Maximize2, Minus, Plus } from 'lucide-react';
 import MindElixir, { SIDE } from 'mind-elixir';
 import 'mind-elixir/style.css';
 import { isConceptMap, NODE_TYPES } from '../../data/conceptMaps';
@@ -47,11 +46,11 @@ function MapZoomControls({ zoomPercent, onZoomIn, onZoomOut, onFit }) {
   return (
     <div className="ua-map-zoom" role="toolbar" aria-label="Map zoom controls">
       <button type="button" className="ua-map-zoom-btn" onClick={onZoomOut} aria-label="Zoom out">
-        <Minus size={14} aria-hidden />
+        −
       </button>
       <span className="ua-map-zoom-label" aria-live="polite">{zoomPercent}%</span>
       <button type="button" className="ua-map-zoom-btn" onClick={onZoomIn} aria-label="Zoom in">
-        <Plus size={14} aria-hidden />
+        +
       </button>
       <button type="button" className="ua-map-zoom-fit" onClick={onFit}>
         Fit
@@ -488,12 +487,10 @@ export default function ConceptMindmap({ mindmap }) {
             onClick={exitExpanded}
             aria-label="Exit big screen mode"
           >
-            <ArrowLeft size={15} aria-hidden />
-            <span>Back</span>
+            <span>← Back</span>
           </button>
         ) : null}
         <div className="ua-concept-map-head-title">
-          <FlaskConical size={15} aria-hidden />
           <span>{curated ? 'Concept map' : 'Mindmap'}</span>
         </div>
         {expanded ? (
@@ -505,8 +502,7 @@ export default function ConceptMindmap({ mindmap }) {
             onClick={() => setExpanded(true)}
             aria-label="Open concept map in big screen mode"
           >
-            <Maximize2 size={14} aria-hidden />
-            <span>Big screen</span>
+            <span>Big screen ↗</span>
           </button>
         )}
       </div>

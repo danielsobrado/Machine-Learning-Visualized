@@ -43,7 +43,7 @@ export default function LabsPage() {
           <Link to="/">Catalog</Link>
           <span className="sep">/</span>
           <span>Code labs</span>
-          <span className="right">{LESSON_CODE_LAB_GROUPS.length} lessons</span>
+          <span className="right">{LESSON_CODE_LAB_GROUPS.length} lessons with labs</span>
         </div>
         <h1 className="ds-title">Code Labs</h1>
         <p className="ds-subtitle">

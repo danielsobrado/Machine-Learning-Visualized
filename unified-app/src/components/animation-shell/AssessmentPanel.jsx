@@ -1,5 +1,4 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { BookOpen, CheckCircle2, ChevronLeft, ChevronRight, Circle, Eye, FlaskConical } from 'lucide-react';
 import InlineMathText from '../common/InlineMathText';
 import AssessmentVisualState from './AssessmentVisualState';
 import {
@@ -198,7 +197,7 @@ export default function AssessmentPanel({
       {scenarioItems.length > 0 && (
         <section className="ua-scenario-deck" aria-label="Scenario questions">
           <div className="ua-quiz-kicker">
-            <FlaskConical size={15} />
+            <span className="ua-kicker-mark" aria-hidden="true">EXP</span>
             Scenario questions
           </div>
           {scenarioItems.length > SCENARIOS_PER_PAGE && (
@@ -209,8 +208,7 @@ export default function AssessmentPanel({
                 onClick={() => setScenarioPage((value) => Math.max(0, value - 1))}
                 disabled={activeScenarioPage === 0}
               >
-                <ChevronLeft size={15} />
-                Prev
+                ← Prev
               </button>
               <span>
                 Scenarios {scenarioPageStart + 1}-{Math.min(scenarioItems.length, scenarioPageStart + pageScenarioItems.length)} of {scenarioItems.length}
@@ -221,8 +219,7 @@ export default function AssessmentPanel({
                 onClick={() => setScenarioPage((value) => Math.min(scenarioPageCount - 1, value + 1))}
                 disabled={activeScenarioPage === scenarioPageCount - 1}
               >
-                Next
-                <ChevronRight size={15} />
+                Next →
               </button>
             </nav>
           )}
@@ -265,7 +262,6 @@ export default function AssessmentPanel({
                 </div>
                 {!revealed && (
                   <button type="button" className="ua-reveal-button" onClick={() => handleReveal(question)}>
-                    <Eye size={15} />
                     Reveal answer
                   </button>
                 )}
@@ -296,8 +292,7 @@ export default function AssessmentPanel({
             onClick={() => setQuizPage((value) => Math.max(0, value - 1))}
             disabled={activeQuizPage === 0}
           >
-            <ChevronLeft size={15} />
-            Prev
+            ← Prev
           </button>
           <div className="ua-page-dots">
             {Array.from({ length: quizPageCount }, (_, index) => (
@@ -319,8 +314,7 @@ export default function AssessmentPanel({
             onClick={() => setQuizPage((value) => Math.min(quizPageCount - 1, value + 1))}
             disabled={activeQuizPage === quizPageCount - 1}
           >
-            Next
-            <ChevronRight size={15} />
+            Next →
           </button>
         </nav>
       )}
@@ -370,7 +364,6 @@ export default function AssessmentPanel({
             </div>
             {!revealed && (
               <button type="button" className="ua-reveal-button" onClick={() => handleReveal(question)}>
-                <Eye size={15} />
                 Reveal answer
               </button>
             )}
@@ -396,8 +389,7 @@ export default function AssessmentPanel({
             onClick={() => setQuizPage((value) => Math.max(0, value - 1))}
             disabled={activeQuizPage === 0}
           >
-            <ChevronLeft size={15} />
-            Prev
+            ← Prev
           </button>
           <span>Page {activeQuizPage + 1} of {quizPageCount}</span>
           <button
@@ -406,8 +398,7 @@ export default function AssessmentPanel({
             onClick={() => setQuizPage((value) => Math.min(quizPageCount - 1, value + 1))}
             disabled={activeQuizPage === quizPageCount - 1}
           >
-            Next
-            <ChevronRight size={15} />
+            Next →
           </button>
         </nav>
       )}
@@ -415,7 +406,7 @@ export default function AssessmentPanel({
       {assessment.labs?.length > 0 && (
         <div className="ua-lab-list">
           <div className="ua-quiz-kicker">
-            <FlaskConical size={15} />
+            <span className="ua-kicker-mark" aria-hidden="true">LAB</span>
             Practice labs
           </div>
           {assessment.labs.map((lab) => {
@@ -430,7 +421,7 @@ export default function AssessmentPanel({
                 role="checkbox"
                 aria-checked={done}
               >
-                {done ? <CheckCircle2 size={18} /> : <Circle size={18} />}
+                <span className="ua-lab-check" aria-hidden="true">{done ? '×' : ''}</span>
                 <span>
                   <strong>{lab.title}</strong>
                   <em>{lab.prompt}</em>
@@ -450,7 +441,7 @@ export default function AssessmentPanel({
             onClick={() => setShowReview((value) => !value)}
             aria-expanded={showReview}
           >
-            <BookOpen size={16} />
+            <span className="ua-kicker-mark" aria-hidden="true">§</span>
             Optional Interview Review
             <span>{reviewItems.length} strategy prompts</span>
           </button>
@@ -465,8 +456,7 @@ export default function AssessmentPanel({
                     onClick={() => setReviewPage((value) => Math.max(0, value - 1))}
                     disabled={activeReviewPage === 0}
                   >
-                    <ChevronLeft size={15} />
-                    Prev
+                    ← Prev
                   </button>
                   <span>Review {reviewPageStart + 1}-{Math.min(reviewItems.length, reviewPageStart + pageReviewItems.length)} of {reviewItems.length}</span>
                   <button
@@ -475,8 +465,7 @@ export default function AssessmentPanel({
                     onClick={() => setReviewPage((value) => Math.min(reviewPageCount - 1, value + 1))}
                     disabled={activeReviewPage === reviewPageCount - 1}
                   >
-                    Next
-                    <ChevronRight size={15} />
+                    Next →
                   </button>
                 </nav>
               )}
@@ -509,7 +498,6 @@ export default function AssessmentPanel({
                         className="ua-reveal-button ua-review-reveal"
                         onClick={() => setRevealedReview((current) => new Set(current).add(reviewKey))}
                       >
-                        <Eye size={15} />
                         Reveal answer
                       </button>
                     )}
@@ -533,7 +521,6 @@ export default function AssessmentPanel({
           <h3><InlineMathText>{legacyQuestion}</InlineMathText></h3>
           {!lessonProgress.legacyCheck?.revealed && (
             <button type="button" className="ua-reveal-button" onClick={handleLegacyReveal}>
-              <Eye size={15} />
               Reveal answer
             </button>
           )}

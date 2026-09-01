@@ -1,19 +1,5 @@
 import React from 'react';
 import {
-  ArrowLeft,
-  CheckCircle2,
-  Circle,
-  Code2,
-  Download,
-  Eye,
-  EyeOff,
-  Lightbulb,
-  Maximize2,
-  Play,
-  RotateCcw,
-  Upload,
-} from 'lucide-react';
-import {
   CODE_LAB_PROGRESS_EVENT,
   exportCodeLabProgressJson,
   importCodeLabProgressJson,
@@ -285,12 +271,10 @@ export default function CodeFixLab({ exercises, progressScopeId, onProgressChang
             onClick={exitExpanded}
             aria-label="Exit big screen mode"
           >
-            <ArrowLeft size={15} aria-hidden />
-            <span>Back</span>
+            <span>← Back</span>
           </button>
         ) : null}
         <div className="ua-codefix-toolbar-title">
-          <Code2 size={15} aria-hidden />
           <span>Code lab</span>
         </div>
         {expanded ? (
@@ -302,8 +286,7 @@ export default function CodeFixLab({ exercises, progressScopeId, onProgressChang
             onClick={() => setExpanded(true)}
             aria-label="Open code lab in big screen mode"
           >
-            <Maximize2 size={14} aria-hidden />
-            <span>Big screen</span>
+            <span>Big screen ↗</span>
           </button>
         )}
       </div>
@@ -320,12 +303,10 @@ export default function CodeFixLab({ exercises, progressScopeId, onProgressChang
           {progressScopeId && (
             <div className="ua-codefix-persistence-actions">
               <button type="button" onClick={exportProgress}>
-                <Download size={14} aria-hidden="true" />
-                Export progress
+                Export progress ↓
               </button>
               <button type="button" onClick={() => importInputRef.current?.click()}>
-                <Upload size={14} aria-hidden="true" />
-                Import progress
+                Import progress ↑
               </button>
               <input
                 ref={importInputRef}
@@ -356,7 +337,6 @@ export default function CodeFixLab({ exercises, progressScopeId, onProgressChang
               <div className="ua-codefix-progress-steps">
                 {group.items.map(({ exercise, index }) => {
                   const exerciseStatus = statusForExercise(exercise);
-                  const Icon = exerciseStatus === 'passed' ? CheckCircle2 : Circle;
 
                   return (
                     <button
@@ -368,7 +348,7 @@ export default function CodeFixLab({ exercises, progressScopeId, onProgressChang
                       }}
                       className={`ua-codefix-step ${index === activeIndex ? 'active' : ''} ${exerciseStatus}`}
                     >
-                      <Icon size={15} aria-hidden="true" />
+                      <span className="ua-lab-check" aria-hidden="true">{exerciseStatus === 'passed' ? '×' : ''}</span>
                       <span>{exercise.stepLabel || `${index + 1}.`} {exercise.title}</span>
                     </button>
                   );
@@ -403,7 +383,6 @@ export default function CodeFixLab({ exercises, progressScopeId, onProgressChang
               <h3>Complete the TODO</h3>
             </div>
             <button type="button" onClick={resetExercise}>
-              <RotateCcw size={14} aria-hidden="true" />
               Reset
             </button>
           </div>
@@ -427,11 +406,9 @@ export default function CodeFixLab({ exercises, progressScopeId, onProgressChang
 
           <div className="ua-codefix-actions">
             <button type="button" onClick={runTests} disabled={running}>
-              <Play size={15} aria-hidden="true" />
               {running ? 'Running...' : 'Run tests'}
             </button>
             <button type="button" onClick={showNextHint} disabled={hintLevel >= activeExercise.hints.length}>
-              <Lightbulb size={15} aria-hidden="true" />
               {hintLevel === 0 ? 'Show hint' : 'Next hint'}
             </button>
             <button
@@ -440,7 +417,6 @@ export default function CodeFixLab({ exercises, progressScopeId, onProgressChang
               disabled={!canRevealSolution}
               title={canRevealSolution ? undefined : 'Run tests or use a hint before revealing the solution.'}
             >
-              {showSolution ? <EyeOff size={15} aria-hidden="true" /> : <Eye size={15} aria-hidden="true" />}
               {showSolution ? 'Hide solution' : canRevealSolution ? 'See solution' : 'Try first'}
             </button>
           </div>

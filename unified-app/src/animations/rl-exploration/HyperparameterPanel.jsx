@@ -86,7 +86,7 @@ export default function HyperparameterPanel() {
                                 <CartesianGrid strokeDasharray="3 3" stroke="#374151" />
                                 <XAxis dataKey="episode" stroke="#94a3b8" />
                                 <YAxis domain={[-100, 20]} stroke="#94a3b8" />
-                                <Tooltip contentStyle={{ backgroundColor: '#1e293b', border: 'none' }} />
+                                <Tooltip contentStyle={{ backgroundColor: 'var(--ds-panel)', border: 'var(--ds-border)', borderRadius: '2px', color: 'var(--ds-ink)' }} />
                                 <Line type="monotone" dataKey="reward" stroke="#e879f9" strokeWidth={3} dot={false} />
                             </LineChart>
                         </ResponsiveContainer>

@@ -1,5 +1,4 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { X } from 'lucide-react';
 
 const NOTES_PREFIX = 'ml-animations:notes:';
 
@@ -26,7 +25,7 @@ export default function NotesDrawer({ open, scope, title, onClose }) {
       <div className="ua-notes-head">
         <span>Notebook</span>
         <button type="button" className="ua-icon-btn" onClick={onClose} aria-label="Close notes">
-          <X size={18} />
+          ×
         </button>
       </div>
       <h2>{title || 'Catalog notes'}</h2>

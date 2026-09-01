@@ -1,17 +1,6 @@
 import React, { Suspense, lazy, useEffect, useMemo, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { Link } from 'react-router-dom';
-import {
-  AlertTriangle,
-  ChevronLeft,
-  ChevronRight,
-  ClipboardCheck,
-  FileSearch,
-  GitCompare,
-  Image as ImageIcon,
-  Library,
-  ShieldCheck,
-} from 'lucide-react';
 import Eq from '../../_design-system/Eq';
 import { allAnimations } from '../../data/animations';
 import { getLessonImages } from '../../data/lessonImages';
@@ -139,7 +128,7 @@ function ConceptComparisonCards({ comparisons }) {
   return (
     <section className="ua-depth-panel" aria-label="Concept comparisons">
       <div className="ua-depth-panel-head">
-        <GitCompare size={17} />
+        <i className="ua-depth-plate" aria-hidden="true">A</i>
         <span>Concept comparisons</span>
       </div>
       <div className="ua-depth-grid">
@@ -182,7 +171,7 @@ function FailureGallery({ failures }) {
   return (
     <section className="ua-depth-panel" aria-label="Failure gallery">
       <div className="ua-depth-panel-head">
-        <AlertTriangle size={17} />
+        <i className="ua-depth-plate" aria-hidden="true">B</i>
         <span>Failure gallery</span>
       </div>
       <div className="ua-depth-grid">
@@ -220,7 +209,7 @@ function PaperReadingMode({ signals }) {
   return (
     <section className="ua-depth-panel" aria-label="Paper reading mode">
       <div className="ua-depth-panel-head">
-        <FileSearch size={17} />
+        <i className="ua-depth-plate" aria-hidden="true">C</i>
         <span>Paper-reading mode</span>
       </div>
       <div className="ua-depth-grid">
@@ -279,7 +268,7 @@ function CaveatBoxes({ caveats }) {
   return (
     <section className="ua-depth-panel" aria-label="Caveats and boundaries">
       <div className="ua-depth-panel-head">
-        <ShieldCheck size={17} />
+        <i className="ua-depth-plate" aria-hidden="true">D</i>
         <span>What this does not solve</span>
       </div>
       <div className="ua-depth-grid">
@@ -408,16 +397,14 @@ function LessonImageGallery({ images, lessonName }) {
             onClick={() => setActiveIndex((value) => Math.max(0, value - 1))}
             disabled={activeIndex === 0}
           >
-            <ChevronLeft size={15} />
-            Previous
+            ← Previous
           </button>
           <button
             type="button"
             onClick={() => setActiveIndex((value) => Math.min(images.length - 1, value + 1))}
             disabled={activeIndex === images.length - 1}
           >
-            Next
-            <ChevronRight size={15} />
+            Next →
           </button>
         </nav>
       )}
@@ -512,7 +499,7 @@ function getLessonWorkspaceTabs({
     assessment && {
       id: 'check',
       label: 'Core questions',
-      icon: ClipboardCheck,
+      mark: '?',
       panel: (
         <Suspense fallback={<div className="ua-map-canvas ua-map-loading">Loading questions</div>}>
           <AssessmentPanel lessonId={lessonId} eyebrow="Progress" title="Core questions" />
@@ -522,20 +509,20 @@ function getLessonWorkspaceTabs({
     glossaryTerms?.length > 0 && {
       id: 'glossary',
       label: 'Glossary',
-      icon: Library,
+      mark: 'A–Z',
       panel: <Glossary key={lessonId} terms={glossaryTerms} />,
     },
     lessonImages?.length > 0 && {
       id: 'images',
       label: 'Images',
-      icon: ImageIcon,
+      mark: 'FIG',
       hideFromTabBar: true,
       panel: <LessonImageGallery key={lessonId} images={lessonImages} lessonName={lessonName} />,
     },
     hasDepth && {
       id: 'deep-dive',
       label: 'Deep dive',
-      icon: FileSearch,
+      mark: '§',
       panel: <CurriculumDepthPanels depth={depth} />,
     },
   ].filter(Boolean);
@@ -548,7 +535,6 @@ function WorkspaceTabBar({ activeTab, tabs, onTabChange, className = '' }) {
   return (
     <div className={`ua-workspace-tabs ${className}`.trim()} aria-label="Lesson workspace sections" role="tablist">
       {visibleTabs.map((tab) => {
-        const Icon = tab.icon;
         const selected = tab.id === activeTab;
 
         return (
@@ -562,7 +548,7 @@ function WorkspaceTabBar({ activeTab, tabs, onTabChange, className = '' }) {
             id={`workspace-tab-${tab.id}`}
             onClick={() => onTabChange(tab.id)}
           >
-            <Icon size={15} />
+            <span className="ua-tab-mark" aria-hidden="true">{tab.mark}</span>
             {tab.label}
           </button>
         );
@@ -709,6 +695,31 @@ function LessonWorkspace({
   );
 }
 
+// Lesson bodies were authored against a stock icon set. Where a control already carries
+// its own text label, the icon only adds the generic-dashboard vocabulary, so mark it for
+// hiding. Gated on a real label and an icon-sized box so data marks and any icon-only
+// control keep rendering.
+const MUTED_ICON_ATTR = 'data-ua-muted-icon';
+const MAX_DECORATIVE_ICON_PX = 26;
+
+function muteLabelledControlIcons() {
+  const stageWrap = document.querySelector('#math-main-stage .ua-stage-wrap');
+  if (!stageWrap) return;
+
+  stageWrap.querySelectorAll('button, a, summary, label').forEach((control) => {
+    const icons = control.querySelectorAll(':scope > svg, :scope > span > svg');
+    if (!icons.length) return;
+    if (!control.textContent.trim()) return;
+
+    icons.forEach((icon) => {
+      if (icon.hasAttribute(MUTED_ICON_ATTR)) return;
+      const box = icon.getBoundingClientRect();
+      if (box.width > MAX_DECORATIVE_ICON_PX || box.height > MAX_DECORATIVE_ICON_PX) return;
+      icon.setAttribute(MUTED_ICON_ATTR, '');
+    });
+  });
+}
+
 export default function AnimationShell({ animation, children }) {
   const [resetNonce, setResetNonce] = useState(0);
   const [workspaceTab, setWorkspaceTab] = useState('lesson');
@@ -721,6 +732,28 @@ export default function AnimationShell({ animation, children }) {
     () => getLessonImages(animation.id, animation.name),
     [animation.id, animation.name],
   );
+
+  useEffect(() => {
+    // The stage element is swapped when the learning model resolves, so watch the page
+    // container and re-resolve the stage on every pass.
+    const page = document.querySelector('.ua-animation-page');
+    if (!page) return undefined;
+
+    let timer = 0;
+    const schedule = () => {
+      clearTimeout(timer);
+      timer = setTimeout(muteLabelledControlIcons, 0);
+    };
+
+    schedule();
+    const observer = new MutationObserver(schedule);
+    observer.observe(page, { childList: true, subtree: true });
+
+    return () => {
+      clearTimeout(timer);
+      observer.disconnect();
+    };
+  }, [animation.id, resetNonce]);
 
   useEffect(() => {
     let cancelled = false;
@@ -798,8 +831,7 @@ export default function AnimationShell({ animation, children }) {
       <div className="ua-learning-shell" data-lesson-family={animation.categoryId}>
         <header className="ua-learning-strip">
           <div>
-            <span>{animation.categoryName}</span>
-            <h2>{animation.name}</h2>
+            <span>Governing relation</span>
           </div>
           <div className="ua-chip-row">
             <span>Loading learning map</span>
@@ -835,8 +867,7 @@ export default function AnimationShell({ animation, children }) {
     <div className="ua-learning-shell" data-lesson-family={animation.categoryId}>
       <header className="ua-learning-strip">
         <div>
-          <span>{model.chips.category}</span>
-          <h2>{model.conceptName}</h2>
+          <span>Governing relation</span>
         </div>
         <div className="ua-headline-eq">
           <Eq tex={model.headlineEquation.latex} />

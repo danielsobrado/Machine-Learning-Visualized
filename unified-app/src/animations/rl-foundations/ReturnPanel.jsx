@@ -69,7 +69,7 @@ export default function ReturnPanel() {
                             <XAxis dataKey="step" stroke="#94a3b8" tick={{ fill: '#cbd5e1' }} />
                             <YAxis stroke="#94a3b8" tick={{ fill: '#cbd5e1' }} />
                             <Tooltip
-                                contentStyle={{ backgroundColor: '#1e293b', border: '1px solid #475569', borderRadius: '8px' }}
+                                contentStyle={{ backgroundColor: 'var(--ds-panel)', border: 'var(--ds-border)', borderRadius: '2px', color: 'var(--ds-ink)' }}
                                 cursor={{ fill: '#334155' }}
                             />
                             <Bar dataKey="presentValue" name="Present Value" fill="#2dd4bf" radius={[4, 4, 0, 0]}>

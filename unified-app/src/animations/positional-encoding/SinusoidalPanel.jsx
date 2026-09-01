@@ -92,7 +92,7 @@ export default function SinusoidalPanel() {
                         <XAxis dataKey="dimension" stroke="#94a3b8" tick={{ fill: '#cbd5e1' }} />
                         <YAxis domain={[-1, 1]} stroke="#94a3b8" tick={{ fill: '#cbd5e1' }} />
                         <Tooltip
-                            contentStyle={{ backgroundColor: '#1e293b', border: '1px solid #475569', borderRadius: '8px' }}
+                            contentStyle={{ backgroundColor: 'var(--ds-panel)', border: 'var(--ds-border)', borderRadius: '2px', color: 'var(--ds-ink)' }}
                             labelStyle={{ color: '#e2e8f0' }}
                         />
                         <Line type="monotone" dataKey="value" stroke="#22d3ee" strokeWidth={2} dot={false} />
@@ -118,7 +118,7 @@ export default function SinusoidalPanel() {
                         />
                         <YAxis domain={[-1, 1]} stroke="#94a3b8" tick={{ fill: '#cbd5e1' }} />
                         <Tooltip
-                            contentStyle={{ backgroundColor: '#1e293b', border: '1px solid #475569', borderRadius: '8px' }}
+                            contentStyle={{ backgroundColor: 'var(--ds-panel)', border: 'var(--ds-border)', borderRadius: '2px', color: 'var(--ds-ink)' }}
                             labelStyle={{ color: '#e2e8f0' }}
                         />
                         <Legend wrapperStyle={{ color: '#e2e8f0' }} />

@@ -1,7 +1,18 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
-import { Github, Menu, PanelLeft, PanelLeftClose, Settings } from 'lucide-react';
 import { readGitHubSyncSettings, GITHUB_SYNC_EVENT } from '../../data/githubProgressSync.js';
+
+// Drawn rather than imported: the rail toggle shows this notebook's own index margin,
+// which no stock icon vocabulary says better.
+function RailMark({ open }) {
+  return (
+    <svg className="ua-rail-mark" viewBox="0 0 20 20" aria-hidden="true">
+      {open && <rect className="ua-rail-fill" x="2.5" y="3.5" width="5.5" height="13" />}
+      <rect x="2.5" y="3.5" width="15" height="13" />
+      <line x1="8" y1="3.5" x2="8" y2="16.5" />
+    </svg>
+  );
+}
 
 export default function Header({
   onMenuClick,
@@ -13,7 +24,7 @@ export default function Header({
 }) {
   const progressLabel = `Σ ${progress.visited} / ${progress.total} lessons`;
   const progressPercent = progress.total > 0 ? (progress.visited / progress.total) * 100 : 0;
-  const DesktopIcon = !sidebarOpen || sidebarCollapsed ? PanelLeft : PanelLeftClose;
+  const railOpen = sidebarOpen && !sidebarCollapsed;
 
   const [settings, setSettings] = React.useState(() => readGitHubSyncSettings());
 
@@ -40,15 +51,15 @@ export default function Header({
           aria-label="Toggle menu"
           aria-expanded={sidebarOpen}
         >
-          <Menu size={20} />
+          <RailMark open={sidebarOpen} />
         </button>
         <button
           className="ua-icon-btn hidden md:inline-flex"
           onClick={onSidebarControlClick}
           aria-label="Toggle sidebar"
-          aria-expanded={sidebarOpen && !sidebarCollapsed}
+          aria-expanded={railOpen}
         >
-          <DesktopIcon size={20} />
+          <RailMark open={railOpen} />
         </button>
         <Link to="/" className="ua-brand">
           <span className="ua-brand-mark">ml</span>
@@ -81,20 +92,18 @@ export default function Header({
           to="/settings"
           className={`ua-header-action ua-header-login-btn ${hasStorageUrl && isEnabled ? 'ua-sync-active' : ''}`}
         >
-          <Github size={15} />
-          <span>{hasStorageUrl && isEnabled ? 'Sync Active' : 'Sign In'}</span>
+          {hasStorageUrl && isEnabled ? 'Sync active' : 'Sign in'}
         </Link>
-        <Link to="/settings" className="ua-icon-btn" aria-label="Settings">
-          <Settings size={19} />
+        <Link to="/settings" className="ua-header-action">
+          Settings
         </Link>
         <a
-          className="ua-icon-btn"
+          className="ua-header-action"
           href="https://github.com/danielsobrado/Machine-Learning-Visualized"
           target="_blank"
           rel="noopener noreferrer"
-          aria-label="GitHub repository"
         >
-          <Github size={19} />
+          Source ↗
         </a>
       </div>
     </header>

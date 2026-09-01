@@ -101,7 +101,7 @@ export default function DivergencePanel() {
                                 <CartesianGrid strokeDasharray="3 3" stroke="#374151" />
                                 <XAxis dataKey="x" stroke="#94a3b8" />
                                 <YAxis hide />
-                                <Tooltip contentStyle={{ backgroundColor: '#1e293b', border: 'none' }} />
+                                <Tooltip contentStyle={{ backgroundColor: 'var(--ds-panel)', border: 'var(--ds-border)', borderRadius: '2px', color: 'var(--ds-ink)' }} />
                                 <Area type="monotone" dataKey="p" stroke="#22c55e" fill="#22c55e" fillOpacity={0.3} strokeWidth={2} name="True P" />
                                 <Area type="monotone" dataKey="q" stroke="#fbbf24" fill="#fbbf24" fillOpacity={0.3} strokeWidth={2} name="Approx Q" />
                             </AreaChart>

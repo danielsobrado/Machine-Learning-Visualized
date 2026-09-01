@@ -418,25 +418,75 @@ body {
   color: var(--ds-accent);
 }
 
+.ua-notes-head .ua-icon-btn {
+  width: 24px;
+  height: 24px;
+  font-family: var(--ds-font-mono);
+  font-size: 17px;
+  line-height: 1;
+}
+
+/* `.ua-icon-btn` outranks Tailwind's `hidden` in the cascade, which showed both the
+   drawer and rail toggles at every width. Drive the swap from here instead. */
+.ua-header-left .ua-icon-btn.md\:hidden {
+  display: inline-flex;
+}
+
+.ua-header-left .ua-icon-btn.hidden.md\:inline-flex {
+  display: none;
+}
+
+@media (min-width: 768px) {
+  .ua-header-left .ua-icon-btn.md\:hidden {
+    display: none;
+  }
+
+  .ua-header-left .ua-icon-btn.hidden.md\:inline-flex {
+    display: inline-flex;
+  }
+}
+
+.ua-rail-mark {
+  width: 20px;
+  height: 20px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1;
+}
+
+.ua-rail-mark .ua-rail-fill {
+  fill: currentColor;
+  stroke: none;
+  opacity: 0.22;
+}
+
+/* Masthead links, not buttons: hairline separators instead of five stacked boxes. */
 .ua-header-action {
   display: inline-flex;
   align-items: center;
   gap: 7px;
   min-height: 36px;
-  border: var(--ds-border);
+  border: 0;
   background: transparent;
-  color: var(--ds-ink);
+  color: var(--ds-faint);
   cursor: pointer;
   font-family: var(--ds-font-mono);
   font-size: 10px;
   letter-spacing: 0.1em;
-  padding: 0 10px;
+  padding: 0 11px;
+  text-decoration: none;
   text-transform: uppercase;
 }
 
+.ua-header-action + .ua-header-action {
+  border-left: var(--ds-border);
+}
+
 .ua-header-action:hover {
-  background: var(--ds-accent-w);
+  background: transparent;
   color: var(--ds-accent);
+  text-decoration: underline;
+  text-underline-offset: 4px;
 }
 
 .ua-progress-track {
@@ -696,7 +746,7 @@ body {
   justify-content: center;
   gap: 0.35rem;
   border: 1px solid var(--ds-rule) !important;
-  border-radius: 3px;
+  border-radius: 2px;
   background: transparent !important;
   color: var(--ds-ink) !important;
   box-shadow: none !important;
@@ -1136,7 +1186,7 @@ body {
   width: min(1180px, 100%);
   border: 1px solid var(--ua-border, #d8cfba);
   background: #fbf8f1;
-  border-radius: 18px;
+  border-radius: 2px;
   padding: 1.25rem;
   text-align: left;
 }
@@ -1208,7 +1258,7 @@ body {
   align-items: center;
   background: rgba(255, 253, 247, 0.86);
   border: 1px solid #d8cfba;
-  border-radius: 8px;
+  border-radius: 2px;
   color: var(--ds-accent);
   display: inline-flex;
   font-size: 12px;
@@ -1229,7 +1279,7 @@ body {
   flex: 0 0 auto;
   min-width: 210px;
   border: 1px solid #eadfca;
-  border-radius: 12px;
+  border-radius: 2px;
   background: rgba(255, 253, 247, 0.72);
   padding: 0.55rem;
 }
@@ -1263,7 +1313,7 @@ body {
   border: 1px solid #d8cfba;
   background: #fffdf7;
   color: #3b342b;
-  border-radius: 999px;
+  border-radius: 2px;
   padding: 0.45rem 0.75rem;
   display: inline-flex;
   align-items: center;
@@ -1298,7 +1348,7 @@ body {
 .ua-codefix-card {
   background: #fffdf7;
   border: 1px solid #d8cfba;
-  border-radius: 14px;
+  border-radius: 2px;
   padding: 1rem;
 }
 
@@ -1316,7 +1366,7 @@ body {
   border: 1px solid #d8cfba;
   background: #f7efe0;
   color: #1f1f1f;
-  border-radius: 10px;
+  border-radius: 2px;
   padding: 0.48rem 0.7rem;
   font-size: 0.82rem;
   display: inline-flex;
@@ -1340,7 +1390,7 @@ body {
   width: 100%;
   min-height: 360px;
   border: 1px solid #d8cfba;
-  border-radius: 12px;
+  border-radius: 2px;
   background: #fffdf7;
   overflow: hidden;
 }
@@ -1375,7 +1425,7 @@ body {
   color: transparent !important;
   caret-color: #1f1f1f;
   outline: none;
-  border-radius: 12px !important;
+  border-radius: 2px !important;
 }
 
 .ua-codefix-editor::selection {
@@ -1430,7 +1480,7 @@ body {
 
 .ua-codefix-checks li {
   border: 1px solid #eadfca;
-  border-radius: 10px;
+  border-radius: 2px;
   padding: 0.6rem;
   background: #fbf8f1;
 }
@@ -1453,7 +1503,7 @@ body {
   background: #2b1515;
   color: #ffe6d9;
   padding: 0.75rem;
-  border-radius: 10px;
+  border-radius: 2px;
   white-space: pre-wrap;
   font-size: 0.8rem;
 }
@@ -1464,7 +1514,7 @@ body {
   background: #151515;
   color: #f7f1df;
   padding: 0.75rem;
-  border-radius: 10px;
+  border-radius: 2px;
   font-size: 0.78rem;
   white-space: pre-wrap;
 }
@@ -2517,6 +2567,8 @@ html.ua-concept-map-expanded .ua-concept-map--expanded:not(.ua-concept-map--cura
 
 .ua-map-zoom-btn {
   padding: 0;
+  font-size: 14px;
+  letter-spacing: 0;
 }
 
 .ua-map-zoom-btn:hover,
@@ -2563,6 +2615,7 @@ html.ua-concept-map-expanded .ua-concept-map--expanded:not(.ua-concept-map--cura
 .ua-map-canvas .map-container me-main > me-wrapper > me-parent > me-tpc,
 .ua-map-canvas .map-container me-parent me-tpc {
   border: var(--ds-border);
+  border-radius: 2px;
   box-shadow: none;
   font-family: var(--ds-font-serif);
   font-size: 15px;
@@ -2632,7 +2685,18 @@ html.ua-concept-map-expanded .ua-concept-map--expanded:not(.ua-concept-map--cura
 #root .ua-stage-wrap :where(div, section, article, aside)[class*="bg-gray-900"],
 #root .ua-stage-wrap :where(div, section, article, aside)[class*="bg-slate-800"],
 #root .ua-stage-wrap :where(div, section, article, aside)[class*="bg-gray-800"],
-#root .ua-stage-wrap :where(div, section, article, aside)[class*="bg-white/"],
+#root .ua-stage-wrap :where(div, section, article, aside, p, span, code, pre, li, td, th, svg, figure, label, dl, dd, blockquote)[class~="bg-white"],
+#root .ua-stage-wrap :where(div, section, article, aside, p, span, code, pre, li, td, th, svg, figure, label, dl, dd, blockquote)[class*="bg-white/"],
+#root .ua-stage-wrap :where(div, section, article, aside, p, span, code, pre, li, td, th, svg, figure, label, dl, dd, blockquote)[class*="bg-slate-50"],
+#root .ua-stage-wrap :where(div, section, article, aside, p, span, code, pre, li, td, th, svg, figure, label, dl, dd, blockquote)[class*="bg-slate-100"],
+#root .ua-stage-wrap :where(div, section, article, aside, p, span, code, pre, li, td, th, svg, figure, label, dl, dd, blockquote)[class*="bg-gray-50"],
+#root .ua-stage-wrap :where(div, section, article, aside, p, span, code, pre, li, td, th, svg, figure, label, dl, dd, blockquote)[class*="bg-gray-100"],
+#root .ua-stage-wrap :where(div, section, article, aside, p, span, code, pre, li, td, th, svg, figure, label, dl, dd, blockquote)[class*="bg-neutral-50"],
+#root .ua-stage-wrap :where(div, section, article, aside, p, span, code, pre, li, td, th, svg, figure, label, dl, dd, blockquote)[class*="bg-neutral-100"],
+#root .ua-stage-wrap :where(div, section, article, aside, p, span, code, pre, li, td, th, svg, figure, label, dl, dd, blockquote)[class*="bg-zinc-50"],
+#root .ua-stage-wrap :where(div, section, article, aside, p, span, code, pre, li, td, th, svg, figure, label, dl, dd, blockquote)[class*="bg-zinc-100"],
+#root .ua-stage-wrap :where(div, section, article, aside, p, span, code, pre, li, td, th, svg, figure, label, dl, dd, blockquote)[class*="bg-stone-50"],
+#root .ua-stage-wrap :where(div, section, article, aside, p, span, code, pre, li, td, th, svg, figure, label, dl, dd, blockquote)[class*="bg-stone-100"],
 #root .ua-stage-wrap :where(div, section, article, aside)[class*="backdrop-blur"],
 #root .ua-stage-wrap :where(div, section, article, aside)[class*="from-"][class*="to-"] {
   background: var(--ds-panel) !important;
@@ -2643,6 +2707,7 @@ html.ua-concept-map-expanded .ua-concept-map--expanded:not(.ua-concept-map--cura
 #root .ua-stage-wrap :where(div, section, article, aside)[class*="bg-red-"],
 #root .ua-stage-wrap :where(div, section, article, aside)[class*="bg-orange-"],
 #root .ua-stage-wrap :where(div, section, article, aside)[class*="bg-amber-"],
+#root .ua-stage-wrap :where(div, section, article, aside)[class*="bg-rose-"],
 #root .ua-stage-wrap :where(div, section, article, aside)[class*="bg-yellow-"] {
   background: var(--ds-warm-w) !important;
   border-color: rgba(168, 90, 58, 0.28) !important;
@@ -2682,10 +2747,10 @@ html.ua-concept-map-expanded .ua-concept-map--expanded:not(.ua-concept-map--cura
   color: var(--ds-faint) !important;
 }
 
-#root .ua-stage-wrap :where(div, section, article, aside, pre)[class*="rounded-2xl"],
-#root .ua-stage-wrap :where(div, section, article, aside, pre)[class*="rounded-xl"],
-#root .ua-stage-wrap :where(div, section, article, aside, pre)[class*="rounded-lg"] {
-  border-radius: 3px !important;
+/* Radius discipline reaches every rounding utility a lesson body might carry, on any
+   element. Circles stay circles: `rounded-full` on a square box is a dot or a node mark. */
+#root .ua-stage-wrap [class*="rounded"]:not([class*="rounded-full"]) {
+  border-radius: 2px !important;
 }
 
 .ua-card-stack {
@@ -3272,6 +3337,63 @@ html.ua-concept-map-expanded .ua-concept-map--expanded:not(.ua-concept-map--cura
 .ua-lab-card span {
   display: grid;
   gap: 4px;
+}
+
+/* A ruled checkbox marked by hand, not a filled icon. */
+.ua-animation-page .ua-lab-card .ua-lab-check {
+  display: inline-grid;
+  place-items: center;
+  width: 14px;
+  height: 14px;
+  flex: 0 0 auto;
+  margin-top: 2px;
+  gap: 0;
+  border: 1px solid var(--ds-hair);
+  color: #4f7d39;
+  font-family: var(--ds-font-mono);
+  font-size: 13px;
+  line-height: 1;
+}
+
+.ua-animation-page .ua-lab-card.done .ua-lab-check {
+  border-color: #4f7d39;
+}
+
+.ua-kicker-mark {
+  font-family: var(--ds-font-mono);
+  font-size: 9px;
+  letter-spacing: 0.08em;
+  opacity: 0.7;
+}
+
+/* Pass / pending / locked read as pencil marks in the margin. */
+.ua-step-mark {
+  display: inline-grid;
+  place-items: center;
+  width: 14px;
+  height: 14px;
+  flex: 0 0 auto;
+  border: 1px solid currentColor;
+  font-family: var(--ds-font-mono);
+  font-size: 12px;
+  line-height: 1;
+  opacity: 0.75;
+}
+
+.ua-codefix-step .ua-lab-check {
+  display: inline-grid;
+  place-items: center;
+  width: 12px;
+  height: 12px;
+  flex: 0 0 auto;
+  border: 1px solid var(--ds-hair);
+  font-family: var(--ds-font-mono);
+  font-size: 11px;
+  line-height: 1;
+}
+
+.ua-codefix-step.passed .ua-lab-check {
+  border-color: currentColor;
 }
 
 .ua-lab-card strong {
@@ -3957,6 +4079,29 @@ html.ua-concept-map-expanded .ua-concept-map--expanded:not(.ua-concept-map--cura
   text-transform: uppercase;
 }
 
+/* Instrument plate, not an icon: a lettered mark keeps the notebook vocabulary. */
+.ua-depth-plate {
+  display: inline-grid;
+  place-items: center;
+  width: 15px;
+  height: 15px;
+  border: 1px solid currentColor;
+  font-size: 9px;
+  font-style: normal;
+  letter-spacing: 0;
+}
+
+.ua-tab-mark {
+  color: var(--ds-mute);
+  font-family: var(--ds-font-mono);
+  font-size: 10px;
+  letter-spacing: 0.06em;
+}
+
+.ua-workspace-tab[aria-selected="true"] .ua-tab-mark {
+  color: inherit;
+}
+
 .ua-depth-grid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
@@ -4423,6 +4568,14 @@ html.ua-concept-map-expanded .ua-concept-map--expanded:not(.ua-concept-map--cura
   font-size: 22px;
 }
 
+.ua-command-search-mark {
+  width: 18px;
+  color: var(--ds-mute);
+  font-family: var(--ds-font-mono);
+  font-size: 18px;
+  text-align: center;
+}
+
 .ua-command-results {
   max-height: min(520px, 62vh);
   overflow-y: auto;
@@ -4878,7 +5031,7 @@ html.ua-concept-map-expanded .ua-concept-map--expanded:not(.ua-concept-map--cura
   min-height: 34px;
   padding: 8px 12px !important;
   border: 1px solid var(--ds-rule) !important;
-  border-radius: 6px !important;
+  border-radius: 2px !important;
   background: var(--ds-panel) !important;
   color: var(--ds-faint) !important;
   font-family: var(--ds-font-sans) !important;
@@ -4919,7 +5072,7 @@ html.ua-concept-map-expanded .ua-concept-map--expanded:not(.ua-concept-map--cura
   width: auto;
   padding: 8px 12px !important;
   border: 1px solid var(--ds-rule) !important;
-  border-radius: 6px !important;
+  border-radius: 2px !important;
   background: var(--ds-panel) !important;
   color: var(--ds-faint) !important;
   font-family: var(--ds-font-sans) !important;
@@ -4987,7 +5140,7 @@ html.ua-concept-map-expanded .ua-concept-map--expanded:not(.ua-concept-map--cura
   display: grid;
   gap: 18px;
   border: 1px solid var(--ds-rule);
-  border-radius: 8px;
+  border-radius: 2px;
   background: var(--ds-panel);
   padding: 20px;
 }
@@ -5058,7 +5211,7 @@ html.ua-concept-map-expanded .ua-concept-map--expanded:not(.ua-concept-map--cura
   display: grid;
   gap: 8px;
   border: 1px solid var(--ds-rule);
-  border-radius: 6px;
+  border-radius: 2px;
   background: var(--ds-paper);
   padding: 12px;
 }
@@ -5094,7 +5247,7 @@ html.ua-concept-map-expanded .ua-concept-map--expanded:not(.ua-concept-map--cura
   gap: 14px;
   min-width: 0;
   border: 1px solid var(--ds-rule);
-  border-radius: 8px;
+  border-radius: 2px;
   background: var(--ds-paper);
   padding: 14px;
 }
@@ -5176,7 +5329,7 @@ html.ua-concept-map-expanded .ua-concept-map--expanded:not(.ua-concept-map--cura
   width: 100%;
   min-height: 520px;
   resize: vertical;
-  border-radius: 6px !important;
+  border-radius: 2px !important;
   background: #1f1f1d !important;
   color: #f5f1e8 !important;
   font-family: var(--ds-font-mono);
@@ -5197,7 +5350,7 @@ html.ua-concept-map-expanded .ua-concept-map--expanded:not(.ua-concept-map--cura
   align-items: center !important;
   gap: 7px !important;
   min-height: 34px;
-  border-radius: 6px !important;
+  border-radius: 2px !important;
   font-size: 12px !important;
   font-weight: 800 !important;
   letter-spacing: 0 !important;
@@ -5224,7 +5377,7 @@ html.ua-concept-map-expanded .ua-concept-map--expanded:not(.ua-concept-map--cura
   max-height: 260px;
   overflow: auto;
   border: 1px solid #b65c41;
-  border-radius: 6px;
+  border-radius: 2px;
   background: #fff7f1;
   color: #7c2d12;
   font-family: var(--ds-font-mono);
@@ -5236,7 +5389,7 @@ html.ua-concept-map-expanded .ua-concept-map--expanded:not(.ua-concept-map--cura
 
 .ua-grpo-empty-state {
   border: 1px dashed var(--ds-rule);
-  border-radius: 6px;
+  border-radius: 2px;
   background: var(--ds-panel);
   padding: 16px;
 }
@@ -5256,7 +5409,7 @@ html.ua-concept-map-expanded .ua-concept-map--expanded:not(.ua-concept-map--cura
 
 .ua-grpo-status {
   border: 1px solid var(--ds-rule);
-  border-radius: 6px;
+  border-radius: 2px;
   background: var(--ds-panel);
   padding: 10px 12px;
   color: var(--ds-ink);
@@ -5329,7 +5482,7 @@ html.ua-concept-map-expanded .ua-concept-map--expanded:not(.ua-concept-map--cura
   height: 8px;
   overflow: hidden;
   border: 1px solid var(--ds-rule);
-  border-radius: 999px;
+  border-radius: 2px;
   background: var(--ds-panel);
 }
 
@@ -5372,7 +5525,7 @@ html.ua-concept-map-expanded .ua-concept-map--expanded:not(.ua-concept-map--cura
   min-height: 90px;
   padding: 12px !important;
   border: 1px solid var(--ds-rule) !important;
-  border-radius: 8px !important;
+  border-radius: 2px !important;
   background: var(--ds-paper) !important;
   color: var(--ds-ink) !important;
   text-align: left !important;
@@ -5423,7 +5576,7 @@ html.ua-concept-map-expanded .ua-concept-map--expanded:not(.ua-concept-map--cura
   justify-content: space-between;
   gap: 12px;
   border: 1px solid var(--ds-rule);
-  border-radius: 7px;
+  border-radius: 2px;
   background: var(--ds-paper);
   padding: 10px 12px;
 }
@@ -5453,7 +5606,7 @@ html.ua-concept-map-expanded .ua-concept-map--expanded:not(.ua-concept-map--cura
   display: grid;
   gap: 9px;
   border: 1px solid var(--ds-rule);
-  border-radius: 7px;
+  border-radius: 2px;
   background: var(--ds-panel);
   padding: 11px;
 }
@@ -5495,7 +5648,7 @@ html.ua-concept-map-expanded .ua-concept-map--expanded:not(.ua-concept-map--cura
 .ua-grpo-baseline-row span,
 .ua-grpo-experiment-list span {
   border: 1px solid var(--ds-rule);
-  border-radius: 999px;
+  border-radius: 2px;
   background: var(--ds-paper);
   color: var(--ds-faint);
   font-family: var(--ds-font-sans);
@@ -5536,7 +5689,7 @@ html.ua-concept-map-expanded .ua-concept-map--expanded:not(.ua-concept-map--cura
   gap: 6px !important;
   min-height: 30px;
   border: 1px solid var(--ds-rule) !important;
-  border-radius: 6px !important;
+  border-radius: 2px !important;
   background: var(--ds-panel) !important;
   color: var(--ds-ink) !important;
   font-family: var(--ds-font-sans) !important;
@@ -5567,7 +5720,7 @@ html.ua-concept-map-expanded .ua-concept-map--expanded:not(.ua-concept-map--cura
   display: grid;
   gap: 10px;
   border: 1px solid var(--ds-rule);
-  border-radius: 7px;
+  border-radius: 2px;
   background: var(--ds-panel);
   padding: 12px;
 }
@@ -5608,7 +5761,7 @@ html.ua-concept-map-expanded .ua-concept-map--expanded:not(.ua-concept-map--cura
   max-height: 260px;
   overflow: auto;
   border: 1px solid var(--ds-rule);
-  border-radius: 6px;
+  border-radius: 2px;
   background: #1f1f1d;
   color: #f5f1e8;
   font-family: var(--ds-font-mono);
@@ -5622,7 +5775,7 @@ html.ua-concept-map-expanded .ua-concept-map--expanded:not(.ua-concept-map--cura
 .ua-grpo-check-list li {
   align-items: flex-start;
   border: 1px solid var(--ds-rule);
-  border-radius: 7px;
+  border-radius: 2px;
   background: var(--ds-panel);
   padding: 10px;
 }
@@ -5696,7 +5849,7 @@ html.ua-concept-map-expanded .ua-concept-map--expanded:not(.ua-concept-map--cura
   height: 9px;
   overflow: hidden;
   border: 1px solid var(--ds-rule);
-  border-radius: 999px;
+  border-radius: 2px;
   background: var(--ds-paper);
 }
 
@@ -5726,7 +5879,7 @@ html.ua-concept-map-expanded .ua-concept-map--expanded:not(.ua-concept-map--cura
   display: grid;
   gap: 8px;
   border: 1px solid var(--ds-rule);
-  border-radius: 7px;
+  border-radius: 2px;
   background: var(--ds-panel);
   padding: 12px;
 }
@@ -6002,13 +6155,10 @@ html.ua-concept-map-expanded .ua-concept-map--expanded:not(.ua-concept-map--cura
 
 /* Header Login button active state style */
 .ua-header-login-btn.ua-sync-active {
-  border-color: rgba(63, 111, 70, 0.5);
-  background: var(--ds-accent-w);
   color: rgb(63, 111, 70);
 }
 .ua-header-login-btn.ua-sync-active:hover {
-  background: #f1f8f1;
-  border-color: rgb(63, 111, 70);
+  color: rgb(63, 111, 70);
 }
 
 /* Interactive notebook composition */
@@ -6354,29 +6504,48 @@ html.ua-concept-map-expanded .ua-concept-map--expanded:not(.ua-concept-map--cura
   color: var(--ds-accent);
 }
 
-.ua-knowledge-chain {
-  display: flex;
-  align-items: stretch;
-  gap: 0;
-  padding: 34px 0 20px;
+/* The knowledge map is a drawn prerequisite graph, not a row of cards. */
+.ua-prereq-map {
+  padding: 30px 0 14px;
   overflow-x: auto;
   scrollbar-width: thin;
 }
 
-.ua-knowledge-node {
+.ua-prereq-canvas {
   position: relative;
-  flex: 0 0 145px;
+}
+
+.ua-prereq-edges {
+  position: absolute;
+  inset: 0;
+  overflow: visible;
+}
+
+.ua-prereq-edges path {
+  fill: none;
+  stroke: var(--ds-rule);
+  stroke-width: 1;
+}
+
+.ua-prereq-edges path.is-met {
+  stroke: var(--ds-accent);
+  stroke-opacity: 0.42;
+}
+
+.ua-prereq-node {
+  position: absolute;
   display: grid;
   align-content: start;
-  gap: 7px;
-  min-height: 112px;
-  padding: 0 8px;
+  gap: 4px;
+  padding-left: 13px;
+  /* Paper fill occludes connectors routed behind the node. */
+  background: var(--ds-paper);
+  box-shadow: -5px 0 0 var(--ds-paper), 5px 0 0 var(--ds-paper);
   color: var(--ds-ink);
   text-decoration: none;
 }
 
-.ua-knowledge-node span,
-.ua-knowledge-node small {
+.ua-prereq-node small {
   color: var(--ds-faint);
   font-family: var(--ds-font-mono);
   font-size: 9px;
@@ -6384,44 +6553,92 @@ html.ua-concept-map-expanded .ua-concept-map--expanded:not(.ua-concept-map--cura
   text-transform: uppercase;
 }
 
-.ua-knowledge-node strong {
+.ua-prereq-node strong {
   font-family: var(--ds-font-serif);
-  font-size: 16px;
+  font-size: 15px;
   font-weight: 400;
   line-height: 1.15;
 }
 
-.ua-knowledge-node::before {
-  content: "";
+.ua-prereq-node:hover strong {
+  color: var(--ds-accent);
+}
+
+.ua-prereq-mark {
+  position: absolute;
+  top: 4px;
+  left: 0;
   width: 7px;
   height: 7px;
-  margin-bottom: 3px;
   border: 1px solid var(--ds-ink);
   background: var(--ds-paper);
 }
 
-.ua-knowledge-node.is-complete::before {
-  background: var(--ds-accent);
+.ua-prereq-node.is-complete .ua-prereq-mark {
   border-color: var(--ds-accent);
+  background: var(--ds-accent);
 }
 
-.ua-knowledge-node.is-next {
+.ua-prereq-node.is-next {
   color: var(--ds-accent);
 }
 
-.ua-knowledge-node.is-next::before {
+.ua-prereq-node.is-next .ua-prereq-mark {
+  top: 3px;
+  left: -1px;
   width: 9px;
   height: 9px;
   border: 2px double var(--ds-accent);
 }
 
-.ua-knowledge-edge {
-  flex: 0 0 20px;
-  padding-top: 12px;
-  color: var(--ds-rule);
+.ua-prereq-node.is-support strong {
+  font-style: italic;
+  color: var(--ds-faint);
+}
+
+.ua-prereq-node.is-support .ua-prereq-mark {
+  border-style: dashed;
+  border-color: var(--ds-hair);
+}
+
+.ua-map-legend,
+.ua-map-empty {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px 20px;
+  margin: 0;
+  padding-top: 14px;
+  border-top: var(--ds-border);
+  color: var(--ds-faint);
   font-family: var(--ds-font-mono);
-  font-size: 12px;
-  font-style: normal;
+  font-size: 10px;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+}
+
+.ua-map-key {
+  width: 7px;
+  height: 7px;
+  margin-right: -12px;
+  border: 1px solid var(--ds-ink);
+  background: var(--ds-paper);
+}
+
+.ua-map-key.is-done {
+  border-color: var(--ds-accent);
+  background: var(--ds-accent);
+}
+
+.ua-map-key.is-next {
+  width: 9px;
+  height: 9px;
+  border: 2px double var(--ds-accent);
+}
+
+.ua-map-key.is-support {
+  border-style: dashed;
+  border-color: var(--ds-hair);
 }
 
 .ua-catalog-head {
@@ -6610,7 +6827,7 @@ html.ua-concept-map-expanded .ua-concept-map--expanded:not(.ua-concept-map--cura
 }
 
 .ua-learning-strip {
-  grid-template-columns: minmax(220px, 0.8fr) minmax(280px, 1.4fr) auto;
+  grid-template-columns: minmax(150px, 0.5fr) minmax(280px, 1.6fr) auto;
   margin-bottom: 32px;
   padding: 12px 0 18px;
   border-bottom: var(--ds-border) !important;
@@ -6620,11 +6837,12 @@ html.ua-concept-map-expanded .ua-concept-map--expanded:not(.ua-concept-map--cura
   border-bottom: var(--ds-border) !important;
 }
 
+/* The strip is an instrument readout: a mono label, the relation, its parameters. */
 .ua-learning-strip > div:first-child > span {
-  font-family: var(--ds-font-sans);
-  font-size: 11px;
-  letter-spacing: 0;
-  text-transform: none;
+  font-family: var(--ds-font-mono);
+  font-size: 10px;
+  letter-spacing: 0.13em;
+  text-transform: uppercase;
 }
 
 .ua-chip-row span {
@@ -6768,6 +6986,11 @@ html.ua-concept-map-expanded .ua-concept-map--expanded:not(.ua-concept-map--cura
 .ua-concept-map {
   margin: 0 0 36px;
   padding-top: 16px;
+}
+
+/* Controls that already say what they do do not also need a stock glyph. */
+#root .ua-stage-wrap svg[data-ua-muted-icon] {
+  display: none;
 }
 
 /* Family-specific composition: consistent instruments, distinct subject geometry. */

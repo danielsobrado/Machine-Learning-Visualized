@@ -37,20 +37,20 @@ const palette = {
 const panelStyle = {
     background: 'var(--ds-panel)',
     border: 'var(--ds-border)',
-    borderRadius: 3
+    borderRadius: 2
 };
 
 const tileStyle = (tone, active = false) => ({
     background: active ? tone.border : tone.background,
     border: `1px solid ${tone.border}`,
     color: active ? 'var(--ds-paper)' : tone.color,
-    borderRadius: 3
+    borderRadius: 2
 });
 
 const stackStyle = (tone, active = false) => ({
     background: active ? tone.background : 'transparent',
     border: `2px dashed ${tone.border}`,
-    borderRadius: 3
+    borderRadius: 2
 });
 
 export default function OverviewPanel() {
@@ -268,7 +268,7 @@ export default function OverviewPanel() {
                                     {components[hoveredComponent].name}
                                 </div>
                                 <p style={{ color: 'var(--ds-faint)' }}>{components[hoveredComponent].description}</p>
-                                <div className="p-4" style={{ background: 'var(--ds-paper-2)', border: 'var(--ds-border)', borderRadius: 3 }}>
+                                <div className="p-4" style={{ background: 'var(--ds-paper-2)', border: 'var(--ds-border)', borderRadius: 2 }}>
                                     <p className="font-mono" style={{ color: 'var(--ds-ink)' }}>
                                         {components[hoveredComponent].details}
                                     </p>
@@ -353,7 +353,7 @@ export default function OverviewPanel() {
                                 </div>
                             </div>
                         </div>
-                        <div className="p-4 font-mono text-xs" style={{ background: 'var(--ds-paper-2)', border: 'var(--ds-border)', borderRadius: 3 }}>
+                        <div className="p-4 font-mono text-xs" style={{ background: 'var(--ds-paper-2)', border: 'var(--ds-border)', borderRadius: 2 }}>
                             <div style={{ color: 'var(--ds-faint)' }}>// Original hyperparameters</div>
                             <div style={{ color: 'var(--ds-faint)' }}>d_model = <span style={{ color: 'var(--ds-accent)' }}>512</span></div>
                             <div style={{ color: 'var(--ds-faint)' }}>d_ff = <span style={{ color: 'var(--ds-ok)' }}>2048</span></div>
