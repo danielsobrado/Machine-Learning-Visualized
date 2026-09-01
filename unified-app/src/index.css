@@ -6759,6 +6759,8 @@ html.ua-concept-map-expanded .ua-concept-map--expanded:not(.ua-concept-map--cura
   grid-template-columns: minmax(150px, 0.5fr) minmax(280px, 1.6fr) auto;
   margin-bottom: 32px;
   padding: 12px 0 18px;
+  /* The page header already draws the rule above this strip. */
+  border-top: 0 !important;
   border-bottom: var(--ds-border) !important;
 }
 
@@ -6785,8 +6787,15 @@ html.ua-concept-map-expanded .ua-concept-map--expanded:not(.ua-concept-map--cura
 }
 
 .ua-learning-grid {
-  grid-template-columns: minmax(0, 1fr) minmax(190px, 0.24fr);
   gap: clamp(22px, 3vw, 46px);
+}
+
+/* Two columns only where the shell is wide enough; below that the container
+   query above collapses the grid and stacks the rail. */
+@container (min-width: 1041px) {
+  .ua-learning-grid {
+    grid-template-columns: minmax(0, 1fr) minmax(190px, 0.24fr);
+  }
 }
 
 .ua-main-stage {
@@ -6923,9 +6932,13 @@ html.ua-concept-map-expanded .ua-concept-map--expanded:not(.ua-concept-map--cura
 }
 
 /* Family-specific composition: consistent instruments, distinct subject geometry. */
-.ua-learning-shell[data-lesson-family="math-fundamentals"] .ua-learning-grid,
-.ua-learning-shell[data-lesson-family="core-ml"] .ua-learning-grid {
-  grid-template-columns: minmax(0, 1.2fr) minmax(170px, 0.2fr);
+/* Family column ratios only apply where there is room for two columns; below
+   that the mobile collapse must win, and it is less specific than this rule. */
+@container (min-width: 1041px) {
+  .ua-learning-shell[data-lesson-family="math-fundamentals"] .ua-learning-grid,
+  .ua-learning-shell[data-lesson-family="core-ml"] .ua-learning-grid {
+    grid-template-columns: minmax(0, 1.2fr) minmax(170px, 0.2fr);
+  }
 }
 
 .ua-learning-shell[data-lesson-family="transformers"] .ua-stage-annotation,

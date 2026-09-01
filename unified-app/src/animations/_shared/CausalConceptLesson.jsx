@@ -1,31 +1,43 @@
 import React, { useMemo, useState } from 'react';
-import { AlertTriangle, BarChart3, CheckCircle2, GitBranch, RotateCcw, SlidersHorizontal, Target } from 'lucide-react';
 import AssessmentPanel from '../../components/animation-shell/AssessmentPanel';
+import {
+  BarTrack,
+  ControlBench,
+  Formula,
+  Note,
+  Plate,
+  Readouts,
+  Slider,
+  Steps,
+} from './notebook';
 
-function Stat({ label, value, detail, tone = 'slate' }) {
-  const tones = {
-    slate: 'border-slate-200 bg-white text-slate-950',
-    cyan: 'border-cyan-200 bg-cyan-50 text-cyan-950',
-    emerald: 'border-emerald-200 bg-emerald-50 text-emerald-950',
-    amber: 'border-amber-200 bg-amber-50 text-amber-950',
-    rose: 'border-rose-200 bg-rose-50 text-rose-950',
-  };
-
-  return (
-    <div className={`rounded-lg border p-4 ${tones[tone]}`}>
-      <p className="text-xs font-black uppercase tracking-wide opacity-70">{label}</p>
-      <strong className="mt-1 block text-2xl font-black">{value}</strong>
-      <span className="text-sm leading-5 opacity-80">{detail}</span>
-    </div>
-  );
-}
+const TONE_TO_BAR = {
+  slate: 'accent',
+  cyan: 'accent',
+  emerald: 'good',
+  amber: 'warn',
+  rose: 'bad',
+};
 
 function clamp(value, min, max) {
   return Math.min(max, Math.max(min, value));
 }
 
+// Lesson bodies used to carry Tailwind colour words (`bg-emerald-500`) for bar fills.
+// Map whatever survives onto the notebook's four-tone vocabulary.
+function barTone(bar) {
+  if (bar.tone && TONE_TO_BAR[bar.tone]) return TONE_TO_BAR[bar.tone];
+  const color = String(bar.color || '');
+  if (/emerald|green|teal/.test(color)) return 'good';
+  if (/amber|yellow|orange/.test(color)) return 'warn';
+  if (/rose|red/.test(color)) return 'bad';
+  return 'accent';
+}
+
 export default function CausalConceptLesson({ config }) {
-  const [values, setValues] = useState(() => Object.fromEntries(config.controls.map((control) => [control.id, control.defaultValue])));
+  const [values, setValues] = useState(
+    () => Object.fromEntries(config.controls.map((control) => [control.id, control.defaultValue])),
+  );
 
   const metrics = useMemo(() => {
     const raw = config.compute(values);
@@ -35,113 +47,68 @@ export default function CausalConceptLesson({ config }) {
     };
   }, [config, values]);
 
-  const reset = () => setValues(Object.fromEntries(config.controls.map((control) => [control.id, control.defaultValue])));
+  const reset = () => setValues(
+    Object.fromEntries(config.controls.map((control) => [control.id, control.defaultValue])),
+  );
 
   return (
-    <div className="space-y-6">
-      <section className="rounded-lg border border-slate-200 bg-white p-5">
-        <div className="flex flex-wrap items-start justify-between gap-4">
-          <div>
-            <p className="text-xs font-black uppercase tracking-wide text-slate-500">{config.kicker}</p>
-            <h2 className="mt-1 text-2xl font-black text-slate-950">{config.title}</h2>
-            <p className="mt-2 max-w-3xl text-sm leading-6 text-slate-700">{config.description}</p>
-          </div>
-          <button
-            type="button"
-            onClick={reset}
-            className="inline-flex items-center gap-2 rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm font-bold text-slate-800"
-          >
-            <RotateCcw size={16} />
-            Reset
-          </button>
-        </div>
-      </section>
+    <div className="nb-lesson">
+      <Plate label={config.kicker} title={config.title} note={config.description} />
 
-      <section className="rounded-lg border border-slate-200 bg-white p-5">
-        <div className="mb-4 flex items-center gap-2 text-sm font-black uppercase tracking-wide text-slate-600">
-          <SlidersHorizontal size={16} />
-          Scenario controls
-        </div>
-        <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
-          {config.controls.map((control) => (
-            <label key={control.id} className="grid gap-2 text-sm font-bold text-slate-700">
-              {control.label}: {control.format(values[control.id])}
-              <input
-                type="range"
-                min={control.min}
-                max={control.max}
-                step={control.step}
-                value={values[control.id]}
-                onChange={(event) => setValues((current) => ({ ...current, [control.id]: Number(event.target.value) }))}
-              />
-              <span className="text-xs font-semibold text-slate-500">{control.help}</span>
-            </label>
-          ))}
-        </div>
-      </section>
-
-      <section className="grid gap-4 md:grid-cols-4">
-        {metrics.stats.map((stat) => (
-          <Stat key={stat.label} {...stat} />
+      <ControlBench
+        label="Scenario controls"
+        actions={<button type="button" className="nb-reset" onClick={reset}>Reset</button>}
+      >
+        {config.controls.map((control) => (
+          <Slider
+            key={control.id}
+            label={control.label}
+            value={values[control.id]}
+            min={control.min}
+            max={control.max}
+            step={control.step}
+            format={control.format}
+            help={control.help}
+            onChange={(next) => setValues((current) => ({ ...current, [control.id]: next }))}
+          />
         ))}
-      </section>
+      </ControlBench>
 
-      <section className="grid gap-6 xl:grid-cols-[1fr_1fr]">
-        <div className="rounded-lg border border-slate-200 bg-white p-5">
-          <div className="mb-4 flex items-center gap-2 text-sm font-black uppercase tracking-wide text-slate-600">
-            <BarChart3 size={16} />
-            Effect readout
-          </div>
-          <div className="space-y-4">
+      <Plate label="Readout">
+        <Readouts
+          items={metrics.stats.map((stat) => ({
+            label: stat.label,
+            value: stat.value,
+            detail: stat.detail,
+          }))}
+        />
+      </Plate>
+
+      <div className="nb-split">
+        <Plate label="Effect">
+          <div className="nb-bar-stack">
             {metrics.bars.map((bar) => (
-              <div key={bar.label}>
-                <div className="mb-1 flex justify-between gap-3 text-sm font-bold text-slate-700">
-                  <span>{bar.label}</span>
-                  <span>{bar.value}</span>
-                </div>
-                <div className="h-5 rounded-full bg-slate-100">
-                  <div className={`h-5 rounded-full ${bar.color}`} style={{ width: `${bar.width}%` }} />
-                </div>
-              </div>
+              <BarTrack
+                key={bar.label}
+                label={bar.label}
+                value={bar.value}
+                width={bar.width}
+                tone={barTone(bar)}
+              />
             ))}
           </div>
-          <div className="mt-5 rounded-lg bg-slate-950 p-4 font-mono text-sm leading-7 text-cyan-100">
-            {metrics.formulaLines.map((line) => (
-              <React.Fragment key={line}>
-                {line}
-                <br />
-              </React.Fragment>
-            ))}
-          </div>
-          <p className="mt-3 text-sm leading-6 text-slate-700">{metrics.readout}</p>
-        </div>
+          <Formula lines={metrics.formulaLines} />
+          <p className="nb-plate-note">{metrics.readout}</p>
+        </Plate>
 
-        <div className="rounded-lg border border-slate-200 bg-white p-5">
-          <div className="mb-4 flex items-center gap-2 text-sm font-black uppercase tracking-wide text-slate-600">
-            <GitBranch size={16} />
-            Decision logic
-          </div>
-          <div className="space-y-3">
-            {metrics.steps.map((step, index) => (
-              <div key={step.title} className={`rounded-lg border p-4 ${step.pass ? 'border-emerald-200 bg-emerald-50' : 'border-amber-200 bg-amber-50'}`}>
-                <p className="flex items-center gap-2 text-xs font-black uppercase tracking-wide text-slate-700">
-                  {step.pass ? <CheckCircle2 size={14} /> : <AlertTriangle size={14} />}
-                  Step {index + 1}: {step.title}
-                </p>
-                <p className="mt-2 text-sm leading-6 text-slate-800">{step.body}</p>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
+        <Plate label="Decision logic">
+          <Steps items={metrics.steps} />
+        </Plate>
+      </div>
 
-      <section className="rounded-lg border border-cyan-200 bg-cyan-50 p-5">
-        <p className="flex items-center gap-2 text-xs font-black uppercase tracking-wide text-cyan-900">
-          <Target size={14} />
-          Practical takeaway
-        </p>
-        <p className="mt-2 text-sm leading-6 text-cyan-950">{metrics.takeaway}</p>
-      </section>
+      <Note tone="accent" label="Takeaway">
+        <p>{metrics.takeaway}</p>
+      </Note>
 
       <AssessmentPanel lessonId={config.lessonId} />
     </div>

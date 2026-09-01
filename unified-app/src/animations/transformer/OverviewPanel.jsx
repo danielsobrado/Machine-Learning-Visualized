@@ -34,10 +34,11 @@ const palette = {
     }
 };
 
+// A section is separated by a rule, not enclosed in a box.
 const panelStyle = {
-    background: 'var(--ds-panel)',
-    border: 'var(--ds-border)',
-    borderRadius: 2
+    background: 'transparent',
+    borderTop: 'var(--ds-border)',
+    paddingBlock: '20px 26px'
 };
 
 const tileStyle = (tone, active = false) => ({

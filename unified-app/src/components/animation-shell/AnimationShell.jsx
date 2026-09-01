@@ -706,10 +706,22 @@ function muteLabelledControlIcons() {
   const stageWrap = document.querySelector('#math-main-stage .ua-stage-wrap');
   if (!stageWrap) return;
 
-  stageWrap.querySelectorAll('button, a, summary, label').forEach((control) => {
+  // Controls, headings, and the small-caps kickers lessons use as section heads.
+  // All of them carry their own words already.
+  const LABELLED = 'button, a, summary, label, h1, h2, h3, h4, h5, h6,'
+    + ' [class*="uppercase"], [class*="font-black"]';
+  // Lessons also write section heads as a bare flex row. Those are only safe to
+  // strip when the row looks like a heading rather than a diagram: one icon, and
+  // a short line of text.
+  const HEADING_ROW = '[class*="items-center"]';
+  const MAX_HEADING_CHARS = 60;
+
+  const mute = (control, strict) => {
     const icons = control.querySelectorAll(':scope > svg, :scope > span > svg');
     if (!icons.length) return;
-    if (!control.textContent.trim()) return;
+    const text = control.textContent.trim();
+    if (!text) return;
+    if (strict && (icons.length > 1 || text.length > MAX_HEADING_CHARS)) return;
 
     icons.forEach((icon) => {
       if (icon.hasAttribute(MUTED_ICON_ATTR)) return;
@@ -717,7 +729,10 @@ function muteLabelledControlIcons() {
       if (box.width > MAX_DECORATIVE_ICON_PX || box.height > MAX_DECORATIVE_ICON_PX) return;
       icon.setAttribute(MUTED_ICON_ATTR, '');
     });
-  });
+  };
+
+  stageWrap.querySelectorAll(LABELLED).forEach((el) => mute(el, false));
+  stageWrap.querySelectorAll(HEADING_ROW).forEach((el) => mute(el, true));
 }
 
 export default function AnimationShell({ animation, children }) {

@@ -1,0 +1,813 @@
+/* ==========================================================================
+   Lesson composition: notebook, not dashboard.
+
+   Lesson bodies were authored as stacks of bordered cards with KPI tiles and
+   tinted callouts. Two layers bring them into the notebook idiom:
+
+   1. `nb-*` primitives (src/animations/_shared/notebook.jsx) for lessons that
+      have been converted in JSX.
+   2. A structural layer that recognises the original Tailwind card signatures
+      and rebuilds them as ruled bands, instrument readouts, and margin notes.
+
+   Both render the same way, so a converted lesson and an unconverted one sit
+   side by side without a seam.
+   ========================================================================== */
+
+/* --- Shared vocabulary --------------------------------------------------- */
+
+.nb-label,
+#root .ua-stage-wrap :where(p, span, h3, h4, div)[class*="text-xs"][class*="uppercase"][class*="tracking-wide"],
+#root .ua-stage-wrap :where(p, span, h3, h4, div)[class*="text-sm"][class*="uppercase"][class*="tracking-wide"] {
+  color: var(--ds-mute) !important;
+  font-family: var(--ds-font-mono) !important;
+  font-size: 10px !important;
+  font-weight: 500 !important;
+  letter-spacing: 0.13em !important;
+  line-height: 1.5;
+  text-transform: uppercase;
+}
+
+/* --- Ruled bands replace card panels ------------------------------------- */
+
+.nb-plate,
+#root .ua-stage-wrap :where(section, div, article, aside, figure, main, header, footer)[class*="rounded"]:not([class*="rounded-full"])[class*="border-slate-"],
+#root .ua-stage-wrap :where(section, div, article, aside, figure, main, header, footer)[class*="rounded"]:not([class*="rounded-full"])[class*="border-gray-"],
+#root .ua-stage-wrap :where(section, div, article, aside, figure, main, header, footer)[class*="rounded"]:not([class*="rounded-full"])[class*="border-neutral-"],
+#root .ua-stage-wrap :where(section, div, article, aside, figure, main, header, footer)[class*="rounded"]:not([class*="rounded-full"])[class*="border-zinc-"],
+#root .ua-stage-wrap :where(section, div, article, aside, figure, main, header, footer)[class*="rounded"]:not([class*="rounded-full"])[class*="border-stone-"],
+#root .ua-stage-wrap :where(section, div, article, aside, figure, main, header, footer)[class~="border"][class*="border-[var("],
+#root .ua-stage-wrap :where(section, div, article, aside, figure, main, header, footer)[class*="rounded"]:not([class*="rounded-full"])[class*="border-white/"],
+#root .ua-stage-wrap :where(section, div, article, aside, figure, main, header, footer)[class*="rounded"]:not([class*="rounded-full"])[class*="border-black/"] {
+  border: 0 !important;
+  border-top: 1px solid var(--ds-hair) !important;
+  border-radius: 0 !important;
+  background: transparent !important;
+  box-shadow: none !important;
+  padding: 20px 0 26px !important;
+}
+
+.nb-label { display: block; }
+.nb-plate { display: block; }
+.nb-readout { display: block; }
+
+.nb-plate-head {
+  display: grid;
+  gap: 5px;
+  margin-bottom: 16px;
+}
+
+.nb-title,
+#root .ua-stage-wrap :where(h2, h3)[class*="text-2xl"],
+#root .ua-stage-wrap :where(h2, h3)[class*="text-xl"] {
+  margin: 2px 0 0 !important;
+  color: var(--ds-ink) !important;
+  font-family: var(--ds-font-serif) !important;
+  font-size: 27px !important;
+  font-weight: 400 !important;
+  letter-spacing: -0.01em;
+  line-height: 1.12 !important;
+}
+
+.nb-plate-note,
+#root .ua-stage-wrap :where(p)[class*="leading-6"][class*="text-slate-700"] {
+  max-width: 74ch;
+  color: var(--ds-faint) !important;
+  font-family: var(--ds-font-serif) !important;
+  font-size: 15px !important;
+  line-height: 1.55 !important;
+}
+
+/* --- Instrument readouts replace KPI tiles -------------------------------- */
+
+.nb-readouts {
+  display: grid;
+  grid-template-columns: repeat(var(--nb-readout-columns, auto-fit), minmax(150px, 1fr));
+  gap: 0;
+}
+
+/* A card sitting directly inside a multi-column grid is a readout, not a panel.
+   The parent-context selector outranks the ruled-band rule above. */
+.nb-readout,
+#root .ua-stage-wrap [class*="grid-cols-"] > :where(div, article, aside, section, figure)[class*="rounded-lg"][class*="bg-white"],
+#root .ua-stage-wrap [class*="grid-cols-"] > :where(div, article, aside, section, figure)[class*="rounded-lg"][class*="bg-slate-50"] {
+  border: 0 !important;
+  border-left: 1px solid var(--ds-rule) !important;
+  border-radius: 0 !important;
+  background: transparent !important;
+  box-shadow: none !important;
+  padding: 1px 16px 1px 14px !important;
+}
+
+.nb-readout-value,
+#root .ua-stage-wrap [class*="grid-cols-"] > :where(div, article, aside, section, figure)[class*="rounded-lg"] > strong,
+#root .ua-stage-wrap [class*="grid-cols-"] > :where(div, article, aside, section, figure)[class*="rounded-lg"] > :where(p, span)[class*="text-2xl"] {
+  display: block !important;
+  margin: 6px 0 4px !important;
+  color: var(--ds-ink) !important;
+  font-family: var(--ds-font-mono) !important;
+  font-size: 25px !important;
+  font-weight: 500 !important;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.02em;
+  line-height: 1 !important;
+}
+
+.nb-readout-detail,
+#root .ua-stage-wrap [class*="grid-cols-"] > :where(div, article, aside, section, figure)[class*="rounded-lg"] > span:not([class*="text-2xl"]) {
+  display: block;
+  color: var(--ds-faint) !important;
+  font-family: var(--ds-font-serif) !important;
+  font-size: 13.5px !important;
+  line-height: 1.45 !important;
+}
+
+/* --- Margin notes replace tinted callouts ---------------------------------
+
+   A lesson marks a remark either with a tinted background or with a tint plus a
+   matching border. Both become a margin note: no fill, no box, one rule in the
+   tone that carried the meaning. Readouts inside a grid are matched by a more
+   specific selector above and keep their own treatment. */
+
+.nb-note,
+#root .ua-stage-wrap :where(div, section, article, aside, p, li)[class*="bg-slate-50"],
+#root .ua-stage-wrap :where(div, section, article, aside, p, li)[class*="bg-gray-50"],
+#root .ua-stage-wrap :where(div, section, article, aside, p, li)[class*="bg-neutral-50"],
+#root .ua-stage-wrap :where(div, section, article, aside, p, li)[class*="bg-zinc-50"],
+#root .ua-stage-wrap :where(div, section, article, aside, p, li)[class*="bg-stone-50"],
+#root .ua-stage-wrap :where(div, section, article, aside, p, li)[class*="bg-cyan-50"],
+#root .ua-stage-wrap :where(div, section, article, aside, p, li)[class*="bg-blue-50"],
+#root .ua-stage-wrap :where(div, section, article, aside, p, li)[class*="bg-indigo-50"],
+#root .ua-stage-wrap :where(div, section, article, aside, p, li)[class*="bg-violet-50"],
+#root .ua-stage-wrap :where(div, section, article, aside, p, li)[class*="bg-sky-50"],
+#root .ua-stage-wrap :where(div, section, article, aside, p, li)[class*="bg-purple-50"],
+#root .ua-stage-wrap :where(div, section, article, aside, p, li)[class*="bg-pink-50"],
+#root .ua-stage-wrap :where(div, section, article, aside, p, li)[class*="border-cyan-"],
+#root .ua-stage-wrap :where(div, section, article, aside, p, li)[class*="border-blue-"],
+#root .ua-stage-wrap :where(div, section, article, aside, p, li)[class*="border-indigo-"],
+#root .ua-stage-wrap :where(div, section, article, aside, p, li)[class*="border-violet-"],
+#root .ua-stage-wrap :where(div, section, article, aside, p, li)[class*="border-sky-"],
+#root .ua-stage-wrap :where(div, section, article, aside, p, li)[class*="border-purple-"],
+#root .ua-stage-wrap :where(div, section, article, aside, p, li)[class*="border-pink-"],
+#root .ua-stage-wrap :where(div, section, article, aside, p, li)[class*="border-fuchsia-"],
+#root .ua-stage-wrap :where(div, section, article, aside, p, li)[class*="bg-emerald-50"],
+#root .ua-stage-wrap :where(div, section, article, aside, p, li)[class*="bg-green-50"],
+#root .ua-stage-wrap :where(div, section, article, aside, p, li)[class*="bg-teal-50"],
+#root .ua-stage-wrap :where(div, section, article, aside, p, li)[class*="border-emerald-"],
+#root .ua-stage-wrap :where(div, section, article, aside, p, li)[class*="border-green-"],
+#root .ua-stage-wrap :where(div, section, article, aside, p, li)[class*="border-teal-"],
+#root .ua-stage-wrap :where(div, section, article, aside, p, li)[class*="border-lime-"],
+#root .ua-stage-wrap :where(div, section, article, aside, p, li)[class*="bg-lime-"],
+#root .ua-stage-wrap :where(div, section, article, aside, p, li)[class*="bg-amber-50"],
+#root .ua-stage-wrap :where(div, section, article, aside, p, li)[class*="bg-yellow-50"],
+#root .ua-stage-wrap :where(div, section, article, aside, p, li)[class*="bg-orange-50"],
+#root .ua-stage-wrap :where(div, section, article, aside, p, li)[class*="border-amber-"],
+#root .ua-stage-wrap :where(div, section, article, aside, p, li)[class*="border-yellow-"],
+#root .ua-stage-wrap :where(div, section, article, aside, p, li)[class*="border-orange-"],
+#root .ua-stage-wrap :where(div, section, article, aside, p, li)[class*="bg-rose-50"],
+#root .ua-stage-wrap :where(div, section, article, aside, p, li)[class*="bg-red-50"],
+#root .ua-stage-wrap :where(div, section, article, aside, p, li)[class*="border-rose-"],
+#root .ua-stage-wrap :where(div, section, article, aside, p, li)[class*="border-red-"] {
+  border: 0 !important;
+  border-left: 2px solid var(--ds-hair) !important;
+  border-radius: 0 !important;
+  background: transparent !important;
+  box-shadow: none !important;
+  padding: 2px 0 2px 15px !important;
+}
+
+.nb-note.is-accent,
+#root .ua-stage-wrap :where(div, section, article, aside, p, li)[class*="bg-cyan-50"],
+#root .ua-stage-wrap :where(div, section, article, aside, p, li)[class*="bg-blue-50"],
+#root .ua-stage-wrap :where(div, section, article, aside, p, li)[class*="bg-indigo-50"],
+#root .ua-stage-wrap :where(div, section, article, aside, p, li)[class*="bg-violet-50"],
+#root .ua-stage-wrap :where(div, section, article, aside, p, li)[class*="bg-sky-50"],
+#root .ua-stage-wrap :where(div, section, article, aside, p, li)[class*="bg-purple-50"],
+#root .ua-stage-wrap :where(div, section, article, aside, p, li)[class*="bg-pink-50"],
+#root .ua-stage-wrap :where(div, section, article, aside, p, li)[class*="border-cyan-"],
+#root .ua-stage-wrap :where(div, section, article, aside, p, li)[class*="border-blue-"],
+#root .ua-stage-wrap :where(div, section, article, aside, p, li)[class*="border-indigo-"],
+#root .ua-stage-wrap :where(div, section, article, aside, p, li)[class*="border-violet-"],
+#root .ua-stage-wrap :where(div, section, article, aside, p, li)[class*="border-sky-"],
+#root .ua-stage-wrap :where(div, section, article, aside, p, li)[class*="border-purple-"],
+#root .ua-stage-wrap :where(div, section, article, aside, p, li)[class*="border-pink-"] {
+  border-left-color: var(--ds-accent) !important;
+}
+
+.nb-note.is-good,
+#root .ua-stage-wrap :where(div, section, article, aside, p, li)[class*="bg-emerald-50"],
+#root .ua-stage-wrap :where(div, section, article, aside, p, li)[class*="bg-green-50"],
+#root .ua-stage-wrap :where(div, section, article, aside, p, li)[class*="bg-teal-50"],
+#root .ua-stage-wrap :where(div, section, article, aside, p, li)[class*="border-emerald-"],
+#root .ua-stage-wrap :where(div, section, article, aside, p, li)[class*="border-green-"],
+#root .ua-stage-wrap :where(div, section, article, aside, p, li)[class*="border-teal-"] {
+  border-left-color: var(--ds-ok) !important;
+}
+
+.nb-note.is-warn,
+#root .ua-stage-wrap :where(div, section, article, aside, p, li)[class*="bg-amber-50"],
+#root .ua-stage-wrap :where(div, section, article, aside, p, li)[class*="bg-yellow-50"],
+#root .ua-stage-wrap :where(div, section, article, aside, p, li)[class*="bg-orange-50"],
+#root .ua-stage-wrap :where(div, section, article, aside, p, li)[class*="border-amber-"],
+#root .ua-stage-wrap :where(div, section, article, aside, p, li)[class*="border-yellow-"],
+#root .ua-stage-wrap :where(div, section, article, aside, p, li)[class*="border-orange-"] {
+  border-left-color: var(--ds-warm) !important;
+}
+
+.nb-note.is-bad,
+#root .ua-stage-wrap :where(div, section, article, aside, p, li)[class*="bg-rose-50"],
+#root .ua-stage-wrap :where(div, section, article, aside, p, li)[class*="bg-red-50"],
+#root .ua-stage-wrap :where(div, section, article, aside, p, li)[class*="border-rose-"],
+#root .ua-stage-wrap :where(div, section, article, aside, p, li)[class*="border-red-"] {
+  border-left-color: var(--ds-bad) !important;
+}
+
+.nb-note-title,
+#root .ua-stage-wrap :where(div, section, article, aside)[class*="bg-"][class*="-50"] > :where(h3, h4, strong) {
+  display: block;
+  margin: 0 0 5px !important;
+  color: var(--ds-ink) !important;
+  font-family: var(--ds-font-sans) !important;
+  font-size: 12px !important;
+  font-weight: 600 !important;
+  letter-spacing: 0.01em !important;
+  text-transform: none !important;
+}
+
+.nb-note-body,
+#root .ua-stage-wrap :where(div, section, article, aside)[class*="bg-"][class*="-50"] > p {
+  color: var(--ds-faint) !important;
+  font-family: var(--ds-font-serif) !important;
+  font-size: 14.5px !important;
+  line-height: 1.5 !important;
+}
+
+.nb-note-row {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 0 26px;
+}
+
+/* --- Control bench -------------------------------------------------------- */
+
+.nb-bench {
+  border-top: 1px solid var(--ds-hair);
+  padding: 18px 0 24px;
+}
+
+.nb-bench-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 14px;
+}
+
+.nb-bench-controls {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+  gap: 18px 30px;
+}
+
+.nb-slider {
+  display: grid;
+  gap: 6px;
+}
+
+.nb-slider-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 10px;
+  color: var(--ds-ink);
+  font-family: var(--ds-font-sans);
+  font-size: 12.5px;
+}
+
+.nb-slider-head b {
+  color: var(--ds-accent);
+  font-family: var(--ds-font-mono);
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+  font-weight: 500;
+}
+
+.nb-slider small {
+  color: var(--ds-mute);
+  font-family: var(--ds-font-serif);
+  font-size: 12.5px;
+  line-height: 1.4;
+}
+
+/* --- Bars are ruled tracks, never pills ---------------------------------- */
+
+.nb-bar {
+  display: grid;
+  gap: 5px;
+}
+
+.nb-bar-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 10px;
+  color: var(--ds-ink);
+  font-family: var(--ds-font-sans);
+  font-size: 12.5px;
+}
+
+.nb-bar-head b {
+  font-family: var(--ds-font-mono);
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+  font-weight: 500;
+}
+
+.nb-bar-track {
+  display: block;
+  height: 7px;
+  border-bottom: 1px solid var(--ds-rule);
+}
+
+.nb-bar-track i {
+  display: block;
+  height: 6px;
+  background: var(--ds-accent);
+}
+
+.nb-bar-track.is-warn i { background: var(--ds-warm); }
+.nb-bar-track.is-good i { background: var(--ds-ok); }
+.nb-bar-track.is-bad  i { background: var(--ds-bad); }
+
+/* Existing lesson bars: strip the pill, keep the fill as an instrument trace. */
+#root .ua-stage-wrap :where(div)[class*="rounded-full"][class*="bg-slate-100"],
+#root .ua-stage-wrap :where(div)[class*="rounded-full"][class*="bg-slate-200"] {
+  border-radius: 0 !important;
+  background: transparent !important;
+  border-bottom: 1px solid var(--ds-rule) !important;
+}
+
+#root .ua-stage-wrap :where(div)[class*="rounded-full"][class*="bg-slate-100"] > div,
+#root .ua-stage-wrap :where(div)[class*="rounded-full"][class*="bg-slate-200"] > div {
+  border-radius: 0 !important;
+}
+
+/* --- Steps ---------------------------------------------------------------- */
+
+.nb-steps {
+  display: grid;
+  gap: 0;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.nb-steps li {
+  display: grid;
+  grid-template-columns: 22px minmax(0, 1fr);
+  gap: 2px 10px;
+  border-top: 1px solid var(--ds-rule);
+  padding: 12px 0;
+}
+
+.nb-steps .nb-step-mark {
+  grid-row: 1 / 4;
+  display: inline-grid;
+  place-items: center;
+  width: 15px;
+  height: 15px;
+  margin-top: 2px;
+  border: 1px solid var(--ds-hair);
+  font-family: var(--ds-font-mono);
+  font-size: 12px;
+  line-height: 1;
+}
+
+.nb-steps li.is-pass .nb-step-mark {
+  border-color: var(--ds-ok);
+  color: var(--ds-ok);
+}
+
+.nb-steps strong {
+  font-family: var(--ds-font-sans);
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.nb-steps p {
+  margin: 3px 0 0;
+  color: var(--ds-faint);
+  font-family: var(--ds-font-serif);
+  font-size: 14.5px;
+  line-height: 1.5;
+}
+
+/* --- Formulas read as machine output ------------------------------------- */
+
+.nb-formula,
+#root .ua-stage-wrap :where(div, pre)[class*="font-mono"][class*="bg-slate-950"] {
+  display: grid !important;
+  gap: 3px;
+  border: 0 !important;
+  border-left: 1px solid var(--ds-accent) !important;
+  border-radius: 0 !important;
+  background: transparent !important;
+  padding: 3px 0 3px 14px !important;
+  color: var(--ds-ink) !important;
+  font-family: var(--ds-font-mono) !important;
+  font-size: 12.5px !important;
+  line-height: 1.7 !important;
+}
+
+/* --- Grid rhythm ---------------------------------------------------------- */
+
+/* Cards needed gaps to keep boxes apart. Rules do the separating now, so the
+   gaps close up and the columns read as one ruled table. */
+#root .ua-stage-wrap [class*="grid-cols-"]:has(> [class*="rounded-lg"][class*="bg-white"]),
+#root .ua-stage-wrap [class*="grid-cols-"]:has(> [class*="rounded-lg"][class*="bg-slate-50"]) {
+  gap: 18px 0 !important;
+}
+
+#root .ua-stage-wrap [class*="grid-cols-"]:has(> [class*="-200"][class*="-50"]) {
+  gap: 18px 26px !important;
+}
+
+/* --- Converted lesson layout ---------------------------------------------- */
+
+.nb-lesson {
+  display: grid;
+  gap: 0;
+}
+
+.nb-split {
+  display: grid;
+  grid-template-columns: minmax(0, 1.25fr) minmax(0, 0.85fr);
+  gap: 0 42px;
+}
+
+.nb-bar-stack {
+  display: grid;
+  gap: 14px;
+  margin-bottom: 20px;
+}
+
+#root .ua-stage-wrap .nb-reset,
+.nb-reset {
+  min-height: 0 !important;
+  border: 0 !important;
+  padding: 0 !important;
+  background: transparent !important;
+  color: var(--ds-faint);
+  cursor: pointer;
+  font-family: var(--ds-font-mono);
+  font-size: 10px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.nb-reset:hover {
+  color: var(--ds-accent);
+  text-decoration: underline;
+  text-underline-offset: 4px;
+}
+
+.nb-lesson .nb-note {
+  margin: 4px 0 26px;
+}
+
+@media (max-width: 900px) {
+  .nb-split {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+/* --- Every lesson slider becomes the same instrument ---------------------- */
+
+#root .ua-stage-wrap input[type="range"] {
+  width: 100%;
+  height: 18px;
+  display: block;
+  margin: 0;
+  appearance: none;
+  -webkit-appearance: none;
+  background: transparent;
+  cursor: pointer;
+  accent-color: var(--ds-accent);
+}
+
+#root .ua-stage-wrap input[type="range"]:focus {
+  outline: none;
+}
+
+#root .ua-stage-wrap input[type="range"]::-webkit-slider-runnable-track {
+  height: 1px;
+  border: 0;
+  background: var(--ds-ink);
+}
+
+#root .ua-stage-wrap input[type="range"]::-moz-range-track {
+  height: 1px;
+  border: 0;
+  background: var(--ds-ink);
+}
+
+#root .ua-stage-wrap input[type="range"]::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  width: 11px;
+  height: 11px;
+  margin-top: -5.5px;
+  border: 1.5px solid var(--ds-ink);
+  border-radius: 0;
+  background: var(--ds-paper);
+  transform: rotate(45deg);
+  cursor: grab;
+}
+
+#root .ua-stage-wrap input[type="range"]::-moz-range-thumb {
+  width: 11px;
+  height: 11px;
+  border: 1.5px solid var(--ds-ink);
+  border-radius: 0;
+  background: var(--ds-paper);
+  transform: rotate(45deg);
+  cursor: grab;
+}
+
+#root .ua-stage-wrap input[type="range"]:active::-webkit-slider-thumb,
+#root .ua-stage-wrap input[type="range"]:active::-moz-range-thumb {
+  cursor: grabbing;
+}
+
+/* --- Slider labels read as parameters ------------------------------------- */
+
+#root .ua-stage-wrap label:has(> input[type="range"]),
+#root .ua-stage-wrap label:has(> span + input[type="range"]) {
+  display: grid;
+  gap: 6px;
+  color: var(--ds-ink);
+  font-family: var(--ds-font-sans) !important;
+  font-size: 12.5px !important;
+  font-weight: 400 !important;
+}
+
+/* --- Lesson buttons are instrument switches ------------------------------- */
+
+#root .ua-stage-wrap :where(button)[class*="rounded"] {
+  border: 1px solid var(--ds-rule) !important;
+  border-radius: 2px !important;
+  background: transparent !important;
+  color: var(--ds-ink) !important;
+  box-shadow: none !important;
+  font-family: var(--ds-font-sans) !important;
+  font-size: 12px !important;
+  font-weight: 400 !important;
+  letter-spacing: 0 !important;
+}
+
+#root .ua-stage-wrap :where(button)[class*="rounded"]:hover {
+  border-color: var(--ds-accent) !important;
+  color: var(--ds-accent) !important;
+}
+
+/* A saturated fill with white text is how every lesson marks the selected switch
+   (and its primary action). Keep that meaning, in ink. */
+#root .ua-stage-wrap :where(button)[class*="text-white"],
+#root .ua-stage-wrap :where(button)[aria-pressed="true"],
+#root .ua-stage-wrap :where(button).active {
+  border-color: var(--ds-accent) !important;
+  background: var(--ds-accent) !important;
+  color: var(--ds-paper) !important;
+}
+
+#root .ua-stage-wrap :where(button)[class*="text-white"]:hover,
+#root .ua-stage-wrap :where(button)[aria-pressed="true"]:hover,
+#root .ua-stage-wrap :where(button).active:hover {
+  border-color: var(--ds-accent) !important;
+  background: var(--ds-accent-2) !important;
+  color: var(--ds-paper) !important;
+}
+
+#root .ua-stage-wrap :where(button)[class*="text-white"] :where(span, strong, b, small) {
+  color: inherit !important;
+}
+
+/* --- Weight discipline ---------------------------------------------------- */
+
+/* `font-black` at 900 across every label is a large part of what made lesson
+   bodies read as a product UI. Semibold is as much emphasis as this page needs. */
+#root .ua-stage-wrap :not(h1, h2, h3, h4)[class*="font-black"],
+#root .ua-stage-wrap :not(h1, h2, h3, h4)[class*="font-extrabold"] {
+  font-weight: 600 !important;
+}
+
+/* Section titles stay at book weight; the serif carries them. */
+#root .ua-stage-wrap :where(h1, h2, h3, h4)[class*="font-black"],
+#root .ua-stage-wrap :where(h1, h2, h3, h4)[class*="font-extrabold"] {
+  font-weight: 400 !important;
+}
+
+#root .ua-stage-wrap :where(span, p, div, label)[class*="font-bold"] {
+  font-weight: 500 !important;
+}
+
+/* Body copy in a lesson is serif, like the rest of the notebook. */
+#root .ua-stage-wrap :where(p)[class*="text-sm"]:not([class*="uppercase"]),
+#root .ua-stage-wrap :where(li)[class*="text-sm"]:not([class*="uppercase"]) {
+  font-family: var(--ds-font-serif) !important;
+  font-size: 14.5px !important;
+  line-height: 1.5 !important;
+}
+
+/* Numbers are instrument output, so they are mono and tabular wherever they are
+   set large enough to be read as a value. */
+#root .ua-stage-wrap :where(strong, b, span, div)[class*="text-3xl"],
+#root .ua-stage-wrap :where(strong, b, span, div)[class*="text-2xl"] {
+  font-family: var(--ds-font-mono) !important;
+  font-variant-numeric: tabular-nums;
+  font-weight: 500 !important;
+  letter-spacing: -0.02em !important;
+}
+
+/* --- Short elements are tracks and rules, never panels -------------------- */
+
+/* A few-pixel-tall box is a progress track or a divider. It must not pick up
+   the panel padding above, and it reads better as a ruled track anyway. */
+#root .ua-stage-wrap :where(div, span, p)[class~="h-1"],
+#root .ua-stage-wrap :where(div, span, p)[class~="h-1.5"],
+#root .ua-stage-wrap :where(div, span, p)[class~="h-2"],
+#root .ua-stage-wrap :where(div, span, p)[class~="h-2.5"],
+#root .ua-stage-wrap :where(div, span, p)[class~="h-3"],
+#root .ua-stage-wrap :where(div, span, p)[class~="h-4"],
+#root .ua-stage-wrap :where(div, span, p)[class~="h-5"],
+#root .ua-stage-wrap :where(div, span, p)[class~="h-6"] {
+  border: 0 !important;
+  border-bottom: 1px solid var(--ds-rule) !important;
+  border-radius: 0 !important;
+  background: transparent !important;
+  padding: 0 !important;
+}
+
+#root .ua-stage-wrap :where(div, span, p)[class~="h-1"] > *,
+#root .ua-stage-wrap :where(div, span, p)[class~="h-1.5"] > *,
+#root .ua-stage-wrap :where(div, span, p)[class~="h-2"] > *,
+#root .ua-stage-wrap :where(div, span, p)[class~="h-2.5"] > *,
+#root .ua-stage-wrap :where(div, span, p)[class~="h-3"] > *,
+#root .ua-stage-wrap :where(div, span, p)[class~="h-4"] > *,
+#root .ua-stage-wrap :where(div, span, p)[class~="h-5"] > *,
+#root .ua-stage-wrap :where(div, span, p)[class~="h-6"] > * {
+  border-radius: 0 !important;
+}
+
+/* A block the lesson marked with the accent token is an accent note. */
+#root .ua-stage-wrap :where(div, section, article, aside, p, li)[class*="border-[var(--ds-accent)"],
+#root .ua-stage-wrap :where(div, section, article, aside, p, li)[class*="border-[var(--ds-warm)"] {
+  border: 0 !important;
+  border-left: 2px solid var(--ds-accent) !important;
+  border-radius: 0 !important;
+  background: transparent !important;
+  padding: 2px 0 2px 15px !important;
+}
+
+#root .ua-stage-wrap :where(div, section, article, aside, p, li)[class*="border-[var(--ds-warm)"] {
+  border-left-color: var(--ds-warm) !important;
+}
+
+/* --- Listings and link rows ---------------------------------------------- */
+
+/* Code is a listing in the margin, not a framed widget. */
+#root .ua-stage-wrap pre[class*="border"] {
+  border: 0 !important;
+  border-left: 1px solid var(--ds-hair) !important;
+  border-radius: 0 !important;
+  padding: 8px 0 8px 14px !important;
+}
+
+/* A bordered link is a row in the index, and reads better as one. */
+#root .ua-stage-wrap a[class*="border"] {
+  border: 0 !important;
+  border-top: 1px solid var(--ds-rule) !important;
+  border-radius: 0 !important;
+  background: transparent !important;
+  box-shadow: none !important;
+  padding: 12px 0 !important;
+  text-decoration: none;
+}
+
+#root .ua-stage-wrap a[class*="border"]:hover {
+  border-top-color: var(--ds-accent) !important;
+  color: var(--ds-accent) !important;
+}
+
+#root .ua-stage-wrap a[class*="border"]::after {
+  content: " \2192";
+  color: var(--ds-mute);
+}
+
+#root .ua-stage-wrap a[class*="border"]:hover::after {
+  color: var(--ds-accent);
+}
+
+/* Any remaining bordered block inside the stage loses its box. This is the
+   backstop for one-off markup that matches none of the signatures above. */
+#root .ua-stage-wrap :where(div, section, article, aside, figure, p, li, details)[class~="border"] {
+  border-right: 0 !important;
+  border-bottom: 0 !important;
+  border-left: 0 !important;
+  border-radius: 0 !important;
+}
+
+/* A disclosure is a folded-down note, not a boxed widget. */
+#root .ua-stage-wrap details[class*="rounded"],
+#root .ua-stage-wrap details[class*="border"] {
+  border: 0 !important;
+  border-top: 1px solid var(--ds-rule) !important;
+  border-radius: 0 !important;
+  background: transparent !important;
+  box-shadow: none !important;
+  padding: 12px 0 !important;
+}
+
+#root .ua-stage-wrap details > summary {
+  cursor: pointer;
+  color: var(--ds-accent);
+  font-family: var(--ds-font-mono);
+  font-size: 10px;
+  letter-spacing: 0.12em;
+  list-style: none;
+  text-transform: uppercase;
+}
+
+#root .ua-stage-wrap details > summary::-webkit-details-marker {
+  display: none;
+}
+
+#root .ua-stage-wrap details > summary::after {
+  content: " +";
+  font-family: var(--ds-font-mono);
+}
+
+#root .ua-stage-wrap details[open] > summary::after {
+  content: " \2212";
+}
+
+/* --- Small marks stay legible -------------------------------------------- */
+
+/* Step dots, swatches, and status pips are marks, not surfaces. The surface
+   normalisation above would repaint them into the paper and erase the state
+   they encode, so they are restored here: a hairline dot by default, ink when
+   the lesson marked them active with a saturated fill or a gradient. */
+#root .ua-stage-wrap [class*="rounded-full"][class~="w-1"],
+#root .ua-stage-wrap [class*="rounded-full"][class~="w-1.5"],
+#root .ua-stage-wrap [class*="rounded-full"][class~="w-2"],
+#root .ua-stage-wrap [class*="rounded-full"][class~="w-2.5"],
+#root .ua-stage-wrap [class*="rounded-full"][class~="w-3"],
+#root .ua-stage-wrap [class*="rounded-full"][class~="w-4"],
+#root .ua-stage-wrap [class*="rounded-full"][class~="w-5"],
+#root .ua-stage-wrap [class*="rounded-full"][class~="w-6"] {
+  border: 1px solid var(--ds-hair) !important;
+  border-radius: 50% !important;
+  background: transparent !important;
+}
+
+#root .ua-stage-wrap [class*="rounded-full"][class~="w-1"][class*="from-"],
+#root .ua-stage-wrap [class*="rounded-full"][class~="w-1.5"][class*="from-"],
+#root .ua-stage-wrap [class*="rounded-full"][class~="w-2"][class*="from-"],
+#root .ua-stage-wrap [class*="rounded-full"][class~="w-2.5"][class*="from-"],
+#root .ua-stage-wrap [class*="rounded-full"][class~="w-3"][class*="from-"],
+#root .ua-stage-wrap [class*="rounded-full"][class~="w-4"][class*="from-"],
+#root .ua-stage-wrap [class*="rounded-full"][class~="w-5"][class*="from-"],
+#root .ua-stage-wrap [class*="rounded-full"][class~="w-6"][class*="from-"],
+#root .ua-stage-wrap [class*="rounded-full"][class~="w-2"][class*="-500"],
+#root .ua-stage-wrap [class*="rounded-full"][class~="w-2.5"][class*="-500"],
+#root .ua-stage-wrap [class*="rounded-full"][class~="w-3"][class*="-500"],
+#root .ua-stage-wrap [class*="rounded-full"][class~="w-4"][class*="-500"],
+#root .ua-stage-wrap [class*="rounded-full"][class~="w-3"][class*="-600"],
+#root .ua-stage-wrap [class*="rounded-full"][class~="w-4"][class*="-600"] {
+  border-color: var(--ds-accent) !important;
+  background: var(--ds-accent) !important;
+}
+
+/* A small gradient block stands in for an image or a tensor. Keep it as a
+   visible ruled swatch rather than letting it merge into the page. Only sized
+   blocks qualify: a gradient on a full section is a background, not a swatch. */
+#root .ua-stage-wrap :where(div, span)[class*="from-"][class*="to-"][class~="w-8"],
+#root .ua-stage-wrap :where(div, span)[class*="from-"][class*="to-"][class~="w-10"],
+#root .ua-stage-wrap :where(div, span)[class*="from-"][class*="to-"][class~="w-12"],
+#root .ua-stage-wrap :where(div, span)[class*="from-"][class*="to-"][class~="w-14"],
+#root .ua-stage-wrap :where(div, span)[class*="from-"][class*="to-"][class~="w-16"],
+#root .ua-stage-wrap :where(div, span)[class*="from-"][class*="to-"][class~="w-20"],
+#root .ua-stage-wrap :where(div, span)[class*="from-"][class*="to-"][class~="w-24"],
+#root .ua-stage-wrap :where(div, span)[class*="from-"][class*="to-"][class~="w-28"],
+#root .ua-stage-wrap :where(div, span)[class*="from-"][class*="to-"][class~="w-32"] {
+  border: 1px solid var(--ds-rule) !important;
+  background: var(--ds-paper-2) !important;
+}
+
+/* A toggle reads as a mechanical switch: a ruled track with a solid ink knob.
+   Without this the knob inherits the paper surface and the state disappears. */
+#root .ua-stage-wrap button [class*="absolute"][class*="rounded-full"],
+#root .ua-stage-wrap button [class*="absolute"][class*="bg-white"] {
+  border: 1px solid var(--ds-ink) !important;
+  border-radius: 1px !important;
+  background: var(--ds-ink) !important;
+  box-shadow: none !important;
+}
