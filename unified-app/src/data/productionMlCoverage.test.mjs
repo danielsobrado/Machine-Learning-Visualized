@@ -15,6 +15,7 @@ import {
 const DEPTH_LEVELS = new Set(['application', 'calculation', 'decision', 'design', 'diagnosis']);
 const MAX_DEPTH_ANSWER_SHARE = 0.5;
 const MIN_DEPTH_LEVEL_DIVERSITY = 4;
+const MIN_DEPTH_COMPETENCIES_PER_LESSON = 2;
 const MIN_DEPTH_SCENARIO_LENGTH = 100;
 const MIN_DEPTH_EXPLANATION_LENGTH = 80;
 const MIN_MISCONCEPTION_LENGTH = 40;
@@ -104,7 +105,7 @@ test('every audited production ML lesson remains covered', async (t) => {
   }
 });
 
-test('every audited production ML lesson has an explicit depth competency', () => {
+test('every audited production ML lesson has explicit depth competencies', () => {
   const coveredLessonIds = Object.keys(PRODUCTION_ML_COVERAGE).sort();
   const depthLessonIds = [...new Set(
     PRODUCTION_ML_DEPTH_REQUIREMENTS.map(({ lessonId }) => lessonId),
@@ -115,6 +116,21 @@ test('every audited production ML lesson has an explicit depth competency', () =
     coveredLessonIds,
     'production ML topic coverage and depth coverage must stay aligned lesson-for-lesson',
   );
+});
+
+test('every audited production ML lesson keeps multiple independent depth competencies', () => {
+  const counts = new Map(PRODUCTION_ML_AUDITED_LESSON_IDS.map((lessonId) => [lessonId, 0]));
+
+  for (const requirement of PRODUCTION_ML_DEPTH_REQUIREMENTS) {
+    counts.set(requirement.lessonId, (counts.get(requirement.lessonId) || 0) + 1);
+  }
+
+  for (const lessonId of PRODUCTION_ML_AUDITED_LESSON_IDS) {
+    assert.ok(
+      counts.get(lessonId) >= MIN_DEPTH_COMPETENCIES_PER_LESSON,
+      `${lessonId}: production depth should protect at least ${MIN_DEPTH_COMPETENCIES_PER_LESSON} independent competencies`,
+    );
+  }
 });
 
 test('production ML depth competencies remain evidence-based', async (t) => {

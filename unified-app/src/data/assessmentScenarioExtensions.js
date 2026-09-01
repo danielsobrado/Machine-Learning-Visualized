@@ -18,6 +18,8 @@ import { P1_NLP_TRANSFORMER_APPLIED_REPRESENTATION_SCENARIOS_BY_LESSON } from '.
 import { P1_NLP_TRANSFORMER_APPLIED_SYSTEMS_SCENARIOS_BY_LESSON } from './p1NlpTransformerAppliedSystemsScenarioQuestions.js';
 import { P1_NLP_TRANSFORMER_SCENARIOS_BY_LESSON } from './p1NlpTransformerScenarioQuestions.js';
 import { P1_PRODUCTION_GOVERNANCE_APPLIED_SCENARIOS_BY_LESSON } from './p1ProductionGovernanceAppliedScenarioQuestions.js';
+import { P1_PRODUCTION_RELIABILITY_APPLIED_SCENARIOS_BY_LESSON } from './p1ProductionReliabilityAppliedScenarioQuestions.js';
+import { P1_PRODUCTION_RISK_APPLIED_SCENARIOS_BY_LESSON } from './p1ProductionRiskAppliedScenarioQuestions.js';
 import { P1_PRODUCTION_SERVING_APPLIED_SCENARIOS_BY_LESSON } from './p1ProductionServingAppliedScenarioQuestions.js';
 import { P1_PRODUCTION_SCENARIOS_BY_LESSON } from './p1ProductionScenarioQuestions.js';
 import { P1_RAG_GROUNDING_APPLIED_SCENARIOS_BY_LESSON } from './p1RagGroundingAppliedScenarioQuestions.js';
@@ -58,6 +60,8 @@ export const ASSESSMENT_SCENARIO_EXTENSION_SOURCES = Object.freeze([
   Object.freeze({ id: 'p1-rag-grounding-applied', priority: 'P1', questionsByLesson: P1_RAG_GROUNDING_APPLIED_SCENARIOS_BY_LESSON }),
   Object.freeze({ id: 'p1-production-serving-applied', priority: 'P1', questionsByLesson: P1_PRODUCTION_SERVING_APPLIED_SCENARIOS_BY_LESSON }),
   Object.freeze({ id: 'p1-production-governance-applied', priority: 'P1', questionsByLesson: P1_PRODUCTION_GOVERNANCE_APPLIED_SCENARIOS_BY_LESSON }),
+  Object.freeze({ id: 'p1-production-reliability-applied', priority: 'P1', questionsByLesson: P1_PRODUCTION_RELIABILITY_APPLIED_SCENARIOS_BY_LESSON }),
+  Object.freeze({ id: 'p1-production-risk-applied', priority: 'P1', questionsByLesson: P1_PRODUCTION_RISK_APPLIED_SCENARIOS_BY_LESSON }),
   Object.freeze({ id: 'p1-frontier-systems-applied', priority: 'P1', questionsByLesson: P1_FRONTIER_SYSTEMS_APPLIED_SCENARIOS_BY_LESSON }),
   Object.freeze({ id: 'p1-agentic-applied', priority: 'P1', questionsByLesson: P1_AGENTIC_APPLIED_SCENARIOS_BY_LESSON }),
   Object.freeze({ id: 'p1-production', priority: 'P1', questionsByLesson: P1_PRODUCTION_SCENARIOS_BY_LESSON }),
