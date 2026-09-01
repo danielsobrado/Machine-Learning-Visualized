@@ -35,7 +35,7 @@ export const P1_LINEAR_ALGEBRA_APPLIED_SCENARIOS_BY_LESSON = Object.freeze({
   ],
   'fundamental-subspaces': [
     {
-      id: 'subspaces-consistency-diagnosis-worked',
+      id: 'subspaces-consistency-diagnosis-worked-scenario',
       level: 'diagnosis',
       relatedComparison: 'column-space-consistency-vs-left-null-space-test',
       scenario: 'A matrix A has a left-null-space vector y = [1, -2, 1]^T satisfying y^T A = 0. A proposed right-hand side is b = [3, 4, 1]^T. For Ax = b to be consistent, b must be orthogonal to every vector in the left null space.',
@@ -69,7 +69,7 @@ export const P1_LINEAR_ALGEBRA_APPLIED_SCENARIOS_BY_LESSON = Object.freeze({
   ],
   'qr-decomposition': [
     {
-      id: 'qr-least-squares-worked',
+      id: 'qr-least-squares-worked-case',
       level: 'calculation',
       relatedComparison: 'normal-equations-vs-qr-least-squares',
       scenario: 'For a least-squares problem, A = QR with orthonormal Q. After computing c = Q^T b, the upper-triangular system is R x = c with R = [[2, 1], [0, 3]] and c = [5, 6]^T. The team wants the QR-based solution without forming A^T A.',
@@ -86,7 +86,7 @@ export const P1_LINEAR_ALGEBRA_APPLIED_SCENARIOS_BY_LESSON = Object.freeze({
   ],
   svd: [
     {
-      id: 'svd-energy-rank-selection-worked',
+      id: 'svd-energy-rank-selection-worked-case',
       level: 'calculation',
       relatedComparison: 'rank-budget-vs-retained-singular-energy',
       scenario: 'A matrix has singular values [8, 4, 2, 1]. A compression rule chooses the smallest rank k that retains at least 95% of the squared Frobenius energy. Squared singular values are therefore [64, 16, 4, 1], with total energy 85.',
