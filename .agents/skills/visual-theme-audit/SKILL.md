@@ -1,11 +1,11 @@
 ---
 name: visual-theme-audit
-description: Audit ml-animations unified-app visual surfaces with Playwright screenshots. Use when the user asks to inspect every screen, check theme consistency, review contrast/alignment/buttons/tabs, capture screenshots, or fix Distill styling discrepancies across the catalog.
+description: Audit ml-animations unified-app visual surfaces with Playwright screenshots. Use when the user asks to inspect every screen, check theme consistency, review contrast/alignment/buttons/tabs, capture screenshots, or fix Cloudflare-inspired styling discrepancies across the catalog.
 ---
 
 # Visual Theme Audit
 
-Use this skill for repo-local visual QA of the `unified-app` Distill restyle.
+Use this skill for repo-local visual QA of the `unified-app` Cloudflare-inspired product theme.
 
 ## Workflow
 
@@ -21,16 +21,19 @@ Use this skill for repo-local visual QA of the `unified-app` Distill restyle.
    - `animations/<animation-id>/` contains one capture for the default screen and one per visible tab.
 
 3. Review screenshots in batches. Prioritize:
-   - buttons using bright Tailwind colors instead of `--ds-ink`, `--ds-accent`, `--ds-paper`, or hairline ghost styles
-   - gradient tabs, rounded pill chrome, heavy shadows, dark panels, white-on-saturated cards
+   - bright or saturated chrome outside visualization content
+   - gradients, oversized pills, heavy shadows, dark application panels, or white-on-saturated cards
+   - controls that do not use the neutral white/gray shell with the restrained orange accent
+   - inconsistent 6-10 px radii, borders, spacing, button heights, or selected states
    - misaligned two-column labs, charts clipped out of panels, labels outside SVG/canvas bounds
-   - text contrast that is too faint on the paper background
+   - text contrast that is too faint on white/gray surfaces
    - mobile screenshots where header/sidebar/page content overlap
 
 4. Patch the source, not generated `dist`. Prefer:
-   - shared CSS bridge fixes in `unified-app/src/index.css` for repeated legacy patterns
+   - shared shell and product-theme fixes in `unified-app/src/styles/cloudflare-theme.css`
+   - shared compatibility fixes in `unified-app/src/index.css` only when they are not theme-specific
    - focused component CSS/classes for one-off visualization layouts
-   - `Tabs`, `Btn`, `ParamSlider`, `Figure`, `Aside`, and Distill token variables when touching components
+   - existing `Tabs`, `Btn`, `ParamSlider`, `Figure`, and `Aside` primitives when touching components
 
 5. Re-run:
 
@@ -44,6 +47,16 @@ Use this skill for repo-local visual QA of the `unified-app` Distill restyle.
    ```bash
    rtk node scripts/deploy-github-pages.mjs
    ```
+
+## Theme Rules
+
+- Application chrome is neutral white/gray with thin `#e5e7eb`-style borders.
+- Orange is an accent for active/focused states, progress, and important emphasis, not a large background.
+- Prefer 6-10 px radii and `0 1px 2px rgba(0,0,0,.04)`-level shadows.
+- Keep typography compact and sans-serif. Large editorial serif headings are not part of the current theme.
+- Sidebar and top navigation should remain dense and predictable.
+- Prerequisite/knowledge graphs should look like operational resource diagrams: white nodes, orthogonal gray connectors, dotted canvas, and subtle selected states.
+- Visualization content may keep semantic chart colors when those colors encode data.
 
 ## Notes
 

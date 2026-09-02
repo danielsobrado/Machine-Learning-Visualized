@@ -1,9 +1,14 @@
 import React from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useLocation } from 'react-router-dom';
 import { readGitHubSyncSettings, GITHUB_SYNC_EVENT } from '../../data/githubProgressSync.js';
 
-// Drawn rather than imported: the rail toggle shows this notebook's own index margin,
-// which no stock icon vocabulary says better.
+const TOP_NAV = [
+  { label: 'Overview', to: '/' },
+  { label: 'Code Labs', to: '/labs' },
+  { label: 'Glossary', to: '/glossary' },
+  { label: 'Settings', to: '/settings' },
+];
+
 function RailMark({ open }) {
   return (
     <svg className="ua-rail-mark" viewBox="0 0 20 20" aria-hidden="true">
@@ -14,6 +19,11 @@ function RailMark({ open }) {
   );
 }
 
+function isRouteActive(pathname, target) {
+  if (target === '/') return pathname === '/';
+  return pathname === target || pathname.startsWith(`${target}/`);
+}
+
 export default function Header({
   onMenuClick,
   onSidebarControlClick,
@@ -22,28 +32,27 @@ export default function Header({
   sidebarOpen,
   sidebarCollapsed,
 }) {
-  const progressLabel = `Σ ${progress.visited} / ${progress.total} lessons`;
+  const location = useLocation();
   const progressPercent = progress.total > 0 ? (progress.visited / progress.total) * 100 : 0;
   const railOpen = sidebarOpen && !sidebarCollapsed;
-
   const [settings, setSettings] = React.useState(() => readGitHubSyncSettings());
 
   React.useEffect(() => {
-    if (typeof window === 'undefined') return;
-    const handleUpdate = () => {
-      setSettings(readGitHubSyncSettings());
-    };
+    if (typeof window === 'undefined') return undefined;
+    const handleUpdate = () => setSettings(readGitHubSyncSettings());
     window.addEventListener(GITHUB_SYNC_EVENT, handleUpdate);
-    return () => {
-      window.removeEventListener(GITHUB_SYNC_EVENT, handleUpdate);
-    };
+    return () => window.removeEventListener(GITHUB_SYNC_EVENT, handleUpdate);
   }, []);
 
-  const hasStorageUrl = Boolean(settings.storageUrl);
-  const isEnabled = settings.enabled;
+  const syncActive = Boolean(settings.storageUrl && settings.enabled);
+  const headerClassName = [
+    'ua-header',
+    sidebarCollapsed ? 'sidebar-collapsed' : '',
+    sidebarOpen ? '' : 'sidebar-closed',
+  ].filter(Boolean).join(' ');
 
   return (
-    <header className="ua-header">
+    <header className={headerClassName}>
       <div className="ua-header-left">
         <button
           className="ua-icon-btn md:hidden"
@@ -61,49 +70,39 @@ export default function Header({
         >
           <RailMark open={railOpen} />
         </button>
-        <Link to="/" className="ua-brand">
-          <span className="ua-brand-mark">ml</span>
-          <span className="ua-brand-text">
-            <span className="ua-brand-title">Machine Learning Visualized</span>
-            <span className="ua-brand-sub">Interactive machine learning lessons</span>
-          </span>
-        </Link>
+
+        <nav className="ua-top-nav" aria-label="Primary">
+          {TOP_NAV.map((item) => (
+            <Link
+              key={item.to}
+              to={item.to}
+              className={`ua-top-nav-item ${isRouteActive(location.pathname, item.to) ? 'active' : ''}`}
+            >
+              {item.label}
+              {item.to === '/settings' && syncActive && (
+                <span className="ua-sync-dot" title="GitHub progress sync active" aria-label="Sync active" />
+              )}
+            </Link>
+          ))}
+        </nav>
       </div>
 
       <div className="ua-header-right">
-        <div className="ua-progress-track" aria-label={progressLabel}>
-          <span>{progressLabel}</span>
-          <div>
-            <i style={{ width: `${progressPercent}%` }} />
-          </div>
+        <div className="ua-progress-pill" aria-label={`${progress.visited} of ${progress.total} lessons visited`}>
+          <span>{progress.visited}/{progress.total}</span>
+          <i aria-hidden="true"><b style={{ width: `${progressPercent}%` }} /></i>
         </div>
-        <button
-          type="button"
-          className="ua-header-action"
-          onClick={onOpenCommandPalette}
-          aria-label="Open glossary search"
-        >
-          Search / Glossary
+        <button type="button" className="ua-top-search" onClick={onOpenCommandPalette}>
+          <span>Search</span>
+          <kbd>⌘K</kbd>
         </button>
-        <Link to="/labs" className="ua-header-action">
-          Code labs
-        </Link>
-        <Link
-          to="/settings"
-          className={`ua-header-action ua-header-login-btn ${hasStorageUrl && isEnabled ? 'ua-sync-active' : ''}`}
-        >
-          {hasStorageUrl && isEnabled ? 'Sync active' : 'Sign in'}
-        </Link>
-        <Link to="/settings" className="ua-header-action">
-          Settings
-        </Link>
         <a
-          className="ua-header-action"
+          className="ua-source-link"
           href="https://github.com/danielsobrado/Machine-Learning-Visualized"
           target="_blank"
           rel="noopener noreferrer"
         >
-          Source ↗
+          GitHub ↗
         </a>
       </div>
     </header>

@@ -6,6 +6,7 @@ import './index.css';
 // Loaded after index.css so the lesson composition layer wins ties with the
 // surface-normalisation rules it builds on.
 import './_design-system/notebook-lesson.css';
+import './styles/cloudflare-theme.css';
 
 const basename = import.meta.env.BASE_URL;
 

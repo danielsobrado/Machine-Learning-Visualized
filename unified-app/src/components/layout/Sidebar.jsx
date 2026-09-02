@@ -17,28 +17,40 @@ export default function Sidebar({ isOpen, isCollapsed, onClose, onOpenCommandPal
   return (
     <>
       {isOpen && <div className="ua-sidebar-overlay" onClick={onClose} />}
-      <aside
-        className={`ua-sidebar ${isCollapsed ? 'collapsed' : ''} ${isOpen ? '' : 'closed'}`}
-      >
+      <aside className={`ua-sidebar ${isCollapsed ? 'collapsed' : ''} ${isOpen ? '' : 'closed'}`}>
+        <div className="ua-sidebar-brand-row">
+          <Link to="/" className="ua-sidebar-brand" aria-label="Machine Learning Visualized home">
+            <span className="ua-sidebar-brand-mark" aria-hidden="true">ML</span>
+            <span className="ua-sidebar-brand-copy">
+              <strong>Machine Learning</strong>
+              <span>Visualized</span>
+            </span>
+          </Link>
+        </div>
+
         <nav className="ua-sidebar-nav">
           {!isCollapsed && (
             <button type="button" className="ua-sidebar-search" onClick={onOpenCommandPalette}>
-              <span>Search lessons</span>
-              <kbd>/</kbd>
+              <span className="ua-sidebar-search-icon" aria-hidden="true">⌕</span>
+              <span>Quick search…</span>
+              <kbd>⌘K</kbd>
             </button>
           )}
+
+          <div className="ua-sidebar-nav-label">Learn</div>
           <Link to="/" className={`ua-sidebar-home ${isActive('/') ? 'active' : ''}`}>
             <span className="num">00</span>
-            <span>Index</span>
+            <span>Overview</span>
           </Link>
 
+          <div className="ua-sidebar-nav-label ua-sidebar-topics-label">Topics</div>
           {categories.map((category, categoryIndex) => (
-            <section key={category.id}>
+            <section key={category.id} className="ua-sidebar-section">
               <button
                 className="ua-sidebar-section-head"
                 onClick={() =>
-                  !isCollapsed &&
-                  setExpanded((current) => ({
+                  !isCollapsed
+                  && setExpanded((current) => ({
                     ...current,
                     [category.id]: !current[category.id],
                   }))
@@ -50,19 +62,17 @@ export default function Sidebar({ isOpen, isCollapsed, onClose, onOpenCommandPal
                 </span>
                 <span className="ua-sidebar-section-name">{category.name}</span>
                 <span className="ua-sidebar-section-chevron">
-                  {expanded[category.id] ? '-' : '+'}
+                  {expanded[category.id] ? '−' : '+'}
                 </span>
               </button>
 
-              {!isCollapsed &&
-                expanded[category.id] &&
-                category.items.map((item, itemIndex) => (
+              {!isCollapsed
+                && expanded[category.id]
+                && category.items.map((item, itemIndex) => (
                   <Link
                     key={item.id}
                     to={`/animation/${item.id}`}
-                    className={`ua-sidebar-item ${
-                      isActive(`/animation/${item.id}`) ? 'active' : ''
-                    }`}
+                    className={`ua-sidebar-item ${isActive(`/animation/${item.id}`) ? 'active' : ''}`}
                   >
                     <span className="num">
                       {formatLessonCatalogNumber(categoryIndex, itemIndex)}
@@ -74,7 +84,10 @@ export default function Sidebar({ isOpen, isCollapsed, onClose, onOpenCommandPal
           ))}
         </nav>
 
-        <div className="ua-sidebar-footer">Distill theme</div>
+        <div className="ua-sidebar-footer">
+          <span className="ua-sidebar-footer-dot" />
+          <span>Interactive ML lessons</span>
+        </div>
       </aside>
     </>
   );

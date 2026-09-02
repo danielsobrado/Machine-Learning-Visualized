@@ -22,6 +22,8 @@ The script builds `unified-app` and publishes `unified-app/dist` to the `gh-page
 
 ## Visual Theme Audit
 
+The unified app uses a Cloudflare-inspired product UI: neutral white/gray surfaces, thin borders, compact controls, restrained shadows, small radii, dense navigation, and orange only as a focused accent. The shared override lives in `unified-app/src/styles/cloudflare-theme.css`.
+
 Use the repo skill at `.agents/skills/visual-theme-audit/SKILL.md` when the user asks to check every screen, capture Playwright screenshots, inspect visual theme consistency, or fix contrast/alignment/button/tab discrepancies.
 
 The audit command is:
