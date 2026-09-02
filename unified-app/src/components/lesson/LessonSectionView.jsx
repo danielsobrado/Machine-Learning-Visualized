@@ -19,7 +19,7 @@ export default function LessonSectionView({ animation, sectionId }) {
 
   if (sectionId === 'questions') {
     return (
-      <div className="ua-routed-lesson-section">
+      <div className="ua-routed-lesson-section ua-routed-lesson-questions">
         <Suspense fallback={<LoadingSection label="questions" />}>
           <AssessmentPanel lessonId={animation.id} eyebrow="Progress" title="Core questions" />
         </Suspense>
@@ -37,7 +37,7 @@ export default function LessonSectionView({ animation, sectionId }) {
 
   if (sectionId === 'code') {
     return (
-      <div className="ua-routed-lesson-section">
+      <div className="ua-routed-lesson-section ua-routed-lesson-code">
         <Suspense fallback={<LoadingSection label="code lab" />}>
           <LessonCodeLab lessonId={animation.id} />
         </Suspense>

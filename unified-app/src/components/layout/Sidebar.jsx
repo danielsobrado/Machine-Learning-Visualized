@@ -31,10 +31,6 @@ export default function Sidebar({ isOpen, isCollapsed, onClose, onOpenCommandPal
             <span className="num">00</span>
             <span>Index</span>
           </Link>
-          <Link to="/labs" className={`ua-sidebar-home ${isActive('/labs') ? 'active' : ''}`}>
-            <span className="num">LAB</span>
-            <span>Code labs</span>
-          </Link>
 
           {categories.map((category, categoryIndex) => (
             <section key={category.id}>

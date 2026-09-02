@@ -72,6 +72,10 @@
   min-width: 0;
 }
 
+.ua-routed-lesson-questions .ua-assessment-code-progress {
+  display: none;
+}
+
 @media (max-width: 1180px) {
   .ua-lesson-layout {
     grid-template-columns: minmax(0, 1fr);
