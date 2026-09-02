@@ -42,6 +42,15 @@ npm run test:smoke
 npm run build
 ```
 
+Publish the unified app to GitHub Pages:
+
+```bash
+make publish-gh-pages
+```
+
+Platform wrappers are available at `scripts/publish-github-pages.ps1`,
+`scripts/publish-github-pages.cmd`, and `scripts/publish-github-pages.sh`.
+
 The app uses React, Vite, Tailwind CSS, Three.js, GSAP, and Recharts.
 
 ## Screenshots
