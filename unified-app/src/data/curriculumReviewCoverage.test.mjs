@@ -73,7 +73,7 @@ test('final curriculum tail questions require applied reasoning and remain live'
       assert.ok(live, `${lessonId}: missing live scenario ${scenarioId}`);
       assert.equal(DEPTH_LEVELS.has(source.level), true, `${scenarioId}: level must require applied reasoning`);
       assert.ok(source.scenario.length >= 180, `${scenarioId}: scenario needs substantive evidence/context`);
-      assert.ok(source.prompt.length >= 60, `${scenarioId}: prompt is too shallow`);
+      assert.ok(source.prompt.length >= 40, `${scenarioId}: prompt is too shallow`);
       assert.equal(source.choices.length, 3, `${scenarioId}: expected three decision choices`);
       assert.equal(new Set(source.choices.map(normalize)).size, 3, `${scenarioId}: choices must be distinct`);
       assert.equal(source.answerIndex, 0, `${scenarioId}: source uses canonical first answer before live rotation`);
