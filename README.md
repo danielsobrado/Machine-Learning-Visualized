@@ -22,10 +22,6 @@ The project started as a collection of standalone animations. It is now centered
 - Diffusion lessons from beginner denoising intuition through sampling, classifier-free guidance, U-Net vs DiT, SD3, DiT, VAE, CLIP, T5, and flow matching.
 - Small from-scratch implementations in Rust, Go, Java, and Python for neural networks, diffusion, and Markov chains.
 
-```
-
-## Screenshots
-
 ### Core ML Lesson
 
 ![Core ML lesson](screenshots/readme/core-ml.png)
