@@ -1,0 +1,66 @@
+export const P1_MODEL_RELIABILITY_APPLIED_SCENARIOS_BY_LESSON = Object.freeze({
+  'uncertainty-estimation': [
+    {
+      id: 'uncertainty-ensemble-disagreement-worked',
+      level: 'calculation',
+      relatedComparison: 'predictive-entropy-vs-ensemble-disagreement-vs-epistemic-uncertainty',
+      scenario: 'Two binary-classification cases both have ensemble mean probability 0.50, so both have the same entropy if only the mean prediction is inspected. Case A ensemble members predict [0.10, 0.90, 0.20, 0.80]. Case B members predict [0.50, 0.50, 0.50, 0.50]. Use population variance across ensemble probabilities as a simple disagreement signal.',
+      prompt: 'Which case has stronger ensemble disagreement, what is its variance, and what uncertainty signal does that add beyond the identical mean probability?',
+      choices: [
+        'Case A; its variance is 0.125, so it carries strong model-to-model disagreement consistent with higher epistemic uncertainty even though both cases have mean probability 0.50',
+        'Case B; its variance is 0.25 because all four models predict exactly 0.50, so unanimous uncertainty is the strongest possible epistemic disagreement',
+        'The cases are indistinguishable because any two ensembles with the same mean probability must have identical uncertainty in every useful sense',
+      ],
+      answerIndex: 0,
+      explanation: 'Case A deviations from 0.50 are -0.40, +0.40, -0.30, and +0.30. Squaring and averaging gives (0.16 + 0.16 + 0.09 + 0.09) / 4 = 0.125. Case B has zero ensemble variance. The mean prediction alone gives the same 0.50 probability in both cases, but ensemble disagreement reveals an additional model-uncertainty signal associated with uncertainty about parameters or learned functions.',
+      misconceptionTested: 'A single predictive probability or its entropy completely captures uncertainty, so disagreement among independently trained or sampled models cannot add information about epistemic uncertainty.',
+    },
+    {
+      id: 'uncertainty-selective-risk-worked',
+      level: 'decision',
+      relatedComparison: 'full-coverage-error-rate-vs-selective-coverage-risk-vs-abstention-cost',
+      scenario: 'A classifier handles 10,000 requests. At full automatic coverage its error rate is 8%, producing 800 wrong automated decisions. A confidence-based abstention policy routes the lowest-confidence 15% of requests to manual review. On the remaining 8,500 automatically handled requests, the measured error rate falls to 2%. Manual review has real cost and latency, so abstention is not free.',
+      prompt: 'What operating-point summary should the team use when deciding whether the abstention policy is worthwhile?',
+      choices: [
+        'Coverage becomes 85% and automated errors fall to about 170, so the policy removes about 630 automated errors while sending 1,500 cases to review; the decision should compare that risk reduction with review cost and latency',
+        'The policy achieves 98% accuracy with no downside because abstained cases disappear from the workload once the model refuses to predict them',
+        'The policy is worse by definition because any coverage below 100% means the model has failed, regardless of the error reduction on cases it still handles',
+      ],
+      answerIndex: 0,
+      explanation: 'The selective system automatically covers 8,500 / 10,000 = 85% of requests. At 2% covered-set error it makes about 170 automated mistakes instead of 800, a reduction of roughly 630 wrong automatic decisions. But 1,500 requests now require another path. Selective prediction therefore creates a coverage-versus-risk trade-off that must be evaluated with downstream review capacity, cost, latency, and severity of errors.',
+      misconceptionTested: 'Abstention can be evaluated only from accuracy on the retained predictions, while the operational cost, latency, and workload created by uncovered cases can be ignored.',
+    },
+  ],
+  'model-fairness': [
+    {
+      id: 'fairness-equalized-odds-worked',
+      level: 'calculation',
+      relatedComparison: 'aggregate-accuracy-vs-group-tpr-fpr-vs-equalized-odds',
+      scenario: 'A binary decision model is audited on two groups. Group A has 200 actual positives with 160 true positives and 800 actual negatives with 80 false positives. Group B has 100 actual positives with 60 true positives and 400 actual negatives with 20 false positives. The audit is specifically checking equalized-odds style error-rate parity rather than only overall accuracy.',
+      prompt: 'What are the TPR and FPR for each group, and what disparities should the audit report?',
+      choices: [
+        'Group A TPR = 80% and FPR = 10%; Group B TPR = 60% and FPR = 5%, giving a 20 percentage-point TPR gap and 5 percentage-point FPR gap',
+        'Group A TPR = 20% and FPR = 80%; Group B TPR = 40% and FPR = 95%, because false rates should be divided by the total group population',
+        'The groups satisfy equalized odds because both groups contain more correct than incorrect decisions, so exact TPR and FPR differences are irrelevant',
+      ],
+      answerIndex: 0,
+      explanation: 'For Group A, TPR = 160 / 200 = 0.80 and FPR = 80 / 800 = 0.10. For Group B, TPR = 60 / 100 = 0.60 and FPR = 20 / 400 = 0.05. Equalized-odds analysis compares conditional error behavior across groups, so the 20-point TPR difference and 5-point FPR difference are both material audit findings even if aggregate accuracy looks acceptable.',
+      misconceptionTested: 'Fairness can be inferred from aggregate correctness alone, or subgroup TPR/FPR should be divided by total group size instead of conditioning on actual positives and negatives.',
+    },
+    {
+      id: 'fairness-intersectional-slice-diagnosis',
+      level: 'diagnosis',
+      relatedComparison: 'broad-group-parity-vs-intersectional-slice-performance-vs-sample-uncertainty',
+      scenario: 'An audit reports overall TPR of 90% for Group A and 89.9% for Group B, which looks nearly equal. Inside Group B, however, an under-30 slice has 80 actual positives and only 49 true positives, while the age-30-plus slice has 720 actual positives and 670 true positives. The small slice is operationally important but represents only a minority of Group B positives.',
+      prompt: 'What is the strongest next conclusion and audit action given the aggregate parity and the hidden subgroup counts?',
+      choices: [
+        'The aggregate comparison hides an intersectional disparity: the under-30 TPR is about 61.3% versus about 93.1% for the older slice, so report the slice with uncertainty/sample size and investigate data, thresholds, and error causes before declaring parity',
+        'The model is fair because Group A and Group B overall TPR differ by only 0.1 percentage point, so any smaller subgroup result should be discarded as mathematically irrelevant',
+        'The under-30 slice proves intentional discrimination because any subgroup metric difference identifies the cause of the disparity without further statistical or process investigation',
+      ],
+      answerIndex: 0,
+      explanation: 'The under-30 TPR is 49 / 80 = 61.25%, while the older Group B slice is 670 / 720 ≈ 93.06%. Aggregating the two slices produces an overall Group B rate close to Group A because the much larger older slice dominates the weighted average. A sound fairness audit should surface the intersectional result, show its denominator and uncertainty, and investigate mechanisms rather than either hiding it in the aggregate or assigning causality from the metric alone.',
+      misconceptionTested: 'Near-parity on one broad protected-group metric guarantees acceptable performance for important intersections, or a measured disparity by itself proves the causal reason the disparity exists.',
+    },
+  ],
+});
