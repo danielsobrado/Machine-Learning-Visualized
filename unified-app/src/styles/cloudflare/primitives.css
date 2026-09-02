@@ -1,0 +1,131 @@
+/* Shared product surfaces */
+
+.ds-panel,
+.ua-settings-main,
+.ua-settings-summary,
+.ua-lesson-section-nav {
+  background: var(--cf-surface);
+  border: 1px solid var(--cf-border);
+  border-radius: var(--cf-radius);
+  box-shadow: var(--cf-shadow);
+}
+
+.ds-panel {
+  overflow: hidden;
+}
+
+.ds-panel-head {
+  min-height: 40px;
+  padding: 0 14px;
+  border-bottom: 1px solid var(--cf-border);
+  color: #727272;
+  font-family: var(--ds-font-sans);
+  font-size: 10px;
+  font-weight: 650;
+  letter-spacing: 0.02em;
+  text-transform: none;
+}
+
+.ds-panel-body {
+  padding: 16px;
+}
+
+.ds-title {
+  margin: 5px 0 7px;
+  color: var(--cf-text);
+  font-family: var(--ds-font-sans);
+  font-size: clamp(24px, 3vw, 34px);
+  font-weight: 680;
+  letter-spacing: -0.025em;
+  line-height: 1.12;
+}
+
+.ds-subtitle {
+  max-width: 82ch;
+  color: var(--cf-muted);
+  font-family: var(--ds-font-sans);
+  font-size: 13px;
+  font-style: normal;
+  line-height: 1.55;
+}
+
+.ds-eyebrow {
+  color: #888;
+  font-family: var(--ds-font-sans);
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0;
+  text-transform: none;
+}
+
+.ds-eyebrow a {
+  color: #555;
+  text-decoration: none;
+}
+
+.ds-eyebrow a:hover {
+  color: var(--cf-accent);
+}
+
+.ds-btn,
+button.ds-btn,
+a.ds-btn {
+  min-height: 34px;
+  border-radius: 7px;
+  box-shadow: none;
+  font-family: var(--ds-font-sans);
+  font-size: 11px;
+  font-weight: 650;
+  letter-spacing: 0;
+  text-transform: none;
+}
+
+.ds-btn.primary,
+button.ds-btn.primary,
+a.ds-btn.primary {
+  border-color: #dd731a;
+  background: var(--cf-accent);
+  color: #fff;
+}
+
+.ds-btn.primary:hover,
+button.ds-btn.primary:hover,
+a.ds-btn.primary:hover {
+  background: #e97718;
+}
+
+input,
+select,
+textarea {
+  border-radius: 7px;
+}
+
+.ua-settings-field input,
+.ua-settings-field select,
+.ua-labs-controls input,
+.ua-labs-controls select {
+  min-height: 38px;
+  border: 1px solid var(--cf-border);
+  border-radius: 7px;
+  background: var(--cf-surface);
+  font-size: 12px;
+}
+
+.ua-settings-actions button,
+.ua-settings-inline button,
+.ua-labs-list button {
+  border-radius: 7px;
+  font-family: var(--ds-font-sans);
+  font-weight: 600;
+  letter-spacing: 0;
+  text-transform: none;
+}
+
+.ua-settings-actions button:hover:not(:disabled),
+.ua-settings-inline button:hover:not(:disabled),
+.ua-labs-list button:hover,
+.ua-labs-list button.active {
+  background: var(--cf-surface-muted);
+  border-color: var(--cf-border-strong);
+  color: var(--cf-text);
+}

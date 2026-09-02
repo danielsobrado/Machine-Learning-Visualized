@@ -1,0 +1,59 @@
+/* Cloudflare-inspired application shell and neutral product theme. */
+
+:root {
+  --cf-sidebar-width: 244px;
+  --cf-sidebar-collapsed: 64px;
+  --cf-header-height: 56px;
+  --cf-page: #f8f8f8;
+  --cf-sidebar: #fbfbfb;
+  --cf-surface: #ffffff;
+  --cf-surface-muted: #f5f5f5;
+  --cf-border: #e5e7eb;
+  --cf-border-strong: #d1d5db;
+  --cf-text: #242424;
+  --cf-muted: #737373;
+  --cf-faint: #9ca3af;
+  --cf-accent: #f48120;
+  --cf-accent-soft: #fff7ed;
+  --cf-positive: #16a34a;
+  --cf-radius-sm: 6px;
+  --cf-radius: 9px;
+  --cf-shadow: 0 1px 2px rgb(0 0 0 / 0.04);
+
+  --ds-paper: var(--cf-page);
+  --ds-paper-2: var(--cf-surface-muted);
+  --ds-panel: var(--cf-surface);
+  --ds-ink: var(--cf-text);
+  --ds-ink-2: #343434;
+  --ds-faint: var(--cf-muted);
+  --ds-mute: var(--cf-muted);
+  --ds-muted: var(--cf-muted);
+  --ds-rule: var(--cf-border);
+  --ds-hair: var(--cf-border-strong);
+  --ds-grid: #eeeeee;
+  --ds-accent: var(--cf-accent);
+  --ds-accent-2: #d96f15;
+  --ds-accent-w: rgb(244 129 32 / 0.055);
+  --ds-font-serif: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  --ds-font-sans: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  --ds-font-mono: ui-monospace, "SFMono-Regular", Menlo, Monaco, Consolas, monospace;
+  --ds-page-pad-x: clamp(16px, 3vw, 32px);
+  --ds-page-pad-y: 24px;
+}
+
+html,
+body,
+#root {
+  min-height: 100%;
+  background: var(--cf-page);
+}
+
+body {
+  color: var(--cf-text);
+  font-family: var(--ds-font-sans);
+  font-feature-settings: "cv02", "cv03", "cv04", "cv11";
+}
+
+::selection {
+  background: rgb(244 129 32 / 0.18);
+}

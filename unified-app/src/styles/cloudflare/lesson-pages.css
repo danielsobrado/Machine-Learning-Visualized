@@ -1,0 +1,292 @@
+/* Lesson pages */
+
+.ua-animation-page {
+  padding-top: 24px;
+}
+
+.ua-animation-header {
+  margin: 0 0 14px;
+  padding: 18px 20px;
+  border: 1px solid var(--cf-border);
+  border-radius: 10px;
+  background: var(--cf-surface);
+  box-shadow: var(--cf-shadow);
+}
+
+.ua-animation-footer {
+  margin-top: 18px;
+  padding-top: 12px;
+  border-top: 1px solid var(--cf-border);
+  font-size: 10px;
+}
+
+.ua-animation-footer a {
+  color: #666;
+  text-decoration: none;
+}
+
+.ua-animation-footer a:hover {
+  color: var(--cf-accent);
+}
+
+.ua-lesson-layout {
+  gap: 16px;
+}
+
+.ua-lesson-section-nav {
+  top: calc(var(--cf-header-height) + 16px);
+  padding: 8px;
+}
+
+.ua-lesson-section-nav-head {
+  padding: 7px 8px 10px;
+  border-bottom: 1px solid var(--cf-border);
+}
+
+.ua-lesson-section-nav-head span,
+.ua-lesson-section-index {
+  color: #999;
+  font-family: var(--ds-font-sans);
+  font-size: 9px;
+  letter-spacing: 0;
+  text-transform: none;
+  opacity: 1;
+}
+
+.ua-lesson-section-nav-head strong {
+  color: #444;
+  font-size: 11px;
+  font-weight: 650;
+}
+
+.ua-lesson-section-links {
+  gap: 2px;
+  margin-top: 6px;
+}
+
+.ua-lesson-section-link {
+  min-height: 34px;
+  padding: 0 8px;
+  border-radius: 7px;
+  color: #666;
+  font-size: 10px;
+}
+
+.ua-lesson-section-link:hover {
+  border-color: transparent;
+  background: #f5f5f5;
+}
+
+.ua-lesson-section-link.active {
+  border-color: transparent;
+  background: #eeeeee;
+  color: #222;
+  font-weight: 650;
+}
+
+/* Labs and settings */
+
+.ua-labs-browser {
+  padding: 0;
+  gap: 12px;
+}
+
+.ua-labs-layout {
+  gap: 12px;
+}
+
+.ua-labs-list {
+  gap: 5px;
+}
+
+.ua-labs-list button {
+  padding: 9px 10px;
+  border: 1px solid var(--cf-border);
+  background: #fff;
+}
+
+.ua-labs-selected-head h2,
+.ua-settings-section-head h2,
+.ua-settings-summary h2 {
+  color: var(--cf-text);
+  font-family: var(--ds-font-sans);
+  font-size: 17px;
+  font-weight: 680;
+  letter-spacing: -0.015em;
+}
+
+.ua-labs-controls span,
+.ua-labs-selected-head span,
+.ua-labs-list button span,
+.ua-settings-field > span,
+.ua-settings-check span,
+.ua-settings-summary dt {
+  color: #929292;
+  font-size: 9px;
+  font-weight: 650;
+  letter-spacing: 0.02em;
+  text-transform: none;
+}
+
+.ua-settings-grid {
+  gap: 12px;
+  padding: 0;
+}
+
+.ua-settings-main,
+.ua-settings-summary {
+  padding: 18px;
+}
+
+.ua-settings-summary {
+  border-left: 1px solid var(--cf-border);
+}
+
+.ua-settings-section-head {
+  border-bottom: 1px solid var(--cf-border);
+}
+
+.ua-settings-section-head p,
+.ua-settings-summary p {
+  color: var(--cf-muted);
+  font-size: 11px;
+}
+
+.ua-settings-status {
+  border-radius: 7px;
+}
+
+/* Command palette and utility chrome */
+
+.ua-command-palette,
+.ua-command-dialog,
+[role="dialog"] .ds-panel {
+  border-radius: 10px;
+  box-shadow: 0 18px 50px rgb(0 0 0 / 0.14);
+}
+
+.ua-keyboard-hint-dock {
+  border-color: var(--cf-border);
+  border-radius: 8px;
+  background: rgb(255 255 255 / 0.94);
+  color: #777;
+  box-shadow: var(--cf-shadow);
+}
+
+/* Responsive */
+
+@media (max-width: 1100px) {
+  :root {
+    --cf-sidebar-width: 220px;
+  }
+
+  .ua-source-link {
+    display: none;
+  }
+
+  .ua-progress-pill > i {
+    width: 36px;
+  }
+}
+
+@media (max-width: 900px) {
+  .ua-header {
+    margin-left: 0 !important;
+    padding: 0 10px;
+  }
+
+  .ua-sidebar {
+    top: var(--cf-header-height);
+    width: min(300px, 86vw);
+  }
+
+  .ua-sidebar-brand-row {
+    display: none;
+  }
+
+  .ua-sidebar-nav {
+    padding-top: 10px;
+  }
+
+  .ua-main,
+  .ua-main.sidebar-collapsed {
+    margin-left: 0;
+  }
+
+  .ua-top-nav {
+    max-width: 52vw;
+  }
+
+  .ua-progress-pill {
+    display: none;
+  }
+
+  .ua-home,
+  .ua-animation-page,
+  .ua-labs-page,
+  .ua-settings-page,
+  .ua-glossary-page,
+  .ua-glossary-index {
+    padding: 16px 12px 48px;
+  }
+
+  .ua-home-hero {
+    padding: 18px;
+  }
+
+  .ua-home-title {
+    font-size: clamp(28px, 8vw, 38px);
+  }
+
+  .ua-knowledge-map {
+    padding: 14px;
+  }
+
+  .ua-settings-summary {
+    border-left: 1px solid var(--cf-border);
+  }
+}
+
+@media (max-width: 640px) {
+  .ua-top-nav-item {
+    padding: 0 8px;
+    font-size: 10px;
+  }
+
+  .ua-top-search span {
+    display: none;
+  }
+
+  .ua-top-search {
+    padding: 0 8px;
+  }
+
+  .ua-top-search kbd {
+    font-size: 9px;
+  }
+
+  .ua-home-hero {
+    border-radius: 9px;
+  }
+
+  .ua-hero-notation {
+    width: 100%;
+    overflow-x: auto;
+  }
+
+  .ua-chapter-row {
+    padding: 13px;
+  }
+
+  .ua-knowledge-map {
+    border-radius: 9px;
+  }
+
+  .ua-animation-header {
+    padding: 15px;
+  }
+
+  .ua-lesson-section-nav {
+    top: var(--cf-header-height);
+  }
+}
