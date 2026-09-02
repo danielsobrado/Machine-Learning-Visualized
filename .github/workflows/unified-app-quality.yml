@@ -79,6 +79,10 @@ jobs:
         continue-on-error: true
         run: node --test src/data/informationTheoryCoverage.test.mjs
 
+      - name: Check probability reasoning depth
+        continue-on-error: true
+        run: node --test src/data/probabilityReasoningCoverage.test.mjs
+
       - name: Check Bloom filter depth
         continue-on-error: true
         run: node --test src/data/bloomFilterCoverage.test.mjs
