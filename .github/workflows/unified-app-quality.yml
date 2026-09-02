@@ -95,6 +95,10 @@ jobs:
         continue-on-error: true
         run: node --test src/data/neuralNetworkCoverage.test.mjs
 
+      - name: Check advanced neural architecture depth
+        continue-on-error: true
+        run: node --test src/data/advancedNeuralArchitecturesCoverage.test.mjs
+
       - name: Check NLP and transformer depth
         continue-on-error: true
         run: node --test src/data/nlpTransformerCoverage.test.mjs
