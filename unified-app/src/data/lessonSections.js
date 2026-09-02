@@ -6,36 +6,42 @@ export const LESSON_SECTIONS = Object.freeze([
     label: 'Lesson',
     description: 'Visual explanation',
     path: '',
+    layout: 'wide',
   }),
   Object.freeze({
     id: 'questions',
     label: 'Lesson Check',
     description: 'Questions & scenarios',
     path: 'questions',
+    layout: 'reading',
   }),
   Object.freeze({
     id: 'concept-map',
     label: 'Concept Map',
     description: 'Connect the ideas',
     path: 'concept-map',
+    layout: 'map',
   }),
   Object.freeze({
     id: 'glossary',
     label: 'Glossary',
     description: 'Key terms',
     path: 'glossary',
+    layout: 'reading',
   }),
   Object.freeze({
     id: 'code',
     label: 'Code Lab',
     description: 'Practice by coding',
     path: 'code',
+    layout: 'code',
   }),
   Object.freeze({
     id: 'deep-dive',
     label: 'Deep Dive',
     description: 'Failure modes and papers',
     path: 'deep-dive',
+    layout: 'reading',
     optional: true,
   }),
 ]);
@@ -47,6 +53,10 @@ const SECTION_ID_BY_PATH = new Map(
 
 export function getLessonSection(sectionId) {
   return SECTION_BY_ID.get(sectionId) || null;
+}
+
+export function getAvailableLessonSections(hasDeepDive = false) {
+  return LESSON_SECTIONS.filter((section) => !section.optional || hasDeepDive);
 }
 
 export function getLessonSectionPath(lessonId, sectionId = DEFAULT_LESSON_SECTION_ID) {

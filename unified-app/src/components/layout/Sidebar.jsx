@@ -3,16 +3,33 @@ import { Link, useLocation } from 'react-router-dom';
 import { categories } from '../../data/animations';
 import { formatLessonCatalogNumber } from '../../data/lessonCatalogNumbers';
 
+function getActiveCategoryId(pathname) {
+  const lessonId = pathname.match(/^\/animation\/([^/]+)/)?.[1];
+  if (!lessonId) return null;
+
+  return categories.find((category) => (
+    category.items.some((item) => item.id === lessonId)
+  ))?.id || null;
+}
+
 export default function Sidebar({ isOpen, isCollapsed, onClose, onOpenCommandPalette }) {
   const location = useLocation();
-  const [expanded, setExpanded] = React.useState(() =>
-    categories.reduce((acc, category) => ({ ...acc, [category.id]: true }), {}),
-  );
+  const activeCategoryId = getActiveCategoryId(location.pathname);
+  const [expandedCategoryId, setExpandedCategoryId] = React.useState(activeCategoryId);
+
+  React.useEffect(() => {
+    if (activeCategoryId) setExpandedCategoryId(activeCategoryId);
+  }, [activeCategoryId]);
 
   const isActive = (path) => (
     location.pathname === path
     || (path.startsWith('/animation/') && location.pathname.startsWith(`${path}/`))
   );
+
+  const toggleCategory = (categoryId) => {
+    if (isCollapsed) return;
+    setExpandedCategoryId((current) => current === categoryId ? null : categoryId);
+  };
 
   return (
     <>
@@ -44,44 +61,42 @@ export default function Sidebar({ isOpen, isCollapsed, onClose, onOpenCommandPal
           </Link>
 
           <div className="ua-sidebar-nav-label ua-sidebar-topics-label">Topics</div>
-          {categories.map((category, categoryIndex) => (
-            <section key={category.id} className="ua-sidebar-section">
-              <button
-                className="ua-sidebar-section-head"
-                onClick={() =>
-                  !isCollapsed
-                  && setExpanded((current) => ({
-                    ...current,
-                    [category.id]: !current[category.id],
-                  }))
-                }
-                title={isCollapsed ? category.name : undefined}
-              >
-                <span className="ua-sidebar-section-num">
-                  {String(categoryIndex + 1).padStart(2, '0')}
-                </span>
-                <span className="ua-sidebar-section-name">{category.name}</span>
-                <span className="ua-sidebar-section-chevron">
-                  {expanded[category.id] ? '−' : '+'}
-                </span>
-              </button>
+          {categories.map((category, categoryIndex) => {
+            const expanded = expandedCategoryId === category.id;
+            return (
+              <section key={category.id} className="ua-sidebar-section">
+                <button
+                  className="ua-sidebar-section-head"
+                  onClick={() => toggleCategory(category.id)}
+                  title={isCollapsed ? category.name : undefined}
+                  aria-expanded={expanded}
+                >
+                  <span className="ua-sidebar-section-num">
+                    {String(categoryIndex + 1).padStart(2, '0')}
+                  </span>
+                  <span className="ua-sidebar-section-name">{category.name}</span>
+                  <span className="ua-sidebar-section-chevron">
+                    {expanded ? '−' : '+'}
+                  </span>
+                </button>
 
-              {!isCollapsed
-                && expanded[category.id]
-                && category.items.map((item, itemIndex) => (
-                  <Link
-                    key={item.id}
-                    to={`/animation/${item.id}`}
-                    className={`ua-sidebar-item ${isActive(`/animation/${item.id}`) ? 'active' : ''}`}
-                  >
-                    <span className="num">
-                      {formatLessonCatalogNumber(categoryIndex, itemIndex)}
-                    </span>
-                    <span className="label">{item.name}</span>
-                  </Link>
-                ))}
-            </section>
-          ))}
+                {!isCollapsed
+                  && expanded
+                  && category.items.map((item, itemIndex) => (
+                    <Link
+                      key={item.id}
+                      to={`/animation/${item.id}`}
+                      className={`ua-sidebar-item ${isActive(`/animation/${item.id}`) ? 'active' : ''}`}
+                    >
+                      <span className="num">
+                        {formatLessonCatalogNumber(categoryIndex, itemIndex)}
+                      </span>
+                      <span className="label">{item.name}</span>
+                    </Link>
+                  ))}
+              </section>
+            );
+          })}
         </nav>
 
         <div className="ua-sidebar-footer">
