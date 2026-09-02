@@ -67,6 +67,10 @@ jobs:
         continue-on-error: true
         run: node --test src/data/classicalMlStatisticsCoverage.test.mjs
 
+      - name: Check recommender systems depth
+        continue-on-error: true
+        run: node --test src/data/recommenderSystemsCoverage.test.mjs
+
       - name: Check linear algebra depth
         continue-on-error: true
         run: node --test src/data/linearAlgebraCoverage.test.mjs
