@@ -29,6 +29,7 @@
   padding: 0.35rem 0 0.5rem 1rem;
   border-left: 1px solid var(--ds-rule);
   background: transparent;
+  overflow-x: hidden;
 }
 
 .ua-lesson-section-nav-head {
@@ -56,7 +57,9 @@
   display: flex;
   flex-direction: column;
   width: 100%;
+  min-width: 0;
   margin-top: 0.35rem;
+  overflow-x: hidden;
 }
 
 .ua-lesson-section-link {
@@ -86,7 +89,7 @@
   position: absolute;
   top: 0.55rem;
   bottom: 0.55rem;
-  left: -1.05rem;
+  left: -1rem;
   width: 2px;
   background: transparent;
 }
@@ -316,6 +319,7 @@
     padding: 0.55rem;
     border: 1px solid var(--ds-rule);
     background: var(--ds-paper);
+    overflow-x: hidden;
   }
 
   .ua-lesson-section-nav-head {
@@ -327,7 +331,14 @@
     gap: 0.35rem;
     margin: 0;
     overflow-x: auto;
-    scrollbar-width: thin;
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+  }
+
+  .ua-lesson-section-links::-webkit-scrollbar {
+    display: none;
+    width: 0;
+    height: 0;
   }
 
   .ua-lesson-section-link {
