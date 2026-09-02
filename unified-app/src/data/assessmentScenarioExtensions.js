@@ -3,6 +3,7 @@ import { P0_SCENARIO_QUESTIONS_BY_LESSON } from './p0ScenarioQuestions.js';
 import { P0_STATISTICS_DECISION_SCENARIOS_BY_LESSON } from './p0StatisticsDecisionScenarioQuestions.js';
 import { P0_STATISTICS_GAP_SCENARIOS_BY_LESSON } from './p0StatisticsGapScenarioQuestions.js';
 import { P1_ADDITIONAL_SCENARIOS_BY_LESSON } from './p1AdditionalScenarioQuestions.js';
+import { P1_ADVANCED_INFERENCE_APPLIED_SCENARIOS_BY_LESSON } from './p1AdvancedInferenceAppliedScenarioQuestions.js';
 import { P1_ADVANCED_NEURAL_ARCHITECTURES_APPLIED_SCENARIOS_BY_LESSON } from './p1AdvancedNeuralArchitecturesAppliedScenarioQuestions.js';
 import { P1_AGENTIC_APPLIED_SCENARIOS_BY_LESSON } from './p1AgenticAppliedScenarioQuestions.js';
 import { P1_BLOOM_FILTER_APPLIED_SCENARIOS_BY_LESSON } from './p1BloomFilterAppliedScenarioQuestions.js';
@@ -65,6 +66,7 @@ export const ASSESSMENT_SCENARIO_EXTENSION_SOURCES = Object.freeze([
   Object.freeze({ id: 'p1-neural-applied-training', priority: 'P1', questionsByLesson: P1_NEURAL_APPLIED_TRAINING_SCENARIOS_BY_LESSON }),
   Object.freeze({ id: 'p1-neural-applied-architecture', priority: 'P1', questionsByLesson: P1_NEURAL_APPLIED_ARCHITECTURE_SCENARIOS_BY_LESSON }),
   Object.freeze({ id: 'p1-advanced-neural-architectures-applied', priority: 'P1', questionsByLesson: P1_ADVANCED_NEURAL_ARCHITECTURES_APPLIED_SCENARIOS_BY_LESSON }),
+  Object.freeze({ id: 'p1-advanced-inference-applied', priority: 'P1', questionsByLesson: P1_ADVANCED_INFERENCE_APPLIED_SCENARIOS_BY_LESSON }),
   Object.freeze({ id: 'p1-neural', priority: 'P1', questionsByLesson: P1_NEURAL_SCENARIOS_BY_LESSON }),
   Object.freeze({ id: 'p1-nlp-transformers-applied-representation', priority: 'P1', questionsByLesson: P1_NLP_TRANSFORMER_APPLIED_REPRESENTATION_SCENARIOS_BY_LESSON }),
   Object.freeze({ id: 'p1-nlp-transformers-applied-systems', priority: 'P1', questionsByLesson: P1_NLP_TRANSFORMER_APPLIED_SYSTEMS_SCENARIOS_BY_LESSON }),
