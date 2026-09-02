@@ -11,6 +11,7 @@ import { P1_CLASSICAL_ML_APPLIED_DECISION_SCENARIOS_BY_LESSON } from './p1Classi
 import { P1_CLASSICAL_ML_DECISION_SCENARIOS_BY_LESSON } from './p1ClassicalMlDecisionScenarioQuestions.js';
 import { P1_CLASSICAL_ML_GAP_SCENARIOS_BY_LESSON } from './p1ClassicalMlGapScenarioQuestions.js';
 import { P1_CLASSIC_NLP_APPLIED_SCENARIOS_BY_LESSON } from './p1ClassicNlpAppliedScenarioQuestions.js';
+import { P1_CURRICULUM_TAIL_APPLIED_SCENARIOS_BY_LESSON } from './p1CurriculumTailAppliedScenarioQuestions.js';
 import { P1_FOUNDATION_MODELS_APPLIED_SCENARIOS_BY_LESSON } from './p1FoundationModelsAppliedScenarioQuestions.js';
 import { P1_FRONTIER_SYSTEMS_APPLIED_SCENARIOS_BY_LESSON } from './p1FrontierSystemsAppliedScenarioQuestions.js';
 import { P1_GENERATIVE_APPLIED_SCENARIOS_BY_LESSON } from './p1GenerativeAppliedScenarioQuestions.js';
@@ -50,6 +51,7 @@ export const ASSESSMENT_SCENARIO_EXTENSION_SOURCES = Object.freeze([
   Object.freeze({ id: 'p0-statistics-decisions', priority: 'P0', questionsByLesson: P0_STATISTICS_DECISION_SCENARIOS_BY_LESSON }),
   Object.freeze({ id: 'p0-statistics-gaps', priority: 'P0', questionsByLesson: P0_STATISTICS_GAP_SCENARIOS_BY_LESSON }),
   Object.freeze({ id: 'p1-core', priority: 'P1', questionsByLesson: P1_SCENARIO_QUESTIONS_BY_LESSON }),
+  Object.freeze({ id: 'p1-curriculum-tail-applied', priority: 'P1', questionsByLesson: P1_CURRICULUM_TAIL_APPLIED_SCENARIOS_BY_LESSON }),
   Object.freeze({ id: 'p1-classical-ml-applied-decisions', priority: 'P1', questionsByLesson: P1_CLASSICAL_ML_APPLIED_DECISION_SCENARIOS_BY_LESSON }),
   Object.freeze({ id: 'p1-classical-ml-decisions', priority: 'P1', questionsByLesson: P1_CLASSICAL_ML_DECISION_SCENARIOS_BY_LESSON }),
   Object.freeze({ id: 'p1-classical-ml-gaps', priority: 'P1', questionsByLesson: P1_CLASSICAL_ML_GAP_SCENARIOS_BY_LESSON }),
