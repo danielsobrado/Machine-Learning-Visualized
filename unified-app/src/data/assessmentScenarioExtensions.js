@@ -10,6 +10,7 @@ import { P1_CLASSICAL_ML_APPLIED_DECISION_SCENARIOS_BY_LESSON } from './p1Classi
 import { P1_CLASSICAL_ML_DECISION_SCENARIOS_BY_LESSON } from './p1ClassicalMlDecisionScenarioQuestions.js';
 import { P1_CLASSICAL_ML_GAP_SCENARIOS_BY_LESSON } from './p1ClassicalMlGapScenarioQuestions.js';
 import { P1_CLASSIC_NLP_APPLIED_SCENARIOS_BY_LESSON } from './p1ClassicNlpAppliedScenarioQuestions.js';
+import { P1_FOUNDATION_MODELS_APPLIED_SCENARIOS_BY_LESSON } from './p1FoundationModelsAppliedScenarioQuestions.js';
 import { P1_FRONTIER_SYSTEMS_APPLIED_SCENARIOS_BY_LESSON } from './p1FrontierSystemsAppliedScenarioQuestions.js';
 import { P1_GENERATIVE_APPLIED_SCENARIOS_BY_LESSON } from './p1GenerativeAppliedScenarioQuestions.js';
 import { P1_GENERATIVE_RL_SCENARIOS_BY_LESSON } from './p1GenerativeRlScenarioQuestions.js';
@@ -57,6 +58,7 @@ export const ASSESSMENT_SCENARIO_EXTENSION_SOURCES = Object.freeze([
   Object.freeze({ id: 'p1-information-theory-applied', priority: 'P1', questionsByLesson: P1_INFORMATION_THEORY_APPLIED_SCENARIOS_BY_LESSON }),
   Object.freeze({ id: 'p1-probability-reasoning-applied', priority: 'P1', questionsByLesson: P1_PROBABILITY_REASONING_APPLIED_SCENARIOS_BY_LESSON }),
   Object.freeze({ id: 'p1-classic-nlp-applied', priority: 'P1', questionsByLesson: P1_CLASSIC_NLP_APPLIED_SCENARIOS_BY_LESSON }),
+  Object.freeze({ id: 'p1-foundation-models-applied', priority: 'P1', questionsByLesson: P1_FOUNDATION_MODELS_APPLIED_SCENARIOS_BY_LESSON }),
   Object.freeze({ id: 'p1-linear-algebra-applied', priority: 'P1', questionsByLesson: P1_LINEAR_ALGEBRA_APPLIED_SCENARIOS_BY_LESSON }),
   Object.freeze({ id: 'p1-numerical-linear-algebra-applied', priority: 'P1', questionsByLesson: P1_NUMERICAL_LINEAR_ALGEBRA_APPLIED_SCENARIOS_BY_LESSON }),
   Object.freeze({ id: 'p1-bloom-filter-applied', priority: 'P1', questionsByLesson: P1_BLOOM_FILTER_APPLIED_SCENARIOS_BY_LESSON }),
