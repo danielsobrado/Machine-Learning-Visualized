@@ -115,6 +115,10 @@ jobs:
         continue-on-error: true
         run: node --test src/data/generativeRlCoverage.test.mjs
 
+      - name: Check latent diffusion pipeline depth
+        continue-on-error: true
+        run: node --test src/data/latentDiffusionPipelineCoverage.test.mjs
+
       - name: Check RAG depth
         continue-on-error: true
         run: node --test src/data/ragCoverage.test.mjs
