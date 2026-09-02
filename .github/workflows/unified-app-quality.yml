@@ -107,6 +107,10 @@ jobs:
         continue-on-error: true
         run: node --test src/data/foundationModelsCoverage.test.mjs
 
+      - name: Check advanced inference depth
+        continue-on-error: true
+        run: node --test src/data/advancedInferenceCoverage.test.mjs
+
       - name: Check generative AI and RL depth
         continue-on-error: true
         run: node --test src/data/generativeRlCoverage.test.mjs
