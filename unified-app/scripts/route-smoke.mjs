@@ -91,6 +91,11 @@ async function runRouteChecks() {
           0,
           `${route.path} should not embed the lesson check in the scrolling lesson body`,
         );
+        assert.equal(
+          await page.locator('.ua-concept-map').count(),
+          0,
+          `${route.path} should not embed the concept map in the scrolling lesson body`,
+        );
       }
 
       if (route.source === '/animation/kv-cache/questions') {
@@ -98,6 +103,14 @@ async function runRouteChecks() {
           await page.locator('.ua-assessment-panel').count(),
           1,
           `${route.path} should render the routed lesson check`,
+        );
+      }
+
+      if (route.source === '/animation/kv-cache/concept-map') {
+        assert.equal(
+          await page.locator('.ua-concept-map').count(),
+          1,
+          `${route.path} should render the routed concept map`,
         );
       }
     }

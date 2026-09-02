@@ -1,10 +1,8 @@
-import React, { Suspense, lazy, useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import Eq from '../../_design-system/Eq';
 import { allAnimations } from '../../data/animations';
 import { getLessonImages } from '../../data/lessonImages';
-
-const ConceptMindmap = lazy(() => import('./ConceptMindmap'));
 
 function GlossaryTerm({ entry }) {
   const [open, setOpen] = useState(false);
@@ -43,15 +41,6 @@ function GlossaryTermList({ terms }) {
         <GlossaryTerm key={`${term.id}-${index}`} entry={term} />
       ))}
     </span>
-  );
-}
-
-function MindmapFallback() {
-  return (
-    <section className="ua-concept-map" aria-label="Concept mindmap">
-      <div className="ua-learning-rail-head"><span>Mindmap</span></div>
-      <div className="ua-map-canvas ua-map-loading">Loading mindmap</div>
-    </section>
   );
 }
 
@@ -265,7 +254,7 @@ export default function AnimationShell({ animation, children }) {
       <div className="ua-learning-shell" data-lesson-family={animation.categoryId}>
         <header className="ua-learning-strip">
           <div><span>Governing relation</span></div>
-          <div className="ua-chip-row"><span>Loading learning map</span></div>
+          <div className="ua-chip-row"><span>Loading lesson context</span></div>
         </header>
 
         <div className="ua-learning-grid">
@@ -278,7 +267,7 @@ export default function AnimationShell({ animation, children }) {
             <div className="ua-learning-rail-head"><span>Field notes</span></div>
             <section className="ua-learning-card">
               <div className="ua-learning-card-head"><span>loading</span><h3>Preparing lesson context</h3></div>
-              <p>Loading the mindmap and next-step guidance.</p>
+              <p>Loading the lesson context and next-step guidance.</p>
             </section>
           </aside>
         </div>
@@ -325,10 +314,6 @@ export default function AnimationShell({ animation, children }) {
           onToggleImages={() => setShowImages((value) => !value)}
         />
       </section>
-
-      <Suspense fallback={<MindmapFallback />}>
-        <ConceptMindmap mindmap={model.mindmap} />
-      </Suspense>
     </div>
   );
 }

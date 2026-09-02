@@ -14,6 +14,12 @@ export const LESSON_SECTIONS = Object.freeze([
     path: 'questions',
   }),
   Object.freeze({
+    id: 'concept-map',
+    label: 'Concept Map',
+    description: 'Connect the ideas',
+    path: 'concept-map',
+  }),
+  Object.freeze({
     id: 'glossary',
     label: 'Glossary',
     description: 'Key terms',

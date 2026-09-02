@@ -5,6 +5,7 @@ import LessonDepthView from './LessonDepthView';
 import LessonGlossaryView from './LessonGlossaryView';
 
 const AssessmentPanel = React.lazy(() => import('../animation-shell/AssessmentPanel'));
+const ConceptMindmap = React.lazy(() => import('../animation-shell/ConceptMindmap'));
 const LessonCodeLab = React.lazy(() => import('../../labs/lesson-code/LessonCodeLab'));
 
 function LoadingSection({ label }) {
@@ -22,6 +23,16 @@ export default function LessonSectionView({ animation, sectionId }) {
       <div className="ua-routed-lesson-section ua-routed-lesson-questions">
         <Suspense fallback={<LoadingSection label="lesson check" />}>
           <AssessmentPanel lessonId={animation.id} eyebrow="Assessment" title="Lesson check" />
+        </Suspense>
+      </div>
+    );
+  }
+
+  if (sectionId === 'concept-map') {
+    return (
+      <div className="ua-routed-lesson-section ua-routed-lesson-concept-map">
+        <Suspense fallback={<LoadingSection label="concept map" />}>
+          <ConceptMindmap mindmap={learningModel.mindmap} />
         </Suspense>
       </div>
     );
