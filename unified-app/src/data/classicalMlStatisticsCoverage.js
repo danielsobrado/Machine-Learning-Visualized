@@ -37,6 +37,11 @@ export const CLASSICAL_ML_STATISTICS_COVERAGE = Object.freeze({
   calibration: requirement([
     'calibration-shift-recalibration',
     'calibration-reliability-gap-worked',
+  ], [
+    'cal-060-final-test',
+    'cal-061-small-data-method',
+    'cal-062-large-data-method',
+    'cal-067-recalibration-trigger',
   ]),
   'train-validation-test-split': requirement([
     'split-grouped-entity',
@@ -119,6 +124,10 @@ export const CLASSICAL_ML_STATISTICS_COVERAGE = Object.freeze({
     'bayes-classifier-posterior-threshold',
     'bayes-confusion-matrix-bridge',
     'bayes-base-rate-worked',
+  ], [
+    'bayes-030-precision',
+    'bayes-042-threshold',
+    'bayes-044-calibration-check',
   ]),
   'maximum-likelihood-estimation': requirement([
     'mle-vs-map-prior',
@@ -145,6 +154,11 @@ export const CLASSICAL_ML_STATISTICS_COVERAGE = Object.freeze({
     'ci-bootstrap-skewed-statistic',
     'ci-frequentist-interpretation',
     'ci-clustered-sampling-unit-decision',
+  ], [
+    'ci-017-t-vs-z',
+    'ci-021-mean-se',
+    'ci-029-bootstrap-purpose',
+    'ci-035-mean-vs-proportion',
   ]),
   'hypothesis-testing-intuition': requirement([
     'hypothesis-one-vs-two-sided',
@@ -175,6 +189,10 @@ export const CLASSICAL_ML_STATISTICS_COVERAGE = Object.freeze({
     'simpson-standardization',
     'simpson-effect-modification-vs-confounding',
     'simpson-standardized-rate-worked',
+  ], [
+    'conf-030-effect-modification',
+    'conf-033-standardization',
+    'conf-034-matching',
   ]),
   'causal-graphs-dags': requirement([
     'dag-mediator-adjustment',
@@ -196,6 +214,10 @@ export const CLASSICAL_ML_STATISTICS_COVERAGE = Object.freeze({
     'spearman-tied-ranks',
     'spearman-nonmonotonic',
     'spearman-tied-ranks-worked',
+  ], [
+    'sp-026-nonlinear',
+    'sp-027-nonmonotonic',
+    'sp-031-tied-ranks',
   ]),
 });
 
