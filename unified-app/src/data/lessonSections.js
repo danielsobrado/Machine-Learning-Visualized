@@ -1,11 +1,37 @@
 export const DEFAULT_LESSON_SECTION_ID = 'lesson';
 
 export const LESSON_SECTIONS = Object.freeze([
-  Object.freeze({ id: 'lesson', label: 'Lesson', path: '' }),
-  Object.freeze({ id: 'questions', label: 'Questions', path: 'questions' }),
-  Object.freeze({ id: 'glossary', label: 'Glossary', path: 'glossary' }),
-  Object.freeze({ id: 'code', label: 'Code Lab', path: 'code' }),
-  Object.freeze({ id: 'deep-dive', label: 'Deep Dive', path: 'deep-dive', optional: true }),
+  Object.freeze({
+    id: 'lesson',
+    label: 'Lesson',
+    description: 'Visual explanation',
+    path: '',
+  }),
+  Object.freeze({
+    id: 'questions',
+    label: 'Questions',
+    description: 'Check understanding',
+    path: 'questions',
+  }),
+  Object.freeze({
+    id: 'glossary',
+    label: 'Glossary',
+    description: 'Key terms',
+    path: 'glossary',
+  }),
+  Object.freeze({
+    id: 'code',
+    label: 'Code Lab',
+    description: 'Practice by coding',
+    path: 'code',
+  }),
+  Object.freeze({
+    id: 'deep-dive',
+    label: 'Deep Dive',
+    description: 'Failure modes and papers',
+    path: 'deep-dive',
+    optional: true,
+  }),
 ]);
 
 const SECTION_BY_ID = new Map(LESSON_SECTIONS.map((section) => [section.id, section]));

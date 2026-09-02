@@ -1,0 +1,136 @@
+/* Routed lesson navigation */
+
+.ua-lesson-layout {
+  grid-template-columns: minmax(0, 1fr) clamp(248px, 18vw, 284px);
+  gap: 20px;
+}
+
+.ua-lesson-section-nav {
+  top: calc(var(--cf-header-height) + 16px);
+  padding: 12px;
+  border-color: var(--cf-border);
+  background: var(--cf-surface);
+}
+
+.ua-lesson-section-nav-head {
+  gap: 3px;
+  padding: 7px 8px 12px;
+  border-bottom-color: var(--cf-border);
+}
+
+.ua-lesson-section-nav-head span,
+.ua-lesson-section-index {
+  color: var(--cf-muted);
+  font-family: var(--ds-font-sans);
+  letter-spacing: 0;
+  text-transform: none;
+  opacity: 1;
+}
+
+.ua-lesson-section-nav-head span {
+  font-size: 9px;
+  font-weight: 600;
+}
+
+.ua-lesson-section-nav-head strong {
+  color: var(--cf-text);
+  font-size: 12px;
+  font-weight: 680;
+}
+
+.ua-lesson-section-links {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  grid-auto-flow: row;
+  gap: 0;
+  margin-top: 6px;
+}
+
+.ua-lesson-section-link {
+  min-height: 56px;
+  padding: 8px 8px;
+  border: 0;
+  border-top: 1px solid var(--cf-border);
+  border-radius: 0;
+  color: var(--cf-muted);
+  font-size: 10px;
+}
+
+.ua-lesson-section-link:first-child {
+  border-top: 0;
+}
+
+.ua-lesson-section-link::before {
+  background: transparent;
+}
+
+.ua-lesson-section-link:hover {
+  border-color: var(--cf-border);
+  background: var(--cf-surface-muted);
+  color: var(--cf-text);
+}
+
+.ua-lesson-section-link.active {
+  border-color: var(--cf-border);
+  background: var(--cf-surface-muted);
+  color: var(--cf-text);
+  font-weight: 400;
+}
+
+.ua-lesson-section-link.active::before {
+  background: var(--cf-accent);
+}
+
+.ua-lesson-section-index {
+  border-color: var(--cf-border-strong);
+  background: var(--cf-surface);
+  color: var(--cf-muted);
+  font-size: 9px;
+}
+
+.ua-lesson-section-link.active .ua-lesson-section-index {
+  border-color: var(--cf-accent);
+  background: var(--cf-accent-soft);
+  color: var(--cf-accent-ink);
+}
+
+.ua-lesson-section-copy strong {
+  color: inherit;
+  font-size: 11px;
+  font-weight: 650;
+}
+
+.ua-lesson-section-copy small {
+  color: var(--cf-muted);
+  font-size: 9.5px;
+  opacity: 1;
+}
+
+@media (max-width: 980px) {
+  .ua-lesson-layout {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .ua-lesson-section-nav {
+    top: var(--cf-header-height);
+    padding: 7px;
+  }
+
+  .ua-lesson-section-links {
+    display: flex;
+    gap: 4px;
+    margin: 0;
+  }
+
+  .ua-lesson-section-link {
+    min-height: 36px;
+    padding: 0 9px;
+    border: 1px solid transparent;
+    border-radius: 7px;
+  }
+
+  .ua-lesson-section-link.active {
+    border-color: var(--cf-border);
+    background: var(--cf-surface-muted);
+  }
+}

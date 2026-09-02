@@ -26,7 +26,10 @@ export default function LessonLayout({ animation, activeSection, hasDeepDive, ch
                 aria-current={selected ? 'page' : undefined}
               >
                 <span className="ua-lesson-section-index">{String(index + 1).padStart(2, '0')}</span>
-                <span>{section.label}</span>
+                <span className="ua-lesson-section-copy">
+                  <strong>{section.label}</strong>
+                  <small>{section.description}</small>
+                </span>
               </Link>
             );
           })}
