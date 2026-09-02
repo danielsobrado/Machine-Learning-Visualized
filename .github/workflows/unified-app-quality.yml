@@ -131,6 +131,10 @@ jobs:
         continue-on-error: true
         run: node --test src/data/productionMlCoverage.test.mjs
 
+      - name: Check model reliability depth
+        continue-on-error: true
+        run: node --test src/data/modelReliabilityCoverage.test.mjs
+
       - name: Check frontier systems depth
         continue-on-error: true
         run: node --test src/data/frontierSystemsCoverage.test.mjs
