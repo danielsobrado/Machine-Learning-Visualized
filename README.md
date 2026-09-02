@@ -22,36 +22,7 @@ The project started as a collection of standalone animations. It is now centered
 - Diffusion lessons from beginner denoising intuition through sampling, classifier-free guidance, U-Net vs DiT, SD3, DiT, VAE, CLIP, T5, and flow matching.
 - Small from-scratch implementations in Rust, Go, Java, and Python for neural networks, diffusion, and Markov chains.
 
-## Current App
-
-The unified app is in `unified-app/`.
-
-```bash
-cd unified-app
-npm install
-npm run dev
 ```
-
-Build and test:
-
-```bash
-cd unified-app
-npm test
-npm run audit:quality
-npm run test:smoke
-npm run build
-```
-
-Publish the unified app to GitHub Pages:
-
-```bash
-make publish-gh-pages
-```
-
-Platform wrappers are available at `scripts/publish-github-pages.ps1`,
-`scripts/publish-github-pages.cmd`, and `scripts/publish-github-pages.sh`.
-
-The app uses React, Vite, Tailwind CSS, Three.js, GSAP, and Recharts.
 
 ## Screenshots
 
@@ -130,32 +101,7 @@ The repository also includes compact implementations meant for reading and exper
 - `mini-spec-sparse/` Rustlings-style exercises for SpecSA / SpecAttn sparse speculative decoding
 - `mini-turboquant/` Rustlings-style exercises for TurboQuant KV-cache quantization
 
-Each directory has its own README with setup notes and examples.
-
-## Publishing
-
-GitHub Pages is published manually from this machine. The deploy script builds the unified app and pushes the generated site to the `gh-pages` branch.
-
-```bash
-node scripts/deploy-github-pages.mjs
-```
-
-The script also publishes static `*-animation/index.html` entry pages with route-specific metadata, so older animation URLs and crawlers land on the current unified lessons.
-
-## Repository Layout
-
-```text
-unified-app/                 Unified React app
-screenshots/readme/          Current README screenshots
-scripts/                     Local maintenance and deploy scripts
-*-animation/                 Static lesson entry pages and legacy standalone lessons
-mini-nn*/                    Small neural-network implementations
-mini-diffusion*/             Small diffusion implementations
-mini-markov*/                Small Markov-chain implementations
-mini-eagle/                  Speculative decoding exercises with TODO-driven Rust tests
-mini-spec-sparse/            Sparse speculative decoding exercises with TODO-driven Rust tests
-mini-turboquant/             KV-cache quantization exercises with TODO-driven Rust tests
-```
+Each directory has its own README with setup notes and examples.\
 
 ## License
 
