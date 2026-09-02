@@ -19,6 +19,7 @@ import { P1_INFORMATION_THEORY_APPLIED_SCENARIOS_BY_LESSON } from './p1Informati
 import { P1_LATENT_DIFFUSION_PIPELINE_APPLIED_SCENARIOS_BY_LESSON } from './p1LatentDiffusionPipelineAppliedScenarioQuestions.js';
 import { P1_LINEAR_ALGEBRA_APPLIED_SCENARIOS_BY_LESSON } from './p1LinearAlgebraAppliedScenarioQuestions.js';
 import { P1_MATH_SCENARIOS_BY_LESSON } from './p1MathScenarioQuestions.js';
+import { P1_MODEL_RELIABILITY_APPLIED_SCENARIOS_BY_LESSON } from './p1ModelReliabilityAppliedScenarioQuestions.js';
 import { P1_NEURAL_APPLIED_ARCHITECTURE_SCENARIOS_BY_LESSON } from './p1NeuralAppliedArchitectureScenarioQuestions.js';
 import { P1_NEURAL_APPLIED_TRAINING_SCENARIOS_BY_LESSON } from './p1NeuralAppliedTrainingScenarioQuestions.js';
 import { P1_NEURAL_SCENARIOS_BY_LESSON } from './p1NeuralScenarioQuestions.js';
@@ -64,6 +65,7 @@ export const ASSESSMENT_SCENARIO_EXTENSION_SOURCES = Object.freeze([
   Object.freeze({ id: 'p1-linear-algebra-applied', priority: 'P1', questionsByLesson: P1_LINEAR_ALGEBRA_APPLIED_SCENARIOS_BY_LESSON }),
   Object.freeze({ id: 'p1-numerical-linear-algebra-applied', priority: 'P1', questionsByLesson: P1_NUMERICAL_LINEAR_ALGEBRA_APPLIED_SCENARIOS_BY_LESSON }),
   Object.freeze({ id: 'p1-bloom-filter-applied', priority: 'P1', questionsByLesson: P1_BLOOM_FILTER_APPLIED_SCENARIOS_BY_LESSON }),
+  Object.freeze({ id: 'p1-model-reliability-applied', priority: 'P1', questionsByLesson: P1_MODEL_RELIABILITY_APPLIED_SCENARIOS_BY_LESSON }),
   Object.freeze({ id: 'p1-neural-applied-training', priority: 'P1', questionsByLesson: P1_NEURAL_APPLIED_TRAINING_SCENARIOS_BY_LESSON }),
   Object.freeze({ id: 'p1-neural-applied-architecture', priority: 'P1', questionsByLesson: P1_NEURAL_APPLIED_ARCHITECTURE_SCENARIOS_BY_LESSON }),
   Object.freeze({ id: 'p1-advanced-neural-architectures-applied', priority: 'P1', questionsByLesson: P1_ADVANCED_NEURAL_ARCHITECTURES_APPLIED_SCENARIOS_BY_LESSON }),
