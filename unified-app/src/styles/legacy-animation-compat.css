@@ -26,32 +26,42 @@
 }
 
 #root .ua-stage-wrap :where(div, section, article, aside)[class*="bg-red-"],
+#root .ua-stage-wrap :where(div, section, article, aside)[class*="bg-rose-"] {
+  background: var(--cf-danger-soft) !important;
+  border-color: var(--cf-danger-border) !important;
+  box-shadow: none !important;
+}
+
 #root .ua-stage-wrap :where(div, section, article, aside)[class*="bg-orange-"],
 #root .ua-stage-wrap :where(div, section, article, aside)[class*="bg-amber-"],
-#root .ua-stage-wrap :where(div, section, article, aside)[class*="bg-rose-"],
 #root .ua-stage-wrap :where(div, section, article, aside)[class*="bg-yellow-"] {
-  background: var(--ds-warm-w) !important;
-  border-color: rgba(168, 90, 58, 0.28) !important;
+  background: var(--cf-warning-soft) !important;
+  border-color: var(--cf-warning-border) !important;
   box-shadow: none !important;
 }
 
 #root .ua-stage-wrap :where(div, section, article, aside)[class*="bg-blue-"],
 #root .ua-stage-wrap :where(div, section, article, aside)[class*="bg-indigo-"],
 #root .ua-stage-wrap :where(div, section, article, aside)[class*="bg-cyan-"],
-#root .ua-stage-wrap :where(div, section, article, aside)[class*="bg-sky-"],
+#root .ua-stage-wrap :where(div, section, article, aside)[class*="bg-sky-"] {
+  background: var(--cf-info-soft) !important;
+  border-color: var(--cf-info-border) !important;
+  box-shadow: none !important;
+}
+
 #root .ua-stage-wrap :where(div, section, article, aside)[class*="bg-purple-"],
 #root .ua-stage-wrap :where(div, section, article, aside)[class*="bg-violet-"],
 #root .ua-stage-wrap :where(div, section, article, aside)[class*="bg-pink-"] {
-  background: var(--ds-accent-w) !important;
-  border-color: rgba(38, 66, 115, 0.22) !important;
+  background: var(--cf-accent-soft) !important;
+  border-color: var(--cf-accent-border) !important;
   box-shadow: none !important;
 }
 
 #root .ua-stage-wrap :where(div, section, article, aside)[class*="bg-green-"],
 #root .ua-stage-wrap :where(div, section, article, aside)[class*="bg-emerald-"],
 #root .ua-stage-wrap :where(div, section, article, aside)[class*="bg-teal-"] {
-  background: #f3f9ef !important;
-  border-color: rgba(58, 106, 58, 0.24) !important;
+  background: var(--cf-positive-soft) !important;
+  border-color: var(--cf-positive-border) !important;
   box-shadow: none !important;
 }
 
@@ -81,7 +91,7 @@
   border-radius: 2px !important;
 }
 
-/* Dark plotting surfaces remain instrument readouts while their app chrome is paper. */
+/* Dark plotting surfaces remain instrument readouts while their app chrome is light. */
 #root .ua-stage-wrap div.min-h-full[class*="bg-slate-950"],
 #root .ua-stage-wrap div.min-h-full[class*="bg-gray-950"],
 #root .ua-stage-wrap div.min-h-full[class*="bg-neutral-950"],
@@ -108,4 +118,3 @@
   background: var(--ds-panel) !important;
   border-color: var(--ds-rule) !important;
 }
-

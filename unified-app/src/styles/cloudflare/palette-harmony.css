@@ -1,0 +1,267 @@
+/* Harmonize legacy lesson chrome with the product palette.
+   Visualization and syntax colors remain untouched when they encode data. */
+
+:root {
+  /* reference-ui.css intentionally owns layout tokens; keep faint UI text readable. */
+  --cf-faint: var(--cf-muted);
+}
+
+/* Small chrome text stays neutral and readable on white/light-gray surfaces. */
+.ua-sidebar-search,
+.ua-sidebar-nav-label,
+.ua-sidebar-brand-copy > span,
+.ua-home-folio,
+.ua-home-section-label,
+.ua-hero-notation,
+.ua-toc-head > span,
+.ua-toc-head small,
+.ua-toc-num,
+.ua-prereq-node small,
+.ua-lesson-section-nav-head span,
+.ua-lesson-section-index,
+.ua-labs-controls span,
+.ua-labs-selected-head span,
+.ua-labs-list button span,
+.ua-settings-field > span,
+.ua-settings-check span,
+.ua-settings-summary dt {
+  color: var(--cf-muted);
+}
+
+/* Bright brand orange is decorative; interactive text uses a darker accessible orange. */
+.ds-eyebrow a:hover,
+.ua-animation-footer a:hover,
+.ua-depth-link-list a,
+.ua-command-symbol {
+  color: var(--cf-accent-ink);
+}
+
+.ds-btn.primary,
+button.ds-btn.primary,
+a.ds-btn.primary {
+  border-color: var(--cf-accent-strong);
+  background: var(--cf-accent-strong);
+  color: #fff;
+}
+
+.ds-btn.primary:hover:not(:disabled),
+button.ds-btn.primary:hover:not(:disabled),
+a.ds-btn.primary:hover:not(:disabled) {
+  border-color: var(--cf-accent-ink);
+  background: var(--cf-accent-ink);
+  color: #fff;
+}
+
+/* Remove the remaining warm notebook paper from operational surfaces. */
+.ua-codefix-lab,
+.ua-codefix-card,
+.ua-codefix-editor-shell,
+.ua-codefix-progress-group,
+.ua-codefix-step,
+.ua-codefix-checks li,
+.ua-depth-subsection,
+.ua-depth-link-list a,
+.ua-assessment-panel,
+.ua-notes-drawer {
+  border-color: var(--cf-border);
+  background: var(--cf-surface);
+  color: var(--cf-text);
+}
+
+.ua-codefix-head span,
+.ua-codefix-persistence strong,
+.ua-codefix-persistence small,
+.ua-codefix-progress-label,
+.ua-codefix-progress-label span,
+.ua-codefix-checks small,
+.ua-codefix-toolbar {
+  color: var(--cf-muted);
+}
+
+.ua-codefix-head p,
+.ua-codefix-card p,
+.ua-codefix-empty,
+.ua-codefix-footer {
+  color: var(--cf-muted);
+}
+
+.ua-codefix-persistence-actions button {
+  border-color: var(--cf-border);
+  background: var(--cf-surface);
+  color: var(--cf-accent-ink);
+}
+
+.ua-codefix-step.active {
+  border-color: var(--cf-accent);
+  box-shadow: 0 0 0 2px rgb(244 129 32 / 0.1);
+}
+
+.ua-codefix-step.passed {
+  border-color: var(--cf-positive-border);
+  color: var(--cf-positive-ink);
+}
+
+.ua-codefix-step.error,
+.ua-codefix-step.failed {
+  border-color: var(--cf-danger-border);
+  color: var(--cf-danger);
+}
+
+.ua-codefix-checks li.passed {
+  border-color: var(--cf-positive-border);
+  background: var(--cf-positive-soft);
+}
+
+.ua-codefix-checks li.failed {
+  border-color: var(--cf-danger-border);
+  background: var(--cf-danger-soft);
+}
+
+.ua-codefix-error {
+  border: 1px solid var(--cf-danger-border);
+  background: var(--cf-danger-soft);
+  color: var(--cf-danger);
+}
+
+.ua-codefix-solution pre,
+.ua-codefix-hint-code,
+.ua-grpo-code-editor,
+.ua-grpo-reveal-box pre {
+  border-color: #363636;
+  background: var(--cf-code-bg) !important;
+  color: var(--cf-code-fg) !important;
+}
+
+/* Status surfaces use one consistent semantic family. */
+.ua-settings-status.success {
+  border-color: var(--cf-positive-border);
+  background: var(--cf-positive-soft);
+  color: var(--cf-positive-ink);
+}
+
+.ua-settings-status.error {
+  border-color: var(--cf-danger-border);
+  background: var(--cf-danger-soft);
+  color: var(--cf-danger);
+}
+
+.ua-answer-panel {
+  border-left-color: var(--cf-danger);
+  background: var(--cf-danger-soft);
+  color: var(--cf-danger);
+}
+
+.ua-answer-panel.correct {
+  border-left-color: var(--cf-positive);
+  background: var(--cf-positive-soft);
+  color: var(--cf-positive-ink);
+}
+
+.ua-animation-page .ua-lab-card.done {
+  border-color: var(--cf-positive-border) !important;
+  background: var(--cf-positive-soft) !important;
+}
+
+.ua-animation-page .ua-lab-card.done .ua-lab-check,
+.ua-lab-check {
+  color: var(--cf-positive-ink);
+}
+
+.ua-animation-page .ua-lab-card.done .ua-lab-check {
+  border-color: var(--cf-positive-border);
+}
+
+.ua-lesson-bar-fill-control {
+  background: var(--cf-accent);
+}
+
+.ua-lesson-bar-fill-treatment {
+  background: var(--cf-positive);
+}
+
+.ua-lesson-bar-fill-warn {
+  background: var(--cf-warning);
+}
+
+.ua-lesson-bar-fill-risk {
+  background: var(--cf-danger);
+}
+
+.ua-page-dots button.active {
+  border-color: var(--cf-accent) !important;
+  background: var(--cf-accent-soft) !important;
+  color: var(--cf-accent-ink) !important;
+}
+
+.ua-path-picker button.active {
+  border-color: var(--cf-accent-border);
+  background: var(--cf-accent-soft);
+  color: var(--cf-accent-ink);
+}
+
+.ua-path-node .ua-path-step,
+.ua-path-node::before {
+  border-color: var(--cf-accent-border);
+}
+
+/* Notes keep the ruled-paper affordance without reintroducing the old beige/blue theme. */
+.ua-notes-drawer {
+  border-left-color: var(--cf-border-strong);
+  box-shadow: -16px 0 40px rgb(0 0 0 / 0.08);
+}
+
+.ua-notes-drawer textarea {
+  border-color: var(--cf-border);
+  background:
+    linear-gradient(90deg, rgb(244 129 32 / 0.12) 1px, transparent 1px) 54px 0 / 1px 100%,
+    repeating-linear-gradient(#fff 0, #fff 27px, #ededed 28px);
+  color: var(--cf-text);
+}
+
+.ua-hint-dock {
+  border-color: var(--cf-border);
+  background: rgb(255 255 255 / 0.96);
+  color: var(--cf-muted);
+}
+
+/* Information comparisons can stay blue, but use the same saturation level as status surfaces. */
+.ua-softmax-readout.sharp {
+  border-color: var(--cf-warning-border);
+  background: var(--cf-warning-soft);
+}
+
+.ua-softmax-readout.diffuse {
+  border-color: var(--cf-info-border);
+  background: var(--cf-info-soft);
+}
+
+.ua-lesson-equation {
+  background: var(--cf-code-bg);
+  color: var(--cf-code-fg);
+}
+
+/* GRPO and other lab feedback follows the same success/danger palette. */
+.ua-grpo-lab-error,
+.ua-grpo-active-feedback.failed,
+.ua-grpo-error-card {
+  border-color: var(--cf-danger-border);
+  background: var(--cf-danger-soft);
+  color: var(--cf-danger);
+}
+
+.ua-grpo-status.pending,
+.ua-grpo-check-list li.failed,
+.ua-grpo-direction.down {
+  color: var(--cf-danger);
+}
+
+.ua-grpo-advantage-bar.down {
+  background: var(--cf-danger);
+}
+
+.ua-grpo-active-feedback.passed,
+.ua-grpo-success-panel {
+  border-color: var(--cf-positive-border);
+  background: var(--cf-positive-soft);
+  color: var(--cf-positive-ink);
+}

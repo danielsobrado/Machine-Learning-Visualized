@@ -13,9 +13,34 @@
   --cf-text: #242424;
   --cf-muted: #737373;
   --cf-faint: #9ca3af;
+
   --cf-accent: #f48120;
+  --cf-accent-strong: #b85a08;
+  --cf-accent-ink: #93450b;
   --cf-accent-soft: #fff7ed;
+  --cf-accent-border: rgb(244 129 32 / 0.28);
+
+  --cf-info: #2563eb;
+  --cf-info-ink: #1d4ed8;
+  --cf-info-soft: #eff6ff;
+  --cf-info-border: rgb(29 78 216 / 0.22);
+
   --cf-positive: #16a34a;
+  --cf-positive-ink: #166534;
+  --cf-positive-soft: #f0fdf4;
+  --cf-positive-border: rgb(22 101 52 / 0.24);
+
+  --cf-warning: #a16207;
+  --cf-warning-soft: #fffbeb;
+  --cf-warning-border: rgb(161 98 7 / 0.24);
+
+  --cf-danger: #b42318;
+  --cf-danger-soft: #fef2f2;
+  --cf-danger-border: rgb(180 35 24 / 0.24);
+
+  --cf-code-bg: #1f1f1f;
+  --cf-code-fg: #f5f5f5;
+
   --cf-radius-sm: 6px;
   --cf-radius: 9px;
   --cf-shadow: 0 1px 2px rgb(0 0 0 / 0.04);
@@ -31,9 +56,14 @@
   --ds-rule: var(--cf-border);
   --ds-hair: var(--cf-border-strong);
   --ds-grid: #eeeeee;
-  --ds-accent: var(--cf-accent);
-  --ds-accent-2: #d96f15;
-  --ds-accent-w: rgb(244 129 32 / 0.055);
+  --ds-accent: var(--cf-accent-strong);
+  --ds-accent-2: var(--cf-accent-ink);
+  --ds-accent-w: rgb(244 129 32 / 0.07);
+  --ds-warm: var(--cf-warning);
+  --ds-warm-w: var(--cf-warning-soft);
+  --ds-ok: var(--cf-positive-ink);
+  --ds-warn: var(--cf-warning);
+  --ds-bad: var(--cf-danger);
   --ds-font-serif: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
   --ds-font-sans: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
   --ds-font-mono: ui-monospace, "SFMono-Regular", Menlo, Monaco, Consolas, monospace;
