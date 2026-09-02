@@ -9,7 +9,10 @@ export default function Sidebar({ isOpen, isCollapsed, onClose, onOpenCommandPal
     categories.reduce((acc, category) => ({ ...acc, [category.id]: true }), {}),
   );
 
-  const isActive = (path) => location.pathname === path;
+  const isActive = (path) => (
+    location.pathname === path
+    || (path.startsWith('/animation/') && location.pathname.startsWith(`${path}/`))
+  );
 
   return (
     <>

@@ -307,7 +307,7 @@ export default function App() {
         <Suspense fallback={<div className="ds-panel ua-loading">Loading page</div>}>
           <Routes>
             <Route path="/" element={<HomePage />} />
-            <Route path="/animation/:id" element={<AnimationPage />} />
+            <Route path="/animation/:id/*" element={<AnimationPage />} />
             <Route path="/labs" element={<LabsPage />} />
             <Route path="/settings" element={<SettingsPage />} />
             <Route path="/glossary" element={<GlossaryIndexPage />} />
