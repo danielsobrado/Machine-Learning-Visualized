@@ -56,8 +56,10 @@ async function runRouteChecks() {
     const browser = await chromium.launch({ headless: true });
     const page = await browser.newPage();
     const routes = toUniqueRoutes().map((route) => ({
+      source: route,
       path: normalizeRoute(route),
       isAnimationRoute: route.startsWith('/animation/'),
+      isBaseAnimationRoute: /^\/animation\/[^/]+$/.test(route),
     }));
 
     for (const route of routes) {
@@ -80,6 +82,22 @@ async function runRouteChecks() {
         assert.ok(
           !/animation not found/i.test(bodyText),
           `${route.path} should resolve to an implemented lesson route`,
+        );
+      }
+
+      if (route.isBaseAnimationRoute) {
+        assert.equal(
+          await page.locator('.ua-assessment-panel').count(),
+          0,
+          `${route.path} should not embed the lesson check in the scrolling lesson body`,
+        );
+      }
+
+      if (route.source === '/animation/kv-cache/questions') {
+        assert.equal(
+          await page.locator('.ua-assessment-panel').count(),
+          1,
+          `${route.path} should render the routed lesson check`,
         );
       }
     }

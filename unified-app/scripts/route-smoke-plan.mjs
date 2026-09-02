@@ -13,6 +13,7 @@ export const EXPLICIT_ROUTES = [
   '/animation/linear-regression/glossary',
   '/animation/linear-regression/code',
   '/animation/linear-regression/deep-dive',
+  '/animation/kv-cache/questions',
   '/animation/cross-validation',
   '/animation/feature-scaling-preprocessing',
   '/animation/transformer-token-generation',

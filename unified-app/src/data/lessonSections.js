@@ -9,8 +9,8 @@ export const LESSON_SECTIONS = Object.freeze([
   }),
   Object.freeze({
     id: 'questions',
-    label: 'Questions',
-    description: 'Check understanding',
+    label: 'Lesson Check',
+    description: 'Questions & scenarios',
     path: 'questions',
   }),
   Object.freeze({

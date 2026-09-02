@@ -20,8 +20,8 @@ export default function LessonSectionView({ animation, sectionId }) {
   if (sectionId === 'questions') {
     return (
       <div className="ua-routed-lesson-section ua-routed-lesson-questions">
-        <Suspense fallback={<LoadingSection label="questions" />}>
-          <AssessmentPanel lessonId={animation.id} eyebrow="Progress" title="Core questions" />
+        <Suspense fallback={<LoadingSection label="lesson check" />}>
+          <AssessmentPanel lessonId={animation.id} eyebrow="Assessment" title="Lesson check" />
         </Suspense>
       </div>
     );
