@@ -71,6 +71,10 @@ jobs:
         continue-on-error: true
         run: node --test src/data/linearAlgebraCoverage.test.mjs
 
+      - name: Check numerical linear algebra depth
+        continue-on-error: true
+        run: node --test src/data/numericalLinearAlgebraCoverage.test.mjs
+
       - name: Check Bloom filter depth
         continue-on-error: true
         run: node --test src/data/bloomFilterCoverage.test.mjs
