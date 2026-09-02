@@ -9,6 +9,7 @@ import {
 import { HUB_LEARNING_PATHS } from './learningPaths.js';
 import { getLessonAssessment } from './lessonAssessments.js';
 import { P1_CORE_RL_ALGORITHMS_APPLIED_SCENARIOS_BY_LESSON } from './p1CoreRlAlgorithmsAppliedScenarioQuestions.js';
+import { P1_REINFORCEMENT_LEARNING_APPLIED_SCENARIOS_BY_LESSON } from './p1ReinforcementLearningAppliedScenarioQuestions.js';
 
 const DEPTH_LEVELS = new Set(['calculation', 'decision', 'design', 'diagnosis', 'application']);
 
@@ -39,11 +40,19 @@ test('core RL algorithm lessons remain on the RL And Algorithms learning path', 
   }
 });
 
-test('core RL algorithms applied source is registered in the live extension resolver', () => {
-  const source = ASSESSMENT_SCENARIO_EXTENSION_SOURCES.find(({ id }) => id === 'p1-core-rl-algorithms-applied');
-  assert.ok(source, 'missing p1-core-rl-algorithms-applied scenario source');
+test('core RL algorithm scenarios are owned by the registered reinforcement-learning source', () => {
+  const source = ASSESSMENT_SCENARIO_EXTENSION_SOURCES.find(({ id }) => id === 'p1-reinforcement-learning-applied');
+  assert.ok(source, 'missing p1-reinforcement-learning-applied scenario source');
   assert.equal(source.priority, 'P1');
-  assert.equal(source.questionsByLesson, P1_CORE_RL_ALGORITHMS_APPLIED_SCENARIOS_BY_LESSON);
+  assert.equal(source.questionsByLesson, P1_REINFORCEMENT_LEARNING_APPLIED_SCENARIOS_BY_LESSON);
+
+  for (const lessonId of CORE_RL_ALGORITHMS_AUDITED_LESSON_IDS) {
+    assert.equal(
+      source.questionsByLesson[lessonId],
+      P1_CORE_RL_ALGORITHMS_APPLIED_SCENARIOS_BY_LESSON[lessonId],
+      `${lessonId} should be merged into the RL source without copying or rewriting scenarios`,
+    );
+  }
 });
 
 test('core RL protected scenarios require worked algorithmic reasoning', () => {
