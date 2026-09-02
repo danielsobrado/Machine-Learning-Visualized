@@ -115,6 +115,10 @@ jobs:
         continue-on-error: true
         run: node --test src/data/generativeRlCoverage.test.mjs
 
+      - name: Check core RL algorithms depth
+        continue-on-error: true
+        run: node --test src/data/coreRlAlgorithmsCoverage.test.mjs
+
       - name: Check latent diffusion pipeline depth
         continue-on-error: true
         run: node --test src/data/latentDiffusionPipelineCoverage.test.mjs
