@@ -1,4 +1,7 @@
+import { P1_CORE_RL_ALGORITHMS_APPLIED_SCENARIOS_BY_LESSON } from './p1CoreRlAlgorithmsAppliedScenarioQuestions.js';
+
 export const P1_REINFORCEMENT_LEARNING_APPLIED_SCENARIOS_BY_LESSON = Object.freeze({
+  ...P1_CORE_RL_ALGORITHMS_APPLIED_SCENARIOS_BY_LESSON,
   'rl-foundations': [
     {
       id: 'rl-discounted-return-worked',
