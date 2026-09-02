@@ -72,11 +72,6 @@
   min-width: 0;
 }
 
-.ua-lesson-route-shell .ua-workspace-tabs,
-.ua-lesson-route-shell .ua-workspace-portal-slot {
-  display: none !important;
-}
-
 @media (max-width: 1180px) {
   .ua-lesson-layout {
     grid-template-columns: minmax(0, 1fr);
