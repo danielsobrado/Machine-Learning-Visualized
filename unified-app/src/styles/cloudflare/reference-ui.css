@@ -1,0 +1,601 @@
+/* Final product-shell pass based on the compact resource-console reference. */
+
+:root {
+  --cf-sidebar-width: 244px;
+  --cf-sidebar-collapsed: 58px;
+  --cf-header-height: 54px;
+  --cf-page: #fafafa;
+  --cf-sidebar: #fbfbfb;
+  --cf-surface: #ffffff;
+  --cf-surface-muted: #f6f6f6;
+  --cf-border: #e5e7eb;
+  --cf-border-strong: #d1d5db;
+  --cf-text: #242424;
+  --cf-muted: #737373;
+  --cf-faint: #a3a3a3;
+  --cf-accent: #f48120;
+  --cf-accent-soft: #fff7ed;
+  --cf-positive: #16a34a;
+  --cf-radius-sm: 6px;
+  --cf-radius: 9px;
+  --cf-shadow: 0 1px 2px rgb(0 0 0 / 0.04);
+}
+
+html,
+body,
+#root,
+.ua-app {
+  background: var(--cf-page);
+}
+
+body {
+  font-size: 13px;
+}
+
+/* Application frame */
+.ua-header {
+  height: var(--cf-header-height);
+  padding: 0 14px;
+  gap: 8px;
+  background: rgb(250 250 250 / 0.98);
+  border-bottom: 1px solid var(--cf-border);
+  backdrop-filter: blur(8px);
+}
+
+.ua-header-left,
+.ua-header-right {
+  gap: 6px;
+}
+
+.ua-icon-btn {
+  width: 32px;
+  height: 32px;
+  border-radius: 7px;
+}
+
+.ua-top-nav {
+  gap: 2px;
+}
+
+.ua-top-nav-item {
+  min-height: 30px;
+  padding: 0 9px;
+  border-radius: 7px;
+  color: #6b6b6b;
+  font-size: 11px;
+}
+
+.ua-top-nav-item.active {
+  color: #202020;
+  background: #fff;
+  border-color: var(--cf-border);
+  box-shadow: var(--cf-shadow);
+}
+
+.ua-top-search,
+.ua-source-link {
+  min-height: 30px;
+  padding: 0 9px;
+  border-radius: 7px;
+  font-size: 10px;
+}
+
+.ua-progress-pill {
+  min-height: 28px;
+  padding: 0 8px;
+  border-radius: 999px;
+  box-shadow: none;
+}
+
+.ua-progress-pill > i {
+  width: 44px;
+  height: 3px;
+}
+
+/* Sidebar */
+.ua-sidebar {
+  width: var(--cf-sidebar-width);
+  background: var(--cf-sidebar);
+  border-right: 1px solid var(--cf-border);
+}
+
+.ua-sidebar-brand-row {
+  min-height: var(--cf-header-height);
+  flex-basis: var(--cf-header-height);
+  padding: 0 12px;
+}
+
+.ua-sidebar-brand {
+  gap: 9px;
+}
+
+.ua-sidebar-brand-mark {
+  position: relative;
+  width: 28px;
+  height: 22px;
+  flex-basis: 28px;
+  overflow: visible;
+  border-radius: 0;
+  background: transparent;
+  color: transparent;
+  box-shadow: none;
+  font-size: 0;
+}
+
+.ua-sidebar-brand-mark::before,
+.ua-sidebar-brand-mark::after {
+  content: '';
+  position: absolute;
+  background: var(--cf-accent);
+  border-radius: 999px;
+}
+
+.ua-sidebar-brand-mark::before {
+  width: 20px;
+  height: 10px;
+  left: 1px;
+  top: 10px;
+}
+
+.ua-sidebar-brand-mark::after {
+  width: 15px;
+  height: 15px;
+  left: 10px;
+  top: 4px;
+}
+
+.ua-sidebar-brand-copy {
+  gap: 1px;
+}
+
+.ua-sidebar-brand-copy strong {
+  font-size: 11px;
+  font-weight: 680;
+}
+
+.ua-sidebar-brand-copy > span {
+  font-size: 9px;
+}
+
+.ua-sidebar-nav {
+  padding: 10px 8px 12px;
+}
+
+.ua-sidebar-search {
+  min-height: 32px;
+  margin-bottom: 8px;
+  padding: 0 9px;
+  border-radius: 7px;
+  color: #8b8b8b;
+  font-size: 10px;
+  box-shadow: none;
+}
+
+.ua-sidebar-nav-label {
+  padding: 10px 9px 5px;
+  color: #9b9b9b;
+  font-size: 9px;
+  letter-spacing: 0;
+  text-transform: none;
+}
+
+.ua-sidebar-home,
+.ua-sidebar-section-head,
+.ua-sidebar-item {
+  border-radius: 7px;
+}
+
+.ua-sidebar-home {
+  min-height: 32px;
+  padding: 0 9px;
+  font-size: 10.5px;
+}
+
+.ua-sidebar-section-head {
+  min-height: 31px;
+}
+
+.ua-sidebar-section-name {
+  font-size: 10.5px;
+}
+
+.ua-sidebar-item {
+  min-height: 29px;
+  font-size: 10px;
+}
+
+.ua-sidebar-home.active,
+.ua-sidebar-item.active {
+  background: #efefef;
+}
+
+.ua-sidebar-home:hover,
+.ua-sidebar-section-head:hover,
+.ua-sidebar-item:hover {
+  background: #f2f2f2;
+}
+
+.ua-sidebar-footer {
+  min-height: 38px;
+  flex-basis: 38px;
+}
+
+/* Page geometry */
+.ua-home,
+.ua-animation-page,
+.ua-labs-page,
+.ua-settings-page,
+.ua-glossary-page,
+.ua-glossary-index {
+  padding: 22px clamp(14px, 2.4vw, 28px) 56px;
+}
+
+/* Shared operational surfaces */
+.ds-panel,
+.ua-settings-main,
+.ua-settings-summary,
+.ua-lesson-section-nav,
+.ua-home-hero,
+.ua-home-continue,
+.ua-chapter-row,
+.ua-knowledge-map,
+.ua-toc-section {
+  border: 1px solid var(--cf-border);
+  border-radius: 9px;
+  background: #fff;
+  box-shadow: var(--cf-shadow);
+}
+
+.ds-panel-head {
+  min-height: 38px;
+  padding: 0 12px;
+  font-size: 10px;
+}
+
+.ds-panel-body {
+  padding: 14px;
+}
+
+.ds-title {
+  font-size: clamp(22px, 2.4vw, 30px);
+  font-weight: 680;
+  letter-spacing: -0.025em;
+}
+
+.ds-subtitle {
+  max-width: 86ch;
+  font-size: 12px;
+  line-height: 1.55;
+}
+
+.ds-btn,
+button.ds-btn,
+a.ds-btn {
+  min-height: 32px;
+  padding-inline: 10px;
+  border-radius: 7px;
+  font-size: 10.5px;
+}
+
+/* Overview page: compact console rather than marketing hero. */
+.ua-home {
+  padding-top: 20px;
+}
+
+.ua-home-hero {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 20px;
+  min-height: 124px;
+  margin-bottom: 12px;
+  padding: 18px 20px;
+}
+
+.ua-home-folio {
+  grid-column: 1 / -1;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin: 0 0 -2px;
+  padding-bottom: 10px;
+  border-bottom: 1px solid #eeeeee;
+  color: #858585;
+  font-size: 9.5px;
+}
+
+.ua-home-title {
+  max-width: 720px;
+  margin: 0;
+  color: #252525;
+  font-size: clamp(23px, 3vw, 32px);
+  font-weight: 680;
+  letter-spacing: -0.03em;
+  line-height: 1.08;
+}
+
+.ua-home-title br {
+  display: none;
+}
+
+.ua-home-title em,
+.ua-home-title .accent {
+  color: #252525;
+  font-style: normal;
+}
+
+.ua-home-subtitle {
+  max-width: 760px;
+  margin: 8px 0 0;
+  color: #747474;
+  font-size: 11.5px;
+  line-height: 1.55;
+}
+
+.ua-hero-notation {
+  grid-column: 2;
+  grid-row: 2 / span 2;
+  align-self: center;
+  max-width: 290px;
+  margin: 0;
+  padding: 10px 12px;
+  border: 1px solid var(--cf-border);
+  border-radius: 8px;
+  background: #fafafa;
+  color: #878787;
+  font-size: 9.5px;
+  box-shadow: none;
+}
+
+.ua-home-continue {
+  display: grid;
+  grid-template-columns: auto auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 12px;
+  margin: 0 0 14px;
+  padding: 12px 14px;
+}
+
+.ua-home-continue-number {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 28px;
+  height: 28px;
+  border: 1px solid var(--cf-border);
+  border-radius: 7px;
+  background: #fafafa;
+  color: #777;
+}
+
+.ua-home-continue h2 {
+  margin: 0 0 3px;
+  font-size: 13px;
+}
+
+.ua-home-continue p {
+  margin: 0 0 7px;
+  font-size: 10px;
+}
+
+.ua-home-continue > a {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 30px;
+  padding: 0 10px;
+  background: #fff;
+  border-radius: 7px;
+}
+
+.ua-home-section-label {
+  color: #8c8c8c;
+  font-size: 9px;
+  letter-spacing: 0;
+  text-transform: none;
+}
+
+.ua-editorial-head {
+  margin: 22px 0 10px;
+}
+
+.ua-editorial-head h2 {
+  margin: 4px 0 3px;
+  font-size: 17px;
+}
+
+.ua-editorial-head p {
+  font-size: 10.5px;
+}
+
+/* Curriculum cards become resource rows. */
+.ua-chapter-list {
+  gap: 8px;
+}
+
+.ua-chapter-row {
+  padding: 13px 14px;
+}
+
+.ua-chapter-row:hover,
+.ua-toc-section:hover {
+  border-color: var(--cf-border-strong);
+}
+
+.ua-chapter-number {
+  font-size: 9px;
+}
+
+.ua-chapter-copy h3 {
+  font-size: 13px;
+}
+
+.ua-chapter-copy p,
+.ua-chapter-status,
+.ua-chapter-sequence {
+  font-size: 9.5px;
+}
+
+.ua-chapter-link {
+  min-height: 29px;
+  padding: 0 8px;
+  border-radius: 7px;
+  font-size: 9.5px;
+}
+
+/* Knowledge graph mirrors the reference resource architecture surface. */
+.ua-knowledge-map {
+  margin-top: 14px;
+  padding: 14px;
+}
+
+.ua-map-toolbar {
+  padding: 8px 0 10px;
+}
+
+.ua-path-picker button,
+.ua-map-options button {
+  min-height: 29px;
+  padding: 0 8px;
+  border-radius: 7px;
+  font-size: 9.5px;
+}
+
+.ua-prereq-map {
+  margin-top: 12px;
+  padding: 14px;
+  border-radius: 9px;
+  background:
+    radial-gradient(circle at 1px 1px, #e9e9e9 1px, transparent 0) 0 0 / 22px 22px,
+    #fff;
+}
+
+.ua-prereq-node {
+  border: 1px solid var(--cf-border-strong);
+  border-radius: 9px;
+  background: #fff;
+  box-shadow: var(--cf-shadow);
+}
+
+.ua-prereq-node.is-next {
+  border-color: var(--cf-accent);
+  box-shadow: 0 0 0 2px rgb(244 129 32 / 0.1), var(--cf-shadow);
+}
+
+.ua-prereq-edges path {
+  stroke: #adb2b7;
+  stroke-width: 1.4;
+}
+
+/* Reference index behaves like compact resource tables. */
+.ua-toc {
+  margin-top: 20px;
+}
+
+.ua-toc-section {
+  margin-bottom: 10px;
+}
+
+.ua-toc-head {
+  min-height: 42px;
+  padding: 0 12px;
+  background: #fcfcfc;
+}
+
+.ua-toc-head h2 {
+  font-size: 11px;
+}
+
+.ua-toc-item {
+  min-height: 56px;
+  padding: 8px 12px;
+}
+
+.ua-toc-title {
+  font-size: 10.5px;
+}
+
+.ua-toc-desc,
+.ua-toc-open {
+  font-size: 9px;
+}
+
+/* Lesson, labs, glossary and settings pages share the same density. */
+.ua-animation-page .ds-panel,
+.ua-labs-page .ds-panel,
+.ua-settings-page .ds-panel,
+.ua-glossary-page .ds-panel,
+.ua-glossary-index .ds-panel {
+  border-radius: 9px;
+  box-shadow: var(--cf-shadow);
+}
+
+.ua-settings-field input,
+.ua-settings-field select,
+.ua-labs-controls input,
+.ua-labs-controls select {
+  min-height: 34px;
+  border-radius: 7px;
+  font-size: 11px;
+}
+
+@media (max-width: 980px) {
+  .ua-header-right .ua-progress-pill,
+  .ua-header-right .ua-source-link {
+    display: none;
+  }
+
+  .ua-home-hero {
+    grid-template-columns: 1fr;
+  }
+
+  .ua-hero-notation {
+    grid-column: 1;
+    grid-row: auto;
+    max-width: 100%;
+  }
+}
+
+@media (max-width: 767px) {
+  .ua-header {
+    margin-left: 0;
+    padding: 0 8px;
+  }
+
+  .ua-top-search span {
+    display: none;
+  }
+
+  .ua-home,
+  .ua-animation-page,
+  .ua-labs-page,
+  .ua-settings-page,
+  .ua-glossary-page,
+  .ua-glossary-index {
+    padding: 14px 10px 44px;
+  }
+
+  .ua-home-hero {
+    padding: 14px;
+  }
+
+  .ua-home-folio {
+    align-items: flex-start;
+    flex-direction: column;
+    gap: 2px;
+  }
+
+  .ua-home-title {
+    font-size: 23px;
+  }
+
+  .ua-home-continue {
+    grid-template-columns: auto minmax(0, 1fr);
+  }
+
+  .ua-home-continue .ua-home-section-label,
+  .ua-home-continue > a {
+    grid-column: 2;
+  }
+}
