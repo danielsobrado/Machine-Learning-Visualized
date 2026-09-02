@@ -1,0 +1,121 @@
+export const P1_LATENT_DIFFUSION_PIPELINE_APPLIED_SCENARIOS_BY_LESSON = Object.freeze({
+  'diffusion-vae': Object.freeze([
+    Object.freeze({
+      id: 'diffusion-vae-latent-scale-contract',
+      level: 'calculation',
+      scenario: 'A latent-diffusion image pipeline encodes one 1,024 × 1,024 RGB image with a VAE that downsamples spatial dimensions by 8 and emits 4 latent channels. After encoding, the pipeline multiplies the latent values by a model-specific scaling factor before denoising. The scaling factor changes latent magnitude, not tensor geometry.',
+      prompt: 'What latent tensor shape enters the denoiser, how many scalar latent values does it contain, and what does the later scaling factor change?',
+      choices: Object.freeze([
+        'Shape 4 × 128 × 128 with 65,536 scalars; the scaling factor changes values only, not the tensor shape',
+        'Shape 4 × 1,024 × 1,024 with 4,194,304 scalars; the scaling factor performs the spatial downsampling',
+        'Shape 3 × 128 × 128 with 49,152 scalars; VAE encoding must preserve the original RGB channel count',
+      ]),
+      answerIndex: 0,
+      explanation: 'An 8× spatial downscale maps 1,024 pixels per side to 128, so the latent geometry is 4 × 128 × 128. That contains 4 × 128 × 128 = 65,536 scalar values. A latent scaling constant is an amplitude convention used to match the denoiser training distribution; multiplying by it does not add channels or resize the latent grid.',
+      misconceptionTested: 'The VAE latent scaling factor is responsible for spatial compression, or the encoded representation must preserve three RGB channels because the source image has three channels.',
+      relatedComparison: 'VAE spatial/channel compression versus post-encoding latent amplitude scaling before diffusion.',
+    }),
+  ]),
+  'sd3-overview': Object.freeze([
+    Object.freeze({
+      id: 'sd3-overview-conditioning-shape-ledger',
+      level: 'calculation',
+      scenario: 'Consider an SD3-style latent pipeline for a 1,024 × 1,024 image. The VAE downsamples by 8, producing a 128 × 128 latent grid. A transformer patchifies that latent grid with 2 × 2 latent patches, so the image stream has 64 × 64 tokens. Suppose the text-conditioning stream contributes another 256 tokens to one joint-attention sequence.',
+      prompt: 'How many image tokens and total joint tokens are processed, and approximately how many entries are in one dense joint-attention score matrix?',
+      choices: Object.freeze([
+        '4,096 image tokens, 4,352 total tokens, and 18,939,904 attention-score entries',
+        '16,384 image tokens, 16,640 total tokens, and about 16,640 attention-score entries because attention grows linearly',
+        '256 image tokens, 512 total tokens, and 262,144 score entries because the VAE downscale directly determines patch count',
+      ]),
+      answerIndex: 0,
+      explanation: 'The 128 × 128 latent grid divided into 2 × 2 patches gives 64 patches per side and 64² = 4,096 image tokens. Adding 256 text tokens yields 4,352 joint tokens. Dense attention materializes a token-by-token score matrix, so 4,352² = 18,939,904 score entries. This is why pipeline shape bookkeeping matters before discussing model quality.',
+      misconceptionTested: 'Once an image is compressed into VAE latents, transformer token count becomes tiny automatically, or adding text conditioning affects dense attention cost only linearly.',
+      relatedComparison: 'Pixel resolution → VAE latent grid → DiT patch tokens → joint text-image attention sequence.',
+    }),
+  ]),
+  'flow-matching': Object.freeze([
+    Object.freeze({
+      id: 'flow-matching-euler-step',
+      level: 'calculation',
+      scenario: 'A toy flow-matching path linearly connects a noise sample x0 = [-2, 1] to a data sample x1 = [4, 5]. At time t = 0.25, use x(t) = (1 - t)x0 + t x1. For this straight path the target velocity is constant, v = x1 - x0. Starting from x(t), take one explicit Euler step with dt = 0.10 using the exact target velocity.',
+      prompt: 'What are x(0.25), the target velocity v, and the state after the Euler step?',
+      choices: Object.freeze([
+        'x(0.25) = [-0.5, 2], v = [6, 4], and the next state is [0.1, 2.4]',
+        'x(0.25) = [2.5, 4], v = [2, 4], and the next state is [2.7, 4.4]',
+        'x(0.25) = [-0.5, 2], v = [6, 4], and the next state is [5.5, 6] because Euler jumps directly to the endpoint',
+      ]),
+      answerIndex: 0,
+      explanation: 'Linear interpolation gives 0.75[-2, 1] + 0.25[4, 5] = [-0.5, 2]. The straight-path target velocity is x1 - x0 = [6, 4]. Explicit Euler advances by dt times velocity, so [-0.5, 2] + 0.10[6, 4] = [0.1, 2.4]. The solver follows the learned vector field incrementally rather than teleporting to x1.',
+      misconceptionTested: 'Flow matching directly predicts the final sample in one operation, or the interpolation point itself should be used as the velocity vector.',
+      relatedComparison: 'Flow-matching velocity targets and ODE integration versus diffusion denoising updates that use scheduler-specific coefficients.',
+    }),
+  ]),
+  'clip-encoder': Object.freeze([
+    Object.freeze({
+      id: 'clip-encoder-eos-pooling-normalization',
+      level: 'calculation',
+      scenario: 'A simplified CLIP text encoder uses the hidden state at the end-of-text token as its sentence representation. For one prompt that EOS hidden vector is [3, 4, 0]. Before cosine-style matching the vector is L2-normalized. Two already-normalized candidate image embeddings are A = [0.6, 0.8, 0] and B = [1, 0, 0].',
+      prompt: 'What normalized text embedding is used, and which image embedding has the larger cosine similarity?',
+      choices: Object.freeze([
+        'The text embedding is [0.6, 0.8, 0]; A has cosine similarity 1.0 and ranks above B at 0.6',
+        'The text embedding remains [3, 4, 0]; B ranks above A because its first coordinate is exactly 1',
+        'The text embedding is [0.75, 1, 0]; A and B tie because cosine similarity ignores vector direction',
+      ]),
+      answerIndex: 0,
+      explanation: 'The norm of [3, 4, 0] is 5, so L2 normalization produces [0.6, 0.8, 0]. Its dot product with normalized A is 0.36 + 0.64 = 1.0, while the dot product with B is 0.6. With normalized vectors, cosine similarity becomes the dot product. Pooling and normalization are separate steps and both affect the conditioning representation.',
+      misconceptionTested: 'CLIP similarity should compare raw hidden-state magnitudes, or the EOS pooling rule can be replaced by whichever individual coordinate looks largest.',
+      relatedComparison: 'CLIP EOS-token pooling and L2 normalization versus unnormalized hidden states or arbitrary mean/coordinate matching.',
+    }),
+  ]),
+  't5-encoder': Object.freeze([
+    Object.freeze({
+      id: 't5-encoder-mask-bias-contract',
+      level: 'diagnosis',
+      scenario: 'A T5 text-conditioning batch pads every sequence to length 8. One prompt contains 6 real tokens followed by 2 padding tokens. The attention implementation converts a binary key mask into additive attention bias: allowed key positions receive 0 while padding key positions receive a very large negative value before softmax. A bug instead gives all 8 key positions zero bias.',
+      prompt: 'What behavior should the correct mask produce, and what failure does the all-zero bias introduce?',
+      choices: Object.freeze([
+        'Each query can attend to the 6 real key positions while the 2 padded keys are suppressed; all-zero bias lets padding participate in attention and contaminate conditioning',
+        'Each query should attend only to the 2 padding positions because padding marks the unused capacity reserved for global context',
+        'The mask has no effect once hidden states exist, because softmax automatically detects which token IDs were padding during tokenization',
+      ]),
+      answerIndex: 0,
+      explanation: 'The binary padding mask must survive into attention semantics. Converting masked keys to a large negative additive bias drives their softmax probability toward zero, leaving six valid key positions. If every position receives zero bias, the two padded representations remain eligible attention targets. A transformer cannot infer from hidden-state values alone that those positions originated as padding.',
+      misconceptionTested: 'Padding is only a tokenizer/storage concern and does not need to be represented in encoder attention once token embeddings have been computed.',
+      relatedComparison: 'T5 padding-mask semantics versus an unmasked fixed-length tensor that silently treats padding as real conditioning context.',
+    }),
+  ]),
+  'joint-attention': Object.freeze([
+    Object.freeze({
+      id: 'joint-attention-shared-attention-ledger',
+      level: 'calculation',
+      scenario: 'A multimodal diffusion block concatenates 4,096 image tokens and 256 text tokens before one dense joint-attention operation. Separate self-attention would contain an image-image matrix of 4,096² entries and a text-text matrix of 256² entries. Joint attention additionally creates both image-to-text and text-to-image score regions.',
+      prompt: 'How many cross-modal score entries are introduced by joint attention, and what is the full shared score-matrix size?',
+      choices: Object.freeze([
+        '2,097,152 cross-modal entries and 18,939,904 total entries in the 4,352 × 4,352 score matrix',
+        '1,048,576 cross-modal entries and 16,842,752 total entries because only image-to-text scores exist',
+        '4,352 cross-modal entries and 18,939,904 total entries because every token contributes only one cross-modal score',
+      ]),
+      answerIndex: 0,
+      explanation: 'There are 4,096 × 256 = 1,048,576 image-to-text pairs and the same number of text-to-image pairs, giving 2,097,152 cross-modal entries. The concatenated sequence has 4,352 tokens, so the complete dense matrix has 4,352² = 18,939,904 entries. Joint attention buys direct cross-modal interaction by explicitly creating those cross terms.',
+      misconceptionTested: 'Joint attention is just separate self-attention placed in one layer, so concatenating modalities introduces no additional cross-modal score regions or quadratic interaction cost.',
+      relatedComparison: 'Joint text-image attention versus independent modality self-attention followed by later fusion.',
+    }),
+  ]),
+  dit: Object.freeze([
+    Object.freeze({
+      id: 'dit-patchify-ledger',
+      level: 'calculation',
+      scenario: 'A diffusion transformer operates on a 128 × 128 latent grid. Configuration A patchifies latents with 2 × 2 patches; configuration B uses 4 × 4 patches. Ignore extra conditioning tokens and keep hidden width, heads, and layer count fixed. Compare only the latent-token count and dense self-attention score count.',
+      prompt: 'How do token count and dense attention-score count change when patch size increases from 2 to 4?',
+      choices: Object.freeze([
+        'Tokens fall from 4,096 to 1,024 (4× fewer), so dense attention-score entries fall by 16×',
+        'Tokens fall from 4,096 to 2,048 (2× fewer), so dense attention-score entries fall by 2×',
+        'Tokens stay at 4,096 because patch size changes embedding width only, so attention cost is unchanged',
+      ]),
+      answerIndex: 0,
+      explanation: 'With 2 × 2 patches, a 128 × 128 latent grid becomes 64 × 64 = 4,096 tokens. With 4 × 4 patches it becomes 32 × 32 = 1,024 tokens, four times fewer. Dense attention scales with token count squared, so the score matrix shrinks by 4² = 16 times. Larger patches reduce compute but also coarsen the spatial tokenization.',
+      misconceptionTested: 'Doubling DiT patch width merely halves the sequence length or changes only embedding width; in two spatial dimensions it quarters token count and strongly changes attention cost.',
+      relatedComparison: 'DiT patch-size efficiency versus spatial detail and the quadratic attention cost of the resulting latent-token sequence.',
+    }),
+  ]),
+});
