@@ -83,6 +83,10 @@ jobs:
         continue-on-error: true
         run: node --test src/data/probabilityReasoningCoverage.test.mjs
 
+      - name: Check classic NLP depth
+        continue-on-error: true
+        run: node --test src/data/classicNlpCoverage.test.mjs
+
       - name: Check Bloom filter depth
         continue-on-error: true
         run: node --test src/data/bloomFilterCoverage.test.mjs
