@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import CodeFixLab from '../labs/code-fix/CodeFixLab';
 import { LESSON_CODE_LAB_GROUPS } from '../labs/lesson-code/lessonCodeLabs.js';
 import { categories } from '../data/animations';
+import './LabsPage.css';
 
 export default function LabsPage() {
   const [query, setQuery] = React.useState('');
@@ -76,21 +77,34 @@ export default function LabsPage() {
         </div>
 
         <div className="ua-labs-layout">
-          <aside className="ua-labs-list" aria-label="Lesson labs">
-            {filteredGroups.map((group) => (
-              <button
-                key={group.lessonId}
-                type="button"
-                className={group.lessonId === selectedGroup?.lessonId ? 'active' : ''}
-                onClick={() => setSelectedLessonId(group.lessonId)}
-              >
-                <strong>{group.groupNumber}. {group.lessonName}</strong>
-                <span>{group.categoryName}</span>
-              </button>
-            ))}
-            {filteredGroups.length === 0 && (
-              <p>No labs match the current filters.</p>
-            )}
+          <aside className="ua-labs-index" aria-label="Lesson labs">
+            <div className="ua-labs-index-head">
+              <span>Lessons</span>
+              <span>{filteredGroups.length}</span>
+            </div>
+            <div className="ua-labs-list">
+              {filteredGroups.map((group) => {
+                const selected = group.lessonId === selectedGroup?.lessonId;
+                return (
+                  <button
+                    key={group.lessonId}
+                    type="button"
+                    className={selected ? 'active' : ''}
+                    onClick={() => setSelectedLessonId(group.lessonId)}
+                    aria-current={selected ? 'true' : undefined}
+                  >
+                    <span className="ua-labs-list-number">{group.groupNumber}</span>
+                    <span className="ua-labs-list-copy">
+                      <strong>{group.lessonName}</strong>
+                      <small>{group.categoryName}</small>
+                    </span>
+                  </button>
+                );
+              })}
+              {filteredGroups.length === 0 && (
+                <p className="ua-labs-empty">No labs match the current filters.</p>
+              )}
+            </div>
           </aside>
 
           <div className="ua-labs-runner">
@@ -98,10 +112,14 @@ export default function LabsPage() {
               <>
                 <div className="ua-labs-selected-head">
                   <div>
-                    <span>{selectedGroup.categoryName}</span>
+                    <span className="ua-labs-selected-kicker">
+                      {selectedGroup.groupNumber} · {selectedGroup.categoryName}
+                    </span>
                     <h2>{selectedGroup.lessonName}</h2>
                   </div>
-                  <Link to={`/animation/${selectedGroup.lessonId}`}>Open lesson</Link>
+                  <Link to={`/animation/${selectedGroup.lessonId}`}>
+                    Open lesson <span aria-hidden="true">↗</span>
+                  </Link>
                 </div>
                 <CodeFixLab
                   key={selectedGroup.lessonId}
