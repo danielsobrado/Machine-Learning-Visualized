@@ -20,7 +20,7 @@ function chartPoint(item, index, count, key) {
   const plotHeight = chart.height - chart.top - chart.bottom;
   return {
     x: chart.left + (index / Math.max(1, count - 1)) * plotWidth,
-    y: chart.top + item[key] * plotHeight,
+    y: chart.top + (1 - item[key]) * plotHeight,
   };
 }
 
@@ -119,12 +119,12 @@ export default function ForestDiversityFailureLab() {
           >
             {[0, 0.25, 0.5, 0.75, 1].map((ratio) => {
               const chart = FOREST_DIVERSITY_CHART;
-              const y = chart.top + ratio * (chart.height - chart.top - chart.bottom);
+              const y = chart.top + (1 - ratio) * (chart.height - chart.top - chart.bottom);
               return (
                 <g key={ratio}>
                   <line x1={chart.left} x2={chart.width - chart.right} y1={y} y2={y} stroke="#e2e8f0" />
                   <text x={chart.left - 8} y={y + 4} textAnchor="end" className="fill-slate-500 text-xs">
-                    {Math.round((1 - ratio) * 100)}%
+                    {Math.round(ratio * 100)}%
                   </text>
                 </g>
               );
