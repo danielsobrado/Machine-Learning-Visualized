@@ -9,6 +9,7 @@ import {
   regularizationSummary,
   shrinkFeature,
   sweepProfile,
+  unitScalePenalty,
 } from './regularizationModel.js';
 
 test('no penalty leaves weights and losses unchanged across lambda values', () => {
@@ -33,14 +34,23 @@ test('L2 shrinks weights smoothly without sparse feature removal at moderate lam
   assert.ok(summary.usefulRetention > 0.55);
 });
 
-test('L1 removes weak noisy coefficients before strong useful signal', () => {
-  const weights = FEATURES.map((feature) => shrinkFeature(feature, 'l1', 0.8));
-  const noiseWeights = weights.filter((feature) => !feature.useful);
-  const usefulWeights = weights.filter((feature) => feature.useful);
+test('L1 shrinkage does not receive oracle knowledge about whether a feature is useful', () => {
+  const useful = shrinkFeature({ id: 'useful', base: 1.2, useful: true }, 'l1', 0.5);
+  const noise = shrinkFeature({ id: 'noise', base: 1.2, useful: false }, 'l1', 0.5);
 
-  assert.ok(noiseWeights.filter((feature) => feature.removed).length >= 2);
-  assert.ok(usefulWeights.some((feature) => !feature.removed));
-  assert.ok(Math.abs(weights.find((feature) => feature.id === 'signalA').weight) > Math.abs(weights.find((feature) => feature.id === 'noiseA').weight));
+  assert.equal(useful.weight, noise.weight);
+  assert.equal(useful.removed, noise.removed);
+});
+
+test('L1 sparsity can remove a useful weak coefficient while larger noise survives', () => {
+  const weights = FEATURES.map((feature) => shrinkFeature(feature, 'l1', 0.8));
+  const weakSignal = weights.find((feature) => feature.id === 'weakSignal');
+  const largeNoise = weights.find((feature) => feature.id === 'noiseA');
+
+  assert.equal(weakSignal.removed, true);
+  assert.equal(weakSignal.weight, 0);
+  assert.equal(largeNoise.removed, false);
+  assert.ok(Math.abs(largeNoise.weight) > 0.4);
 });
 
 test('regularized sweep exposes a validation optimum away from the largest lambda', () => {
@@ -51,6 +61,24 @@ test('regularized sweep exposes a validation optimum away from the largest lambd
   assert.ok(best.lambda > 0);
   assert.ok(best.lambda < 1);
   assert.ok(sweep.at(-1).validation > best.validation);
+});
+
+test('equivalent feature units change raw L1 penalty without changing physical effect', () => {
+  const base = unitScalePenalty({ scale: 1, penaltyId: 'l1' });
+  const scaled = unitScalePenalty({ scale: 100, penaltyId: 'l1' });
+
+  assert.equal(base.standardizedCoefficient, scaled.standardizedCoefficient);
+  assert.equal(base.standardizedPenalty, scaled.standardizedPenalty);
+  assert.equal(scaled.rawCoefficient, base.rawCoefficient / 100);
+  assert.ok(Math.abs(scaled.rawPenalty / base.rawPenalty - 0.01) < 1e-12);
+});
+
+test('equivalent feature units change raw L2 penalty quadratically', () => {
+  const base = unitScalePenalty({ scale: 1, penaltyId: 'l2' });
+  const scaled = unitScalePenalty({ scale: 100, penaltyId: 'l2' });
+
+  assert.equal(base.standardizedPenalty, scaled.standardizedPenalty);
+  assert.ok(Math.abs(scaled.rawPenalty / base.rawPenalty - 0.0001) < 1e-12);
 });
 
 test('diagnosis copy separates no penalty, weak, strong, and balanced states', () => {
@@ -68,7 +96,7 @@ test('diagnosis copy separates no penalty, weak, strong, and balanced states', (
   );
   assert.equal(
     diagnosisForState({ penaltyId: 'elastic', lambda: 0.35, noisyActive: 1, usefulRetention: 0.75 }),
-    'Balanced: noisy weights are controlled while useful signal remains.',
+    'Balanced on this toy validation set: complexity falls while useful signal remains.',
   );
 });
 
@@ -78,4 +106,11 @@ test('linePath returns one finite svg command per sweep point', () => {
 
   assert.match(path, /^M \d+\.\d -?\d+\.\d/);
   assert.equal(commands.length, 11);
+});
+
+test('regularization helpers reject invalid penalty and scaling inputs', () => {
+  assert.throws(() => shrinkFeature(FEATURES[0], 'missing', 0.2), RangeError);
+  assert.throws(() => shrinkFeature(FEATURES[0], 'l1', -0.1), RangeError);
+  assert.throws(() => unitScalePenalty({ scale: 0, penaltyId: 'l2' }), RangeError);
+  assert.throws(() => unitScalePenalty({ scale: 2, penaltyId: 'elastic' }), RangeError);
 });
