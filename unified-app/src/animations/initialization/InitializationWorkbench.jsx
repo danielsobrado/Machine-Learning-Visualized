@@ -1,16 +1,14 @@
 import React, { useMemo, useState } from 'react';
-import { Activity, AlertTriangle, CheckCircle2, SlidersHorizontal, Zap } from 'lucide-react';
-import {
-  ACTIVATION_PROFILES,
-  ARCHITECTURE_PRESETS,
-  CONTROL_LIMITS,
-  INITIALIZATION_DEFAULTS,
-  INITIALIZATION_METHODS,
-} from './initializationConstants.js';
-import { analyzeInitialization } from './initializationModel.js';
+import { Activity, AlertTriangle, CheckCircle2, Layers3, Zap } from 'lucide-react';
+import { INITIALIZATION_DEFAULTS, INITIALIZATION_METHODS } from './initializationConstants.js';
+import { analyzeInitialization, compareInitializers } from './initializationModel.js';
+import InitializationControls from './InitializationControls.jsx';
+import InitializerComparison from './InitializerComparison.jsx';
 import PropagationScale from './PropagationScale.jsx';
+import SymmetryBreakLab from './SymmetryBreakLab.jsx';
 
-function formatMultiplier(value) {
+function formatScale(value) {
+  if (value === 0) return '0×';
   if (value < 0.01 || value >= 1000) return `${value.toExponential(2)}×`;
   return `${value.toFixed(3).replace(/\.?0+$/, '')}×`;
 }
@@ -25,7 +23,7 @@ function StatusCard({ label, value, status }) {
   return (
     <div className={`rounded-xl border p-3 ${tone}`}>
       <div className="text-xs font-black uppercase tracking-wide">{label}</div>
-      <div className="mt-1 text-2xl font-black">{formatMultiplier(value)}</div>
+      <div className="mt-1 text-2xl font-black">{formatScale(value)}</div>
       <div className="mt-1 text-xs font-semibold capitalize">{status}</div>
     </div>
   );
@@ -34,142 +32,86 @@ function StatusCard({ label, value, status }) {
 export default function InitializationWorkbench() {
   const [method, setMethod] = useState(INITIALIZATION_DEFAULTS.method);
   const [activation, setActivation] = useState(INITIALIZATION_DEFAULTS.activation);
-  const [fanIn, setFanIn] = useState(INITIALIZATION_DEFAULTS.fanIn);
-  const [fanOut, setFanOut] = useState(INITIALIZATION_DEFAULTS.fanOut);
+  const [inputWidth, setInputWidth] = useState(INITIALIZATION_DEFAULTS.inputWidth);
+  const [hiddenWidth, setHiddenWidth] = useState(INITIALIZATION_DEFAULTS.hiddenWidth);
   const [layers, setLayers] = useState(INITIALIZATION_DEFAULTS.layers);
 
   const analysis = useMemo(
-    () => analyzeInitialization({ method, activation, fanIn, fanOut, layers }),
-    [activation, fanIn, fanOut, layers, method],
+    () => analyzeInitialization({ method, activation, inputWidth, hiddenWidth, layers }),
+    [activation, hiddenWidth, inputWidth, layers, method],
   );
-  const activationProfile = ACTIVATION_PROFILES[activation];
+  const comparison = useMemo(
+    () => compareInitializers({ activation, inputWidth, hiddenWidth, layers }),
+    [activation, hiddenWidth, inputWidth, layers],
+  );
 
-  const applyPreset = (preset) => {
-    setFanIn(preset.fanIn);
-    setFanOut(preset.fanOut);
+  const applyArchitecture = (preset) => {
+    setInputWidth(preset.inputWidth);
+    setHiddenWidth(preset.hiddenWidth);
   };
 
   return (
     <div className="space-y-6">
-      <section className="grid gap-4 lg:grid-cols-[0.95fr_1.05fr]">
-        <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
-          <div className="mb-4 flex items-center gap-2 text-sm font-black uppercase tracking-wide text-emerald-700">
-            <SlidersHorizontal size={16} />
-            Initialization controls
-          </div>
-
-          <div className="grid gap-2">
-            {Object.entries(INITIALIZATION_METHODS).map(([id, config]) => (
-              <button
-                key={id}
-                type="button"
-                onClick={() => setMethod(id)}
-                className={`rounded-xl border px-4 py-3 text-left transition ${
-                  method === id
-                    ? 'border-emerald-500 bg-emerald-50 text-emerald-900'
-                    : 'border-slate-200 bg-white text-slate-700 hover:border-slate-300'
-                }`}
-              >
-                <div className="font-black">{config.label}</div>
-                <div className="text-sm">{config.description}</div>
-              </button>
-            ))}
-          </div>
-
-          <div className="mt-5 grid grid-cols-3 rounded-xl border border-slate-200 bg-slate-50 p-1 text-sm font-semibold">
-            {Object.entries(ACTIVATION_PROFILES).map(([id, config]) => (
-              <button
-                key={id}
-                type="button"
-                onClick={() => setActivation(id)}
-                className={`rounded-lg px-3 py-2 ${
-                  activation === id ? 'bg-white text-emerald-800 shadow-sm' : 'text-slate-600'
-                }`}
-              >
-                {config.label}
-              </button>
-            ))}
-          </div>
-          <p className="mt-2 text-xs leading-5 text-slate-500">{activationProfile.note}</p>
+      <header className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+        <div className="flex items-center gap-2 text-sm font-black uppercase tracking-wide text-emerald-700">
+          <Activity size={16} />
+          Weight initialization
         </div>
+        <h1 className="mt-2 text-2xl font-black text-slate-950 md:text-3xl">Keep signal alive without lying about the architecture</h1>
+        <p className="mt-2 max-w-4xl text-slate-700">
+          Initialization is a starting-scale policy. This lab tracks a shape-valid network layer by layer, compares forward and backward second moments, and separates variance scaling from symmetry breaking.
+        </p>
+      </header>
+
+      <section className="grid gap-4 xl:grid-cols-[0.95fr_1.05fr]">
+        <InitializationControls
+          method={method}
+          activation={activation}
+          inputWidth={inputWidth}
+          hiddenWidth={hiddenWidth}
+          layers={layers}
+          onMethodChange={setMethod}
+          onActivationChange={setActivation}
+          onArchitectureChange={applyArchitecture}
+          onInputWidthChange={setInputWidth}
+          onHiddenWidthChange={setHiddenWidth}
+          onLayersChange={setLayers}
+        />
 
         <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
-          <div className="mb-4 flex items-center gap-2 text-sm font-black uppercase tracking-wide text-emerald-700">
-            <Activity size={16} />
-            Architecture stress test
+          <div className="flex items-center gap-2 text-sm font-black uppercase tracking-wide text-emerald-700">
+            <Layers3 size={16} />
+            Actual width schedule
           </div>
-
-          <div className="grid gap-2 sm:grid-cols-3">
-            {Object.entries(ARCHITECTURE_PRESETS).map(([id, preset]) => (
-              <button
-                key={id}
-                type="button"
-                onClick={() => applyPreset(preset)}
-                className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-3 text-left transition hover:border-emerald-300 hover:bg-emerald-50"
-              >
-                <div className="text-sm font-black text-slate-800">{preset.label}</div>
-                <div className="mt-1 font-mono text-xs text-slate-500">{preset.fanIn} → {preset.fanOut}</div>
-              </button>
+          <div className="mt-4 flex flex-wrap items-center gap-2">
+            {analysis.widths.map((width, index) => (
+              <React.Fragment key={`${index}-${width}`}>
+                {index > 0 && <span className="text-slate-400">→</span>}
+                <span className={`rounded-lg border px-3 py-2 font-mono text-sm ${index === 0 ? 'border-violet-200 bg-violet-50 text-violet-900' : 'border-slate-200 bg-slate-50 text-slate-800'}`}>
+                  {width}
+                </span>
+              </React.Fragment>
             ))}
           </div>
-
-          <div className="mt-5 grid gap-3 sm:grid-cols-2">
-            <label className="block text-sm font-semibold text-slate-700" htmlFor="init-fan-in">
-              Fan-in {fanIn}
-              <input
-                id="init-fan-in"
-                type="range"
-                min={CONTROL_LIMITS.fan.min}
-                max={CONTROL_LIMITS.fan.max}
-                step={CONTROL_LIMITS.fan.step}
-                value={fanIn}
-                onChange={(event) => setFanIn(Number(event.target.value))}
-                className="mt-2 w-full accent-emerald-500"
-              />
-            </label>
-            <label className="block text-sm font-semibold text-slate-700" htmlFor="init-fan-out">
-              Fan-out {fanOut}
-              <input
-                id="init-fan-out"
-                type="range"
-                min={CONTROL_LIMITS.fan.min}
-                max={CONTROL_LIMITS.fan.max}
-                step={CONTROL_LIMITS.fan.step}
-                value={fanOut}
-                onChange={(event) => setFanOut(Number(event.target.value))}
-                className="mt-2 w-full accent-emerald-500"
-              />
-            </label>
-          </div>
-
-          <label className="mt-5 block text-sm font-semibold text-slate-700" htmlFor="init-layers">
-            Repeated layers {layers}
-          </label>
-          <input
-            id="init-layers"
-            type="range"
-            min={CONTROL_LIMITS.layers.min}
-            max={CONTROL_LIMITS.layers.max}
-            step={CONTROL_LIMITS.layers.step}
-            value={layers}
-            onChange={(event) => setLayers(Number(event.target.value))}
-            className="mt-2 w-full accent-emerald-500"
-          />
+          <p className="mt-3 text-sm leading-6 text-slate-600">
+            A rectangular input transition happens once. Hidden layers then use the hidden width, so a 256→32 bottleneck is not incorrectly repeated as 256→32 at every depth.
+          </p>
 
           <div className="mt-5 rounded-xl bg-slate-900 p-4 text-white">
             <div className="flex items-center gap-2 text-xs uppercase tracking-wide text-emerald-200">
               <Zap size={14} />
-              Weight scale
+              Selected initializer
             </div>
-            <div className="mt-1 text-3xl font-black">σ = {analysis.weightStd.toFixed(4)}</div>
-            <div className="mt-3 grid grid-cols-2 gap-3 text-sm">
+            <div className="mt-1 text-xl font-black">{INITIALIZATION_METHODS[method].label}</div>
+            <div className="mt-1 font-mono text-sm text-slate-300">{INITIALIZATION_METHODS[method].formula}</div>
+            <div className="mt-4 grid gap-3 sm:grid-cols-2">
               <div>
-                <div className="text-slate-400">Forward / layer</div>
-                <div className="font-black text-white">{formatMultiplier(analysis.forwardMultiplier)}</div>
+                <div className="text-xs uppercase tracking-wide text-slate-400">First layer σ</div>
+                <div className="mt-1 font-mono text-xl font-black">{analysis.layers[0].weightStd.toFixed(4)}</div>
               </div>
               <div>
-                <div className="text-slate-400">Backward / layer</div>
-                <div className="font-black text-white">{formatMultiplier(analysis.backwardMultiplier)}</div>
+                <div className="text-xs uppercase tracking-wide text-slate-400">Saturated tanh layers</div>
+                <div className="mt-1 font-mono text-xl font-black">{analysis.saturatedLayerCount}</div>
               </div>
             </div>
           </div>
@@ -181,10 +123,9 @@ export default function InitializationWorkbench() {
           <div className="flex items-start gap-3">
             <AlertTriangle className="mt-0.5 shrink-0 text-rose-700" size={20} />
             <div>
-              <h3 className="font-black text-rose-950">The forward path is hiding a gradient failure</h3>
+              <h3 className="font-black text-rose-950">The forward path is hiding a backward problem</h3>
               <p className="mt-1 text-sm leading-6 text-rose-900">
-                Activations finish in the stable range, but gradients are {analysis.backwardHealth}. He initialization preserves
-                ReLU's forward scale from fan-in; it does not guarantee backward scale when fan-out is very different.
+                Activations finish in the stable range while gradients are {analysis.backwardHealth}. Fan-in scaling and fan-out scaling optimize different directions on rectangular layers.
               </p>
             </div>
           </div>
@@ -192,57 +133,36 @@ export default function InitializationWorkbench() {
       )}
 
       <section className="grid gap-3 sm:grid-cols-3">
-        <StatusCard label="Final activations" value={analysis.finalForward} status={analysis.forwardHealth} />
-        <StatusCard label="Final gradients" value={analysis.finalBackward} status={analysis.backwardHealth} />
-        <div className={`rounded-xl border p-3 ${
-          analysis.forwardHealth === 'stable' && analysis.backwardHealth === 'stable'
-            ? 'border-emerald-200 bg-emerald-50 text-emerald-900'
-            : 'border-amber-200 bg-amber-50 text-amber-900'
-        }`}>
+        <StatusCard label="Final activation 2nd moment" value={analysis.finalForward} status={analysis.forwardHealth} />
+        <StatusCard label="Final gradient 2nd moment" value={analysis.finalBackward} status={analysis.backwardHealth} />
+        <div className={`rounded-xl border p-3 ${analysis.forwardHealth === 'stable' && analysis.backwardHealth === 'stable' ? 'border-emerald-200 bg-emerald-50 text-emerald-900' : 'border-amber-200 bg-amber-50 text-amber-900'}`}>
           <div className="flex items-center gap-2 text-xs font-black uppercase tracking-wide">
-            {analysis.forwardHealth === 'stable' && analysis.backwardHealth === 'stable'
-              ? <CheckCircle2 size={15} />
-              : <AlertTriangle size={15} />}
+            {analysis.forwardHealth === 'stable' && analysis.backwardHealth === 'stable' ? <CheckCircle2 size={15} /> : <AlertTriangle size={15} />}
             Combined check
           </div>
           <div className="mt-2 text-lg font-black">
-            {analysis.forwardHealth === 'stable' && analysis.backwardHealth === 'stable'
-              ? 'Both paths healthy'
-              : 'Inspect both paths'}
+            {analysis.forwardHealth === 'stable' && analysis.backwardHealth === 'stable' ? 'Both paths healthy' : 'Tradeoff exposed'}
           </div>
-          <p className="mt-1 text-xs leading-5">
-            Initialization is not healthy just because the forward activations look healthy.
-          </p>
+          <p className="mt-1 text-xs leading-5">A useful initializer is architecture- and activation-dependent, not a universal preset.</p>
         </div>
       </section>
 
       <section className="grid gap-4 lg:grid-cols-2">
-        <PropagationScale
-          direction="forward"
-          multiplier={analysis.forwardMultiplier}
-          series={analysis.forwardSeries}
-          health={analysis.forwardHealth}
-        />
-        <PropagationScale
-          direction="backward"
-          multiplier={analysis.backwardMultiplier}
-          series={analysis.backwardSeries}
-          health={analysis.backwardHealth}
-        />
+        <PropagationScale direction="forward" series={analysis.forwardSeries} health={analysis.forwardHealth} />
+        <PropagationScale direction="backward" series={analysis.backwardSeries} health={analysis.backwardHealth} />
       </section>
 
+      <InitializerComparison results={comparison} selectedMethod={method} />
+      <SymmetryBreakLab />
+
       <section className="rounded-2xl border border-slate-200 bg-slate-50 p-5 text-sm leading-6 text-slate-700">
-        <h3 className="font-black text-slate-900">What this approximation measures</h3>
+        <h3 className="font-black text-slate-900">What this approximation does and does not claim</h3>
         <p className="mt-2">
-          The tracks show multiplicative <strong>second-moment scale</strong>, not an exact finite-network variance. For ReLU,
-          the mean-field approximation uses a 1/2 factor in both the forward activation and backward derivative paths.
-          Xavier and He are therefore starting-point variance rules, not guarantees that every architecture stays numerically healthy.
+          The propagation tracks use mean-field second moments. They are diagnostic approximations, not guarantees for a finite trained network. ReLU has closed-form factors under centered Gaussian assumptions; tanh moments are numerically integrated from the current pre-activation scale so saturation appears when the scale actually becomes large.
         </p>
-        {activation === 'tanh' && (
-          <p className="mt-2 font-semibold text-amber-800">
-            tanh is shown in its local-linear regime. Once pre-activations saturate, derivatives approach zero and real gradients can vanish faster.
-          </p>
-        )}
+        <p className="mt-2">
+          Variance scaling solves a different problem from symmetry breaking. Even perfectly scaled identical hidden neurons can remain clones unless their weights start differently.
+        </p>
       </section>
     </div>
   );
