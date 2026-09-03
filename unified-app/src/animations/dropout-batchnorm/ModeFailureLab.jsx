@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react';
+import React, { useState } from 'react';
 import { AlertTriangle, ShieldCheck, Users } from 'lucide-react';
 import {
   BATCH_SCENARIOS,
@@ -24,10 +24,7 @@ export default function ModeFailureLab() {
   const baseline = BATCH_SCENARIOS.ordinary.values;
   const current = BATCH_SCENARIOS[comparisonId].values;
   const runningState = { mean: defaults.runningMean, variance: defaults.runningVariance };
-  const comparison = useMemo(
-    () => compareBatchContexts(baseline, current, runningState),
-    [baseline, current, runningState.mean, runningState.variance],
-  );
+  const comparison = compareBatchContexts(baseline, current, runningState);
 
   return (
     <section className="space-y-4 rounded-2xl border border-amber-200 bg-amber-50/60 p-5">
