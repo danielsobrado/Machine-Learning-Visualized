@@ -1,6 +1,7 @@
 import React, { useMemo, useState } from 'react';
 import { AlertTriangle, BarChart3, RotateCcw, Scale, ShieldCheck, SlidersHorizontal } from 'lucide-react';
 import AssessmentPanel from '../../components/animation-shell/AssessmentPanel';
+import RegularizationFailureLab from './RegularizationFailureLab';
 import {
   FEATURES,
   PENALTIES,
@@ -28,12 +29,13 @@ function WeightRow({ feature }) {
   const baseWidth = Math.min(100, Math.abs(feature.base) * 34);
   const weightWidth = Math.min(100, Math.abs(feature.weight) * 34);
   const tone = feature.useful ? 'bg-cyan-600' : 'bg-amber-500';
+
   return (
     <div className="rounded-lg border border-slate-200 bg-slate-50 p-3">
       <div className="flex items-center justify-between gap-3 text-sm">
         <strong className="text-slate-800">{feature.label}</strong>
         <span className={`rounded px-2 py-1 text-xs font-black ${feature.useful ? 'bg-cyan-100 text-cyan-700' : 'bg-amber-100 text-amber-700'}`}>
-          {feature.useful ? 'signal' : 'noise'}
+          synthetic {feature.useful ? 'signal' : 'noise'}
         </span>
       </div>
       <div className="mt-3 grid gap-2">
@@ -65,7 +67,10 @@ export default function RegularizationAnimation() {
   const [lambda, setLambda] = useState(0.35);
   const [showValidationSweep, setShowValidationSweep] = useState(true);
 
-  const weights = useMemo(() => FEATURES.map((feature) => shrinkFeature(feature, penaltyId, lambda)), [penaltyId, lambda]);
+  const weights = useMemo(
+    () => FEATURES.map((feature) => shrinkFeature(feature, penaltyId, lambda)),
+    [penaltyId, lambda],
+  );
   const losses = lossProfile(weights, lambda, penaltyId);
   const sweep = useMemo(() => sweepProfile(penaltyId), [penaltyId]);
   const best = bestLambda(sweep);
@@ -115,6 +120,7 @@ export default function RegularizationAnimation() {
                   key={id}
                   type="button"
                   onClick={() => setPenaltyId(id)}
+                  aria-pressed={penaltyId === id}
                   className={`rounded-lg border px-3 py-2 text-left text-sm font-black transition ${
                     penaltyId === id ? 'border-cyan-500 bg-cyan-600 text-white' : 'border-slate-200 bg-slate-50 text-slate-700'
                   }`}
@@ -129,7 +135,15 @@ export default function RegularizationAnimation() {
           </div>
           <label className="grid gap-2 text-sm font-bold text-slate-700">
             Lambda: {lambda.toFixed(2)}
-            <input min="0" max="1" step="0.01" type="range" value={lambda} onChange={(event) => setLambda(Number(event.target.value))} />
+            <input
+              min="0"
+              max="1"
+              step="0.01"
+              type="range"
+              value={lambda}
+              aria-label="Regularization strength lambda"
+              onChange={(event) => setLambda(Number(event.target.value))}
+            />
             <span className="text-xs font-semibold text-slate-500">
               Higher lambda makes the penalty matter more relative to fit on training rows.
             </span>
@@ -153,10 +167,13 @@ export default function RegularizationAnimation() {
 
       <section className="grid gap-6 xl:grid-cols-[1.15fr_0.95fr]">
         <div className="rounded-lg border border-slate-200 bg-white p-5">
-          <div className="mb-4 flex items-center gap-2 text-sm font-black uppercase tracking-wide text-slate-600">
+          <div className="mb-2 flex items-center gap-2 text-sm font-black uppercase tracking-wide text-slate-600">
             <BarChart3 size={16} />
             Weight shrinkage
           </div>
+          <p className="mb-4 text-xs leading-5 text-slate-500">
+            Signal/noise tags are synthetic ground truth for evaluating this toy example. The penalty itself never receives those labels.
+          </p>
           <div className="grid gap-3 md:grid-cols-2">
             {weights.map((feature) => (
               <WeightRow key={feature.id} feature={feature} />
@@ -171,7 +188,7 @@ export default function RegularizationAnimation() {
               Loss decomposition
             </div>
             <div className="rounded-lg bg-slate-50 p-4 font-mono text-sm text-slate-800">
-              total = data loss + lambda * penalty
+              objective = data loss + weighted penalty
               <br />
               {losses.total.toFixed(1)} = {losses.dataLoss.toFixed(1)} + {losses.penaltyLoss.toFixed(1)}
             </div>
@@ -187,7 +204,7 @@ export default function RegularizationAnimation() {
               </div>
               <div>
                 <div className="mb-1 flex justify-between text-sm font-bold text-slate-700">
-                  <span>Penalty</span>
+                  <span>Weighted penalty</span>
                   <span>{losses.penaltyLoss.toFixed(1)}</span>
                 </div>
                 <div className="h-3 rounded-full bg-slate-100">
@@ -226,9 +243,11 @@ export default function RegularizationAnimation() {
         </div>
       </section>
 
+      <RegularizationFailureLab />
+
       <section className="grid gap-4 md:grid-cols-3">
         <Stat label="Zeroed weights" value={removedCount} detail="Weights driven close enough to zero to remove." />
-        <Stat label="Useful signal kept" value={percent(usefulRetention)} detail="Remaining magnitude on true signal features." />
+        <Stat label="Useful signal kept" value={percent(usefulRetention)} detail="Remaining magnitude on synthetic signal features." />
         <Stat label="Diagnosis" value={penaltyId === 'none' ? 'None' : lambda < 0.15 ? 'Weak' : lambda > 0.75 ? 'Strong' : 'Tuned'} detail={diagnosis} />
       </section>
 
@@ -236,7 +255,8 @@ export default function RegularizationAnimation() {
         <div className="rounded-lg border border-cyan-200 bg-cyan-50 p-4">
           <p className="text-xs font-black uppercase tracking-wide text-cyan-700">Predict before running</p>
           <p className="mt-2 text-sm leading-6 text-cyan-950">
-            Switch from L2 to L1 and predict which noisy weights will disappear first as lambda rises.
+            Switch from L2 to L1 and predict which small coefficients will reach zero first as lambda rises. Then check whether
+            sparsity happened to match the synthetic ground truth.
           </p>
         </div>
         <div className="rounded-lg border border-amber-200 bg-amber-50 p-4">
@@ -245,7 +265,8 @@ export default function RegularizationAnimation() {
             Failure mode
           </p>
           <p className="mt-2 text-sm leading-6 text-amber-950">
-            Stronger regularization is not automatically better. Once useful signal shrinks, validation loss can rise.
+            Stronger regularization is not automatically better, and sparse selection is not automatically correct. Useful
+            signal can be suppressed when coefficients are weak, correlated, or badly scaled.
           </p>
         </div>
         <div className="rounded-lg border border-emerald-200 bg-emerald-50 p-4">
@@ -254,12 +275,13 @@ export default function RegularizationAnimation() {
             Practical rule
           </p>
           <p className="mt-2 text-sm leading-6 text-emerald-950">
-            Tune lambda on validation data, compare simple baselines, and report final performance on untouched test data.
+            Fit scaling inside training folds, tune lambda on validation data, inspect selection stability, and report final
+            performance on untouched test data.
           </p>
         </div>
       </section>
 
-      <AssessmentPanel lessonId="regularization" />
+      <AssessmentPanel lessonId="regularization" title="Regularization check" />
     </div>
   );
 }
