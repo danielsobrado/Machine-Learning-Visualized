@@ -75,6 +75,32 @@ export function reliabilityMetrics(bins) {
   };
 }
 
+export function aggregateCalibrationSlices(slices) {
+  const grouped = new Map();
+
+  slices.forEach((slice) => {
+    slice.bins.forEach((bin) => {
+      const key = String(bin.confidence);
+      const current = grouped.get(key) ?? {
+        confidence: bin.confidence,
+        count: 0,
+        positives: 0,
+      };
+      current.count += bin.count;
+      current.positives += bin.count * bin.observed;
+      grouped.set(key, current);
+    });
+  });
+
+  return [...grouped.values()]
+    .sort((a, b) => a.confidence - b.confidence)
+    .map(({ confidence, count, positives }) => ({
+      confidence,
+      observed: count === 0 ? 0 : positives / count,
+      count,
+    }));
+}
+
 export function thresholdStats(bins, threshold) {
   const predictedPositive = bins.filter((bin) => bin.confidence >= threshold);
   const predictedNegative = bins.filter((bin) => bin.confidence < threshold);
