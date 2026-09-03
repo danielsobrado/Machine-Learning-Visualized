@@ -1,6 +1,7 @@
 import React, { useMemo, useState } from 'react';
 import { GitBranch, RotateCcw, SlidersHorizontal, Trees } from 'lucide-react';
 import AssessmentPanel from '../../components/animation-shell/AssessmentPanel';
+import ForestDiversityFailureLab from './ForestDiversityFailureLab';
 import {
   POINTS,
   accuracy,
@@ -149,7 +150,8 @@ export default function TreeEnsemblesAnimation() {
                 Single tree predicts <strong className="text-slate-950">class {treeLabel}</strong> from the current split depth.
               </div>
               <div className="rounded-lg bg-blue-50 p-3 text-sm text-blue-950">
-                Random forest estimates <strong>{Math.round(forest.probability * 100)}%</strong> positive from varied tree votes.
+                Random forest has <strong>{Math.round(forest.positiveVoteShare * 100)}%</strong> positive vote share from varied tree votes.
+                Vote share shows model agreement here; it is not automatically a calibrated class probability.
               </div>
               <div className="rounded-lg bg-rose-50 p-3 text-sm text-rose-950">
                 Boosting score is <strong>{boosted.score.toFixed(2)}</strong> after scaled residual corrections.
@@ -189,6 +191,8 @@ export default function TreeEnsemblesAnimation() {
         </div>
       </section>
 
+      <ForestDiversityFailureLab />
+
       <section className="grid gap-4 lg:grid-cols-3">
         <div className="rounded-lg border border-blue-200 bg-blue-50 p-5">
           <h3 className="text-sm font-black uppercase tracking-wide text-blue-700">Decision tree</h3>
@@ -200,7 +204,8 @@ export default function TreeEnsemblesAnimation() {
         <div className="rounded-lg border border-slate-200 bg-white p-5">
           <h3 className="text-sm font-black uppercase tracking-wide text-slate-600">Random forest</h3>
           <p className="mt-3 text-sm leading-6 text-slate-700">
-            Bagging and feature randomness make trees disagree in useful ways; averaging their votes reduces variance.
+            Bagging reduces variance when the trees make sufficiently different errors. Feature randomness exists to help
+            decorrelate trees; simply adding more near-identical trees gives diminishing benefit.
           </p>
         </div>
         <div className="rounded-lg border border-rose-200 bg-rose-50 p-5">
