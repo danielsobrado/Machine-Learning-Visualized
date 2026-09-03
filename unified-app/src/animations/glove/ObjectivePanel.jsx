@@ -1,346 +1,146 @@
-import React, { useState } from 'react';
-import { Calculator, Zap, Target, Play, RotateCcw, ArrowRight, CheckCircle } from 'lucide-react';
+import React, { useMemo, useState } from 'react';
+import { AlertTriangle, Calculator, Scale, Sigma } from 'lucide-react';
+import {
+  GLOVE_COUNT_OPTIONS,
+  GLOVE_RESIDUAL_LIMITS,
+  GLOVE_WEIGHTING_DEFAULTS,
+} from './gloveConstants.js';
+import { glovePairLoss, gloveWeightingExperiment } from './gloveModel.js';
+
+function format(value) {
+  if (value === null) return 'excluded';
+  if (Math.abs(value) >= 1000 || (value !== 0 && Math.abs(value) < 0.001)) return value.toExponential(3);
+  return value.toFixed(4);
+}
 
 export default function ObjectivePanel() {
-  const [step, setStep] = useState(1);
-  const [isPlaying, setIsPlaying] = useState(false);
+  const [count, setCount] = useState(10);
+  const [residual, setResidual] = useState(GLOVE_WEIGHTING_DEFAULTS.residual);
 
-  const steps = [
-    {
-      title: 'Step 1: The Ratio Hypothesis',
-      description: 'Word meaning is captured by probability ratios: F(w_i, w_j, w̃_k) should encode P_ik / P_jk'
-    },
-    {
-      title: 'Step 2: Derive the Form',
-      description: 'Through mathematical derivation, we arrive at: w_i · w̃_k + b_i + b̃_k = log(X_ik)'
-    },
-    {
-      title: 'Step 3: Define the Loss',
-      description: 'Minimize the difference between dot product and log co-occurrence'
-    },
-    {
-      title: 'Step 4: Add Weighting',
-      description: 'Weight frequent co-occurrences less with f(X_ij) to prevent domination by common pairs'
-    },
-    {
-      title: 'Step 5: Final Objective',
-      description: 'The complete weighted least squares objective function'
-    }
-  ];
+  const rows = useMemo(() => gloveWeightingExperiment({
+    counts: GLOVE_COUNT_OPTIONS,
+    residual,
+  }), [residual]);
 
-  const playAnimation = () => {
-    setIsPlaying(true);
-    let currentStep = 1;
-    setStep(1);
-
-    const interval = setInterval(() => {
-      currentStep++;
-      if (currentStep > steps.length) {
-        setIsPlaying(false);
-        clearInterval(interval);
-      } else {
-        setStep(currentStep);
-      }
-    }, 3000);
-  };
-
-  const reset = () => {
-    setStep(1);
-    setIsPlaying(false);
-  };
+  const selectedPair = useMemo(() => {
+    if (count === 0) return glovePairLoss({ count, prediction: 0 });
+    const target = Math.log(count);
+    return glovePairLoss({ count, prediction: target + residual });
+  }, [count, residual]);
 
   return (
-    <div className="space-y-6 pb-20">
-      {/* Title */}
-      <div className="text-center">
-        <h2 className="text-3xl font-bold mb-2">
-          <span className="gradient-text">GloVe Objective:</span> The Math Behind the Magic
-        </h2>
-        <p className="text-gray-800">
-          Understanding how GloVe learns meaningful word vectors
+    <div className="mx-auto max-w-6xl space-y-6 p-4 pb-20 md:p-6">
+      <header className="rounded-2xl border border-violet-200 bg-violet-50 p-5">
+        <div className="flex items-center gap-2 text-sm font-black uppercase tracking-wide text-violet-700">
+          <Calculator size={17} /> GloVe objective reality check
+        </div>
+        <h2 className="mt-2 text-2xl font-black text-slate-950">GloVe does not downweight frequent pairs below rare pairs</h2>
+        <p className="mt-2 max-w-4xl text-sm leading-6 text-slate-700">
+          For observed co-occurrences, GloVe fits a dot-product-plus-bias prediction to log(Xᵢⱼ) with weighted least squares. The standard weighting function gives tiny counts less trust, increases their weight with evidence, then caps sufficiently frequent pairs at weight 1.
         </p>
-      </div>
+      </header>
 
-      {/* Controls */}
-      <div className="flex flex-wrap items-center justify-center gap-4">
-        <button
-          onClick={playAnimation}
-          disabled={isPlaying}
-          className="flex items-center gap-2 px-4 py-2 bg-violet-600 hover:bg-violet-700 disabled:opacity-50 rounded-lg transition-colors"
-        >
-          <Play size={18} />
-          Play Animation
-        </button>
-        <button
-          onClick={reset}
-          className="flex items-center gap-2 px-4 py-2 bg-white/10 hover:bg-white/20 rounded-lg transition-colors"
-        >
-          <RotateCcw size={18} />
-          Reset
-        </button>
-      </div>
+      <section className="grid gap-4 lg:grid-cols-[320px_1fr]">
+        <aside className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+          <h3 className="flex items-center gap-2 font-black text-slate-950"><Scale size={17} /> Pair controls</h3>
 
-      {/* Step Buttons */}
-      <div className="flex flex-wrap justify-center gap-2">
-        {steps.map((s, i) => (
-          <button
-            key={i}
-            onClick={() => setStep(i + 1)}
-            className={`px-3 py-1 rounded-full text-sm transition-all ${
-              step === i + 1
-                ? 'bg-violet-600 text-white'
-                : step > i + 1
-                ? 'bg-green-900/50 text-green-400'
-                : 'bg-white/10 text-gray-800 hover:bg-white/20'
-            }`}
-          >
-            {step > i + 1 ? <CheckCircle size={14} /> : i + 1}
-          </button>
-        ))}
-      </div>
-
-      {/* Current Step */}
-      <div className="bg-gradient-to-r from-violet-900/30 to-cyan-900/30 rounded-xl p-4 border border-violet-500/30">
-        <h3 className="text-lg font-bold text-violet-400 mb-1">{steps[step - 1].title}</h3>
-        <p className="text-gray-700">{steps[step - 1].description}</p>
-      </div>
-
-      {/* Step 1: Ratio Hypothesis */}
-      {step >= 1 && (
-        <div className={`bg-black/30 rounded-xl p-6 border border-white/10 transition-all ${step === 1 ? 'ring-2 ring-violet-500' : ''}`}>
-          <h4 className="flex items-center gap-2 text-lg font-bold text-violet-400 mb-4">
-            <Target size={20} />
-            The Probability Ratio Hypothesis
-          </h4>
-
-          <div className="bg-gradient-to-r from-violet-900/20 to-cyan-900/20 rounded-lg p-4 mb-4">
-            <p className="text-center font-mono text-lg text-gray-200">
-              F(w<sub>i</sub>, w<sub>j</sub>, w̃<sub>k</sub>) = P<sub>ik</sub> / P<sub>jk</sub>
-            </p>
-          </div>
-
-          <p className="text-gray-700 mb-4">
-            We want a function F that, given two word vectors and a context vector,
-            encodes how much more likely word i co-occurs with k compared to word j.
-          </p>
-
-          <div className="grid md:grid-cols-3 gap-3 text-sm">
-            <div className="bg-violet-900/20 rounded-lg p-3 text-center">
-              <p className="text-violet-400 font-mono">w<sub>i</sub></p>
-              <p className="text-gray-800">Word vector for "ice"</p>
-            </div>
-            <div className="bg-cyan-900/20 rounded-lg p-3 text-center">
-              <p className="text-cyan-600 font-mono">w<sub>j</sub></p>
-              <p className="text-gray-800">Word vector for "steam"</p>
-            </div>
-            <div className="bg-green-900/20 rounded-lg p-3 text-center">
-              <p className="text-green-400 font-mono">w̃<sub>k</sub></p>
-              <p className="text-gray-800">Context vector for "solid"</p>
+          <div className="mt-5">
+            <div className="text-sm font-bold text-slate-700">Co-occurrence count Xᵢⱼ</div>
+            <div className="mt-2 grid grid-cols-3 gap-2">
+              {GLOVE_COUNT_OPTIONS.map((option) => (
+                <button
+                  key={option}
+                  type="button"
+                  onClick={() => setCount(option)}
+                  aria-pressed={count === option}
+                  className={`rounded-lg border px-3 py-2 font-mono text-sm font-black ${count === option ? 'border-violet-500 bg-violet-600 text-white' : 'border-slate-200 bg-slate-50 text-slate-700'}`}
+                >
+                  {option}
+                </button>
+              ))}
             </div>
           </div>
-        </div>
-      )}
 
-      {/* Step 2: Derivation */}
-      {step >= 2 && (
-        <div className={`bg-black/30 rounded-xl p-6 border border-white/10 transition-all ${step === 2 ? 'ring-2 ring-violet-500' : ''}`}>
-          <h4 className="flex items-center gap-2 text-lg font-bold text-cyan-600 mb-4">
-            <Calculator size={20} />
-            Mathematical Derivation
-          </h4>
+          <label className="mt-5 block text-sm font-bold text-slate-700" htmlFor="glove-residual">
+            <span className="flex justify-between gap-3"><span>Model residual</span><strong>{residual.toFixed(2)}</strong></span>
+            <input
+              id="glove-residual"
+              type="range"
+              {...GLOVE_RESIDUAL_LIMITS}
+              value={residual}
+              onChange={(event) => setResidual(Number(event.target.value))}
+              className="mt-2 w-full accent-violet-600"
+            />
+          </label>
 
-          <div className="space-y-4">
-            <div className="bg-black/30 rounded-lg p-3 font-mono text-sm">
-              <p className="text-gray-800">Starting point:</p>
-              <p className="text-gray-200">F(w<sub>i</sub> - w<sub>j</sub>, w̃<sub>k</sub>) = P<sub>ik</sub> / P<sub>jk</sub></p>
-            </div>
-
-            <div className="flex justify-center">
-              <ArrowRight className="text-violet-400" size={24} />
-            </div>
-
-            <div className="bg-black/30 rounded-lg p-3 font-mono text-sm">
-              <p className="text-gray-800">Using dot product (F = exp):</p>
-              <p className="text-gray-200">exp((w<sub>i</sub> - w<sub>j</sub>) · w̃<sub>k</sub>) = P<sub>ik</sub> / P<sub>jk</sub></p>
-            </div>
-
-            <div className="flex justify-center">
-              <ArrowRight className="text-violet-400" size={24} />
-            </div>
-
-            <div className="bg-gradient-to-r from-violet-900/30 to-cyan-900/30 rounded-lg p-4 font-mono">
-              <p className="text-gray-800">Final form:</p>
-              <p className="text-xl text-white text-center mt-2">
-                w<sub className="text-violet-400">i</sub> · w̃<sub className="text-cyan-600">k</sub> + b<sub className="text-violet-400">i</sub> + b̃<sub className="text-cyan-600">k</sub> = log(X<sub className="text-green-400">ik</sub>)
-              </p>
-            </div>
+          <div className="mt-5 rounded-xl bg-slate-50 p-3 font-mono text-xs leading-6 text-slate-700">
+            <div>x_max = {GLOVE_WEIGHTING_DEFAULTS.xMax}</div>
+            <div>α = {GLOVE_WEIGHTING_DEFAULTS.alpha}</div>
+            <div>f(x) = (x/x_max)^α for x &lt; x_max</div>
+            <div>f(x) = 1 otherwise</div>
           </div>
-        </div>
-      )}
+        </aside>
 
-      {/* Step 3: Loss Function */}
-      {step >= 3 && (
-        <div className={`bg-black/30 rounded-xl p-6 border border-white/10 transition-all ${step === 3 ? 'ring-2 ring-violet-500' : ''}`}>
-          <h4 className="flex items-center gap-2 text-lg font-bold text-green-400 mb-4">
-            <Zap size={20} />
-            Basic Loss Function
-          </h4>
-
-          <div className="bg-gradient-to-r from-green-900/20 to-cyan-900/20 rounded-lg p-4 font-mono text-center">
-            <p className="text-xl text-gray-200">
-              J = Σ<sub>i,j</sub> (w<sub>i</sub> · w̃<sub>j</sub> + b<sub>i</sub> + b̃<sub>j</sub> - log X<sub>ij</sub>)²
-            </p>
-          </div>
-
-          <p className="text-gray-700 mt-4 text-center">
-            Minimize the squared difference between the model prediction and the log co-occurrence.
-          </p>
-
-          <div className="mt-4 p-3 bg-yellow-900/20 rounded-lg border border-yellow-500/30">
-            <p className="text-yellow-400 font-medium">⚠️ Problem:</p>
-            <p className="text-sm text-gray-700">
-              Common word pairs (like "the, of") dominate the loss. We need weighting!
-            </p>
-          </div>
-        </div>
-      )}
-
-      {/* Step 4: Weighting Function */}
-      {step >= 4 && (
-        <div className={`bg-black/30 rounded-xl p-6 border border-white/10 transition-all ${step === 4 ? 'ring-2 ring-violet-500' : ''}`}>
-          <h4 className="flex items-center gap-2 text-lg font-bold text-yellow-400 mb-4">
-            <Calculator size={20} />
-            Weighting Function f(X)
-          </h4>
-
-          <div className="grid md:grid-cols-2 gap-6">
-            <div>
-              <div className="bg-gradient-to-r from-yellow-900/20 to-orange-900/20 rounded-lg p-4 font-mono">
-                <p className="text-sm text-gray-800 mb-2">Weighting function:</p>
-                <div className="text-center">
-                  <p className="text-gray-200">f(x) = </p>
-                  <p className="text-gray-200 mt-1">(x / x<sub>max</sub>)<sup>α</sup> &nbsp; if x &lt; x<sub>max</sub></p>
-                  <p className="text-gray-200 mt-1">1 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; otherwise</p>
-                </div>
+        <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+          <h3 className="flex items-center gap-2 font-black text-slate-950"><Sigma size={17} /> Selected objective term</h3>
+          {selectedPair.included ? (
+            <div className="mt-4 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+              <div className="rounded-xl border border-slate-200 bg-slate-50 p-4">
+                <div className="text-xs font-black uppercase tracking-wide text-slate-500">log(Xᵢⱼ)</div>
+                <div className="mt-1 text-2xl font-black text-slate-950">{format(selectedPair.target)}</div>
               </div>
-
-              <div className="mt-4 space-y-2 text-sm">
-                <p className="text-gray-700">
-                  <span className="text-yellow-400 font-mono">x<sub>max</sub> = 100</span> — cap for frequent words
-                </p>
-                <p className="text-gray-700">
-                  <span className="text-yellow-400 font-mono">α = 0.75</span> — smoothing parameter
-                </p>
+              <div className="rounded-xl border border-amber-200 bg-amber-50 p-4">
+                <div className="text-xs font-black uppercase tracking-wide text-amber-700">weight f(X)</div>
+                <div className="mt-1 text-2xl font-black text-slate-950">{format(selectedPair.weight)}</div>
+              </div>
+              <div className="rounded-xl border border-blue-200 bg-blue-50 p-4">
+                <div className="text-xs font-black uppercase tracking-wide text-blue-700">residual</div>
+                <div className="mt-1 text-2xl font-black text-slate-950">{format(selectedPair.residual)}</div>
+              </div>
+              <div className="rounded-xl border border-violet-200 bg-violet-50 p-4">
+                <div className="text-xs font-black uppercase tracking-wide text-violet-700">loss contribution</div>
+                <div className="mt-1 text-2xl font-black text-slate-950">{format(selectedPair.contribution)}</div>
               </div>
             </div>
+          ) : (
+            <div className="mt-4 rounded-xl border border-rose-200 bg-rose-50 p-4 text-sm leading-6 text-rose-950">
+              <AlertTriangle size={17} className="mr-2 inline" />
+              <strong>Xᵢⱼ = 0 is not a log target.</strong> Standard GloVe implementations iterate over nonzero co-occurrences. The pair contributes nothing because it is absent from the sparse training entries—not because JavaScript, NumPy, or algebra somehow makes 0 × log(0) safe.
+            </div>
+          )}
 
-            <div className="bg-black/30 rounded-lg p-4">
-              <p className="text-sm text-gray-800 mb-3">f(x) visualization:</p>
-              <div className="h-32 flex items-end gap-1">
-                {[1, 10, 25, 50, 75, 100, 150, 200].map((x, i) => {
-                  const height = x <= 100 ? Math.pow(x / 100, 0.75) : 1;
-                  return (
-                    <div key={i} className="flex-1 flex flex-col items-center">
-                      <div
-                        className="w-full bg-gradient-to-t from-yellow-600 to-yellow-400 rounded-t"
-                        style={{ height: `${height * 100}%` }}
-                      />
-                      <span className="text-xs text-gray-700 mt-1">{x}</span>
-                    </div>
-                  );
-                })}
-              </div>
-              <p className="text-xs text-gray-700 mt-2">Co-occurrence count X</p>
-            </div>
-          </div>
-
-          <div className="mt-4 grid grid-cols-2 gap-3 text-sm">
-            <div className="bg-green-900/20 rounded-lg p-3">
-              <p className="text-green-400 font-medium">f(0) = 0</p>
-              <p className="text-gray-800">No contribution from zero counts</p>
-            </div>
-            <div className="bg-cyan-900/20 rounded-lg p-3">
-              <p className="text-cyan-600 font-medium">f(100) = 1</p>
-              <p className="text-gray-800">Capped at x_max</p>
-            </div>
+          <div className="mt-5 rounded-xl border border-slate-200 bg-slate-50 p-4 text-sm leading-6 text-slate-700">
+            For one observed pair: <span className="font-mono font-black">f(Xᵢⱼ) · (wᵢ·w̃ⱼ + bᵢ + b̃ⱼ − log Xᵢⱼ)²</span>. The full objective sums this over stored nonzero co-occurrence entries.
           </div>
         </div>
-      )}
+      </section>
 
-      {/* Step 5: Final Objective */}
-      {step >= 5 && (
-        <div className={`bg-gradient-to-r from-violet-900/30 to-cyan-900/30 rounded-xl p-6 border border-violet-500/50 transition-all ${step === 5 ? 'ring-2 ring-violet-400 pulse-glow' : ''}`}>
-          <h4 className="flex items-center gap-2 text-xl font-bold text-white mb-4">
-            🎯 The Complete GloVe Objective
-          </h4>
-
-          <div className="bg-black/50 rounded-lg p-6 font-mono text-center">
-            <p className="text-2xl text-white">
-              J = Σ<sub className="text-violet-400">i,j=1</sub><sup className="text-cyan-600">V</sup> f(X<sub className="text-yellow-400">ij</sub>)(w<sub className="text-violet-400">i</sub> · w̃<sub className="text-cyan-600">j</sub> + b<sub className="text-violet-400">i</sub> + b̃<sub className="text-cyan-600">j</sub> - log X<sub className="text-green-400">ij</sub>)²
-            </p>
-          </div>
-
-          <div className="mt-6 grid md:grid-cols-2 lg:grid-cols-4 gap-3">
-            <div className="bg-violet-900/30 rounded-lg p-3 text-center">
-              <p className="text-violet-400 font-mono font-bold">w<sub>i</sub></p>
-              <p className="text-xs text-gray-800">Word vector</p>
-            </div>
-            <div className="bg-cyan-900/30 rounded-lg p-3 text-center">
-              <p className="text-cyan-600 font-mono font-bold">w̃<sub>j</sub></p>
-              <p className="text-xs text-gray-800">Context vector</p>
-            </div>
-            <div className="bg-yellow-900/30 rounded-lg p-3 text-center">
-              <p className="text-yellow-400 font-mono font-bold">f(X<sub>ij</sub>)</p>
-              <p className="text-xs text-gray-800">Weighting function</p>
-            </div>
-            <div className="bg-green-900/30 rounded-lg p-3 text-center">
-              <p className="text-green-400 font-mono font-bold">b<sub>i</sub>, b̃<sub>j</sub></p>
-              <p className="text-xs text-gray-800">Bias terms</p>
-            </div>
-          </div>
-
-          <div className="mt-6 bg-black/30 rounded-lg p-4">
-            <h5 className="text-violet-400 font-medium mb-2">🎓 Final Word Vector</h5>
-            <p className="text-gray-700">
-              After training, the final word embedding is: <span className="font-mono text-white">W + W̃</span>
-            </p>
-            <p className="text-xs text-gray-700 mt-1">
-              Since w and w̃ are symmetric, adding them gives slightly better performance.
-            </p>
-          </div>
+      <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+        <h3 className="font-black text-slate-950">Same residual, different evidence</h3>
+        <p className="mt-1 text-sm leading-6 text-slate-600">Hold the model error fixed. Only the co-occurrence count changes.</p>
+        <div className="mt-4 overflow-x-auto">
+          <table className="w-full min-w-[680px] text-left text-sm">
+            <thead className="bg-slate-50 text-xs uppercase tracking-wide text-slate-500">
+              <tr><th className="px-3 py-2">X</th><th className="px-3 py-2">log X</th><th className="px-3 py-2">f(X)</th><th className="px-3 py-2">weighted residual²</th><th className="px-3 py-2">Interpretation</th></tr>
+            </thead>
+            <tbody>
+              {rows.map((row) => (
+                <tr key={row.count} className="border-t border-slate-200">
+                  <td className="px-3 py-3 font-mono font-black">{row.count}</td>
+                  <td className="px-3 py-3 font-mono">{format(row.target)}</td>
+                  <td className="px-3 py-3 font-mono">{format(row.weight)}</td>
+                  <td className="px-3 py-3 font-mono font-black">{format(row.contribution)}</td>
+                  <td className="px-3 py-3 text-slate-600">{row.count === 0 ? 'not stored as a positive co-occurrence' : row.weight < 1 ? 'rare pair is downweighted' : 'weight has reached the cap'}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
         </div>
-      )}
+      </section>
 
-      {/* Key Properties */}
-      <div className="bg-black/30 rounded-xl p-6 border border-white/10">
-        <h4 className="text-lg font-bold text-violet-400 mb-4">💡 Key Properties of the GloVe Objective</h4>
-        <div className="grid md:grid-cols-2 gap-4">
-          <div className="bg-violet-900/20 rounded-lg p-3">
-            <p className="text-violet-400 font-medium mb-1">Closed-form Statistics</p>
-            <p className="text-sm text-gray-800">
-              Uses pre-computed co-occurrence, not mini-batches
-            </p>
-          </div>
-          <div className="bg-cyan-900/20 rounded-lg p-3">
-            <p className="text-cyan-600 font-medium mb-1">Weighted Least Squares</p>
-            <p className="text-sm text-gray-800">
-              Not SGD on prediction task like Word2Vec
-            </p>
-          </div>
-          <div className="bg-green-900/20 rounded-lg p-3">
-            <p className="text-green-400 font-medium mb-1">Log Transform</p>
-            <p className="text-sm text-gray-800">
-              Working in log space captures ratios naturally
-            </p>
-          </div>
-          <div className="bg-yellow-900/20 rounded-lg p-3">
-            <p className="text-yellow-400 font-medium mb-1">Non-zero Entries Only</p>
-            <p className="text-sm text-gray-800">
-              Training only on observed co-occurrences (X_ij &gt; 0)
-            </p>
-          </div>
-        </div>
-      </div>
+      <section className="rounded-2xl border border-amber-200 bg-amber-50 p-5 text-sm leading-6 text-amber-950">
+        <strong>The subtle point:</strong> GloVe prevents huge raw counts from dominating partly by fitting <em>log</em> co-occurrence counts and by capping f(x). The weighting function itself is primarily distrustful of low-count pairs; it is not an inverse-frequency weight.
+      </section>
     </div>
   );
 }
