@@ -1,33 +1,11 @@
-export const POINTS = [
-  { id: 'A', x: -2.4, y: 1.1, label: 'blue' },
-  { id: 'B', x: -1.7, y: 0.4, label: 'blue' },
-  { id: 'C', x: -1.1, y: 1.5, label: 'blue' },
-  { id: 'D', x: -0.6, y: 0.2, label: 'blue' },
-  { id: 'E', x: 0.7, y: -0.8, label: 'orange' },
-  { id: 'F', x: 1.2, y: -1.5, label: 'orange' },
-  { id: 'G', x: 1.8, y: -0.3, label: 'orange' },
-  { id: 'H', x: 2.4, y: -1.1, label: 'orange' },
-];
+import {
+  MODELS,
+  NAIVE_BAYES_DEPENDENCE_DEMO,
+  POINTS,
+  SVM_PARAMS,
+} from './knnNaiveBayesSvmConstants.js';
 
-export const MODELS = {
-  knn: {
-    label: 'kNN',
-    detail: 'Classifies by the labels of the nearest training points.',
-  },
-  naiveBayes: {
-    label: 'Naive Bayes',
-    detail: 'Multiplies per-feature likelihoods as if features were conditionally independent.',
-  },
-  svm: {
-    label: 'SVM',
-    detail: 'Chooses the side of a maximum-margin decision boundary.',
-  },
-};
-
-export const SVM_PARAMS = {
-  weight: [1.05, -0.9],
-  bias: -0.05,
-};
+export { MODELS, NAIVE_BAYES_DEPENDENCE_DEMO, POINTS, SVM_PARAMS };
 
 export function dist(a, b) {
   return Math.sqrt((a.x - b.x) ** 2 + (a.y - b.y) ** 2);
@@ -71,6 +49,17 @@ export function classifyKnn(query, k) {
   return { prediction, neighbors, confidence: Math.max(votes.blue || 0, votes.orange || 0) / k };
 }
 
+export function posteriorFromLogScores(scores) {
+  const maxScore = Math.max(...Object.values(scores));
+  const weights = Object.fromEntries(
+    Object.entries(scores).map(([label, score]) => [label, Math.exp(score - maxScore)]),
+  );
+  const total = Object.values(weights).reduce((sum, value) => sum + value, 0);
+  return Object.fromEntries(
+    Object.entries(weights).map(([label, value]) => [label, value / total]),
+  );
+}
+
 export function classifyNaiveBayes(query) {
   const scores = Object.fromEntries(['blue', 'orange'].map((label) => {
     const stats = classStats(label);
@@ -79,16 +68,59 @@ export function classifyNaiveBayes(query) {
       + gaussianLogPdf(query.y, stats.meanY, stats.varY);
     return [label, score];
   }));
+  const posteriors = posteriorFromLogScores(scores);
   const prediction = scores.blue >= scores.orange ? 'blue' : 'orange';
-  const expBlue = Math.exp(scores.blue - Math.max(scores.blue, scores.orange));
-  const expOrange = Math.exp(scores.orange - Math.max(scores.blue, scores.orange));
   return {
     prediction,
     scores,
-    confidence: prediction === 'blue'
-      ? expBlue / (expBlue + expOrange)
-      : expOrange / (expBlue + expOrange),
+    posteriors,
+    confidence: posteriors[prediction],
   };
+}
+
+export function naiveBayesDuplicateEvidence({
+  copies,
+  priorBlue = NAIVE_BAYES_DEPENDENCE_DEMO.priorBlue,
+  likelihoodGivenBlue = NAIVE_BAYES_DEPENDENCE_DEMO.likelihoodGivenBlue,
+  likelihoodGivenOrange = NAIVE_BAYES_DEPENDENCE_DEMO.likelihoodGivenOrange,
+}) {
+  validateProbability(priorBlue, 'Blue prior');
+  validateProbability(likelihoodGivenBlue, 'Blue likelihood');
+  validateProbability(likelihoodGivenOrange, 'Orange likelihood');
+  if (!Number.isInteger(copies) || copies < 1) {
+    throw new RangeError('Evidence copies must be a positive integer.');
+  }
+
+  const priorOrange = 1 - priorBlue;
+  const naiveScores = {
+    blue: Math.log(priorBlue) + copies * Math.log(likelihoodGivenBlue),
+    orange: Math.log(priorOrange) + copies * Math.log(likelihoodGivenOrange),
+  };
+  const dependencyAwareScores = {
+    blue: Math.log(priorBlue) + Math.log(likelihoodGivenBlue),
+    orange: Math.log(priorOrange) + Math.log(likelihoodGivenOrange),
+  };
+  const naivePosterior = posteriorFromLogScores(naiveScores).blue;
+  const dependencyAwarePosterior = posteriorFromLogScores(dependencyAwareScores).blue;
+
+  return {
+    copies,
+    naivePosterior,
+    dependencyAwarePosterior,
+    overconfidenceGap: naivePosterior - dependencyAwarePosterior,
+    naiveOdds: odds(naivePosterior),
+    dependencyAwareOdds: odds(dependencyAwarePosterior),
+  };
+}
+
+export function duplicateEvidenceSeries(config = NAIVE_BAYES_DEPENDENCE_DEMO) {
+  return Array.from(
+    { length: config.maxCopies - config.minCopies + 1 },
+    (_, index) => naiveBayesDuplicateEvidence({
+      ...config,
+      copies: config.minCopies + index,
+    }),
+  );
 }
 
 export function svmMarginScore(query, params = SVM_PARAMS) {
@@ -131,4 +163,14 @@ export function svmBoundarySegment(params = SVM_PARAMS) {
     candidates.findIndex((other) => Math.abs(other.x - point.x) < 1e-9 && Math.abs(other.y - point.y) < 1e-9) === index
   ));
   return unique.slice(0, 2).map(project);
+}
+
+function validateProbability(value, label) {
+  if (!(value > 0 && value < 1)) {
+    throw new RangeError(`${label} must be between zero and one.`);
+  }
+}
+
+function odds(probability) {
+  return probability / (1 - probability);
 }
