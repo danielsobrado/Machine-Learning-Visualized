@@ -1,7 +1,7 @@
 import React from 'react';
 import { ArrowRightLeft, Users } from 'lucide-react';
 import { BATCH_CONTEXTS } from './layerNormalizationConstants.js';
-import { batchNormalizeColumns, layerNormalize } from './layerNormalizationModel.js';
+import { batchNormalizeColumns, layerNormalizeRows } from './layerNormalizationModel.js';
 
 function distance(left, right) {
   return Math.sqrt(left.reduce((sum, value, index) => sum + (value - right[index]) ** 2, 0));
@@ -24,12 +24,13 @@ export default function NormalizationComparison({ token, contextId, onContextCha
     gamma: Array(token.length).fill(1),
     beta: Array(token.length).fill(0),
   };
-  const layerNorm = layerNormalize(token, identity).normalized;
   const ordinaryBatch = [token, ...BATCH_CONTEXTS.ordinary.neighbors];
   const currentBatch = [token, ...BATCH_CONTEXTS[contextId].neighbors];
+  const ordinaryLayerNorm = layerNormalizeRows(ordinaryBatch, identity)[0].normalized;
+  const currentLayerNorm = layerNormalizeRows(currentBatch, identity)[0].normalized;
   const ordinaryBatchNorm = batchNormalizeColumns(ordinaryBatch).rows[0];
   const currentBatchNorm = batchNormalizeColumns(currentBatch).rows[0];
-  const layerNormDelta = 0;
+  const layerNormDelta = distance(ordinaryLayerNorm, currentLayerNorm);
   const batchNormDelta = distance(ordinaryBatchNorm, currentBatchNorm);
 
   return (
@@ -67,7 +68,7 @@ export default function NormalizationComparison({ token, contextId, onContextCha
               neighbor Δ {layerNormDelta.toFixed(3)}
             </div>
           </div>
-          <div className="mt-3"><MiniVector values={layerNorm} /></div>
+          <div className="mt-3"><MiniVector values={currentLayerNorm} /></div>
         </div>
 
         <div className="rounded-lg border border-amber-200 bg-amber-50/60 p-4">
