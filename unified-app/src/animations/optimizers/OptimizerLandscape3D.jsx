@@ -18,7 +18,8 @@ import {
   WebGLRenderer,
 } from 'three';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls';
-import { loss, OPTIMIZERS } from './optimizerModel';
+import { OPTIMIZERS } from './optimizerConstants.js';
+import { loss } from './optimizerModel.js';
 
 const PATH_COLORS = {
   sgd: 0x2563eb,
@@ -205,39 +206,29 @@ export default function OptimizerLandscape3D({ paths, activeOptimizer }) {
       minimum.geometry.dispose();
       minimum.material.dispose();
       renderer.dispose();
-      if (container.contains(renderer.domElement)) {
-        container.removeChild(renderer.domElement);
-      }
+      if (container.contains(renderer.domElement)) container.removeChild(renderer.domElement);
     };
   }, [paths, activeOptimizer]);
 
   return (
-    <section className="rounded-lg border border-slate-200 bg-white p-5">
+    <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
       <div className="flex flex-wrap items-start justify-between gap-4">
         <div>
           <h3 className="text-sm font-black uppercase tracking-wide text-slate-600">3D optimizer landscape</h3>
           <p className="mt-2 max-w-3xl text-sm leading-6 text-slate-700">
-            Rotate and zoom the surface to compare how each optimizer crosses curvature. The dark marker is the
-            minimum; colored endpoints show where each update rule lands with the current controls.
+            Rotate and zoom the same anisotropic quadratic surface. The paths share the current hyperparameters on purpose: compare mechanisms here, not final optimizer quality.
           </p>
         </div>
         <div className="grid grid-cols-3 gap-2 text-xs font-bold text-slate-700">
           {Object.entries(OPTIMIZERS).map(([id, config]) => (
             <span key={id} className="inline-flex items-center gap-2 rounded border border-slate-200 bg-slate-50 px-2 py-1">
-              <span
-                className="h-2.5 w-2.5 rounded-full"
-                style={{ backgroundColor: `#${PATH_COLORS[id].toString(16).padStart(6, '0')}` }}
-              />
+              <span className="h-2.5 w-2.5 rounded-full" style={{ backgroundColor: `#${PATH_COLORS[id].toString(16).padStart(6, '0')}` }} />
               {config.label}
             </span>
           ))}
         </div>
       </div>
-      <div
-        ref={containerRef}
-        className="mt-4 h-[340px] overflow-hidden rounded-lg border border-slate-200 bg-slate-50 sm:h-[430px]"
-        aria-label="Interactive 3D optimizer loss landscape"
-      />
+      <div ref={containerRef} className="mt-4 h-[340px] overflow-hidden rounded-lg border border-slate-200 bg-slate-50 sm:h-[430px]" aria-label="Interactive 3D optimizer loss landscape" />
       <p className="mt-3 text-xs font-semibold text-slate-500">Drag to rotate. Scroll or pinch to zoom.</p>
     </section>
   );
