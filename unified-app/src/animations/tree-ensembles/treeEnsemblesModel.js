@@ -73,10 +73,6 @@ export function ensembleVarianceRatio(treeCount, correlation) {
   return correlation + ((1 - correlation) / treeCount);
 }
 
-export function ensembleStdRatio(treeCount, correlation) {
-  return Math.sqrt(ensembleVarianceRatio(treeCount, correlation));
-}
-
 export function effectiveIndependentTreeCount(treeCount, correlation) {
   return 1 / ensembleVarianceRatio(treeCount, correlation);
 }
