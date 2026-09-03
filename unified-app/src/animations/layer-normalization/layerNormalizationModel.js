@@ -81,6 +81,11 @@ function requireMatrix(matrix) {
   });
 }
 
+export function layerNormalizeRows(matrix, options = {}) {
+  requireMatrix(matrix);
+  return matrix.map((row) => layerNormalize(row, options));
+}
+
 export function batchNormalizeColumns(matrix, epsilon = DEFAULT_EPSILON) {
   requireMatrix(matrix);
   requireEpsilon(epsilon);
