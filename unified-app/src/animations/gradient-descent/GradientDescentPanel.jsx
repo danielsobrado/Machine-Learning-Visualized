@@ -35,6 +35,7 @@ export default function GradientDescentPanel({
 }) {
     const containerRef = useRef(null);
     const objectsRef = useRef({});
+    const runGenerationRef = useRef(0);
     const [isRunning, setIsRunning] = useState(false);
     const [currentWeight, setCurrentWeight] = useState(startWeight ?? DEFAULT_START_WEIGHT);
     const [iteration, setIteration] = useState(0);
@@ -83,8 +84,7 @@ export default function GradientDescentPanel({
 
         const curveGeometry = new BufferGeometry().setFromPoints(curvePoints);
         const curveMaterial = new LineBasicMaterial({ color: COLORS.curve });
-        const curve = new Line(curveGeometry, curveMaterial);
-        scene.add(curve);
+        scene.add(new Line(curveGeometry, curveMaterial));
 
         const ballGeometry = new CircleGeometry(8, 32);
         const ballMaterial = new MeshBasicMaterial({ color: COLORS.ball });
@@ -95,8 +95,12 @@ export default function GradientDescentPanel({
 
         const resize = () => {
             const width = Math.max(320, container.clientWidth);
-            camera.left = width / -2;
-            camera.right = width / 2;
+            const halfWidth = Math.max(
+                width / 2,
+                LOSS_SCENE.weightRange * LOSS_SCENE.xScale + 20,
+            );
+            camera.left = -halfWidth;
+            camera.right = halfWidth;
             camera.updateProjectionMatrix();
             renderer.setSize(width, height, false);
         };
@@ -113,9 +117,9 @@ export default function GradientDescentPanel({
         animate();
 
         return () => {
+            runGenerationRef.current += 1;
             observer.disconnect();
             cancelAnimationFrame(animationId);
-            gsap.killTweensOf(ball.position);
             curveGeometry.dispose();
             curveMaterial.dispose();
             ballGeometry.dispose();
@@ -130,6 +134,8 @@ export default function GradientDescentPanel({
 
     const runGradientDescent = async () => {
         if (isRunning) return;
+        const generation = runGenerationRef.current + 1;
+        runGenerationRef.current = generation;
         setIsRunning(true);
 
         let weight = startWeight ?? DEFAULT_START_WEIGHT;
@@ -142,6 +148,8 @@ export default function GradientDescentPanel({
 
         try {
             for (let index = 0; index < maxIterations; index += 1) {
+                if (runGenerationRef.current !== generation) break;
+
                 const next = nextWeight(weight, learningRate);
                 const { ball } = objectsRef.current;
                 if (!ball) break;
@@ -156,6 +164,8 @@ export default function GradientDescentPanel({
                     });
                 });
 
+                if (runGenerationRef.current !== generation) break;
+
                 weight = next;
                 setCurrentWeight(weight);
                 setIteration(index + 1);
@@ -164,12 +174,15 @@ export default function GradientDescentPanel({
                 await new Promise((resolve) => setTimeout(resolve, 200));
             }
         } finally {
-            setIsRunning(false);
+            if (runGenerationRef.current === generation) {
+                setIsRunning(false);
+            }
         }
     };
 
     const reset = () => {
         if (isRunning) return;
+        runGenerationRef.current += 1;
         const nextStartWeight = startWeight ?? DEFAULT_START_WEIGHT;
         setCurrentWeight(nextStartWeight);
         setIteration(0);
@@ -180,7 +193,7 @@ export default function GradientDescentPanel({
         <div className="flex flex-col items-center p-3">
             <h2 className="mb-2 text-xl font-bold text-gray-800">Loss Bowl</h2>
             <p className="mb-3 max-w-2xl text-center text-sm leading-6 text-slate-600">
-                Lower on the chart means lower loss. The minimum at w=0 is now visually the bottom of the bowl.
+                Lower on the chart means lower loss. The minimum at w=0 is visually the bottom of the bowl.
             </p>
 
             <div ref={containerRef} className="w-full overflow-hidden rounded-lg bg-white shadow-lg" />
