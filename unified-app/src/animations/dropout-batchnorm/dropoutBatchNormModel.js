@@ -5,15 +5,25 @@ import {
 } from './dropoutBatchNormConstants.js';
 
 function assertFinite(value, name) {
-  if (!Number.isFinite(value)) {
-    throw new TypeError(`${name} must be finite`);
-  }
+  if (!Number.isFinite(value)) throw new TypeError(`${name} must be finite`);
 }
 
-function assertPositiveStd(value, name) {
+function assertVector(values, name = 'values') {
+  if (!Array.isArray(values) || values.length === 0) {
+    throw new RangeError(`${name} must be a non-empty array`);
+  }
+  values.forEach((value) => assertFinite(value, `${name} value`));
+}
+
+function assertVariance(value, name = 'variance') {
   assertFinite(value, name);
-  if (value < VALUE_BOUNDS.minimumStd) {
-    throw new RangeError(`${name} must be at least ${VALUE_BOUNDS.minimumStd}`);
+  if (value < 0) throw new RangeError(`${name} must be non-negative`);
+}
+
+function assertEpsilon(value) {
+  assertFinite(value, 'epsilon');
+  if (value < VALUE_BOUNDS.minimumEpsilon) {
+    throw new RangeError(`epsilon must be at least ${VALUE_BOUNDS.minimumEpsilon}`);
   }
 }
 
@@ -21,6 +31,13 @@ function assertDropoutRate(value) {
   assertFinite(value, 'dropoutRate');
   if (value < 0 || value > VALUE_BOUNDS.maximumDropoutRate) {
     throw new RangeError(`dropoutRate must be between 0 and ${VALUE_BOUNDS.maximumDropoutRate}`);
+  }
+}
+
+function assertUpdateWeight(value) {
+  assertFinite(value, 'updateWeight');
+  if (value < 0 || value > VALUE_BOUNDS.maximumUpdateWeight) {
+    throw new RangeError('updateWeight must be between 0 and 1');
   }
 }
 
@@ -34,31 +51,142 @@ function seededUniform(seed, index) {
   return (state >>> 0) / 4294967296;
 }
 
-export function normalize(value, mean, std) {
-  assertFinite(value, 'value');
-  assertFinite(mean, 'mean');
-  assertPositiveStd(std, 'std');
-  return (value - mean) / std;
+export function batchStats(values) {
+  assertVector(values);
+  const mean = values.reduce((sum, value) => sum + value, 0) / values.length;
+  const variance = values.reduce((sum, value) => sum + ((value - mean) ** 2), 0) / values.length;
+  return { mean, variance };
 }
 
-export function batchNorm(value, { mean, std, gamma = 1, beta = 0 }) {
+export function normalizeWithVariance(
+  value,
+  mean,
+  variance,
+  epsilon = DROPOUT_BATCHNORM_DEFAULTS.epsilon,
+) {
+  assertFinite(value, 'value');
+  assertFinite(mean, 'mean');
+  assertVariance(variance);
+  assertEpsilon(epsilon);
+  return (value - mean) / Math.sqrt(variance + epsilon);
+}
+
+export function normalize(value, mean, std) {
+  assertFinite(std, 'std');
+  if (std <= 0) throw new RangeError('std must be positive');
+  return normalizeWithVariance(value, mean, std ** 2);
+}
+
+export function batchNorm(value, {
+  mean,
+  variance,
+  std,
+  gamma = 1,
+  beta = 0,
+  epsilon = DROPOUT_BATCHNORM_DEFAULTS.epsilon,
+}) {
   assertFinite(gamma, 'gamma');
   assertFinite(beta, 'beta');
-  const normalized = normalize(value, mean, std);
+  const resolvedVariance = variance ?? (std === undefined ? undefined : std ** 2);
+  assertVariance(resolvedVariance);
+  const normalized = normalizeWithVariance(value, mean, resolvedVariance, epsilon);
+  return { normalized, output: (gamma * normalized) + beta };
+}
+
+export function trainingBatchNorm(values, {
+  selectedIndex = DROPOUT_BATCHNORM_DEFAULTS.selectedIndex,
+  gamma = DROPOUT_BATCHNORM_DEFAULTS.gamma,
+  beta = DROPOUT_BATCHNORM_DEFAULTS.beta,
+  epsilon = DROPOUT_BATCHNORM_DEFAULTS.epsilon,
+} = {}) {
+  assertVector(values);
+  if (!Number.isInteger(selectedIndex) || selectedIndex < 0 || selectedIndex >= values.length) {
+    throw new RangeError('selectedIndex must identify a batch observation');
+  }
+  const stats = batchStats(values);
+  const outputs = values.map((value) => batchNorm(value, { ...stats, gamma, beta, epsilon }));
   return {
-    normalized,
-    output: (gamma * normalized) + beta,
+    stats,
+    selected: outputs[selectedIndex],
+    outputs,
+  };
+}
+
+export function inferenceBatchNorm(value, runningState, {
+  gamma = DROPOUT_BATCHNORM_DEFAULTS.gamma,
+  beta = DROPOUT_BATCHNORM_DEFAULTS.beta,
+  epsilon = DROPOUT_BATCHNORM_DEFAULTS.epsilon,
+} = {}) {
+  if (!runningState || typeof runningState !== 'object') {
+    throw new TypeError('runningState is required');
+  }
+  return batchNorm(value, {
+    mean: runningState.mean,
+    variance: runningState.variance,
+    gamma,
+    beta,
+    epsilon,
+  });
+}
+
+export function updateRunningState(runningState, currentBatchStats, updateWeight) {
+  if (!runningState || !currentBatchStats) {
+    throw new TypeError('running and batch statistics are required');
+  }
+  assertFinite(runningState.mean, 'running mean');
+  assertVariance(runningState.variance, 'running variance');
+  assertFinite(currentBatchStats.mean, 'batch mean');
+  assertVariance(currentBatchStats.variance, 'batch variance');
+  assertUpdateWeight(updateWeight);
+
+  return {
+    mean: ((1 - updateWeight) * runningState.mean) + (updateWeight * currentBatchStats.mean),
+    variance: ((1 - updateWeight) * runningState.variance) + (updateWeight * currentBatchStats.variance),
+  };
+}
+
+export function compareBatchContexts(baselineValues, currentValues, runningState, options = {}) {
+  assertVector(baselineValues, 'baselineValues');
+  assertVector(currentValues, 'currentValues');
+  const baselineValue = baselineValues[0];
+  const currentValue = currentValues[0];
+  if (baselineValue !== currentValue) {
+    throw new RangeError('comparison batches must keep the selected first observation unchanged');
+  }
+
+  const baselineTraining = trainingBatchNorm(baselineValues, { ...options, selectedIndex: 0 });
+  const currentTraining = trainingBatchNorm(currentValues, { ...options, selectedIndex: 0 });
+  const baselineInference = inferenceBatchNorm(baselineValue, runningState, options);
+  const currentInference = inferenceBatchNorm(currentValue, runningState, options);
+
+  return {
+    baselineTraining,
+    currentTraining,
+    baselineInference,
+    currentInference,
+    trainingDelta: Math.abs(currentTraining.selected.output - baselineTraining.selected.output),
+    inferenceDelta: Math.abs(currentInference.output - baselineInference.output),
   };
 }
 
 export function invertedDropout(value, dropoutRate, kept) {
   assertFinite(value, 'value');
   assertDropoutRate(dropoutRate);
-  if (typeof kept !== 'boolean') {
-    throw new TypeError('kept must be boolean');
-  }
+  if (typeof kept !== 'boolean') throw new TypeError('kept must be boolean');
   if (!kept) return 0;
   return value / (1 - dropoutRate);
+}
+
+export function theoreticalDropoutMoments(value, dropoutRate) {
+  assertFinite(value, 'value');
+  assertDropoutRate(dropoutRate);
+  const keepProbability = 1 - dropoutRate;
+  const variance = (value ** 2) * dropoutRate / keepProbability;
+  return {
+    mean: value,
+    variance,
+    std: Math.sqrt(variance),
+  };
 }
 
 export function dropoutPasses({
@@ -70,15 +198,9 @@ export function dropoutPasses({
 }) {
   assertFinite(value, 'value');
   assertDropoutRate(dropoutRate);
-  if (typeof trainingMode !== 'boolean') {
-    throw new TypeError('trainingMode must be boolean');
-  }
-  if (!Number.isInteger(passes) || passes < 1) {
-    throw new RangeError('passes must be a positive integer');
-  }
-  if (!Number.isInteger(seed)) {
-    throw new TypeError('seed must be an integer');
-  }
+  if (typeof trainingMode !== 'boolean') throw new TypeError('trainingMode must be boolean');
+  if (!Number.isInteger(passes) || passes < 1) throw new RangeError('passes must be a positive integer');
+  if (!Number.isInteger(seed)) throw new TypeError('seed must be an integer');
 
   const keepProbability = 1 - dropoutRate;
   return Array.from({ length: passes }, (_, index) => {
@@ -101,59 +223,9 @@ export function summarizePasses(passes) {
   const variance = values.reduce((sum, value) => sum + ((value - mean) ** 2), 0) / values.length;
   return {
     mean,
+    variance,
     std: Math.sqrt(variance),
     keptCount: passes.filter((pass) => pass.kept).length,
     droppedCount: passes.filter((pass) => !pass.kept).length,
-  };
-}
-
-export function layerFlow({
-  activation = DROPOUT_BATCHNORM_DEFAULTS.activation,
-  batchMean = DROPOUT_BATCHNORM_DEFAULTS.batchMean,
-  batchStd = DROPOUT_BATCHNORM_DEFAULTS.batchStd,
-  runningMean = DROPOUT_BATCHNORM_DEFAULTS.runningMean,
-  runningStd = DROPOUT_BATCHNORM_DEFAULTS.runningStd,
-  gamma = DROPOUT_BATCHNORM_DEFAULTS.gamma,
-  beta = DROPOUT_BATCHNORM_DEFAULTS.beta,
-  dropoutRate = DROPOUT_BATCHNORM_DEFAULTS.dropoutRate,
-  trainingMode = DROPOUT_BATCHNORM_DEFAULTS.trainingMode,
-  seed = DROPOUT_DEMO.initialSeed,
-} = {}) {
-  const stats = trainingMode
-    ? { mean: batchMean, std: batchStd }
-    : { mean: runningMean, std: runningStd };
-  const normalized = batchNorm(activation, { ...stats, gamma, beta });
-  const passes = dropoutPasses({
-    value: normalized.output,
-    dropoutRate,
-    trainingMode,
-    seed,
-  });
-
-  return {
-    statsSource: trainingMode ? 'current batch' : 'running statistics',
-    normalized: normalized.normalized,
-    batchNormOutput: normalized.output,
-    passes,
-    passSummary: summarizePasses(passes),
-    expectedDropoutOutput: normalized.output,
-  };
-}
-
-export function batchNormModeComparison({
-  activation = DROPOUT_BATCHNORM_DEFAULTS.activation,
-  batchMean = DROPOUT_BATCHNORM_DEFAULTS.batchMean,
-  batchStd = DROPOUT_BATCHNORM_DEFAULTS.batchStd,
-  runningMean = DROPOUT_BATCHNORM_DEFAULTS.runningMean,
-  runningStd = DROPOUT_BATCHNORM_DEFAULTS.runningStd,
-  gamma = DROPOUT_BATCHNORM_DEFAULTS.gamma,
-  beta = DROPOUT_BATCHNORM_DEFAULTS.beta,
-} = {}) {
-  const training = batchNorm(activation, { mean: batchMean, std: batchStd, gamma, beta });
-  const inference = batchNorm(activation, { mean: runningMean, std: runningStd, gamma, beta });
-  return {
-    training,
-    inference,
-    modeGap: Math.abs(training.output - inference.output),
   };
 }
