@@ -3,6 +3,7 @@ import test from 'node:test';
 import {
   batchNormalizeColumns,
   layerNormalize,
+  layerNormalizeRows,
   transformerNormStep,
   vectorStats,
 } from './layerNormalizationModel.js';
@@ -45,9 +46,11 @@ test('featurewise gamma and beta can destroy zero-mean unit-variance output stat
 });
 
 test('changing another batch row does not change a token LayerNorm result', () => {
-  const ordinary = layerNormalize(TOKEN, IDENTITY).normalized;
-  const outlier = layerNormalize(TOKEN, IDENTITY).normalized;
-  closeVector(ordinary, outlier);
+  const ordinary = [TOKEN, ...BATCH_CONTEXTS.ordinary.neighbors];
+  const outlier = [TOKEN, ...BATCH_CONTEXTS.outlier.neighbors];
+  const ordinarySelected = layerNormalizeRows(ordinary, IDENTITY)[0].normalized;
+  const outlierSelected = layerNormalizeRows(outlier, IDENTITY)[0].normalized;
+  closeVector(ordinarySelected, outlierSelected);
 });
 
 test('changing another batch row changes the same token BatchNorm result', () => {
