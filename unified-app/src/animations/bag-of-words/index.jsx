@@ -1,9 +1,10 @@
 import React, { useState, Suspense, lazy } from 'react';
-import { BookOpen, Hash, BarChart3, Calculator, Code, GraduationCap } from 'lucide-react';
+import { AlertTriangle, BookOpen, Hash, BarChart3, Calculator, Code, GraduationCap } from 'lucide-react';
 
 // Lazy load panels
 const IntroPanel = lazy(() => import('./IntroPanel'));
 const BowPanel = lazy(() => import('./BowPanel'));
+const OrderCollisionLab = lazy(() => import('./OrderCollisionLab'));
 const TfIdfPanel = lazy(() => import('./TfIdfPanel'));
 const ComparisonPanel = lazy(() => import('./ComparisonPanel'));
 const CodePanel = lazy(() => import('./CodePanel'));
@@ -13,10 +14,11 @@ const PracticePanel = lazy(() => import('./PracticePanel'));
 const tabs = [
     { id: 'intro', label: '1. Introduction', icon: BookOpen, color: 'from-blue-500 to-cyan-500' },
     { id: 'bow', label: '2. Bag of Words', icon: Hash, color: 'from-green-500 to-emerald-500' },
-    { id: 'tfidf', label: '3. TF-IDF', icon: BarChart3, color: 'from-amber-500 to-yellow-500' },
-    { id: 'comparison', label: '4. Comparison', icon: Calculator, color: 'from-purple-500 to-pink-500' },
-    { id: 'code', label: '5. Python Code', icon: Code, color: 'from-cyan-500 to-teal-500' },
-    { id: 'practice', label: '6. Practice Lab', icon: GraduationCap, color: 'from-rose-500 to-red-500' },
+    { id: 'collision', label: '3. Order Collision', icon: AlertTriangle, color: 'from-amber-500 to-orange-500' },
+    { id: 'tfidf', label: '4. TF-IDF', icon: BarChart3, color: 'from-yellow-500 to-amber-500' },
+    { id: 'comparison', label: '5. Comparison', icon: Calculator, color: 'from-purple-500 to-pink-500' },
+    { id: 'code', label: '6. Python Code', icon: Code, color: 'from-cyan-500 to-teal-500' },
+    { id: 'practice', label: '7. Practice Lab', icon: GraduationCap, color: 'from-rose-500 to-red-500' },
 ];
 
 // Loading fallback
@@ -37,6 +39,8 @@ export default function BagOfWordsAnimation() {
                 return <Suspense fallback={<LoadingPanel />}><IntroPanel /></Suspense>;
             case 'bow':
                 return <Suspense fallback={<LoadingPanel />}><BowPanel /></Suspense>;
+            case 'collision':
+                return <Suspense fallback={<LoadingPanel />}><OrderCollisionLab /></Suspense>;
             case 'tfidf':
                 return <Suspense fallback={<LoadingPanel />}><TfIdfPanel /></Suspense>;
             case 'comparison':
