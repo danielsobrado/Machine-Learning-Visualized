@@ -1,6 +1,7 @@
 import React, { useMemo, useState } from 'react';
 import { LocateFixed, RotateCcw, SlidersHorizontal } from 'lucide-react';
 import AssessmentPanel from '../../components/animation-shell/AssessmentPanel';
+import KMeansDiagnosticsLab from './KMeansDiagnosticsLab.jsx';
 import { COLORS, POINTS, runKMeans, toScreen } from './kMeansModel';
 
 function Stat({ label, value, detail }) {
@@ -14,13 +15,13 @@ function Stat({ label, value, detail }) {
 }
 
 export default function KMeansAnimation() {
-  const [k, setK] = useState(3);
+  const [k, setK] = useState(4);
   const [iterations, setIterations] = useState(2);
   const result = useMemo(() => runKMeans(k, iterations), [k, iterations]);
   const clusterSizes = result.centroids.map((_, cluster) => result.assignments.filter((value) => value === cluster).length);
 
   const reset = () => {
-    setK(3);
+    setK(4);
     setIterations(2);
   };
 
@@ -61,11 +62,27 @@ export default function KMeansAnimation() {
         <div className="grid gap-4 md:grid-cols-2">
           <label className="grid gap-2 text-sm font-bold text-slate-700">
             k: {k}
-            <input min="2" max="4" step="1" type="range" value={k} onChange={(event) => setK(Number(event.target.value))} />
+            <input
+              min="2"
+              max="4"
+              step="1"
+              type="range"
+              value={k}
+              aria-label={`Number of clusters: ${k}`}
+              onChange={(event) => setK(Number(event.target.value))}
+            />
           </label>
           <label className="grid gap-2 text-sm font-bold text-slate-700">
             Iterations: {iterations}
-            <input min="0" max="6" step="1" type="range" value={iterations} onChange={(event) => setIterations(Number(event.target.value))} />
+            <input
+              min="0"
+              max="6"
+              step="1"
+              type="range"
+              value={iterations}
+              aria-label={`K-means iterations: ${iterations}`}
+              onChange={(event) => setIterations(Number(event.target.value))}
+            />
           </label>
         </div>
       </section>
@@ -76,7 +93,7 @@ export default function KMeansAnimation() {
             <LocateFixed size={16} />
             Assign to nearest centroid, then move centroid to the mean
           </div>
-          <svg viewBox="0 0 360 360" className="h-auto w-full rounded-lg border border-slate-200 bg-slate-50">
+          <svg viewBox="0 0 360 360" className="h-auto w-full rounded-lg border border-slate-200 bg-slate-50" role="img" aria-label={`K-means clustering with ${k} clusters after ${iterations} iterations`}>
             {Array.from({ length: 7 }, (_, index) => (
               <g key={index}>
                 <line x1={40 + index * 46} y1="24" x2={40 + index * 46} y2="330" stroke="#e2e8f0" />
@@ -125,8 +142,8 @@ export default function KMeansAnimation() {
           <section className="rounded-lg border border-blue-200 bg-blue-50 p-5">
             <h3 className="text-sm font-black uppercase tracking-wide text-blue-700">What to watch</h3>
             <p className="mt-3 text-sm leading-6 text-blue-950">
-              Increasing iterations usually lowers inertia until assignments stop changing. Changing k can lower
-              inertia too, but too many clusters can split natural groups without adding useful structure.
+              Increasing iterations lowers inertia until assignments stabilize. Increasing k also lowers inertia by construction,
+              so inertia alone cannot tell you how many clusters are useful.
             </p>
           </section>
 
@@ -140,6 +157,8 @@ export default function KMeansAnimation() {
           </section>
         </aside>
       </div>
+
+      <KMeansDiagnosticsLab />
 
       <AssessmentPanel lessonId="k-means" title="K-Means Clustering check" />
     </div>
