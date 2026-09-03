@@ -3,6 +3,7 @@ import { RotateCcw } from 'lucide-react';
 import CalibrationControls from './CalibrationControls.jsx';
 import CalibrationDecisionImpact from './CalibrationDecisionImpact.jsx';
 import CalibrationDiagnostics from './CalibrationDiagnostics.jsx';
+import CalibrationSliceAudit from './CalibrationSliceAudit.jsx';
 import ReliabilityDiagram from './ReliabilityDiagram.jsx';
 import {
   DEFAULT_SCENARIO_ID,
@@ -91,6 +92,8 @@ export default function CalibrationWorkbench() {
         />
       </div>
 
+      <CalibrationSliceAudit />
+
       <CalibrationDecisionImpact
         rawBins={scenario.evaluationBins}
         calibratedBins={evaluation.calibratedBins}
@@ -106,9 +109,9 @@ export default function CalibrationWorkbench() {
           </p>
         </div>
         <div className="rounded-lg border border-amber-200 bg-amber-50 p-4">
-          <p className="text-xs font-black uppercase tracking-wide text-amber-800">Monitor slices</p>
+          <p className="text-xs font-black uppercase tracking-wide text-amber-800">Slice discipline</p>
           <p className="mt-2 text-sm leading-6 text-amber-950">
-            Overall reliability can hide broken cohorts. Recheck calibration by important subgroup, time window, geography, device, or other deployment segment with enough support.
+            Treat overall calibration as the starting point. Audit important deployment slices separately because opposite subgroup errors can cancel almost perfectly in aggregate.
           </p>
         </div>
         <div className="rounded-lg border border-emerald-200 bg-emerald-50 p-4">
