@@ -25,7 +25,6 @@ export default function GradientClippingLab({ trace, clipNorm, onClipNormChange 
     [clipNorm, trace.parameterGradients],
   );
   const maximum = Math.max(1e-12, ...trace.parameterGradients.map((value) => Math.abs(value)));
-  const clippedMaximum = Math.max(1e-12, ...clipping.clipped.map((value) => Math.abs(value)));
   const pairs = trace.parameterGradients.slice(0, 12).map((raw, index) => ({ raw, clipped: clipping.clipped[index] }));
 
   return (
@@ -88,7 +87,7 @@ export default function GradientClippingLab({ trace, clipNorm, onClipNormChange 
             <div className="mb-3 flex items-center justify-between gap-3">
               <div>
                 <h3 className="font-black text-slate-950">First parameter-gradient components</h3>
-                <p className="text-xs text-slate-500">All clipped components receive the same scale under global-norm clipping.</p>
+                <p className="text-xs text-slate-500">Raw and clipped bars share one scale; global-norm clipping gives every component the same multiplier.</p>
               </div>
               <span className={`rounded-full px-3 py-1 text-xs font-black ${clipping.wasClipped ? 'bg-cyan-100 text-cyan-800' : 'bg-emerald-100 text-emerald-800'}`}>{clipping.wasClipped ? 'clipped' : 'unchanged'}</span>
             </div>
@@ -98,7 +97,7 @@ export default function GradientClippingLab({ trace, clipNorm, onClipNormChange 
                   <span className="text-xs font-bold text-slate-500">g{index + 1}</span>
                   <Bar value={pair.raw} maximum={maximum} clipped={false} />
                   <span className="text-right font-mono text-xs text-slate-700">{formatNumber(pair.raw)}</span>
-                  <Bar value={pair.clipped} maximum={clippedMaximum} clipped />
+                  <Bar value={pair.clipped} maximum={maximum} clipped />
                   <span className="text-right font-mono text-xs text-slate-700">{formatNumber(pair.clipped)}</span>
                 </div>
               ))}
