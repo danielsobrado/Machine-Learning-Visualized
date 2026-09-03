@@ -4,6 +4,15 @@ export const PCA_DEFAULTS = Object.freeze({
   components: 1,
 });
 
+export const PCA_COLORS = Object.freeze({
+  primary: '#2563eb',
+  secondary: '#64748b',
+  labelA: '#2563eb',
+  labelB: '#e11d48',
+  projection: '#94a3b8',
+  grid: '#e2e8f0',
+});
+
 export const RAW_POINTS = Object.freeze([
   [-2.4, -1.8], [-2.0, -1.1], [-1.7, -1.4], [-1.4, -0.6], [-1.0, -0.9],
   [-0.7, -0.2], [-0.3, -0.4], [0.0, 0.1], [0.4, 0.3], [0.8, 0.5],
