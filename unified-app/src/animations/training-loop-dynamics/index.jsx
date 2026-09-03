@@ -1,174 +1,93 @@
 import React, { useMemo, useState } from 'react';
-import { Activity, BarChart3, RefreshCw, SlidersHorizontal } from 'lucide-react';
+import { RotateCcw } from 'lucide-react';
 import AssessmentPanel from '../../components/animation-shell/AssessmentPanel';
-
-function clamp(value, min, max) {
-  return Math.min(max, Math.max(min, value));
-}
+import AccumulationFailureLab from './AccumulationFailureLab.jsx';
+import LoopTracePanel from './LoopTracePanel.jsx';
+import TrainingLoopControls from './TrainingLoopControls.jsx';
+import { TRAINING_LOOP_DEFAULTS } from './trainingLoopConstants.js';
+import { simulateTrainingLoop } from './trainingLoopModel.js';
 
 export default function TrainingLoopDynamicsAnimation() {
-  const [learningRate, setLearningRate] = useState(0.2);
-  const [batchSize, setBatchSize] = useState(32);
-  const [steps, setSteps] = useState(8);
-  const [validationGap, setValidationGap] = useState(0.25);
-  const [curvature, setCurvature] = useState(1.4);
+  const [mode, setMode] = useState('correct');
+  const [learningRate, setLearningRate] = useState(TRAINING_LOOP_DEFAULTS.learningRate);
+  const [curvature, setCurvature] = useState(TRAINING_LOOP_DEFAULTS.curvature);
+  const [optimizerSteps, setOptimizerSteps] = useState(TRAINING_LOOP_DEFAULTS.optimizerSteps);
+  const [microBatches, setMicroBatches] = useState(TRAINING_LOOP_DEFAULTS.microBatches);
 
-  const dynamics = useMemo(() => {
-    const noise = 1 / Math.sqrt(batchSize);
-    const stepStrength = learningRate * curvature;
-    const stableStep = stepStrength < 0.85;
-    const trainLoss = stableStep
-      ? clamp(2.6 * Math.exp(-steps * stepStrength * 0.45) + noise * 0.8, 0.05, 3)
-      : clamp(1.2 + (stepStrength - 0.85) * steps * 0.45, 0.05, 5);
-    const overfitPressure = Math.max(0, steps - 7) * validationGap * 0.08;
-    const validationLoss = clamp(trainLoss + validationGap + overfitPressure + noise * 0.35, 0.05, 5);
-    const generalizationGap = validationLoss - trainLoss;
+  const config = useMemo(() => ({
+    learningRate,
+    curvature,
+    optimizerSteps,
+    microBatches,
+    startParameter: TRAINING_LOOP_DEFAULTS.startParameter,
+    noiseAmplitude: TRAINING_LOOP_DEFAULTS.noiseAmplitude,
+  }), [curvature, learningRate, microBatches, optimizerSteps]);
 
-    return {
-      noise,
-      stepStrength,
-      trainLoss,
-      validationLoss,
-      generalizationGap,
-      stableStep,
-      state: !stableStep ? 'overshooting' : generalizationGap > 0.9 ? 'overfitting' : noise > 0.15 ? 'noisy' : 'healthy',
-      history: Array.from({ length: steps }, (_, index) => {
-        const progress = index + 1;
-        const base = stableStep ? 2.6 * Math.exp(-progress * stepStrength * 0.45) : 1.2 + progress * 0.22;
-        return clamp(base + noise * (index % 2 === 0 ? 0.7 : -0.2), 0.05, 5);
-      }),
-    };
-  }, [batchSize, curvature, learningRate, steps, validationGap]);
+  const result = useMemo(() => simulateTrainingLoop({ ...config, mode }), [config, mode]);
+
+  const reset = () => {
+    setMode('correct');
+    setLearningRate(TRAINING_LOOP_DEFAULTS.learningRate);
+    setCurvature(TRAINING_LOOP_DEFAULTS.curvature);
+    setOptimizerSteps(TRAINING_LOOP_DEFAULTS.optimizerSteps);
+    setMicroBatches(TRAINING_LOOP_DEFAULTS.microBatches);
+  };
 
   return (
-    <div className="mx-auto flex max-w-6xl flex-col gap-6 p-6">
-      <section className="grid gap-4 lg:grid-cols-[0.9fr_1.1fr]">
-        <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
-          <div className="mb-4 flex items-center gap-2 text-sm font-semibold uppercase tracking-wide text-indigo-700">
-            <SlidersHorizontal size={16} />
-            Training controls
+    <div className="mx-auto flex max-w-7xl flex-col gap-6 p-4 md:p-6">
+      <header className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+        <div className="flex flex-wrap items-start justify-between gap-4">
+          <div className="max-w-4xl">
+            <p className="text-xs font-black uppercase tracking-wide text-indigo-700">Training loop dynamics</p>
+            <h1 className="mt-1 text-2xl font-black text-slate-950 md:text-3xl">Make the loop execute the bug instead of drawing a scary curve</h1>
+            <p className="mt-2 text-sm leading-6 text-slate-700">
+              This lab runs gradient descent on a one-parameter quadratic objective. Every loss point comes from an actual parameter update, so learning-rate stability, micro-batch accumulation, and stale gradients have causal consequences rather than hand-authored labels.
+            </p>
           </div>
-
-          <label className="block text-sm font-semibold text-slate-700" htmlFor="tld-lr">
-            Learning rate {learningRate.toFixed(2)}
-          </label>
-          <input
-            id="tld-lr"
-            type="range"
-            min="0.02"
-            max="0.8"
-            step="0.02"
-            value={learningRate}
-            onChange={(event) => setLearningRate(Number(event.target.value))}
-            className="mt-2 w-full accent-indigo-500"
-          />
-
-          <label className="mt-5 block text-sm font-semibold text-slate-700" htmlFor="tld-batch">
-            Mini-batch size {batchSize}
-          </label>
-          <input
-            id="tld-batch"
-            type="range"
-            min="4"
-            max="256"
-            step="4"
-            value={batchSize}
-            onChange={(event) => setBatchSize(Number(event.target.value))}
-            className="mt-2 w-full accent-indigo-500"
-          />
-
-          <label className="mt-5 block text-sm font-semibold text-slate-700" htmlFor="tld-steps">
-            Optimizer steps {steps}
-          </label>
-          <input
-            id="tld-steps"
-            type="range"
-            min="1"
-            max="16"
-            step="1"
-            value={steps}
-            onChange={(event) => setSteps(Number(event.target.value))}
-            className="mt-2 w-full accent-indigo-500"
-          />
-
-          <div className="mt-5 grid gap-3 sm:grid-cols-2">
-            <label className="block text-sm font-semibold text-slate-700" htmlFor="tld-gap">
-              Validation difficulty {validationGap.toFixed(2)}
-              <input
-                id="tld-gap"
-                type="range"
-                min="0"
-                max="1"
-                step="0.05"
-                value={validationGap}
-                onChange={(event) => setValidationGap(Number(event.target.value))}
-                className="mt-2 w-full accent-indigo-500"
-              />
-            </label>
-            <label className="block text-sm font-semibold text-slate-700" htmlFor="tld-curvature">
-              Loss curvature {curvature.toFixed(1)}
-              <input
-                id="tld-curvature"
-                type="range"
-                min="0.5"
-                max="3"
-                step="0.1"
-                value={curvature}
-                onChange={(event) => setCurvature(Number(event.target.value))}
-                className="mt-2 w-full accent-indigo-500"
-              />
-            </label>
-          </div>
+          <button type="button" onClick={reset} className="inline-flex items-center gap-2 rounded-xl border border-slate-300 bg-white px-4 py-2 text-sm font-bold text-slate-800">
+            <RotateCcw size={16} />
+            Reset
+          </button>
         </div>
+      </header>
 
-        <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
-          <div className="mb-4 flex items-center gap-2 text-sm font-semibold uppercase tracking-wide text-indigo-700">
-            <RefreshCw size={16} />
-            Loop signal
-          </div>
+      <TrainingLoopControls
+        mode={mode}
+        learningRate={learningRate}
+        curvature={curvature}
+        optimizerSteps={optimizerSteps}
+        microBatches={microBatches}
+        onModeChange={setMode}
+        onLearningRateChange={setLearningRate}
+        onCurvatureChange={setCurvature}
+        onOptimizerStepsChange={setOptimizerSteps}
+        onMicroBatchesChange={setMicroBatches}
+      />
 
-          <div className="grid gap-4 md:grid-cols-3">
-            <div className="rounded-xl border border-slate-200 bg-slate-50 p-4">
-              <div className="text-xs uppercase tracking-wide text-slate-500">Gradient noise</div>
-              <div className="mt-2 text-3xl font-bold text-slate-900">{dynamics.noise.toFixed(2)}</div>
-              <p className="mt-2 text-sm text-slate-600">Smaller batches make noisier gradients.</p>
-            </div>
-            <div className="rounded-xl border border-indigo-200 bg-indigo-50 p-4">
-              <div className="text-xs uppercase tracking-wide text-indigo-700">Step strength</div>
-              <div className="mt-2 text-3xl font-bold text-slate-900">{dynamics.stepStrength.toFixed(2)}</div>
-              <p className="mt-2 text-sm text-slate-700">Learning rate times local curvature.</p>
-            </div>
-            <div className="rounded-xl border border-slate-900 bg-slate-900 p-4 text-white">
-              <div className="flex items-center gap-2 text-xs uppercase tracking-wide text-indigo-200">
-                <Activity size={14} />
-                Diagnosis
-              </div>
-              <div className="mt-2 text-2xl font-bold capitalize">{dynamics.state}</div>
-              <p className="mt-2 text-sm text-slate-300">
-                Train {dynamics.trainLoss.toFixed(2)}, validation {dynamics.validationLoss.toFixed(2)}.
-              </p>
-            </div>
-          </div>
+      <section className="rounded-2xl border border-indigo-200 bg-indigo-50 p-5 text-sm leading-6 text-indigo-950">
+        <strong>Exact deterministic baseline:</strong> for <span className="font-mono">L(θ)=½λθ²</span>, gradient descent obeys <span className="font-mono">θₜ₊₁=(1−αλ)θₜ</span>. The deterministic stability condition is <span className="font-mono font-black">0 &lt; αλ &lt; 2</span>. Mini-batch noise perturbs the path, but it does not justify inventing a different stability boundary.
+      </section>
 
-          <div className="mt-5 rounded-xl border border-slate-200 p-4">
-            <div className="mb-3 flex items-center gap-2 text-sm font-semibold text-slate-900">
-              <BarChart3 size={16} />
-              Training loss by step
-            </div>
-            <div className="flex h-36 items-end gap-2">
-              {dynamics.history.map((loss, index) => (
-                <div
-                  key={`${index}-${loss.toFixed(2)}`}
-                  className="flex flex-1 items-end rounded-t bg-indigo-500"
-                  style={{ height: `${clamp(loss * 26, 4, 100)}%` }}
-                  title={`Step ${index + 1}: ${loss.toFixed(2)}`}
-                />
-              ))}
-            </div>
-          </div>
+      <LoopTracePanel result={result} />
+      <AccumulationFailureLab config={config} />
 
-          <p className="mt-5 rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900">
-            Training loss alone is not enough. A healthy loop watches update stability, batch noise, and validation behavior together.
+      <section className="grid gap-4 lg:grid-cols-3">
+        <div className="rounded-2xl border border-emerald-200 bg-emerald-50 p-5">
+          <h2 className="text-sm font-black uppercase tracking-wide text-emerald-700">What this lab measures</h2>
+          <p className="mt-3 text-sm leading-6 text-emerald-950">
+            Parameter values, true gradients, noisy micro-batch gradients, the exact gradient presented to the optimizer, update magnitude, and resulting training loss.
+          </p>
+        </div>
+        <div className="rounded-2xl border border-amber-200 bg-amber-50 p-5">
+          <h2 className="text-sm font-black uppercase tracking-wide text-amber-700">What it deliberately does not fake</h2>
+          <p className="mt-3 text-sm leading-6 text-amber-950">
+            There is no “validation difficulty” knob that manufactures overfitting. Train/validation divergence needs a model/data generalization story, not an arbitrary offset added to training loss.
+          </p>
+        </div>
+        <div className="rounded-2xl border border-violet-200 bg-violet-50 p-5">
+          <h2 className="text-sm font-black uppercase tracking-wide text-violet-700">Production checks</h2>
+          <p className="mt-3 text-sm leading-6 text-violet-950">
+            Log gradient and update norms separately, define accumulation normalization, clear gradients at the intended boundary, record scheduler step semantics, save optimizer state, and run validation in evaluation mode.
           </p>
         </div>
       </section>
