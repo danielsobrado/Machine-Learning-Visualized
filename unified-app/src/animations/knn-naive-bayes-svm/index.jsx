@@ -1,6 +1,7 @@
 import React, { useMemo, useState } from 'react';
 import { RotateCcw, SlidersHorizontal, Target } from 'lucide-react';
 import AssessmentPanel from '../../components/animation-shell/AssessmentPanel';
+import NaiveBayesDependenceLab from './NaiveBayesDependenceLab';
 import {
   MODELS,
   POINTS,
@@ -15,6 +16,12 @@ const COLORS = {
   blue: { fill: '#2563eb', soft: 'bg-blue-50 border-blue-200 text-blue-950', text: 'text-blue-700' },
   orange: { fill: '#f97316', soft: 'bg-orange-50 border-orange-200 text-orange-950', text: 'text-orange-700' },
 };
+
+const CONFIDENCE_DETAILS = Object.freeze({
+  knn: 'share of the k neighbors voting for the winner',
+  naiveBayes: 'posterior under the Naive Bayes assumptions',
+  svm: 'teaching-scale normalized margin, not a probability',
+});
 
 function Stat({ label, value, detail }) {
   return (
@@ -60,7 +67,8 @@ export default function KnnNaiveBayesSvmAnimation() {
             <h2 className="mt-1 text-2xl font-black text-slate-950">kNN, Naive Bayes, and SVM</h2>
             <p className="mt-2 max-w-3xl text-sm leading-6 text-slate-700">
               These classifiers make different assumptions about the same scaled feature space. Move the query point and
-              compare local voting, probabilistic likelihoods, and margin-based separation.
+              compare local voting, probabilistic likelihoods, and margin-based separation. Then stress-test the
+              assumptions instead of trusting the clean demo alone.
             </p>
           </div>
           <button
@@ -115,7 +123,7 @@ export default function KnnNaiveBayesSvmAnimation() {
 
       <div className="grid gap-3 md:grid-cols-4">
         <Stat label="Prediction" value={activeResult.prediction} detail={`${MODELS[model].label} output`} />
-        <Stat label="Confidence" value={`${Math.round(activeResult.confidence * 100)}%`} detail="teaching-scale score" />
+        <Stat label="Confidence" value={`${Math.round(activeResult.confidence * 100)}%`} detail={CONFIDENCE_DETAILS[model]} />
         <Stat label="Query x" value={queryX.toFixed(1)} detail="scaled feature 1" />
         <Stat label="Query y" value={queryY.toFixed(1)} detail="scaled feature 2" />
       </div>
@@ -174,7 +182,10 @@ export default function KnnNaiveBayesSvmAnimation() {
                   <span>{score.toFixed(2)}</span>
                 </div>
               ))}
-              <p className="text-sm leading-6">Each feature contributes a Gaussian likelihood; the class prior and feature likelihoods combine in log space.</p>
+              <p className="text-sm leading-6">
+                Each feature contributes a Gaussian likelihood; the class prior and feature likelihoods combine in log
+                space. The reported posterior is only as trustworthy as those modeling assumptions.
+              </p>
             </div>
           )}
           {model === 'svm' && (
@@ -189,6 +200,8 @@ export default function KnnNaiveBayesSvmAnimation() {
         </section>
       </div>
 
+      <NaiveBayesDependenceLab />
+
       <section className="grid gap-4 lg:grid-cols-3">
         <div className="rounded-lg border border-cyan-200 bg-cyan-50 p-5">
           <h3 className="text-sm font-black uppercase tracking-wide text-cyan-700">Problem solved</h3>
@@ -200,14 +213,15 @@ export default function KnnNaiveBayesSvmAnimation() {
         <div className="rounded-lg border border-amber-200 bg-amber-50 p-5">
           <h3 className="text-sm font-black uppercase tracking-wide text-amber-700">Mistake to avoid</h3>
           <p className="mt-3 text-sm leading-6 text-amber-950">
-            kNN and SVM are sensitive to feature scale; Naive Bayes depends on its feature-independence and distribution
-            assumptions.
+            kNN and SVM are sensitive to feature scale. Naive Bayes can double-count correlated evidence and become
+            dramatically overconfident even when the duplicated features add zero information.
           </p>
         </div>
         <div className="rounded-lg border border-emerald-200 bg-emerald-50 p-5">
           <h3 className="text-sm font-black uppercase tracking-wide text-emerald-700">Understanding check</h3>
           <p className="mt-3 text-sm leading-6 text-emerald-950">
-            Move the query near the boundary and predict which model changes first before switching classifiers.
+            If you copy one informative feature five times, should your evidence become five times stronger? Predict the
+            Naive Bayes confidence first, then use the failure lab to check.
           </p>
         </div>
       </section>
