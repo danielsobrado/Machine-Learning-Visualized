@@ -1,32 +1,55 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { BufferGeometry, CircleGeometry, Color, Line, LineBasicMaterial, Mesh, MeshBasicMaterial, OrthographicCamera, Scene, Vector3, WebGLRenderer } from 'three';
+import {
+    BufferGeometry,
+    CircleGeometry,
+    Color,
+    Line,
+    LineBasicMaterial,
+    Mesh,
+    MeshBasicMaterial,
+    OrthographicCamera,
+    Scene,
+    Vector3,
+    WebGLRenderer,
+} from 'three';
 import gsap from 'gsap';
-import { DEFAULT_LEARNING_RATE, DEFAULT_START_WEIGHT, loss, nextWeight } from './gradientDescentModel.js';
-
-// Loss function: L(w) = w^2
-// Gradient: dL/dw = 2w
-// Update: w_new = w_old - alpha * 2w_old
+import { LOSS_SCENE } from './gradientDescentConstants.js';
+import {
+    DEFAULT_LEARNING_RATE,
+    DEFAULT_START_WEIGHT,
+    loss,
+    lossWorldY,
+    nextWeight,
+} from './gradientDescentModel.js';
 
 const COLORS = {
-    curve: 0x7030a0,      // Purple
-    ball: 0x5b9bd5,       // Blue
-    gradient: 0xed7d31,   // Orange
-    optimal: 0x70ad47,    // Green
-    bg: 0xffffff
+    curve: 0x7030a0,
+    ball: 0x5b9bd5,
+    bg: 0xffffff,
 };
 
-export default function GradientDescentPanel({ learningRate = DEFAULT_LEARNING_RATE, startWeight = DEFAULT_START_WEIGHT, onStepChange }) {
+export default function GradientDescentPanel({
+    learningRate = DEFAULT_LEARNING_RATE,
+    startWeight = DEFAULT_START_WEIGHT,
+    onStepChange,
+}) {
     const containerRef = useRef(null);
-    const rendererRef = useRef(null);
-    const sceneRef = useRef(null);
     const objectsRef = useRef({});
     const [isRunning, setIsRunning] = useState(false);
     const [currentWeight, setCurrentWeight] = useState(startWeight ?? DEFAULT_START_WEIGHT);
     const [iteration, setIteration] = useState(0);
 
+    const updateBallPosition = (weight) => {
+        const { ball } = objectsRef.current;
+        if (!ball || weight == null) return;
+        ball.position.set(weight * LOSS_SCENE.xScale, lossWorldY(weight), 0);
+    };
+
     useEffect(() => {
-        setCurrentWeight(startWeight ?? DEFAULT_START_WEIGHT);
+        const nextStartWeight = startWeight ?? DEFAULT_START_WEIGHT;
+        setCurrentWeight(nextStartWeight);
         setIteration(0);
+        updateBallPosition(nextStartWeight);
     }, [startWeight]);
 
     useEffect(() => {
@@ -36,52 +59,51 @@ export default function GradientDescentPanel({ learningRate = DEFAULT_LEARNING_R
     }, [iteration, currentWeight, onStepChange]);
 
     useEffect(() => {
-        if (!containerRef.current) return;
+        const container = containerRef.current;
+        if (!container) return undefined;
 
-        const width = containerRef.current.clientWidth;
         const height = 400;
-
         const scene = new Scene();
         scene.background = new Color(COLORS.bg);
-        sceneRef.current = scene;
 
-        const camera = new OrthographicCamera(
-            width / -2, width / 2, height / 2, height / -2, 0.1, 1000
-        );
+        const camera = new OrthographicCamera(-1, 1, height / 2, height / -2, 0.1, 1000);
         camera.position.z = 100;
 
         const renderer = new WebGLRenderer({ antialias: true });
-        renderer.setSize(width, height);
-        containerRef.current.appendChild(renderer.domElement);
-        rendererRef.current = renderer;
+        container.appendChild(renderer.domElement);
 
-        // Draw loss curve using line segments
         const curvePoints = [];
-        const wRange = 5; // Display w from -5 to 5
-        const scale = 50; // Scale for display
-
-        for (let w = -wRange; w <= wRange; w += 0.1) {
-            const x = w * scale;
-            const y = -loss(w) * 10 + 100; // Invert y and offset
-            curvePoints.push(new Vector3(x, y, 0));
+        for (let weight = -LOSS_SCENE.weightRange; weight <= LOSS_SCENE.weightRange; weight += 0.1) {
+            curvePoints.push(new Vector3(
+                weight * LOSS_SCENE.xScale,
+                lossWorldY(weight),
+                0,
+            ));
         }
 
         const curveGeometry = new BufferGeometry().setFromPoints(curvePoints);
-        const curveMaterial = new LineBasicMaterial({ color: COLORS.curve, linewidth: 3 });
+        const curveMaterial = new LineBasicMaterial({ color: COLORS.curve });
         const curve = new Line(curveGeometry, curveMaterial);
         scene.add(curve);
 
-        // Ball
         const ballGeometry = new CircleGeometry(8, 32);
         const ballMaterial = new MeshBasicMaterial({ color: COLORS.ball });
         const ball = new Mesh(ballGeometry, ballMaterial);
         scene.add(ball);
-
-        // Gradient arrow (will be created dynamically)
-        objectsRef.current = { ball, scene, scale };
-
-        // Position ball at start
+        objectsRef.current = { ball };
         updateBallPosition(startWeight ?? DEFAULT_START_WEIGHT);
+
+        const resize = () => {
+            const width = Math.max(320, container.clientWidth);
+            camera.left = width / -2;
+            camera.right = width / 2;
+            camera.updateProjectionMatrix();
+            renderer.setSize(width, height, false);
+        };
+        resize();
+
+        const observer = new ResizeObserver(resize);
+        observer.observe(container);
 
         let animationId;
         const animate = () => {
@@ -91,86 +113,79 @@ export default function GradientDescentPanel({ learningRate = DEFAULT_LEARNING_R
         animate();
 
         return () => {
+            observer.disconnect();
             cancelAnimationFrame(animationId);
+            gsap.killTweensOf(ball.position);
+            curveGeometry.dispose();
+            curveMaterial.dispose();
+            ballGeometry.dispose();
+            ballMaterial.dispose();
             renderer.dispose();
-            if (containerRef.current?.contains(renderer.domElement)) {
-                containerRef.current.removeChild(renderer.domElement);
+            objectsRef.current = {};
+            if (container.contains(renderer.domElement)) {
+                container.removeChild(renderer.domElement);
             }
         };
     }, []);
-
-    const updateBallPosition = (w) => {
-        const { ball, scale } = objectsRef.current;
-        if (!ball || w == null) return;
-        const x = w * scale;
-        const y = -loss(w) * 10 + 100;
-        ball.position.set(x, y, 0);
-    };
 
     const runGradientDescent = async () => {
         if (isRunning) return;
         setIsRunning(true);
 
-        let w = startWeight ?? DEFAULT_START_WEIGHT;
-        setCurrentWeight(w);
+        let weight = startWeight ?? DEFAULT_START_WEIGHT;
+        setCurrentWeight(weight);
         setIteration(0);
-        updateBallPosition(w);
+        updateBallPosition(weight);
 
         const maxIterations = 50;
         const convergenceThreshold = 0.01;
 
-        for (let i = 0; i < maxIterations; i++) {
-            const wNew = nextWeight(w, learningRate);
+        try {
+            for (let index = 0; index < maxIterations; index += 1) {
+                const next = nextWeight(weight, learningRate);
+                const { ball } = objectsRef.current;
+                if (!ball) break;
 
-            // Animate ball movement
-            const { ball, scale } = objectsRef.current;
-            const xNew = wNew * scale;
-            const yNew = -loss(wNew) * 10 + 100;
-
-            await new Promise(resolve => {
-                gsap.to(ball.position, {
-                    x: xNew,
-                    y: yNew,
-                    duration: 0.5,
-                    ease: 'power2.inOut',
-                    onComplete: resolve
+                await new Promise((resolve) => {
+                    gsap.to(ball.position, {
+                        x: next * LOSS_SCENE.xScale,
+                        y: lossWorldY(next),
+                        duration: 0.5,
+                        ease: 'power2.inOut',
+                        onComplete: resolve,
+                    });
                 });
-            });
 
-            w = wNew;
-            setCurrentWeight(w);
-            setIteration(i + 1);
+                weight = next;
+                setCurrentWeight(weight);
+                setIteration(index + 1);
 
-            // Check convergence
-            if (Math.abs(w) < convergenceThreshold) {
-                break;
+                if (Math.abs(weight) < convergenceThreshold || Math.abs(weight) > 10) break;
+                await new Promise((resolve) => setTimeout(resolve, 200));
             }
-
-            // Check divergence
-            if (Math.abs(w) > 10) {
-                break;
-            }
-
-            await new Promise(r => setTimeout(r, 200));
+        } finally {
+            setIsRunning(false);
         }
-
-        setIsRunning(false);
     };
 
     const reset = () => {
         if (isRunning) return;
-        setCurrentWeight(startWeight);
+        const nextStartWeight = startWeight ?? DEFAULT_START_WEIGHT;
+        setCurrentWeight(nextStartWeight);
         setIteration(0);
-        updateBallPosition(startWeight);
+        updateBallPosition(nextStartWeight);
     };
 
     return (
         <div className="flex flex-col items-center p-3">
-            <h2 className="text-xl font-bold text-gray-800 mb-2">Loss Landscape</h2>
+            <h2 className="mb-2 text-xl font-bold text-gray-800">Loss Bowl</h2>
+            <p className="mb-3 max-w-2xl text-center text-sm leading-6 text-slate-600">
+                Lower on the chart means lower loss. The minimum at w=0 is now visually the bottom of the bowl.
+            </p>
 
-            <div ref={containerRef} className="w-full rounded-lg overflow-hidden shadow-lg bg-white" />
+            <div ref={containerRef} className="w-full overflow-hidden rounded-lg bg-white shadow-lg" />
 
-            <div className="mt-2 p-2 bg-white rounded-lg w-full text-center shadow">
+            <div className="mt-2 w-full rounded-lg bg-white p-2 text-center shadow">
                 <p className="text-sm text-gray-800">
                     Iteration: <span className="font-bold">{iteration}</span> |
                     Weight: <span className="font-bold text-blue-600">{(currentWeight ?? 0).toFixed(3)}</span> |
@@ -178,18 +193,20 @@ export default function GradientDescentPanel({ learningRate = DEFAULT_LEARNING_R
                 </p>
             </div>
 
-            <div className="flex gap-2 mt-2">
+            <div className="mt-2 flex gap-2">
                 <button
+                    type="button"
                     onClick={runGradientDescent}
                     disabled={isRunning}
-                    className="px-4 py-2 bg-green-500 hover:bg-green-600 disabled:bg-gray-400 disabled:cursor-not-allowed text-white font-bold rounded-lg transition-colors text-sm"
+                    className="rounded-lg bg-green-500 px-4 py-2 text-sm font-bold text-white transition-colors hover:bg-green-600 disabled:cursor-not-allowed disabled:bg-gray-400"
                 >
                     {isRunning ? 'Running...' : 'Run'}
                 </button>
                 <button
+                    type="button"
                     onClick={reset}
                     disabled={isRunning}
-                    className="px-4 py-2 bg-red-500 hover:bg-red-600 disabled:bg-gray-400 disabled:cursor-not-allowed text-white font-bold rounded-lg transition-colors text-sm"
+                    className="rounded-lg bg-red-500 px-4 py-2 text-sm font-bold text-white transition-colors hover:bg-red-600 disabled:cursor-not-allowed disabled:bg-gray-400"
                 >
                     Reset
                 </button>
