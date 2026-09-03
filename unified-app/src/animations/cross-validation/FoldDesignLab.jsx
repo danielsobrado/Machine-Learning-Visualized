@@ -1,7 +1,8 @@
 import React, { useMemo } from 'react';
 import { AlertTriangle, CalendarClock, Layers3, ShieldCheck, Users } from 'lucide-react';
-import { SPLIT_STRATEGIES } from './crossValidationConstants.js';
-import { buildFolds, summarizeFolds } from './crossValidationModel.js';
+import FoldMatrix from './FoldMatrix.jsx';
+import { CROSS_VALIDATION_ROWS, SPLIT_STRATEGIES } from './crossValidationConstants.js';
+import { buildFolds, positiveRate, summarizeFolds } from './crossValidationModel.js';
 
 function Stat({ label, value, detail }) {
   return (
@@ -9,6 +10,24 @@ function Stat({ label, value, detail }) {
       <p className="text-xs font-black uppercase tracking-wide text-slate-500">{label}</p>
       <strong className="mt-1 block text-2xl font-black text-slate-950">{value}</strong>
       <span className="text-sm text-slate-600">{detail}</span>
+    </div>
+  );
+}
+
+function RateBar({ label, rate, baseline }) {
+  const delta = (rate - baseline) * 100;
+  return (
+    <div>
+      <div className="flex items-center justify-between gap-3 text-xs font-bold text-slate-600">
+        <span>{label}</span>
+        <span className="font-mono">{(rate * 100).toFixed(0)}% positive</span>
+      </div>
+      <div className="mt-1.5 h-2 overflow-hidden rounded-full bg-slate-200" aria-hidden="true">
+        <div className="h-full rounded-full bg-cyan-500" style={{ width: `${rate * 100}%` }} />
+      </div>
+      <p className="mt-1 text-[11px] font-semibold text-slate-500">
+        {Math.abs(delta) < 0.5 ? 'matches dataset rate' : `${delta > 0 ? '+' : ''}${delta.toFixed(1)} pts vs dataset`}
+      </p>
     </div>
   );
 }
@@ -24,6 +43,7 @@ function FoldCard({ fold, selected, onSelect }) {
     <button
       type="button"
       onClick={onSelect}
+      aria-pressed={selected}
       className={`rounded-lg border p-3 text-left transition ${
         selected ? 'border-cyan-500 bg-cyan-50' : 'border-slate-200 bg-slate-50 hover:border-cyan-300'
       }`}
@@ -75,6 +95,10 @@ export default function FoldDesignLab({
   const selected = summary.folds[selectedIndex];
   const strategyConfig = SPLIT_STRATEGIES[strategy];
   const futureStrategy = strategy === 'time' || strategy === 'groupedTime';
+  const datasetPositiveRate = positiveRate(CROSS_VALIDATION_ROWS);
+  const classBalanceDrift = summary.folds.length
+    ? summary.folds.reduce((sum, fold) => sum + Math.abs(positiveRate(fold.validation) - datasetPositiveRate), 0) / summary.folds.length
+    : 0;
 
   return (
     <section className="space-y-5">
@@ -95,6 +119,7 @@ export default function FoldDesignLab({
                 onStrategyChange(id);
                 onSelectedFoldChange(0);
               }}
+              aria-pressed={strategy === id}
               className={`rounded-lg border p-3 text-left transition ${
                 strategy === id
                   ? 'border-cyan-500 bg-cyan-50 text-cyan-950'
@@ -116,6 +141,7 @@ export default function FoldDesignLab({
               step="1"
               type="range"
               value={k}
+              aria-label={`Fold count: ${k}`}
               onChange={(event) => {
                 const nextK = Number(event.target.value);
                 onKChange(nextK);
@@ -138,9 +164,10 @@ export default function FoldDesignLab({
         </div>
       </div>
 
-      <div className="grid gap-3 md:grid-cols-4">
+      <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-5">
         <Stat label="Mean CV score" value={`${(summary.mean * 100).toFixed(1)}%`} detail="average held-out score" />
         <Stat label="Fold spread" value={`${((summary.max - summary.min) * 100).toFixed(1)} pts`} detail="best minus worst fold" />
+        <Stat label="Class drift" value={`${(classBalanceDrift * 100).toFixed(1)} pts`} detail="mean validation-rate drift" />
         <Stat label="Entity-leak folds" value={`${summary.entityLeakFolds}/${summary.folds.length}`} detail="validation user also in train" />
         <Stat
           label="Future-unsafe folds"
@@ -165,6 +192,12 @@ export default function FoldDesignLab({
         </div>
       </div>
 
+      <FoldMatrix
+        folds={summary.folds}
+        selectedIndex={selectedIndex}
+        onSelect={onSelectedFoldChange}
+      />
+
       {selected && (
         <div className="grid gap-4 xl:grid-cols-[1.1fr_0.9fr]">
           <div className="rounded-lg border border-slate-200 bg-white p-5">
@@ -181,6 +214,12 @@ export default function FoldDesignLab({
                 <p className="mt-1 text-sm text-amber-900">{new Set(selected.validation.map((row) => row.user)).size} users · {timeRange(selected.validation)}</p>
               </div>
             </div>
+
+            <div className="mt-4 grid gap-4 rounded-lg border border-slate-200 bg-slate-50 p-4 sm:grid-cols-2">
+              <RateBar label="Training class balance" rate={positiveRate(selected.train)} baseline={datasetPositiveRate} />
+              <RateBar label="Validation class balance" rate={positiveRate(selected.validation)} baseline={datasetPositiveRate} />
+            </div>
+
             <div className="mt-4 flex flex-wrap gap-2 text-xs font-black">
               <span className={`inline-flex items-center gap-1 rounded px-2 py-1 ${selected.audit.entityOverlap.length ? 'bg-rose-100 text-rose-700' : 'bg-emerald-100 text-emerald-700'}`}>
                 <Users size={13} /> {selected.audit.entityOverlap.length ? `${selected.audit.entityOverlap.length} overlapping users` : 'entities separated'}
