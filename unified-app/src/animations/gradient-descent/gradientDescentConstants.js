@@ -1,8 +1,6 @@
 export const DEFAULT_LEARNING_RATE = 0.1;
 export const DEFAULT_START_WEIGHT = 4;
 
-export const QUADRATIC_CURVATURE = 1;
-
 export const LOSS_SCENE = Object.freeze({
   weightRange: 5,
   xScale: 50,
