@@ -1,6 +1,7 @@
 import React, { useMemo, useState } from 'react';
 import { Activity, Eye, Filter, Grid3X3, SlidersHorizontal, Zap } from 'lucide-react';
 import AssessmentPanel from '../../components/animation-shell/AssessmentPanel';
+import PolarityLab from './PolarityLab';
 
 const BASE_IMAGE = [
   [0, 0, 1, 1, 1],
@@ -138,8 +139,8 @@ export default function ConvReluAnimation() {
           </div>
           <h1 className="mt-2 text-2xl font-bold text-slate-950 md:text-3xl">Conv + ReLU</h1>
           <p className="mt-2 max-w-3xl text-slate-700">
-            A convolution filter creates a signed feature map. ReLU then keeps positive evidence and zeros negative
-            evidence, making the next layer see sparse detected features instead of raw signed responses.
+            A convolution filter creates a signed feature map. ReLU then keeps positive responses and zeros negative
+            responses. The sign can encode feature polarity, so zeroing it is not always equivalent to removing noise.
           </p>
         </header>
 
@@ -214,7 +215,7 @@ export default function ConvReluAnimation() {
               <Metric icon={Grid3X3} label="Output size" value="3 x 3" helper="Valid 3x3 convolution over a 5x5 input." />
               <Metric icon={Zap} label="Active cells" value={`${activeCount}/${totalCells}`} helper="Positive responses survive ReLU." />
               <Metric icon={Activity} label="Sparsity" value={`${sparsity}%`} helper="Zeroed cells after activation." />
-              <Metric icon={Eye} label="Max activation" value={maxActivation.toFixed(1)} helper="Strongest detected feature." />
+              <Metric icon={Eye} label="Max activation" value={maxActivation.toFixed(1)} helper="Strongest positive response." />
             </div>
 
             <section className="grid gap-4 xl:grid-cols-3">
@@ -227,7 +228,7 @@ export default function ConvReluAnimation() {
               <h2 className="text-lg font-bold text-slate-950">Trace one output cell</h2>
               <p className="text-sm text-slate-600">
                 Choose an output location. The highlighted 3x3 input window is multiplied by the kernel, then bias is
-                added before ReLU clips negative evidence to zero.
+                added before ReLU clips negative values to zero.
               </p>
               <div className="mt-4 grid gap-3 md:grid-cols-3">
                 {preActivation.map((row, rowIndex) =>
@@ -271,13 +272,14 @@ export default function ConvReluAnimation() {
                 <h3 className="font-bold text-slate-950">Failure mode</h3>
                 <p className="mt-2 text-sm text-slate-700">
                   If bias or initialization pushes most z values below zero, the filter can stop passing gradient signal
-                  for many examples.
+                  for many examples. A signed feature can also disappear when its contrast polarity reverses.
                 </p>
               </div>
             </section>
           </main>
         </section>
 
+        <PolarityLab />
         <AssessmentPanel lessonId="conv-relu" />
       </div>
     </div>
