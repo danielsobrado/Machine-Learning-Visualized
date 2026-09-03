@@ -1,411 +1,139 @@
-import React, { useState, useEffect } from 'react';
-import { Play, Pause, RotateCcw, Zap, ThumbsUp, ThumbsDown, TrendingUp } from 'lucide-react';
+import React, { useMemo, useState } from 'react';
+import { BarChart3, Dice5, Info, Zap } from 'lucide-react';
+import {
+  NEGATIVE_SAMPLING_COUNTS,
+  NEGATIVE_SAMPLING_DEFAULTS,
+  NEGATIVE_SAMPLING_EXPONENTS,
+  NEGATIVE_SAMPLING_LIMITS,
+} from './word2VecConstants.js';
+import { negativeSamplingExperiment, noiseDistribution } from './word2VecModel.js';
+
+function DistributionTable({ distribution }) {
+  const maxProbability = Math.max(...distribution.map((item) => item.probability));
+  return (
+    <div className="space-y-3">
+      {distribution.map((item) => (
+        <div key={item.token} className="grid grid-cols-[72px_64px_1fr_70px] items-center gap-3">
+          <strong className="font-mono text-slate-900">{item.token}</strong>
+          <span className="text-right font-mono text-xs text-slate-500">n={item.count}</span>
+          <div className="h-3 overflow-hidden rounded-full bg-slate-100">
+            <div
+              className="h-full rounded-full bg-orange-500"
+              style={{ width: `${Math.max(1.5, (item.probability / maxProbability) * 100)}%` }}
+            />
+          </div>
+          <span className="text-right font-mono text-sm font-black text-slate-800">
+            {(item.probability * 100).toFixed(2)}%
+          </span>
+        </div>
+      ))}
+    </div>
+  );
+}
 
 export default function NegativeSamplingPanel() {
-  const [currentStep, setCurrentStep] = useState(0);
-  const [isPlaying, setIsPlaying] = useState(false);
-  const [numNegatives, setNumNegatives] = useState(5);
+  const [exponent, setExponent] = useState(NEGATIVE_SAMPLING_DEFAULTS.exponent);
+  const [sampleCount, setSampleCount] = useState(NEGATIVE_SAMPLING_DEFAULTS.samples);
 
-  const vocabulary = ['the', 'quick', 'brown', 'fox', 'jumps', 'over', 'lazy', 'dog', 'cat', 'bird', 'tree', 'sky'];
-  const centerWord = 'fox';
-  const positiveContext = 'jumps';
+  const experiment = useMemo(() => negativeSamplingExperiment({
+    counts: NEGATIVE_SAMPLING_COUNTS,
+    exponent,
+    samples: sampleCount,
+    seed: NEGATIVE_SAMPLING_DEFAULTS.seed,
+  }), [exponent, sampleCount]);
 
-  const steps = [
-    { title: 'The Softmax Problem', description: 'Standard softmax over full vocabulary is expensive' },
-    { title: 'Positive Pair', description: 'We have a real (center, context) pair from training data' },
-    { title: 'Sample Negatives', description: 'Randomly select words that are NOT in the context' },
-    { title: 'Binary Classification', description: 'Train: real pair → 1, fake pairs → 0' },
-    { title: 'Update Embeddings', description: 'Only update selected word vectors (much faster!)' },
-  ];
+  const references = useMemo(() => ({
+    uniform: noiseDistribution(NEGATIVE_SAMPLING_COUNTS, 0),
+    word2vec: noiseDistribution(NEGATIVE_SAMPLING_COUNTS, 0.75),
+    unigram: noiseDistribution(NEGATIVE_SAMPLING_COUNTS, 1),
+  }), []);
 
-  useEffect(() => {
-    if (isPlaying) {
-      const interval = setInterval(() => {
-        setCurrentStep(prev => {
-          if (prev >= steps.length - 1) {
-            setIsPlaying(false);
-            return prev;
-          }
-          return prev + 1;
-        });
-      }, 3000);
-      return () => clearInterval(interval);
-    }
-  }, [isPlaying]);
-
-  const reset = () => {
-    setCurrentStep(0);
-    setIsPlaying(false);
-  };
-
-  // Get negative samples
-  const getNegativeSamples = () => {
-    const negatives = vocabulary.filter(w => w !== centerWord && w !== positiveContext);
-    return negatives.slice(0, numNegatives);
-  };
-
-  const negativeSamples = getNegativeSamples();
+  const probabilityFor = (distribution, token) => distribution.find((item) => item.token === token).probability;
 
   return (
-    <div className="space-y-6 pb-20">
-      {/* Title */}
-      <div className="text-center">
-        <h2 className="text-3xl font-bold mb-2">
-          <span className="text-orange-600">Negative Sampling</span>: Efficient Training
-        </h2>
-        <p className="text-gray-800">
-          Turn expensive softmax into simple binary classification
+    <div className="mx-auto max-w-6xl space-y-6 p-4 pb-20 md:p-6">
+      <header className="rounded-2xl border border-orange-200 bg-orange-50 p-5">
+        <div className="flex items-center gap-2 text-sm font-black uppercase tracking-wide text-orange-700">
+          <Zap size={17} /> Negative sampling reality check
+        </div>
+        <h2 className="mt-2 text-2xl font-black text-slate-950">The negatives are sampled from a noise distribution—not from the first k vocabulary words</h2>
+        <p className="mt-2 max-w-4xl text-sm leading-6 text-slate-700">
+          Skip-gram with negative sampling replaces a full-vocabulary objective with one observed pair plus a small number of noise pairs. The classic Word2Vec choice samples context words approximately in proportion to unigram frequency raised to the 0.75 power.
         </p>
-      </div>
+      </header>
 
-      {/* Controls */}
-      <div className="flex flex-wrap justify-center gap-3">
-        <button
-          onClick={() => setIsPlaying(!isPlaying)}
-          className="flex items-center gap-2 px-4 py-2 bg-orange-600 hover:bg-orange-700 rounded-lg transition-colors"
-        >
-          {isPlaying ? <Pause size={18} /> : <Play size={18} />}
-          {isPlaying ? 'Pause' : 'Play Animation'}
-        </button>
-        <button
-          onClick={reset}
-          className="flex items-center gap-2 px-4 py-2 bg-white/10 hover:bg-white/20 rounded-lg transition-colors"
-        >
-          <RotateCcw size={18} />
-          Reset
-        </button>
-        <div className="flex items-center gap-2 px-4 py-2 bg-white/5 rounded-lg">
-          <span className="text-sm text-gray-800"># Negatives:</span>
-          <select
-            value={numNegatives}
-            onChange={(e) => setNumNegatives(parseInt(e.target.value))}
-            className="bg-gray-700 rounded px-2 py-1 text-sm"
-          >
-            {[2, 5, 10, 15, 20].map(n => (
-              <option key={n} value={n}>{n}</option>
+      <section className="grid gap-4 lg:grid-cols-[300px_1fr]">
+        <aside className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+          <h3 className="flex items-center gap-2 font-black text-slate-950"><Dice5 size={17} /> Noise controls</h3>
+          <p className="mt-2 text-xs leading-5 text-slate-500">The corpus counts are intentionally skewed so the sampling choice is obvious.</p>
+
+          <div className="mt-5 space-y-2">
+            {NEGATIVE_SAMPLING_EXPONENTS.map((option) => (
+              <button
+                key={option.value}
+                type="button"
+                onClick={() => setExponent(option.value)}
+                aria-pressed={exponent === option.value}
+                className={`w-full rounded-xl border px-3 py-2 text-left text-sm font-black ${exponent === option.value ? 'border-orange-500 bg-orange-500 text-white' : 'border-slate-200 bg-slate-50 text-slate-700'}`}
+              >
+                {option.label} <span className="float-right font-mono">p(w) ∝ n(w)^{option.value}</span>
+              </button>
             ))}
-          </select>
-        </div>
-      </div>
-
-      {/* Step Progress */}
-      <div className="flex flex-wrap justify-center gap-2">
-        {steps.map((step, i) => (
-          <button
-            key={i}
-            onClick={() => { setCurrentStep(i); setIsPlaying(false); }}
-            className={`px-3 py-1 rounded-full text-sm transition-all ${
-              i === currentStep
-                ? 'bg-orange-500 text-black scale-110'
-                : i < currentStep
-                ? 'bg-orange-900 text-orange-300'
-                : 'bg-white/10 text-gray-700'
-            }`}
-          >
-            {i + 1}
-          </button>
-        ))}
-      </div>
-
-      {/* Current Step Info */}
-      <div className="bg-orange-900/20 border border-orange-500/30 rounded-xl p-4">
-        <h3 className="font-bold text-orange-600">Step {currentStep + 1}: {steps[currentStep].title}</h3>
-        <p className="text-gray-700 mt-1">{steps[currentStep].description}</p>
-      </div>
-
-      {/* Main Visualization */}
-      <div className="bg-black/30 rounded-2xl p-6 border border-white/10">
-
-        {/* Step 0: The Problem */}
-        {currentStep === 0 && (
-          <div className="space-y-6 animate-fadeIn">
-            <h4 className="text-center text-gray-800 mb-4">The Softmax Problem</h4>
-
-            <div className="grid md:grid-cols-2 gap-6">
-              {/* Standard Softmax */}
-              <div className="bg-red-900/20 rounded-xl p-4 border border-red-500/30">
-                <h5 className="text-red-400 font-bold mb-3">❌ Standard Softmax</h5>
-                <div className="font-mono text-sm bg-black/30 p-3 rounded">
-                  <p className="text-gray-800">P(w|center) = </p>
-                  <p className="text-red-300 ml-4">exp(v<sub>w</sub> · v<sub>c</sub>) /</p>
-                  <p className="text-red-400 ml-4">Σ exp(v<sub>i</sub> · v<sub>c</sub>)</p>
-                </div>
-                <p className="text-sm text-gray-800 mt-3">
-                  Must compute for ALL {vocabulary.length}+ words!
-                </p>
-                <p className="text-xs text-red-400 mt-2">
-                  Real vocabulary: 10K - 1M words 😱
-                </p>
-              </div>
-
-              {/* Negative Sampling */}
-              <div className="bg-green-900/20 rounded-xl p-4 border border-green-500/30">
-                <h5 className="text-green-400 font-bold mb-3">✅ Negative Sampling</h5>
-                <div className="font-mono text-sm bg-black/30 p-3 rounded">
-                  <p className="text-gray-800">Binary classification:</p>
-                  <p className="text-green-300 ml-4">1 positive pair</p>
-                  <p className="text-orange-300 ml-4">+ k negative pairs</p>
-                </div>
-                <p className="text-sm text-gray-800 mt-3">
-                  Only update {numNegatives + 1} word vectors!
-                </p>
-                <p className="text-xs text-green-400 mt-2">
-                  Speedup: O(V) → O(k) where k ≈ 5-20 🚀
-                </p>
-              </div>
-            </div>
           </div>
-        )}
 
-        {/* Step 1: Positive Pair */}
-        {currentStep === 1 && (
-          <div className="space-y-6 animate-fadeIn">
-            <h4 className="text-center text-gray-800 mb-4">Real Training Pair</h4>
+          <label className="mt-5 block text-sm font-bold text-slate-700" htmlFor="word2vec-negative-count">
+            <span className="flex justify-between"><span>Preview samples</span><strong>{sampleCount}</strong></span>
+            <input
+              id="word2vec-negative-count"
+              type="range"
+              {...NEGATIVE_SAMPLING_LIMITS.samples}
+              value={sampleCount}
+              onChange={(event) => setSampleCount(Number(event.target.value))}
+              className="mt-2 w-full accent-orange-600"
+            />
+          </label>
+        </aside>
 
-            <div className="flex justify-center items-center gap-8">
-              <div className="text-center">
-                <div className="w-24 h-24 rounded-xl bg-green-900/50 border-2 border-green-500 flex items-center justify-center">
-                  <span className="font-mono text-xl text-green-400">{centerWord}</span>
-                </div>
-                <p className="text-sm text-gray-800 mt-2">Center Word</p>
-              </div>
+        <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+          <h3 className="flex items-center gap-2 font-black text-slate-950"><BarChart3 size={17} /> Current noise distribution</h3>
+          <div className="mt-5"><DistributionTable distribution={experiment.distribution} /></div>
 
-              <div className="flex flex-col items-center">
-                <ThumbsUp className="text-green-400 mb-2" size={32} />
-                <span className="text-green-400 font-bold">REAL PAIR</span>
-                <span className="text-sm">Label = 1</span>
-              </div>
-
-              <div className="text-center">
-                <div className="w-24 h-24 rounded-xl bg-blue-900/50 border-2 border-blue-500 flex items-center justify-center">
-                  <span className="font-mono text-xl text-blue-600">{positiveContext}</span>
-                </div>
-                <p className="text-sm text-gray-800 mt-2">Context Word</p>
-              </div>
+          <div className="mt-5 rounded-xl border border-slate-200 bg-slate-50 p-4">
+            <div className="text-xs font-black uppercase tracking-wide text-slate-500">Seeded sample preview</div>
+            <div className="mt-3 flex flex-wrap gap-2">
+              {experiment.samples.map((token, index) => (
+                <span key={`${index}-${token}`} className="rounded-lg border border-orange-200 bg-white px-3 py-1 font-mono text-sm font-black text-orange-800">{token}</span>
+              ))}
             </div>
-
-            <div className="text-center text-gray-700 mt-4">
-              This pair came from the sentence: "...the quick brown <span className="text-green-400">fox</span> <span className="text-blue-600">jumps</span> over..."
-            </div>
-          </div>
-        )}
-
-        {/* Step 2: Negative Samples */}
-        {currentStep === 2 && (
-          <div className="space-y-6 animate-fadeIn">
-            <h4 className="text-center text-gray-800 mb-4">Sample Negative Words</h4>
-
-            {/* Positive */}
-            <div className="flex justify-center items-center gap-4 mb-6">
-              <div className="w-20 h-16 rounded-lg bg-green-900/50 border border-green-500 flex items-center justify-center">
-                <span className="font-mono text-green-400">{centerWord}</span>
-              </div>
-              <span className="text-gray-700">+</span>
-              <div className="w-20 h-16 rounded-lg bg-blue-900/50 border border-blue-500 flex items-center justify-center">
-                <span className="font-mono text-blue-600">{positiveContext}</span>
-              </div>
-              <ThumbsUp className="text-green-400" />
-            </div>
-
-            {/* Negatives */}
-            <div className="bg-red-900/20 rounded-xl p-4 border border-red-500/30">
-              <div className="flex items-center gap-2 mb-3">
-                <ThumbsDown className="text-red-400" />
-                <span className="text-red-400 font-bold">Negative Samples (Random)</span>
-              </div>
-              <div className="flex flex-wrap justify-center gap-2">
-                {negativeSamples.map((word, i) => (
-                  <div
-                    key={i}
-                    className="flex items-center gap-2 px-3 py-2 bg-black/30 rounded-lg animate-fadeIn"
-                    style={{ animationDelay: `${i * 100}ms` }}
-                  >
-                    <span className="font-mono text-green-400">{centerWord}</span>
-                    <span className="text-gray-700">+</span>
-                    <span className="font-mono text-red-400">{word}</span>
-                  </div>
-                ))}
-              </div>
-              <p className="text-xs text-gray-700 mt-3 text-center">
-                These words were NOT actually in the context of "{centerWord}"
-              </p>
-            </div>
-
-            {/* Sampling Distribution */}
-            <div className="bg-black/40 rounded-lg p-4">
-              <h5 className="text-gray-800 mb-2">Sampling Distribution:</h5>
-              <p className="text-xs text-gray-700">
-                P(w) ∝ freq(w)<sup>0.75</sup>
-              </p>
-              <p className="text-xs text-gray-800 mt-1">
-                The 0.75 power helps balance between very common and rare words
-              </p>
-            </div>
-          </div>
-        )}
-
-        {/* Step 3: Binary Classification */}
-        {currentStep === 3 && (
-          <div className="space-y-6 animate-fadeIn">
-            <h4 className="text-center text-gray-800 mb-4">Binary Classification</h4>
-
-            <div className="overflow-x-auto">
-              <table className="w-full">
-                <thead>
-                  <tr>
-                    <th className="text-left p-2 text-gray-800">Center</th>
-                    <th className="text-left p-2 text-gray-800">Word</th>
-                    <th className="text-left p-2 text-gray-800">Label</th>
-                    <th className="text-left p-2 text-gray-800">Type</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  <tr className="border-t border-white/10 bg-green-900/20">
-                    <td className="p-2 font-mono text-green-400">{centerWord}</td>
-                    <td className="p-2 font-mono text-blue-600">{positiveContext}</td>
-                    <td className="p-2 text-green-400 font-bold">1</td>
-                    <td className="p-2 text-green-400">Positive ✓</td>
-                  </tr>
-                  {negativeSamples.map((word, i) => (
-                    <tr key={i} className="border-t border-white/10 bg-red-900/10">
-                      <td className="p-2 font-mono text-green-400">{centerWord}</td>
-                      <td className="p-2 font-mono text-red-400">{word}</td>
-                      <td className="p-2 text-red-400 font-bold">0</td>
-                      <td className="p-2 text-red-400">Negative ✗</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-
-            <div className="bg-black/40 rounded-lg p-4">
-              <h5 className="text-orange-600 font-bold mb-2">Loss Function:</h5>
-              <div className="font-mono text-sm">
-                <p className="text-gray-700">L = -log σ(v<sub>context</sub> · v<sub>center</sub>)</p>
-                <p className="text-gray-700">- Σ log σ(-v<sub>negative</sub> · v<sub>center</sub>)</p>
-              </div>
-              <p className="text-xs text-gray-700 mt-2">
-                σ = sigmoid function: σ(x) = 1 / (1 + e<sup>-x</sup>)
-              </p>
-            </div>
-          </div>
-        )}
-
-        {/* Step 4: Update */}
-        {currentStep === 4 && (
-          <div className="space-y-6 animate-fadeIn">
-            <h4 className="text-center text-gray-800 mb-4">Efficient Weight Updates</h4>
-
-            <div className="grid md:grid-cols-2 gap-6">
-              {/* What gets updated */}
-              <div className="bg-green-900/20 rounded-xl p-4 border border-green-500/30">
-                <h5 className="text-green-400 font-bold mb-3">✅ Updated Vectors</h5>
-                <div className="space-y-2">
-                  <div className="flex items-center gap-2 px-3 py-2 bg-black/30 rounded">
-                    <span className="font-mono text-green-400">{centerWord}</span>
-                    <span className="text-xs text-gray-700">← center</span>
-                  </div>
-                  <div className="flex items-center gap-2 px-3 py-2 bg-black/30 rounded">
-                    <span className="font-mono text-blue-600">{positiveContext}</span>
-                    <span className="text-xs text-gray-700">← positive</span>
-                  </div>
-                  {negativeSamples.slice(0, 3).map((word, i) => (
-                    <div key={i} className="flex items-center gap-2 px-3 py-2 bg-black/30 rounded">
-                      <span className="font-mono text-red-400">{word}</span>
-                      <span className="text-xs text-gray-700">← negative</span>
-                    </div>
-                  ))}
-                  {negativeSamples.length > 3 && (
-                    <div className="text-gray-700">+ {negativeSamples.length - 3} more...</div>
-                  )}
-                </div>
-                <p className="text-xs text-green-400 mt-2">
-                  Total: {2 + numNegatives} vectors updated
-                </p>
-              </div>
-
-              {/* What stays the same */}
-              <div className="bg-gray-800/50 rounded-xl p-4 border border-gray-600/30">
-                <h5 className="text-gray-800 font-bold mb-3">⏸️ Not Updated</h5>
-                <div className="flex flex-wrap gap-2">
-                  {vocabulary.filter(w =>
-                    w !== centerWord &&
-                    w !== positiveContext &&
-                    !negativeSamples.includes(w)
-                  ).map((word, i) => (
-                    <span key={i} className="px-2 py-1 bg-black/30 rounded text-xs text-gray-700">
-                      {word}
-                    </span>
-                  ))}
-                  <span className="text-gray-800">+ thousands more...</span>
-                </div>
-                <p className="text-xs text-gray-700 mt-2">
-                  In real vocab: ~99.99% untouched per step
-                </p>
-              </div>
-            </div>
-
-            {/* Speed Comparison */}
-            <div className="bg-gradient-to-r from-orange-900/30 to-green-900/30 rounded-xl p-6 border border-orange-500/30">
-              <h5 className="text-orange-600 font-bold mb-4 flex items-center gap-2">
-                <TrendingUp /> Speed Improvement
-              </h5>
-              <div className="grid md:grid-cols-2 gap-4">
-                <div className="bg-black/30 rounded-lg p-3">
-                  <p className="text-sm">Full Softmax</p>
-                  <p className="text-2xl font-bold text-red-300">O(V)</p>
-                  <p className="text-xs text-gray-700">V = vocabulary size (100K+)</p>
-                </div>
-                <div className="bg-black/30 rounded-lg p-3">
-                  <p className="text-sm">Negative Sampling</p>
-                  <p className="text-2xl font-bold text-green-300">O(k)</p>
-                  <p className="text-xs text-gray-700">k = {numNegatives} (typically 5-20)</p>
-                </div>
-              </div>
-              <p className="text-center text-gray-800 mt-4">
-                Speedup: ~{Math.round(100000 / numNegatives).toLocaleString()}x faster per training step!
-              </p>
-            </div>
-          </div>
-        )}
-      </div>
-
-      {/* Key Insights */}
-      <div className="bg-black/40 rounded-xl p-6 border border-white/10">
-        <h4 className="font-bold text-white mb-4">💡 Key Insights</h4>
-        <div className="grid md:grid-cols-2 gap-4">
-          <div className="bg-white/5 rounded-lg p-4">
-            <h5 className="text-orange-600 font-medium mb-2">Why It Works</h5>
-            <p className="text-sm text-gray-800">
-              We don't need perfect probabilities—we just need vectors where
-              real pairs have higher scores than random pairs.
-            </p>
-          </div>
-          <div className="bg-white/5 rounded-lg p-4">
-            <h5 className="text-orange-600 font-medium mb-2">How Many Negatives?</h5>
-            <p className="text-sm text-gray-800">
-              • Small datasets: 5-20 negatives<br/>
-              • Large datasets: 2-5 negatives<br/>
-              More data = fewer negatives needed
-            </p>
+            <p className="mt-3 text-xs leading-5 text-slate-500">The preview is seeded for reproducible teaching. A training implementation draws repeatedly from the chosen noise distribution.</p>
           </div>
         </div>
-      </div>
+      </section>
 
-      {/* Formula */}
-      <div className="bg-gradient-to-r from-purple-900/20 to-blue-900/20 rounded-xl p-6 border border-purple-500/30">
-        <h4 className="font-bold text-purple-600 mb-4">📐 Negative Sampling Objective</h4>
-        <div className="bg-black/50 rounded-lg p-4 font-mono text-center">
-          <p className="text-purple-300">
-            log σ(v'<sub>context</sub> · v<sub>center</sub>) +
-            Σ<sub>k</sub> 𝔼<sub>w~P(w)</sub>[log σ(-v'<sub>w</sub> · v<sub>center</sub>)]
-          </p>
+      <section className="grid gap-4 md:grid-cols-3">
+        <div className="rounded-xl border border-slate-200 bg-white p-4">
+          <div className="text-xs font-black uppercase tracking-wide text-slate-500">Uniform</div>
+          <strong className="mt-1 block text-xl text-slate-950">the: {(probabilityFor(references.uniform, 'the') * 100).toFixed(1)}%</strong>
+          <p className="mt-1 text-sm leading-5 text-slate-600">Ignores corpus frequency entirely. Useful as a contrast, not the classic Word2Vec choice.</p>
         </div>
-        <p className="text-sm text-gray-800 mt-4 text-center">
-          Maximize: dot product with positive context<br/>
-          Minimize: dot product with k negative samples
-        </p>
-      </div>
+        <div className="rounded-xl border border-orange-200 bg-orange-50 p-4">
+          <div className="text-xs font-black uppercase tracking-wide text-orange-700">Unigram^0.75</div>
+          <strong className="mt-1 block text-xl text-slate-950">the: {(probabilityFor(references.word2vec, 'the') * 100).toFixed(1)}%</strong>
+          <p className="mt-1 text-sm leading-5 text-slate-700">Still samples common words more often, but less aggressively than raw unigram frequency.</p>
+        </div>
+        <div className="rounded-xl border border-slate-200 bg-white p-4">
+          <div className="text-xs font-black uppercase tracking-wide text-slate-500">Raw unigram</div>
+          <strong className="mt-1 block text-xl text-slate-950">the: {(probabilityFor(references.unigram, 'the') * 100).toFixed(1)}%</strong>
+          <p className="mt-1 text-sm leading-5 text-slate-600">Tracks frequency directly and is more concentrated on very common words.</p>
+        </div>
+      </section>
+
+      <section className="rounded-2xl border border-blue-200 bg-blue-50 p-5 text-sm leading-6 text-blue-950">
+        <div className="flex items-start gap-3">
+          <Info size={18} className="mt-1 shrink-0" />
+          <p><strong>Do not mix two different tricks:</strong> the noise distribution decides which negative context words are sampled. Word2Vec's frequent-word subsampling is a separate preprocessing/training heuristic that can discard very common observed tokens. Negative sampling is also an alternative training objective, not an exact shortcut that computes the full softmax probability.</p>
+        </div>
+      </section>
     </div>
   );
 }
