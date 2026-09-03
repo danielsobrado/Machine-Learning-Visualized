@@ -49,9 +49,3 @@ export const FOREST_DIVERSITY_CHART = Object.freeze({
   top: 20,
   bottom: 42,
 });
-
-export const FOREST_DIVERSITY_REFERENCE_CORRELATIONS = Object.freeze([
-  { value: 0, label: 'independent errors' },
-  { value: 0.5, label: 'moderately correlated' },
-  { value: 0.9, label: 'near-clone trees' },
-]);
