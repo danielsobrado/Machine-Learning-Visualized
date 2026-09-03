@@ -2,11 +2,20 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 
 import {
+  DIAGNOSTIC_ITERATIONS,
+  INITIALIZATION_CASES,
+  K_DIAGNOSTIC_VALUES,
+} from './kMeansDiagnosticsConstants.js';
+import {
   INITIAL_CENTROIDS,
   POINTS,
   assign,
+  evaluateKChoices,
+  farthestFirstCentroids,
   inertia,
   runKMeans,
+  runKMeansForData,
+  silhouetteScore,
   updateCentroids,
 } from './kMeansModel.js';
 
@@ -59,4 +68,30 @@ test('computed inertia matches assigned squared distances', () => {
 
   closeTo(result.inertia, manual);
   closeTo(inertia(POINTS, assign(POINTS, INITIAL_CENTROIDS.slice(0, 3)), INITIAL_CENTROIDS.slice(0, 3)), runKMeans(3, 0).inertia);
+});
+
+test('farthest-first initialization returns distinct spread-out seeds', () => {
+  const centroids = farthestFirstCentroids(POINTS, 4);
+  assert.equal(centroids.length, 4);
+  assert.equal(new Set(centroids.map((centroid) => centroid.join(','))).size, 4);
+  assert.throws(() => farthestFirstCentroids(POINTS, 0), RangeError);
+});
+
+test('inertia keeps falling after the dataset silhouette has already peaked', () => {
+  const choices = evaluateKChoices(POINTS, K_DIAGNOSTIC_VALUES, DIAGNOSTIC_ITERATIONS);
+  const bestSilhouette = choices.reduce((best, choice) => (choice.silhouette > best.silhouette ? choice : best));
+
+  assert.equal(bestSilhouette.k, 4);
+  assert.ok(choices.every((choice) => choice.silhouette >= -1 && choice.silhouette <= 1));
+  for (let index = 1; index < choices.length; index += 1) {
+    assert.ok(choices[index].inertia < choices[index - 1].inertia);
+  }
+});
+
+test('different initializations can converge to different local optima for the same k', () => {
+  const spread = runKMeansForData(POINTS, INITIALIZATION_CASES.spread.centroids, DIAGNOSTIC_ITERATIONS);
+  const crowded = runKMeansForData(POINTS, INITIALIZATION_CASES.crowded.centroids, DIAGNOSTIC_ITERATIONS);
+
+  assert.ok(crowded.inertia > spread.inertia + 10);
+  assert.ok(silhouetteScore(POINTS, spread.assignments) > silhouetteScore(POINTS, crowded.assignments));
 });
