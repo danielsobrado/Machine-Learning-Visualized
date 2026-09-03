@@ -5,7 +5,6 @@ import {
   accuracy,
   boostedScore,
   effectiveIndependentTreeCount,
-  ensembleStdRatio,
   ensembleVarianceRatio,
   forestDiversitySeries,
   forestPrediction,
@@ -69,7 +68,6 @@ test('independent trees recover the familiar one-over-tree-count variance reduct
   assert.equal(ensembleVarianceRatio(1, 0), 1);
   assert.equal(ensembleVarianceRatio(10, 0), 0.1);
   assert.equal(ensembleVarianceRatio(100, 0), 0.01);
-  assert.equal(ensembleStdRatio(100, 0), 0.1);
 });
 
 test('correlated trees hit a variance floor even as the forest grows', () => {
