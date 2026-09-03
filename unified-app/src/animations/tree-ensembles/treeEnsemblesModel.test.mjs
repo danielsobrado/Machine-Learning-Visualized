@@ -4,6 +4,10 @@ import {
   POINTS,
   accuracy,
   boostedScore,
+  effectiveIndependentTreeCount,
+  ensembleStdRatio,
+  ensembleVarianceRatio,
+  forestDiversitySeries,
   forestPrediction,
   predictTree,
   ruleVote,
@@ -35,8 +39,14 @@ test('forest prediction aggregates only the selected number of rule votes', () =
 
   assert.equal(forest.votes.length, 5);
   assert.equal(forest.positiveVotes, forest.votes.filter(Boolean).length);
-  assert.equal(forest.probability, forest.positiveVotes / 5);
+  assert.equal(forest.positiveVoteShare, forest.positiveVotes / 5);
   assert.equal(forest.label, forest.positiveVotes >= 3 ? 1 : 0);
+  assert.equal('probability' in forest, false);
+});
+
+test('forest prediction validates the teaching forest tree count', () => {
+  assert.throws(() => forestPrediction(POINTS[0], 0), RangeError);
+  assert.throws(() => forestPrediction(POINTS[0], 8), RangeError);
 });
 
 test('ruleVote honors positive and inverted threshold polarity', () => {
@@ -53,6 +63,46 @@ test('boosting score applies only matched correction rounds with learning-rate s
   assert.equal(boosted.steps.filter((step) => step.matched).length, 3);
   assert.equal(Number((boosted.score - (-0.15)).toFixed(6)), Number(matchedDeltaSum.toFixed(6)));
   assert.ok(boosted.probability > 0.5);
+});
+
+test('independent trees recover the familiar one-over-tree-count variance reduction', () => {
+  assert.equal(ensembleVarianceRatio(1, 0), 1);
+  assert.equal(ensembleVarianceRatio(10, 0), 0.1);
+  assert.equal(ensembleVarianceRatio(100, 0), 0.01);
+  assert.equal(ensembleStdRatio(100, 0), 0.1);
+});
+
+test('correlated trees hit a variance floor even as the forest grows', () => {
+  assert.equal(ensembleVarianceRatio(100, 0.9), 0.901);
+  assert.ok(ensembleVarianceRatio(100, 0.9) > ensembleVarianceRatio(10, 0));
+  assert.ok(ensembleVarianceRatio(100, 0.9) > 0.9);
+});
+
+test('near-clone trees can have an effective independent count close to one', () => {
+  const effectiveTrees = effectiveIndependentTreeCount(100, 0.9);
+
+  assert.ok(effectiveTrees > 1);
+  assert.ok(effectiveTrees < 1.2);
+});
+
+test('forest diversity series improves with more trees but preserves the correlation floor', () => {
+  const series = forestDiversitySeries(0.8, 100);
+
+  assert.equal(series.length, 100);
+  assert.equal(series[0].varianceRatio, 1);
+  assert.equal(series[99].independentVarianceRatio, 0.01);
+  assert.ok(series[99].varianceRatio > 0.8);
+  for (let index = 1; index < series.length; index += 1) {
+    assert.ok(series[index].varianceRatio < series[index - 1].varianceRatio);
+  }
+});
+
+test('forest diversity inputs reject invalid counts and correlations', () => {
+  assert.throws(() => ensembleVarianceRatio(0, 0.5), RangeError);
+  assert.throws(() => ensembleVarianceRatio(10.5, 0.5), RangeError);
+  assert.throws(() => ensembleVarianceRatio(10, -0.1), RangeError);
+  assert.throws(() => ensembleVarianceRatio(10, 1.1), RangeError);
+  assert.throws(() => forestDiversitySeries(0.5, 0), RangeError);
 });
 
 test('toScreen projects normalized points into the split-map chart bounds', () => {
