@@ -10,22 +10,12 @@ import {
   LessonStage,
   LessonStat,
 } from '../../components/animation-shell/LessonUi';
-
-function erf(x) {
-  const sign = x < 0 ? -1 : 1;
-  const a = Math.abs(x);
-  const t = 1 / (1 + 0.3275911 * a);
-  const y = 1 - (((((1.061405429 * t - 1.453152027) * t) + 1.421413741) * t - 0.284496736) * t + 0.254829592) * t * Math.exp(-a * a);
-  return sign * y;
-}
-
-function normalCdf(x) {
-  return 0.5 * (1 + erf(x / Math.SQRT2));
-}
-
-function clamp(value, min, max) {
-  return Math.min(max, Math.max(min, value));
-}
+import OptionalStoppingLab from './OptionalStoppingLab.jsx';
+import {
+  AB_TEST_DEFAULTS,
+  SIGNIFICANCE_ALPHA,
+} from './abTestingConstants.js';
+import { planningMetrics } from './abTestingModel.js';
 
 function AssignmentDiagram({ treatmentShare }) {
   const users = Array.from({ length: 40 }, (_, index) => {
@@ -63,60 +53,32 @@ function AssignmentDiagram({ treatmentShare }) {
 }
 
 export default function AbTestingFoundationsAnimation() {
-  const [baselinePct, setBaselinePct] = useState(12);
-  const [liftPct, setLiftPct] = useState(8);
-  const [sampleSize, setSampleSize] = useState(12000);
-  const [treatmentShare, setTreatmentShare] = useState(50);
-  const [mdePct, setMdePct] = useState(5);
-  const [guardrailImpactPct, setGuardrailImpactPct] = useState(-1.5);
-  const [guardrailThresholdPct, setGuardrailThresholdPct] = useState(-2);
+  const [baselinePct, setBaselinePct] = useState(AB_TEST_DEFAULTS.baselinePct);
+  const [liftPct, setLiftPct] = useState(AB_TEST_DEFAULTS.liftPct);
+  const [sampleSize, setSampleSize] = useState(AB_TEST_DEFAULTS.sampleSize);
+  const [treatmentShare, setTreatmentShare] = useState(AB_TEST_DEFAULTS.treatmentShare);
+  const [mdePct, setMdePct] = useState(AB_TEST_DEFAULTS.mdePct);
+  const [guardrailImpactPct, setGuardrailImpactPct] = useState(AB_TEST_DEFAULTS.guardrailImpactPct);
+  const [guardrailThresholdPct, setGuardrailThresholdPct] = useState(AB_TEST_DEFAULTS.guardrailThresholdPct);
 
-  const metrics = useMemo(() => {
-    const treatmentN = Math.round(sampleSize * (treatmentShare / 100));
-    const controlN = sampleSize - treatmentN;
-    const controlRate = baselinePct / 100;
-    const treatmentRate = clamp(controlRate * (1 + liftPct / 100), 0.001, 0.999);
-    const diff = treatmentRate - controlRate;
-    const pooled = (controlRate * controlN + treatmentRate * treatmentN) / sampleSize;
-    const se = Math.sqrt(pooled * (1 - pooled) * ((1 / Math.max(1, controlN)) + (1 / Math.max(1, treatmentN))));
-    const z = se === 0 ? 0 : diff / se;
-    const pValue = Math.min(1, 2 * (1 - normalCdf(Math.abs(z))));
-    const ciLow = diff - 1.96 * se;
-    const ciHigh = diff + 1.96 * se;
-    const relativeLift = controlRate === 0 ? 0 : diff / controlRate;
-    const practical = Math.abs(relativeLift) * 100 >= mdePct;
-    const significant = pValue < 0.05;
-    const guardrailPass = guardrailImpactPct >= guardrailThresholdPct;
-    const allocationRisk = Math.min(treatmentN, controlN) / Math.max(treatmentN, controlN) < 0.35;
-
-    return {
-      treatmentN,
-      controlN,
-      controlRate,
-      treatmentRate,
-      diff,
-      se,
-      z,
-      pValue,
-      ciLow,
-      ciHigh,
-      relativeLift,
-      practical,
-      significant,
-      guardrailPass,
-      allocationRisk,
-      decisionReady: significant && practical && guardrailPass && !allocationRisk,
-    };
-  }, [baselinePct, guardrailImpactPct, guardrailThresholdPct, liftPct, mdePct, sampleSize, treatmentShare]);
+  const metrics = useMemo(() => planningMetrics({
+    baselinePct,
+    liftPct,
+    sampleSize,
+    treatmentShare,
+    mdePct,
+    guardrailImpactPct,
+    guardrailThresholdPct,
+  }), [baselinePct, guardrailImpactPct, guardrailThresholdPct, liftPct, mdePct, sampleSize, treatmentShare]);
 
   const reset = () => {
-    setBaselinePct(12);
-    setLiftPct(8);
-    setSampleSize(12000);
-    setTreatmentShare(50);
-    setMdePct(5);
-    setGuardrailImpactPct(-1.5);
-    setGuardrailThresholdPct(-2);
+    setBaselinePct(AB_TEST_DEFAULTS.baselinePct);
+    setLiftPct(AB_TEST_DEFAULTS.liftPct);
+    setSampleSize(AB_TEST_DEFAULTS.sampleSize);
+    setTreatmentShare(AB_TEST_DEFAULTS.treatmentShare);
+    setMdePct(AB_TEST_DEFAULTS.mdePct);
+    setGuardrailImpactPct(AB_TEST_DEFAULTS.guardrailImpactPct);
+    setGuardrailThresholdPct(AB_TEST_DEFAULTS.guardrailThresholdPct);
   };
 
   const barMax = Math.max(metrics.controlRate, metrics.treatmentRate, 0.02);
@@ -143,17 +105,20 @@ export default function AbTestingFoundationsAnimation() {
       </LessonPanel>
 
       <LessonPanel>
-        <LessonKicker icon={SlidersHorizontal}>Experiment controls</LessonKicker>
+        <LessonKicker icon={SlidersHorizontal}>Planning assumptions</LessonKicker>
+        <p className="ua-lesson-footnote">
+          This first section is a design calculator: baseline and lift are assumed population rates, not sampled observations. Use it to reason about precision, allocation, practical effect size, and guardrails before running the experiment.
+        </p>
         <div className="ua-lesson-control-grid">
           <label>
             Baseline conversion: {baselinePct}%
             <input type="range" min="1" max="40" value={baselinePct} onChange={(event) => setBaselinePct(Number(event.target.value))} />
-            <span>Expected control-group success rate.</span>
+            <span>Assumed control-group success rate.</span>
           </label>
           <label>
-            Treatment lift: {liftPct}%
+            Assumed treatment lift: {liftPct}%
             <input type="range" min="-20" max="30" value={liftPct} onChange={(event) => setLiftPct(Number(event.target.value))} />
-            <span>Relative change caused by the variant.</span>
+            <span>Population effect used for planning.</span>
           </label>
           <label>
             Total sample size: {sampleSize.toLocaleString()}
@@ -173,7 +138,7 @@ export default function AbTestingFoundationsAnimation() {
           <label>
             Guardrail impact: {guardrailImpactPct.toFixed(1)}%
             <input type="range" min="-8" max="5" step="0.5" value={guardrailImpactPct} onChange={(event) => setGuardrailImpactPct(Number(event.target.value))} />
-            <span>Observed change on a secondary metric such as latency, refunds, or churn.</span>
+            <span>Scenario change on a secondary metric such as latency, refunds, or churn.</span>
           </label>
           <label>
             Guardrail breach threshold: {guardrailThresholdPct.toFixed(1)}%
@@ -184,21 +149,21 @@ export default function AbTestingFoundationsAnimation() {
       </LessonPanel>
 
       <section className="ua-lesson-stat-grid">
-        <LessonStat label="Control group" value={metrics.controlN.toLocaleString()} detail={`${(metrics.controlRate * 100).toFixed(1)}% conversion`} tone="cyan" />
-        <LessonStat label="Treatment group" value={metrics.treatmentN.toLocaleString()} detail={`${(metrics.treatmentRate * 100).toFixed(1)}% conversion`} tone="emerald" />
-        <LessonStat label="Relative lift" value={`${(metrics.relativeLift * 100).toFixed(1)}%`} detail={`MDE target: ${mdePct}%`} tone={metrics.practical ? 'emerald' : 'amber'} />
-        <LessonStat label="p-value" value={`${(metrics.pValue * 100).toFixed(1)}%`} detail={metrics.significant ? 'Below 5% alpha' : 'Not significant yet'} tone={metrics.significant ? 'emerald' : 'amber'} />
+        <LessonStat label="Control group" value={metrics.controlN.toLocaleString()} detail={`${(metrics.controlRate * 100).toFixed(1)}% assumed rate`} tone="cyan" />
+        <LessonStat label="Treatment group" value={metrics.treatmentN.toLocaleString()} detail={`${(metrics.treatmentRate * 100).toFixed(1)}% assumed rate`} tone="emerald" />
+        <LessonStat label="Assumed lift" value={`${(metrics.relativeLift * 100).toFixed(1)}%`} detail={`MDE target: ${mdePct}%`} tone={metrics.practical ? 'emerald' : 'amber'} />
+        <LessonStat label="Expected-case p" value={`${(metrics.pValue * 100).toFixed(1)}%`} detail={`Planning calculation at α=${SIGNIFICANCE_ALPHA}`} tone={metrics.significant ? 'emerald' : 'amber'} />
       </section>
 
       <section className="ua-lesson-split-grid">
         <AssignmentDiagram treatmentShare={treatmentShare} />
 
         <LessonPanel>
-          <LessonKicker icon={BarChart3}>Metric readout</LessonKicker>
+          <LessonKicker icon={BarChart3}>Expected-effect readout</LessonKicker>
           <div className="ua-lesson-bar-stack">
             <div>
               <div className="ua-lesson-bar-label">
-                <span>Control</span>
+                <span>Control assumption</span>
                 <span>{(metrics.controlRate * 100).toFixed(2)}%</span>
               </div>
               <div className="ua-lesson-bar-track">
@@ -207,7 +172,7 @@ export default function AbTestingFoundationsAnimation() {
             </div>
             <div>
               <div className="ua-lesson-bar-label">
-                <span>Treatment</span>
+                <span>Treatment assumption</span>
                 <span>{(metrics.treatmentRate * 100).toFixed(2)}%</span>
               </div>
               <div className="ua-lesson-bar-track">
@@ -216,13 +181,12 @@ export default function AbTestingFoundationsAnimation() {
             </div>
           </div>
           <LessonEquation>
-            absolute lift = {(metrics.diff * 100).toFixed(2)} pp<br />
-            95% CI = {(metrics.ciLow * 100).toFixed(2)} pp to {(metrics.ciHigh * 100).toFixed(2)} pp<br />
-            z = {metrics.z.toFixed(2)}, p = {metrics.pValue.toFixed(3)}
+            assumed absolute lift = {(metrics.diff * 100).toFixed(2)} pp<br />
+            approximate 95% interval width = {(metrics.ciLow * 100).toFixed(2)} pp to {(metrics.ciHigh * 100).toFixed(2)} pp<br />
+            expected-case z = {metrics.z.toFixed(2)}, p = {metrics.pValue.toFixed(3)}
           </LessonEquation>
           <p className="ua-lesson-footnote">
-            The same result needs both statistical evidence and practical size. A tiny but significant lift may still
-            be too small to ship.
+            A realized experiment will fluctuate around these assumptions. Its observed rates, interval, and p-value are random; the optional-stopping lab below shows why that randomness matters.
           </p>
         </LessonPanel>
       </section>
@@ -231,10 +195,10 @@ export default function AbTestingFoundationsAnimation() {
         <LessonCallout tone={metrics.significant ? 'good' : 'warn'}>
           <p className="ua-lesson-callout-title">
             {metrics.significant ? <CheckCircle2 size={14} /> : <AlertTriangle size={14} />}
-            Statistical signal
+            Expected statistical strength
           </p>
           <p>
-            {metrics.significant ? 'The observed gap is unlikely under a no-effect baseline.' : 'The observed gap is still plausible under noise.'}
+            {metrics.significant ? 'At the assumed rates, the planned sample produces a strong expected-case z statistic.' : 'At the assumed rates, the planned sample is unlikely to produce strong evidence.'}
           </p>
         </LessonCallout>
         <LessonCallout tone={metrics.practical ? 'good' : 'warn'}>
@@ -243,7 +207,7 @@ export default function AbTestingFoundationsAnimation() {
             Practical size
           </p>
           <p>
-            {metrics.practical ? 'The lift clears the minimum effect worth acting on.' : 'The lift is below the pre-declared practical threshold.'}
+            {metrics.practical ? 'The assumed lift clears the minimum effect worth acting on.' : 'The assumed lift is below the pre-declared practical threshold.'}
           </p>
         </LessonCallout>
         <LessonCallout tone={metrics.guardrailPass ? 'good' : 'warn'}>
@@ -258,14 +222,16 @@ export default function AbTestingFoundationsAnimation() {
           </p>
         </LessonCallout>
         <LessonCallout tone={metrics.decisionReady ? 'good' : 'neutral'}>
-          <p className="ua-lesson-callout-title">Decision</p>
+          <p className="ua-lesson-callout-title">Design readiness</p>
           <p>
             {metrics.decisionReady
-              ? 'Ship candidate: signal, size, guardrails, and allocation all pass.'
-              : 'Do not ship automatically. Fix the design, collect more data, or document the tradeoff.'}
+              ? 'Promising design scenario: expected strength, size, guardrail, and allocation checks pass. The realized experiment still decides the outcome.'
+              : 'Revise the design, sample, allocation, or decision thresholds before treating this as launch-ready.'}
           </p>
         </LessonCallout>
       </section>
+
+      <OptionalStoppingLab />
 
       <AssessmentPanel lessonId="ab-testing-foundations" />
     </LessonStage>
