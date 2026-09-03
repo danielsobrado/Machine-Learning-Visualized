@@ -4,7 +4,9 @@ import {
   REFERENCE_BINS,
   SHIFT_SCENARIOS,
 } from './calibrationConstants.js';
+import { CALIBRATION_SLICE_EXAMPLE } from './calibrationSliceConstants.js';
 import {
+  aggregateCalibrationSlices,
   baseRate,
   brierScore,
   diagnoseShift,
@@ -84,4 +86,13 @@ test('recalibrator is fitted on calibration bins and can change fixed-threshold 
   const rawDecision = thresholdStats(scenario.evaluationBins, 0.5);
   const calibratedDecision = thresholdStats(calibrated, 0.5);
   assert.ok(calibratedDecision.predictedPositive < rawDecision.predictedPositive);
+});
+
+test('aggregate calibration can hide large opposing slice errors', () => {
+  const slices = CALIBRATION_SLICE_EXAMPLE.slices;
+  const aggregate = aggregateCalibrationSlices(slices);
+
+  assert.ok(expectedCalibrationError(aggregate) < 1e-8);
+  assert.ok(slices.every((slice) => expectedCalibrationError(slice.bins) > 0.13));
+  assert.equal(totalCount(aggregate), slices.reduce((sum, slice) => sum + totalCount(slice.bins), 0));
 });
