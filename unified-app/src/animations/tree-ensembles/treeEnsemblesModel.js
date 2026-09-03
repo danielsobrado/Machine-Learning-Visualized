@@ -1,35 +1,23 @@
-export const POINTS = [
-  { x: 0.12, y: 0.22, label: 0 },
-  { x: 0.18, y: 0.36, label: 0 },
-  { x: 0.25, y: 0.64, label: 0 },
-  { x: 0.31, y: 0.79, label: 1 },
-  { x: 0.42, y: 0.28, label: 0 },
-  { x: 0.48, y: 0.58, label: 1 },
-  { x: 0.54, y: 0.74, label: 1 },
-  { x: 0.60, y: 0.34, label: 0 },
-  { x: 0.67, y: 0.49, label: 1 },
-  { x: 0.73, y: 0.71, label: 1 },
-  { x: 0.81, y: 0.28, label: 1 },
-  { x: 0.88, y: 0.54, label: 1 },
-];
+import {
+  BOOSTING_STEPS,
+  FOREST_DIVERSITY_DEMO,
+  FOREST_RULES,
+  POINTS,
+} from './treeEnsemblesConstants.js';
 
-export const FOREST_RULES = [
-  { feature: 'x', threshold: 0.52, polarity: 1 },
-  { feature: 'y', threshold: 0.46, polarity: 1 },
-  { feature: 'x', threshold: 0.74, polarity: -1 },
-  { feature: 'y', threshold: 0.70, polarity: 1 },
-  { feature: 'x', threshold: 0.35, polarity: 1 },
-  { feature: 'y', threshold: 0.31, polarity: 1 },
-  { feature: 'x', threshold: 0.62, polarity: 1 },
-];
+export { POINTS } from './treeEnsemblesConstants.js';
 
-export const BOOSTING_STEPS = [
-  { rule: 'x > 0.50', contribution: 0.42 },
-  { rule: 'y > 0.55', contribution: 0.30 },
-  { rule: 'x > 0.75', contribution: 0.18 },
-  { rule: 'y < 0.32', contribution: -0.16 },
-  { rule: 'x < 0.28', contribution: -0.14 },
-];
+function assertPositiveInteger(value, name) {
+  if (!Number.isInteger(value) || value < 1) {
+    throw new RangeError(`${name} must be a positive integer`);
+  }
+}
+
+function assertCorrelation(value) {
+  if (!Number.isFinite(value) || value < 0 || value > 1) {
+    throw new RangeError('correlation must be between 0 and 1');
+  }
+}
 
 export function predictTree(point, depth) {
   if (point.x < 0.52) {
@@ -48,12 +36,17 @@ export function ruleVote(point, rule) {
 }
 
 export function forestPrediction(point, treeCount) {
+  assertPositiveInteger(treeCount, 'treeCount');
+  if (treeCount > FOREST_RULES.length) {
+    throw new RangeError(`treeCount cannot exceed ${FOREST_RULES.length} in this teaching forest`);
+  }
+
   const votes = FOREST_RULES.slice(0, treeCount).map((rule) => ruleVote(point, rule));
   const positiveVotes = votes.filter(Boolean).length;
   return {
     votes,
     positiveVotes,
-    probability: positiveVotes / votes.length,
+    positiveVoteShare: positiveVotes / votes.length,
     label: positiveVotes >= Math.ceil(votes.length / 2) ? 1 : 0,
   };
 }
@@ -72,6 +65,36 @@ export function boostedScore(point, rounds, learningRate) {
     return { ...step, matched, delta, score };
   });
   return { score, probability: 1 / (1 + Math.exp(-score * 2.4)), steps };
+}
+
+export function ensembleVarianceRatio(treeCount, correlation) {
+  assertPositiveInteger(treeCount, 'treeCount');
+  assertCorrelation(correlation);
+  return correlation + ((1 - correlation) / treeCount);
+}
+
+export function ensembleStdRatio(treeCount, correlation) {
+  return Math.sqrt(ensembleVarianceRatio(treeCount, correlation));
+}
+
+export function effectiveIndependentTreeCount(treeCount, correlation) {
+  return 1 / ensembleVarianceRatio(treeCount, correlation);
+}
+
+export function forestDiversitySeries(
+  correlation,
+  maxTrees = FOREST_DIVERSITY_DEMO.maxTrees,
+) {
+  assertCorrelation(correlation);
+  assertPositiveInteger(maxTrees, 'maxTrees');
+  return Array.from({ length: maxTrees }, (_, index) => {
+    const treeCount = index + 1;
+    return {
+      treeCount,
+      varianceRatio: ensembleVarianceRatio(treeCount, correlation),
+      independentVarianceRatio: ensembleVarianceRatio(treeCount, 0),
+    };
+  });
 }
 
 export function accuracy(depth) {
