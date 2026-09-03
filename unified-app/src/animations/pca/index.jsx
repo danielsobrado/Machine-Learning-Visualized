@@ -1,59 +1,18 @@
 import React, { useMemo, useState } from 'react';
 import { ArrowRight, RotateCcw, ScatterChart, SlidersHorizontal } from 'lucide-react';
-
-const RAW_POINTS = [
-  [-2.4, -1.8], [-2.0, -1.1], [-1.7, -1.4], [-1.4, -0.6], [-1.0, -0.9],
-  [-0.7, -0.2], [-0.3, -0.4], [0.0, 0.1], [0.4, 0.3], [0.8, 0.5],
-  [1.1, 1.0], [1.4, 0.7], [1.8, 1.5], [2.1, 1.2], [2.5, 2.0],
-];
-
-function rotate([x, y], angle) {
-  const cos = Math.cos(angle);
-  const sin = Math.sin(angle);
-  return [x * cos - y * sin, x * sin + y * cos];
-}
-
-function makePoints(correlation, noise) {
-  const angle = correlation * 0.65;
-  const spreadY = 0.35 + (1 - Math.abs(correlation)) * 0.75 + noise * 0.35;
-
-  return RAW_POINTS.map(([x, y], index) => {
-    const jitter = Math.sin(index * 2.3) * noise;
-    return rotate([x, y * spreadY + jitter], angle);
-  });
-}
-
-function covariance(points) {
-  const mean = points.reduce((sum, point) => [sum[0] + point[0], sum[1] + point[1]], [0, 0]).map((value) => value / points.length);
-  const centered = points.map(([x, y]) => [x - mean[0], y - mean[1]]);
-  const [xx, xy, yy] = centered.reduce(
-    (acc, [x, y]) => [acc[0] + x * x, acc[1] + x * y, acc[2] + y * y],
-    [0, 0, 0],
-  ).map((value) => value / (points.length - 1));
-  const trace = xx + yy;
-  const determinant = xx * yy - xy * xy;
-  const root = Math.sqrt(Math.max(0, trace * trace - 4 * determinant));
-  const lambda1 = (trace + root) / 2;
-  const lambda2 = (trace - root) / 2;
-  const angle = 0.5 * Math.atan2(2 * xy, xx - yy);
-
-  return { mean, centered, lambda1, lambda2, angle };
-}
-
-function toScreen([x, y], size = 360) {
-  const scale = 58;
-  return [size / 2 + x * scale, size / 2 - y * scale];
-}
-
-function project(point, mean, angle) {
-  const unit = [Math.cos(angle), Math.sin(angle)];
-  const centered = [point[0] - mean[0], point[1] - mean[1]];
-  const score = centered[0] * unit[0] + centered[1] * unit[1];
-  return [mean[0] + score * unit[0], mean[1] + score * unit[1]];
-}
+import PcaFailureLab from './PcaFailureLab.jsx';
+import { PCA_COLORS, PCA_DEFAULTS } from './pcaConstants.js';
+import {
+  covariance,
+  explainedVarianceRatio,
+  makePoints,
+  principalLoadings,
+  project,
+  toScreen,
+} from './pcaModel.js';
 
 function Axis({ mean, angle, length, className }) {
-  const unit = [Math.cos(angle), Math.sin(angle)];
+  const unit = principalLoadings(angle);
   const start = toScreen([mean[0] - unit[0] * length, mean[1] - unit[1] * length]);
   const end = toScreen([mean[0] + unit[0] * length, mean[1] + unit[1] * length]);
 
@@ -71,20 +30,20 @@ function Stat({ label, value, detail }) {
 }
 
 export default function PCAAnimation() {
-  const [correlation, setCorrelation] = useState(0.65);
-  const [noise, setNoise] = useState(0.25);
-  const [components, setComponents] = useState(1);
+  const [correlation, setCorrelation] = useState(PCA_DEFAULTS.correlation);
+  const [noise, setNoise] = useState(PCA_DEFAULTS.noise);
+  const [components, setComponents] = useState(PCA_DEFAULTS.components);
   const points = useMemo(() => makePoints(correlation, noise), [correlation, noise]);
   const pca = useMemo(() => covariance(points), [points]);
-  const explained = pca.lambda1 / (pca.lambda1 + pca.lambda2);
+  const explained = explainedVarianceRatio(pca);
   const reconstructed = points.map((point) => (
     components === 1 ? project(point, pca.mean, pca.angle) : point
   ));
 
   const reset = () => {
-    setCorrelation(0.65);
-    setNoise(0.25);
-    setComponents(1);
+    setCorrelation(PCA_DEFAULTS.correlation);
+    setNoise(PCA_DEFAULTS.noise);
+    setComponents(PCA_DEFAULTS.components);
   };
 
   return (
@@ -96,7 +55,7 @@ export default function PCAAnimation() {
             <h2 className="mt-1 text-2xl font-black text-slate-950">Principal Component Analysis</h2>
             <p className="mt-2 max-w-3xl text-sm leading-6 text-slate-700">
               PCA centers the data, finds the directions where points vary most, then projects onto the strongest
-              components so lower-dimensional coordinates keep as much signal as possible.
+              components so lower-dimensional coordinates retain as much variance as possible. Variance is the objective—not a guarantee of task-relevant signal.
             </p>
           </div>
           <button
@@ -130,6 +89,7 @@ export default function PCAAnimation() {
               max="0.9"
               step="0.05"
               value={correlation}
+              aria-label={`Correlation: ${correlation.toFixed(2)}`}
               onChange={(event) => setCorrelation(Number(event.target.value))}
             />
           </label>
@@ -141,6 +101,7 @@ export default function PCAAnimation() {
               max="0.9"
               step="0.05"
               value={noise}
+              aria-label={`Noise: ${noise.toFixed(2)}`}
               onChange={(event) => setNoise(Number(event.target.value))}
             />
           </label>
@@ -150,6 +111,7 @@ export default function PCAAnimation() {
                 key={count}
                 type="button"
                 onClick={() => setComponents(count)}
+                aria-pressed={components === count}
                 className={`rounded-lg border px-3 py-2 text-sm font-bold ${
                   components === count ? 'border-blue-600 bg-blue-600 text-white' : 'border-slate-300 bg-white text-slate-700'
                 }`}
@@ -167,9 +129,9 @@ export default function PCAAnimation() {
             <ScatterChart size={16} />
             Data, components, and reconstruction
           </div>
-          <svg viewBox="0 0 360 360" className="h-auto w-full rounded-lg border border-slate-200 bg-slate-50">
-            <line x1="180" y1="20" x2="180" y2="340" stroke="#e2e8f0" strokeWidth="1" />
-            <line x1="20" y1="180" x2="340" y2="180" stroke="#e2e8f0" strokeWidth="1" />
+          <svg viewBox="0 0 360 360" className="h-auto w-full rounded-lg border border-slate-200 bg-slate-50" aria-label="PCA projection and reconstruction plot">
+            <line x1="180" y1="20" x2="180" y2="340" stroke={PCA_COLORS.grid} strokeWidth="1" />
+            <line x1="20" y1="180" x2="340" y2="180" stroke={PCA_COLORS.grid} strokeWidth="1" />
             <Axis mean={pca.mean} angle={pca.angle + Math.PI / 2} length={2.4} className="stroke-slate-400" />
             <Axis mean={pca.mean} angle={pca.angle} length={3.1} className="stroke-blue-600" />
             {points.map((point, index) => {
@@ -178,10 +140,10 @@ export default function PCAAnimation() {
               return (
                 <g key={index}>
                   {components === 1 && (
-                    <line x1={source[0]} y1={source[1]} x2={target[0]} y2={target[1]} stroke="#cbd5e1" strokeDasharray="4 4" />
+                    <line x1={source[0]} y1={source[1]} x2={target[0]} y2={target[1]} stroke={PCA_COLORS.projection} strokeDasharray="4 4" />
                   )}
-                  <circle cx={target[0]} cy={target[1]} r="4" fill={components === 1 ? '#1d4ed8' : '#0f172a'} opacity="0.9" />
-                  {components === 1 && <circle cx={source[0]} cy={source[1]} r="3" fill="#94a3b8" opacity="0.6" />}
+                  <circle cx={target[0]} cy={target[1]} r="4" fill={components === 1 ? PCA_COLORS.primary : '#0f172a'} opacity="0.9" />
+                  {components === 1 && <circle cx={source[0]} cy={source[1]} r="3" fill={PCA_COLORS.projection} opacity="0.6" />}
                 </g>
               );
             })}
@@ -216,6 +178,8 @@ export default function PCAAnimation() {
           </section>
         </aside>
       </div>
+
+      <PcaFailureLab />
     </div>
   );
 }
