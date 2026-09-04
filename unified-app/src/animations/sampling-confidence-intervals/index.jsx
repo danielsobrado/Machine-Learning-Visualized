@@ -1,224 +1,144 @@
 import React, { useMemo, useState } from 'react';
-import { AlertTriangle, BarChart3, Calculator, RotateCcw, ShieldCheck, SlidersHorizontal } from 'lucide-react';
 import AssessmentPanel from '../../components/animation-shell/AssessmentPanel';
+import {
+  ControlBench,
+  Formula,
+  Note,
+  NoteRow,
+  Plate,
+  Readouts,
+  Slider,
+  Steps,
+} from '../_shared/notebook';
+import { CONTROL_LIMITS, DEFAULT_SCENARIO, METHOD_OPTIONS, SCENARIO_PRESETS } from './confidenceConfig.js';
+import { buildConfidenceLab } from './confidenceModel.js';
 
-function clamp(value, min, max) {
-  return Math.min(max, Math.max(min, value));
-}
+const pct = (value, digits = 0) => `${(value * 100).toFixed(digits)}%`;
+const widthPts = (value) => `${(value * 100).toFixed(1)} pts`;
 
-function zFor(confidence) {
-  if (confidence >= 99) return 2.58;
-  if (confidence >= 95) return 1.96;
-  if (confidence >= 90) return 1.64;
-  return 1.28;
-}
-
-function deterministicNoise(index) {
-  return (Math.sin(index * 12.9898) * 43758.5453) % 1;
-}
-
-function pseudoNormal(index) {
-  const u1 = clamp(Math.abs(deterministicNoise(index)) || 0.01, 0.01, 0.99);
-  const u2 = clamp(Math.abs(deterministicNoise(index + 31)) || 0.01, 0.01, 0.99);
-  return Math.sqrt(-2 * Math.log(u1)) * Math.cos(2 * Math.PI * u2);
-}
-
-function intervalFor(pHat, n, z) {
-  const se = Math.sqrt((pHat * (1 - pHat)) / n);
-  const margin = z * se;
-  return {
-    low: clamp(pHat - margin, 0, 1),
-    high: clamp(pHat + margin, 0, 1),
-    margin,
-  };
-}
-
-function makeIntervals(trueRate, sampleSize, confidence, runs) {
-  const p = trueRate / 100;
-  const z = zFor(confidence);
-  const se = Math.sqrt((p * (1 - p)) / sampleSize);
-  return Array.from({ length: runs }, (_, index) => {
-    const pHat = clamp(p + pseudoNormal(index + 1) * se, 0.001, 0.999);
-    const interval = intervalFor(pHat, sampleSize, z);
-    return {
-      pHat,
-      ...interval,
-      captures: interval.low <= p && p <= interval.high,
-    };
-  });
-}
-
-function pct(value) {
-  return `${Math.round(value * 100)}%`;
-}
-
-function Stat({ label, value, detail }) {
-  return (
-    <div className="rounded-lg border border-slate-200 bg-white p-4">
-      <p className="text-xs font-black uppercase tracking-wide text-slate-500">{label}</p>
-      <strong className="mt-1 block text-2xl font-black text-slate-950">{value}</strong>
-      <span className="text-sm text-slate-600">{detail}</span>
-    </div>
-  );
+function xForRate(rate) {
+  return 48 + rate * 424;
 }
 
 export default function SamplingConfidenceIntervalsAnimation() {
-  const [trueRate, setTrueRate] = useState(58);
-  const [sampleSize, setSampleSize] = useState(160);
-  const [confidence, setConfidence] = useState(95);
-  const [runs, setRuns] = useState(40);
-
-  const intervals = useMemo(
-    () => makeIntervals(trueRate, sampleSize, confidence, runs),
-    [trueRate, sampleSize, confidence, runs],
-  );
-  const first = intervals[0];
-  const coverage = intervals.filter((interval) => interval.captures).length / intervals.length;
-  const averageMargin = intervals.reduce((total, interval) => total + interval.margin, 0) / intervals.length;
-  const quadrupledMargin = intervalFor(trueRate / 100, sampleSize * 4, zFor(confidence)).margin;
-
-  const reset = () => {
-    setTrueRate(58);
-    setSampleSize(160);
-    setConfidence(95);
-    setRuns(40);
-  };
+  const [scenario, setScenario] = useState(DEFAULT_SCENARIO);
+  const lab = useMemo(() => buildConfidenceLab(scenario), [scenario]);
+  const wilsonLab = useMemo(() => buildConfidenceLab({ ...scenario, method: 'wilson' }), [scenario]);
+  const waldLab = useMemo(() => buildConfidenceLab({ ...scenario, method: 'wald' }), [scenario]);
+  const update = (key, value) => setScenario((current) => ({ ...current, [key]: value }));
+  const applyPreset = (values) => setScenario((current) => ({ ...current, ...values }));
+  const rerun = () => update('seed', scenario.seed + 1);
+  const coverageDistance = Math.abs(lab.metrics.coverageError);
 
   return (
-    <div className="space-y-6">
-      <section className="rounded-lg border border-slate-200 bg-white p-5">
-        <div className="flex flex-wrap items-start justify-between gap-4">
-          <div>
-            <p className="text-xs font-black uppercase tracking-wide text-slate-500">Sampling uncertainty</p>
-            <h2 className="mt-1 text-2xl font-black text-slate-950">Sampling and Confidence Intervals</h2>
-            <p className="mt-2 max-w-3xl text-sm leading-6 text-slate-700">
-              A confidence interval is a repeated-sampling procedure. Some intervals miss the fixed population value,
-              but the procedure should capture it at roughly the advertised rate over many comparable samples.
-            </p>
+    <div className="nb-lesson">
+      <Plate
+        label="Repeated-sampling laboratory"
+        title="Sampling and Confidence Intervals"
+        note="A confidence interval is a procedure with a long-run coverage target. This laboratory draws actual Bernoulli samples, then compares Wilson intervals with the familiar Wald shortcut so failure near the boundaries becomes visible rather than hidden by a Gaussian simulation."
+      >
+        <NoteRow>
+          <Note label="Parameter" title="The truth is fixed">
+            <p>The population rate does not move between repeated samples. The estimate and its interval do.</p>
+          </Note>
+          <Note label="Coverage" title="The procedure is random">
+            <p>A 95% method aims to cover the fixed parameter in about 95% of comparable repeated samples.</p>
+          </Note>
+          <Note label="Method" title="Not every formula behaves well">
+            <p>The Wald interval can collapse at p̂=0 or 1. Wilson keeps nonzero uncertainty in those small-sample boundary cases.</p>
+          </Note>
+        </NoteRow>
+      </Plate>
+
+      <ControlBench
+        label="Binomial sampling controls"
+        actions={(
+          <div className="flex flex-wrap gap-2">
+            <button type="button" className="nb-reset" onClick={rerun}>Resample</button>
+            <button type="button" className="nb-reset" onClick={() => setScenario(DEFAULT_SCENARIO)}>Reset</button>
           </div>
-          <button
-            type="button"
-            onClick={reset}
-            className="inline-flex items-center gap-2 rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm font-bold text-slate-800"
-          >
-            <RotateCcw size={16} />
-            Reset
-          </button>
-        </div>
-      </section>
+        )}
+      >
+        <Slider label="True population rate" value={scenario.trueRate} {...CONTROL_LIMITS.trueRate} format={(value) => `${value}%`} help="Visible only because this is a simulation that can audit coverage." onChange={(value) => update('trueRate', value)} />
+        <Slider label="Sample size" value={scenario.sampleSize} {...CONTROL_LIMITS.sampleSize} format={(value) => value.toLocaleString()} help="Each repeated run draws n Bernoulli observations." onChange={(value) => update('sampleSize', value)} />
+        <Slider label="Confidence level" value={scenario.confidence} {...CONTROL_LIMITS.confidence} format={(value) => `${value}%`} help="Critical z is computed continuously from the requested level." onChange={(value) => update('confidence', value)} />
+        <Slider label="Repeated samples" value={scenario.runs} {...CONTROL_LIMITS.runs} format={(value) => value.toLocaleString()} help="More repetitions make empirical coverage more stable." onChange={(value) => update('runs', value)} />
+      </ControlBench>
 
-      <section className="rounded-lg border border-slate-200 bg-white p-5">
-        <div className="mb-4 flex items-center gap-2 text-sm font-black uppercase tracking-wide text-slate-600">
-          <SlidersHorizontal size={16} />
-          Sampling controls
-        </div>
-        <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-          <label className="grid gap-2 text-sm font-bold text-slate-700">
-            True population rate: {trueRate}%
-            <input type="range" min="10" max="90" value={trueRate} onChange={(event) => setTrueRate(Number(event.target.value))} />
-            <span className="text-xs font-semibold text-slate-500">Shown only so the simulation can check coverage.</span>
-          </label>
-          <label className="grid gap-2 text-sm font-bold text-slate-700">
-            Sample size: {sampleSize}
-            <input type="range" min="25" max="1000" step="25" value={sampleSize} onChange={(event) => setSampleSize(Number(event.target.value))} />
-            <span className="text-xs font-semibold text-slate-500">Larger samples reduce standard error.</span>
-          </label>
-          <label className="grid gap-2 text-sm font-bold text-slate-700">
-            Confidence level: {confidence}%
-            <input type="range" min="80" max="99" value={confidence} onChange={(event) => setConfidence(Number(event.target.value))} />
-            <span className="text-xs font-semibold text-slate-500">Higher confidence uses a wider critical value.</span>
-          </label>
-          <label className="grid gap-2 text-sm font-bold text-slate-700">
-            Repeated samples: {runs}
-            <input type="range" min="20" max="80" step="5" value={runs} onChange={(event) => setRuns(Number(event.target.value))} />
-            <span className="text-xs font-semibold text-slate-500">More runs make misses visible.</span>
-          </label>
-        </div>
-      </section>
+      <div className="flex flex-wrap gap-2 -mt-2 mb-3" aria-label="Confidence interval methods">
+        {METHOD_OPTIONS.map((option) => (
+          <button key={option.id} type="button" className={`ds-btn ${scenario.method === option.id ? 'is-active' : ''}`} onClick={() => update('method', option.id)} title={option.detail}>{option.label}</button>
+        ))}
+      </div>
+      <div className="flex flex-wrap gap-2 mb-2" aria-label="Confidence interval presets">
+        {SCENARIO_PRESETS.map((preset) => (
+          <button key={preset.id} type="button" className="ds-btn" onClick={() => applyPreset(preset.values)}>{preset.label}</button>
+        ))}
+      </div>
 
-      <section className="grid gap-4 md:grid-cols-4">
-        <Stat label="First interval" value={`${pct(first.low)}-${pct(first.high)}`} detail={`sample estimate ${pct(first.pHat)}`} />
-        <Stat label="Average margin" value={`+/- ${(averageMargin * 100).toFixed(1)} pts`} detail="Across simulated samples." />
-        <Stat label="Coverage in runs" value={pct(coverage)} detail={`${intervals.filter((interval) => interval.captures).length} of ${runs} intervals capture truth.`} />
-        <Stat label="4x sample size" value={`+/- ${(quadrupledMargin * 100).toFixed(1)} pts`} detail="Margin shrinks by about half." />
-      </section>
+      <Plate label="1 · One sample" title="The interval is built from observed successes, not from the hidden truth">
+        <Readouts columns={4} items={[
+          { label: 'First sample', value: `${lab.first.successes} / ${scenario.sampleSize}`, detail: `p̂ = ${pct(lab.first.pHat, 1)}` },
+          { label: `${scenario.method} interval`, value: `${pct(lab.first.low, 1)} to ${pct(lab.first.high, 1)}`, detail: lab.first.captures ? 'captures the fixed population rate' : 'misses the fixed population rate' },
+          { label: 'Critical z', value: lab.metrics.criticalZ.toFixed(3), detail: `${scenario.confidence}% two-sided confidence` },
+          { label: 'Expected SE', value: widthPts(lab.metrics.expectedStandardError), detail: '√(p(1−p)/n), using truth only for simulation diagnostics' },
+        ]} />
+      </Plate>
 
-      <section className="grid gap-6 xl:grid-cols-[1.2fr_0.8fr]">
-        <div className="rounded-lg border border-slate-200 bg-white p-5">
-          <div className="mb-4 flex items-center gap-2 text-sm font-black uppercase tracking-wide text-slate-600">
-            <BarChart3 size={16} />
-            Repeated interval coverage
-          </div>
-          <svg viewBox="0 0 520 300" role="img" aria-label="Repeated confidence intervals" className="h-auto w-full rounded-lg bg-slate-50">
-            <rect x="48" y="24" width="420" height="236" rx="8" fill="#ffffff" stroke="#cbd5e1" />
-            <line x1={48 + (trueRate / 100) * 420} x2={48 + (trueRate / 100) * 420} y1="18" y2="270" stroke="#0f172a" strokeWidth="3" strokeDasharray="6 6" />
-            {intervals.slice(0, 40).map((interval, index) => {
-              const y = 34 + index * 5.4;
+      <div className="nb-split">
+        <Plate label="2 · Repeated coverage" title="Some intervals should miss">
+          <svg viewBox="0 0 520 310" role="img" aria-label="Repeated confidence intervals against a fixed population rate" className="h-auto w-full">
+            <rect x="48" y="24" width="424" height="244" fill="none" stroke="currentColor" opacity="0.16" />
+            <line x1={xForRate(lab.metrics.trueRate)} x2={xForRate(lab.metrics.trueRate)} y1="18" y2="274" stroke="#0f172a" strokeWidth="3" strokeDasharray="6 6" />
+            {lab.intervals.slice(0, 44).map((interval, index) => {
+              const y = 34 + index * 5.2;
+              const stroke = interval.captures ? '#0891b2' : '#f97316';
               return (
-                <g key={index}>
-                  <line
-                    x1={48 + interval.low * 420}
-                    x2={48 + interval.high * 420}
-                    y1={y}
-                    y2={y}
-                    stroke={interval.captures ? '#0891b2' : '#f97316'}
-                    strokeWidth="3"
-                    strokeLinecap="round"
-                  />
-                  <circle cx={48 + interval.pHat * 420} cy={y} r="2.4" fill={interval.captures ? '#0891b2' : '#f97316'} />
+                <g key={`${interval.successes}-${index}`}>
+                  <line x1={xForRate(interval.low)} x2={xForRate(interval.high)} y1={y} y2={y} stroke={stroke} strokeWidth="3" strokeLinecap="round" />
+                  <circle cx={xForRate(interval.pHat)} cy={y} r="2.3" fill={stroke} />
                 </g>
               );
             })}
-            <text x="258" y="288" textAnchor="middle" fontSize="12" fontWeight="800" fill="#475569">
-              population rate scale
-            </text>
+            <text x="260" y="298" textAnchor="middle" fontSize="12" fontWeight="800" fill="#475569">fixed population rate · blue captures · orange misses</text>
           </svg>
-          <p className="mt-3 text-sm leading-6 text-slate-700">
-            Blue intervals capture the fixed truth; orange intervals miss. Individual intervals are uncertain, while
-            the method has a long-run coverage target.
-          </p>
-        </div>
+          <Readouts columns={3} items={[
+            { label: 'Observed coverage', value: pct(lab.metrics.coverage, 1), detail: `${lab.metrics.captured} of ${scenario.runs} intervals` },
+            { label: 'Nominal target', value: `${scenario.confidence}%`, detail: `sampling error ${pct(coverageDistance, 1)} from target` },
+            { label: 'Average width', value: widthPts(lab.metrics.averageWidth), detail: `${lab.metrics.collapsed} zero-width intervals` },
+          ]} />
+        </Plate>
 
-        <div className="space-y-4">
-          <div className="rounded-lg border border-slate-200 bg-white p-5">
-            <div className="mb-3 flex items-center gap-2 text-sm font-black uppercase tracking-wide text-slate-600">
-              <Calculator size={16} />
-              Width formula
-            </div>
-            <div className="rounded-lg bg-slate-950 p-4 font-mono text-sm leading-7 text-cyan-100">
-              p_hat +/- z * sqrt(p_hat(1-p_hat) / n)<br />
-              z = {zFor(confidence).toFixed(2)}<br />
-              first margin = {(first.margin * 100).toFixed(1)} percentage points
-            </div>
-          </div>
-          <div className="rounded-lg border border-cyan-200 bg-cyan-50 p-4">
-            <p className="text-xs font-black uppercase tracking-wide text-cyan-700">Predict before running</p>
-            <p className="mt-2 text-sm leading-6 text-cyan-950">
-              Quadruple sample size and predict how much the interval margin changes before reading the stat tile.
-            </p>
-          </div>
-          <div className="rounded-lg border border-amber-200 bg-amber-50 p-4">
-            <p className="flex items-center gap-2 text-xs font-black uppercase tracking-wide text-amber-700">
-              <AlertTriangle size={14} />
-              Failure mode
-            </p>
-            <p className="mt-2 text-sm leading-6 text-amber-950">
-              A 95% interval does not mean this one fixed interval has a 95% probability of containing the truth.
-            </p>
-          </div>
-          <div className="rounded-lg border border-emerald-200 bg-emerald-50 p-4">
-            <p className="flex items-center gap-2 text-xs font-black uppercase tracking-wide text-emerald-700">
-              <ShieldCheck size={14} />
-              Practical rule
-            </p>
-            <p className="mt-2 text-sm leading-6 text-emerald-950">
-              Wider intervals are honest about uncertainty. Narrow intervals require either more data or a lower confidence target.
-            </p>
-          </div>
-        </div>
-      </section>
+        <Plate label="3 · Formula choice" title="Wilson and Wald can tell very different stories">
+          <Readouts columns={2} items={[
+            { label: 'Wilson coverage', value: pct(wilsonLab.metrics.coverage, 1), detail: `${wilsonLab.metrics.collapsed} collapsed intervals` },
+            { label: 'Wald coverage', value: pct(waldLab.metrics.coverage, 1), detail: `${waldLab.metrics.collapsed} collapsed intervals` },
+            { label: 'Current reference width', value: widthPts(lab.metrics.referenceWidth), detail: `at p̂ ≈ ${scenario.trueRate}%` },
+            { label: '4× n reference width', value: widthPts(lab.metrics.fourXReferenceWidth), detail: 'roughly half as wide' },
+          ]} />
+          <Formula lines={scenario.method === 'wald' ? [
+            'Wald: p̂ ± z · √(p̂(1−p̂)/n)',
+            'if p̂ = 0 or 1, estimated SE = 0 → interval can collapse',
+          ] : [
+            'Wilson: center and width include z²/n corrections',
+            'boundary samples retain uncertainty instead of collapsing to a point',
+          ]} />
+        </Plate>
+      </div>
 
-      <AssessmentPanel lessonId="sampling-confidence-intervals" />
+      <Plate label="4 · Diagnose the procedure" title="Coverage is a property of the method under a data-generating process">
+        <Steps items={[
+          { title: 'Generate real binomial samples', pass: true, body: `Each run contains exactly ${scenario.sampleSize} Bernoulli trials at a fixed ${scenario.trueRate}% population rate.` },
+          { title: 'Check long-run coverage', pass: coverageDistance <= 0.05, body: coverageDistance <= 0.05 ? 'Observed coverage is reasonably close to the nominal target in this finite simulation.' : 'Observed coverage is materially away from target; inspect sample size, boundary rate, method, and number of repetitions.' },
+          { title: 'Watch for pathological intervals', pass: lab.metrics.collapsed === 0, body: lab.metrics.collapsed === 0 ? 'No interval collapsed to zero width in these runs.' : `${lab.metrics.collapsed} intervals claimed zero uncertainty. That is a warning sign, not extra precision.` },
+        ]} />
+      </Plate>
+
+      <Note tone="accent" label="Takeaway" title="A confidence level does not rescue a poor interval construction">
+        <p>The nominal percentage is only a target. Coverage depends on the sampling model and interval procedure. For a binomial proportion, the easy Wald formula is especially unreliable with small samples or rates near 0 and 1.</p>
+      </Note>
+
+      <AssessmentPanel lessonId="sampling-confidence-intervals" title="Confidence intervals check" />
     </div>
   );
 }
