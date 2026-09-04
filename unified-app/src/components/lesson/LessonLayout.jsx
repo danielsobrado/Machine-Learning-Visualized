@@ -7,6 +7,7 @@ import {
 } from '../../data/lessonSections';
 import { LessonSectionProvider } from './LessonSectionContext';
 import './LessonLayout.css';
+import './LessonAssessmentTypography.css';
 
 export default function LessonLayout({ animation, activeSection, hasDeepDive, children }) {
   const sections = getAvailableLessonSections(hasDeepDive);
