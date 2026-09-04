@@ -1,0 +1,461 @@
+.ua-glossary-detail {
+  max-width: 1240px;
+  padding-top: clamp(22px, 3vw, 38px);
+}
+
+.ua-glossary-detail .ua-back-link {
+  align-items: center;
+  color: var(--ds-muted);
+  display: inline-flex;
+  font-family: var(--ds-font-mono);
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.1em;
+  margin-bottom: 16px;
+  text-decoration: none;
+  text-transform: uppercase;
+}
+
+.ua-glossary-detail .ua-back-link:hover {
+  color: var(--ds-accent);
+}
+
+.ua-glossary-detail .ua-term-hero {
+  align-items: center;
+  background: var(--ds-panel);
+  border: 1px solid var(--ds-rule);
+  border-top: 2px solid var(--ds-ink);
+  border-radius: 8px;
+  display: grid;
+  gap: clamp(24px, 4vw, 48px);
+  grid-template-columns: minmax(0, 1fr) minmax(240px, 320px);
+  overflow: hidden;
+  padding: clamp(24px, 4vw, 44px);
+}
+
+.ua-glossary-detail .ua-term-hero-copy {
+  min-width: 0;
+}
+
+.ua-glossary-detail .ua-term-hero h1 {
+  font-size: clamp(46px, 6vw, 76px);
+  letter-spacing: -0.035em;
+  line-height: 0.94;
+  margin: 14px 0 16px;
+  max-width: 13ch;
+}
+
+.ua-glossary-detail .ua-term-deck {
+  color: var(--ds-muted);
+  font-size: clamp(17px, 1.8vw, 21px);
+  font-style: italic;
+  line-height: 1.5;
+  max-width: 60ch;
+}
+
+.ua-glossary-detail .ua-term-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 22px 0 0;
+}
+
+.ua-glossary-detail .ua-term-meta > div {
+  align-items: baseline;
+  background: var(--ds-paper);
+  border: 1px solid var(--ds-rule);
+  border-radius: 999px;
+  display: inline-flex;
+  gap: 7px;
+  min-width: 0;
+  padding: 7px 11px;
+}
+
+.ua-glossary-detail .ua-term-meta dt {
+  color: var(--ds-faint);
+  font-family: var(--ds-font-mono);
+  font-size: 9px;
+  font-weight: 800;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+.ua-glossary-detail .ua-term-meta dd {
+  color: var(--ds-ink);
+  font-family: var(--ds-font-sans);
+  font-size: 12px;
+  font-weight: 700;
+  line-height: 1.2;
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+
+.ua-glossary-detail .ua-term-hero-art {
+  background: var(--ds-paper);
+  border: 1px solid var(--ds-rule);
+  border-radius: 6px;
+  justify-self: end;
+  margin: 0;
+  max-width: 320px;
+  padding: 9px;
+  width: 100%;
+}
+
+.ua-glossary-detail .ua-term-hero-art figcaption {
+  color: var(--ds-faint);
+  font-family: var(--ds-font-mono);
+  font-size: 9px;
+  font-weight: 800;
+  letter-spacing: 0.12em;
+  padding: 2px 2px 8px;
+  text-transform: uppercase;
+}
+
+.ua-glossary-detail .ua-term-hero-art img {
+  aspect-ratio: 4 / 3;
+  border: 0;
+  display: block;
+  object-fit: cover;
+  width: 100%;
+}
+
+.ua-glossary-detail .ua-term-notes {
+  border: 0;
+  display: grid;
+  gap: 12px;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  margin-top: 16px;
+}
+
+.ua-glossary-detail .ua-term-notes article {
+  background: var(--ds-panel);
+  border: 1px solid var(--ds-rule);
+  border-radius: 8px;
+  display: block;
+  min-height: 132px;
+  padding: 18px;
+}
+
+.ua-glossary-detail .ua-term-notes article.wide {
+  grid-column: 1 / -1;
+}
+
+.ua-glossary-detail .ua-term-notes article.primary {
+  border-left: 3px solid var(--ds-accent);
+}
+
+.ua-glossary-detail .ua-term-notes article.warning {
+  background: var(--ds-paper-2);
+  border-left: 3px solid var(--ds-warn);
+  min-height: 0;
+}
+
+.ua-glossary-detail .ua-note-head {
+  align-items: center;
+  display: flex;
+  gap: 11px;
+  margin-bottom: 11px;
+}
+
+.ua-glossary-detail .ua-note-icon {
+  align-items: center;
+  background: var(--ds-paper);
+  border: 1px solid var(--ds-rule);
+  border-radius: 50%;
+  color: var(--ds-accent);
+  display: inline-flex;
+  flex: 0 0 auto;
+  height: 34px;
+  justify-content: center;
+  width: 34px;
+}
+
+.ua-glossary-detail article.warning .ua-note-icon {
+  color: var(--ds-warn);
+}
+
+.ua-glossary-detail .ua-note-eyebrow,
+.ua-glossary-detail .ua-glossary-head > div > span {
+  color: var(--ds-faint);
+  display: block;
+  font-family: var(--ds-font-mono);
+  font-size: 9px;
+  font-weight: 800;
+  letter-spacing: 0.11em;
+  margin-bottom: 3px;
+  text-transform: uppercase;
+}
+
+.ua-glossary-detail .ua-term-notes h2 {
+  font-size: 21px;
+  line-height: 1.05;
+}
+
+.ua-glossary-detail .ua-term-notes p {
+  color: var(--ds-muted);
+  font-size: 14px;
+  grid-column: auto;
+  line-height: 1.58;
+  margin: 0;
+}
+
+.ua-glossary-detail .ua-intuition-switchboard,
+.ua-glossary-detail .ua-depth-notes {
+  margin-top: 28px;
+}
+
+.ua-glossary-detail .ua-intuition-grid,
+.ua-glossary-detail .ua-depth-notes {
+  gap: 12px;
+}
+
+.ua-glossary-detail .ua-intuition-grid article,
+.ua-glossary-detail .ua-depth-notes article {
+  background: var(--ds-panel);
+  border: 1px solid var(--ds-rule);
+  border-radius: 8px;
+}
+
+.ua-glossary-detail .ua-concept-graph {
+  border-top: 2px solid var(--ds-ink);
+  margin-top: 34px;
+  padding-top: 16px;
+}
+
+.ua-glossary-detail .ua-concept-graph-head {
+  align-items: baseline;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px 18px;
+  justify-content: space-between;
+}
+
+.ua-glossary-detail .ua-concept-graph-head > span {
+  color: var(--ds-accent);
+  font-family: var(--ds-font-mono);
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.ua-glossary-detail .ua-concept-graph-head p {
+  color: var(--ds-muted);
+  font-size: 12px;
+  line-height: 1.45;
+  margin: 0;
+}
+
+.ua-glossary-detail .ua-relationship-section {
+  margin-top: 26px;
+}
+
+.ua-glossary-detail .ua-glossary-head {
+  align-items: end;
+  display: flex;
+  gap: 16px;
+  justify-content: space-between;
+  margin-bottom: 10px;
+}
+
+.ua-glossary-detail .ua-glossary-head h2 {
+  font-size: clamp(22px, 2.4vw, 28px);
+  line-height: 1.05;
+}
+
+.ua-glossary-detail .ua-section-count {
+  align-items: center;
+  background: var(--ds-paper-2);
+  border: 1px solid var(--ds-rule);
+  border-radius: 999px;
+  color: var(--ds-muted);
+  display: inline-flex;
+  flex: 0 0 auto;
+  font-family: var(--ds-font-mono);
+  font-size: 10px;
+  height: 26px;
+  justify-content: center;
+  min-width: 26px;
+  padding: 0 8px;
+}
+
+.ua-glossary-detail .ua-relationship-grid {
+  border: 0;
+  display: grid;
+  gap: 12px;
+  grid-template-columns: repeat(auto-fit, minmax(230px, 1fr));
+}
+
+.ua-glossary-detail .ua-relationship-grid .ua-relationship-card {
+  background: var(--ds-panel);
+  border: 1px solid var(--ds-rule);
+  border-radius: 8px;
+  color: var(--ds-ink);
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  min-height: 0;
+  overflow: hidden;
+  padding: 0;
+  text-decoration: none;
+  transition: border-color 140ms ease, transform 140ms ease;
+}
+
+.ua-glossary-detail .ua-relationship-grid .ua-relationship-card:hover {
+  background: var(--ds-panel);
+  border-color: var(--ds-accent);
+  color: var(--ds-ink);
+  transform: translateY(-2px);
+}
+
+.ua-glossary-detail .ua-relationship-grid .ua-relationship-card:focus-visible {
+  outline: 2px solid var(--ds-accent);
+  outline-offset: 3px;
+}
+
+.ua-glossary-detail .ua-relationship-card-media {
+  background: var(--ds-paper-2);
+  border-bottom: 1px solid var(--ds-rule);
+  height: 112px;
+  overflow: hidden;
+}
+
+.ua-glossary-detail .ua-relationship-card-media img {
+  aspect-ratio: auto;
+  border: 0;
+  height: 100%;
+  object-fit: cover;
+  transition: transform 160ms ease;
+  width: 100%;
+}
+
+.ua-glossary-detail .ua-relationship-card:hover .ua-relationship-card-media img {
+  transform: scale(1.025);
+}
+
+.ua-glossary-detail .ua-lesson-ref-icon {
+  align-items: center;
+  aspect-ratio: auto;
+  background:
+    linear-gradient(var(--ds-rule) 1px, transparent 1px),
+    linear-gradient(90deg, var(--ds-rule) 1px, transparent 1px),
+    var(--ds-paper-2);
+  background-size: 22px 22px;
+  border: 0;
+  color: var(--ds-accent);
+  display: flex;
+  gap: 10px;
+  height: 100%;
+  justify-content: center;
+  width: 100%;
+}
+
+.ua-glossary-detail .ua-lesson-ref-icon span {
+  color: var(--ds-muted);
+  font-family: var(--ds-font-mono);
+  font-size: 9px;
+  font-weight: 800;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+.ua-glossary-detail .ua-relationship-card-body {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  padding: 15px;
+}
+
+.ua-glossary-detail .ua-relationship-kind {
+  color: var(--ds-faint);
+  font-family: var(--ds-font-mono);
+  font-size: 9px;
+  font-weight: 800;
+  letter-spacing: 0.1em;
+  margin-bottom: 7px;
+  text-transform: uppercase;
+}
+
+.ua-glossary-detail .ua-relationship-grid .ua-relationship-card strong {
+  font-size: 19px;
+  line-height: 1.15;
+  text-transform: none;
+}
+
+.ua-glossary-detail .ua-relationship-grid .ua-relationship-card p {
+  color: var(--ds-muted);
+  font-size: 12px;
+  line-height: 1.5;
+  margin: 7px 0 14px;
+}
+
+.ua-glossary-detail .ua-relationship-cta {
+  align-items: center;
+  color: var(--ds-accent);
+  display: inline-flex;
+  font-family: var(--ds-font-mono);
+  font-size: 9px;
+  font-weight: 800;
+  gap: 5px;
+  letter-spacing: 0.08em;
+  margin-top: auto;
+  text-transform: uppercase;
+}
+
+.ua-glossary-detail .ua-relationship-card:hover .ua-relationship-cta svg {
+  transform: translateX(2px);
+}
+
+.ua-glossary-detail .ua-relationship-cta svg {
+  transition: transform 140ms ease;
+}
+
+@media (max-width: 900px) {
+  .ua-glossary-detail .ua-term-hero {
+    grid-template-columns: 1fr;
+  }
+
+  .ua-glossary-detail .ua-term-hero-art {
+    justify-self: start;
+    max-width: 440px;
+  }
+}
+
+@media (max-width: 640px) {
+  .ua-glossary-detail {
+    padding-inline: 16px;
+  }
+
+  .ua-glossary-detail .ua-term-hero {
+    padding: 20px;
+  }
+
+  .ua-glossary-detail .ua-term-hero h1 {
+    font-size: clamp(42px, 14vw, 62px);
+  }
+
+  .ua-glossary-detail .ua-term-notes {
+    grid-template-columns: 1fr;
+  }
+
+  .ua-glossary-detail .ua-term-notes article.wide {
+    grid-column: auto;
+  }
+
+  .ua-glossary-detail .ua-relationship-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .ua-glossary-detail .ua-concept-graph-head {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ua-glossary-detail .ua-relationship-card,
+  .ua-glossary-detail .ua-relationship-card-media img,
+  .ua-glossary-detail .ua-relationship-cta svg {
+    transition: none;
+  }
+}

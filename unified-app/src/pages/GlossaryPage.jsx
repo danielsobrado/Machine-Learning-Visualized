@@ -1,8 +1,16 @@
 import React from 'react';
+import {
+  AlertTriangle,
+  ArrowRight,
+  BookOpen,
+  Lightbulb,
+  Network,
+} from 'lucide-react';
 import { Link, useParams } from 'react-router-dom';
 import InlineMathText from '../components/common/InlineMathText';
 import { allAnimations } from '../data/animations.js';
 import { getGlossaryTerm, glossaryTerms } from '../data/glossaryRepository.js';
+import './GlossaryPage.css';
 
 const lessonsById = new Map(allAnimations.map((animation) => [animation.id, animation]));
 
@@ -15,34 +23,30 @@ function labelFromId(id) {
 
 function lessonReference(id) {
   const lesson = lessonsById.get(id);
-  if (lesson) {
-    return {
-      id: `lesson:${lesson.id}`,
-      kind: 'Lesson',
-      label: lesson.name,
-      description: lesson.description,
-      href: `/animation/${lesson.id}`,
-      image: null,
-    };
-  }
+  if (!lesson) return null;
 
-  return null;
+  return {
+    id: `lesson:${lesson.id}`,
+    kind: 'Lesson',
+    label: lesson.name,
+    description: lesson.description,
+    href: `/animation/${lesson.id}`,
+    image: null,
+  };
 }
 
 function termReference(id) {
   const term = getGlossaryTerm(id);
-  if (term) {
-    return {
-      id: `term:${term.id}`,
-      kind: term.category,
-      label: term.term,
-      description: term.definition,
-      href: term.href,
-      image: term.image,
-    };
-  }
+  if (!term) return null;
 
-  return null;
+  return {
+    id: `term:${term.id}`,
+    kind: term.category,
+    label: term.term,
+    description: term.definition,
+    href: term.href,
+    image: term.image,
+  };
 }
 
 function resolveReference(id, prefer = 'term') {
@@ -61,15 +65,42 @@ function resolveReference(id, prefer = 'term') {
 function uniqueReferences(ids, excludeIds = [], prefer) {
   const seen = new Set();
   const excluded = new Set(excludeIds);
+
   return ids
     .map((id) => resolveReference(id, prefer))
     .filter(Boolean)
     .filter((entry) => {
-      if (excluded.has(entry.id)) return false;
-      if (seen.has(entry.id)) return false;
+      if (excluded.has(entry.id) || seen.has(entry.id)) return false;
       seen.add(entry.id);
       return true;
     });
+}
+
+function RelationshipCard({ entry }) {
+  return (
+    <Link className="ua-relationship-card" to={entry.href}>
+      <div className={`ua-relationship-card-media ${entry.image ? '' : 'lesson'}`}>
+        {entry.image ? (
+          <img src={entry.image.src} alt={entry.image.alt} />
+        ) : (
+          <div className="ua-lesson-ref-icon" aria-hidden="true">
+            <BookOpen size={28} />
+            <span>Interactive lesson</span>
+          </div>
+        )}
+      </div>
+
+      <div className="ua-relationship-card-body">
+        <span className="ua-relationship-kind">{entry.kind}</span>
+        <strong>{entry.label}</strong>
+        <p><InlineMathText>{entry.description || labelFromId(entry.id)}</InlineMathText></p>
+        <span className="ua-relationship-cta">
+          Open
+          <ArrowRight size={14} aria-hidden="true" />
+        </span>
+      </div>
+    </Link>
+  );
 }
 
 function RelationshipSection({ title, eyebrow, ids, fallback, excludeIds, prefer }) {
@@ -82,23 +113,17 @@ function RelationshipSection({ title, eyebrow, ids, fallback, excludeIds, prefer
   return (
     <section className="ua-relationship-section">
       <div className="ua-glossary-head">
-        <span>{eyebrow}</span>
-        <h2>{title}</h2>
+        <div>
+          <span>{eyebrow}</span>
+          <h2>{title}</h2>
+        </div>
+        <span className="ua-section-count" aria-label={`${visibleItems.length} items`}>
+          {visibleItems.length}
+        </span>
       </div>
       <div className="ua-relationship-grid">
         {visibleItems.map((entry) => (
-          <Link key={entry.id} to={entry.href}>
-            {entry.image ? (
-              <img src={entry.image.src} alt={entry.image.alt} />
-            ) : (
-              <span className="ua-lesson-ref-icon">
-                §
-              </span>
-            )}
-            <span>{entry.kind}</span>
-            <strong>{entry.label}</strong>
-            <p><InlineMathText>{entry.description || labelFromId(entry.id)}</InlineMathText></p>
-          </Link>
+          <RelationshipCard key={entry.id} entry={entry} />
         ))}
       </div>
     </section>
@@ -106,26 +131,79 @@ function RelationshipSection({ title, eyebrow, ids, fallback, excludeIds, prefer
 }
 
 function TermMetadata({ term }) {
-  const aliasLabel = term.aliases.length > 0 ? term.aliases.join(', ') : 'none';
   const showSymbol = Boolean(term.symbol && term.symbol !== term.term.slice(0, 1));
+  const entries = [
+    showSymbol && ['Symbol', term.symbol],
+    ['Category', term.category],
+    term.aliases.length > 0 && ['Aliases', term.aliases.join(', ')],
+    ['Slug', term.slug],
+  ].filter(Boolean);
 
   return (
     <dl className="ua-term-meta" aria-label={`${term.term} metadata`}>
-      {showSymbol && (
-        <div>
-          <dt>Symbol</dt>
-          <dd>{term.symbol}</dd>
+      {entries.map(([label, value]) => (
+        <div key={label}>
+          <dt>{label}</dt>
+          <dd>{value}</dd>
         </div>
-      )}
-      <div>
-        <dt>Aliases</dt>
-        <dd>{aliasLabel}</dd>
-      </div>
-      <div>
-        <dt>Slug</dt>
-        <dd>{term.slug}</dd>
-      </div>
+      ))}
     </dl>
+  );
+}
+
+function TermNotes({ term }) {
+  const notes = [
+    {
+      id: 'meaning',
+      eyebrow: 'Definition',
+      title: 'What it means',
+      body: term.explanation,
+      icon: BookOpen,
+      className: 'wide primary',
+    },
+    {
+      id: 'intuition',
+      eyebrow: 'Mental model',
+      title: 'Intuition',
+      body: term.intuition,
+      icon: Lightbulb,
+      className: '',
+    },
+    {
+      id: 'example',
+      eyebrow: 'In practice',
+      title: 'Example',
+      body: term.example,
+      icon: Network,
+      className: '',
+    },
+    {
+      id: 'pitfall',
+      eyebrow: 'Watch out',
+      title: 'Common pitfall',
+      body: term.pitfall,
+      icon: AlertTriangle,
+      className: 'wide warning',
+    },
+  ];
+
+  return (
+    <section className="ua-term-notes" aria-label={`${term.term} explanation`}>
+      {notes.map(({ id, eyebrow, title, body, icon: Icon, className }) => (
+        <article key={id} className={className}>
+          <div className="ua-note-head">
+            <span className="ua-note-icon" aria-hidden="true">
+              <Icon size={17} />
+            </span>
+            <div>
+              <span className="ua-note-eyebrow">{eyebrow}</span>
+              <h2>{title}</h2>
+            </div>
+          </div>
+          <p><InlineMathText>{body}</InlineMathText></p>
+        </article>
+      ))}
+    </section>
   );
 }
 
@@ -136,8 +214,13 @@ function IntuitionSwitchboard({ intuitions }) {
   return (
     <section className="ua-intuition-switchboard">
       <div className="ua-glossary-head">
-        <span>Multiple intuitions</span>
-        <h2>Read it from several angles</h2>
+        <div>
+          <span>Multiple intuitions</span>
+          <h2>Read it from several angles</h2>
+        </div>
+        <span className="ua-section-count" aria-label={`${entries.length} intuitions`}>
+          {entries.length}
+        </span>
       </div>
       <div className="ua-intuition-grid">
         {entries.map(([kind, text]) => (
@@ -208,50 +291,37 @@ export default function GlossaryPage() {
     .slice(0, 6);
 
   return (
-    <main className="ua-glossary-page">
+    <main className="ua-glossary-page ua-glossary-detail">
       <Link to="/glossary" className="ua-back-link">
-        ← Back to glossary
+        ← Glossary index
       </Link>
 
       <section className="ua-term-hero">
-        <div>
+        <div className="ua-term-hero-copy">
           <div className="ds-eyebrow">
             <span>Glossary</span>
             <span className="sep">/</span>
             <span>{term.category}</span>
           </div>
           <h1>{term.term}</h1>
-          <p><InlineMathText>{term.definition}</InlineMathText></p>
+          <p className="ua-term-deck"><InlineMathText>{term.definition}</InlineMathText></p>
           <TermMetadata term={term} />
         </div>
-        <img src={term.image.src} alt={term.image.alt} />
+
+        <figure className="ua-term-hero-art">
+          <figcaption>Concept sketch</figcaption>
+          <img src={term.image.src} alt={term.image.alt} />
+        </figure>
       </section>
 
-      <section className="ua-term-notes">
-        <article className="wide">
-          <h2>What it means</h2>
-          <p><InlineMathText>{term.explanation}</InlineMathText></p>
-        </article>
-        <article>
-          <h2>Intuition</h2>
-          <p><InlineMathText>{term.intuition}</InlineMathText></p>
-        </article>
-        <article>
-          <h2>Example</h2>
-          <p><InlineMathText>{term.example}</InlineMathText></p>
-        </article>
-        <article>
-          <h2>Common pitfall</h2>
-          <p><InlineMathText>{term.pitfall}</InlineMathText></p>
-        </article>
-      </section>
-
+      <TermNotes term={term} />
       <IntuitionSwitchboard intuitions={term.intuitions} />
       <DepthNotes term={term} />
 
       <section className="ua-concept-graph" aria-label={`${term.term} concept graph`}>
         <div className="ua-concept-graph-head">
           <span>Concept graph</span>
+          <p>Move from this definition into the lessons and concepts that use it.</p>
         </div>
         <RelationshipSection
           eyebrow="Lessons"
