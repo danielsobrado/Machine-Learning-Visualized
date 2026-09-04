@@ -1,150 +1,74 @@
 import React, { useMemo, useState } from 'react';
-import { BarChart3, SlidersHorizontal, TrendingUp } from 'lucide-react';
+import { Activity, Sigma, TrendingUp } from 'lucide-react';
 import AssessmentPanel from '../../components/animation-shell/AssessmentPanel';
+import { POLICY_GRADIENT_ACTIONS, POLICY_GRADIENT_DEFAULTS } from './policyGradientConfig';
+import { buildPolicyGradientStep, exactPolicyGradient, reinforceGradientVariance } from './policyGradientModel';
 
-const ACTIONS = [
-  { id: 'left', label: 'Left', preference: 0.4 },
-  { id: 'right', label: 'Right', preference: 0.1 },
-  { id: 'jump', label: 'Jump', preference: -0.2 },
-];
-
-function softmax(items) {
-  const max = Math.max(...items);
-  const exps = items.map((value) => Math.exp(value - max));
-  const total = exps.reduce((sum, value) => sum + value, 0);
-  return exps.map((value) => value / total);
+function Stat({ label, value, detail }) {
+  return <div className="rounded-lg border border-slate-200 bg-white p-4"><p className="text-xs font-black uppercase tracking-wide text-slate-500">{label}</p><strong className="mt-1 block text-2xl font-black text-slate-950">{value}</strong><span className="text-sm text-slate-600">{detail}</span></div>;
 }
 
 export default function PolicyGradientsAnimation() {
-  const [sampledAction, setSampledAction] = useState('right');
-  const [returnValue, setReturnValue] = useState(7);
-  const [baseline, setBaseline] = useState(3);
-  const [learningRate, setLearningRate] = useState(0.35);
-  const advantage = returnValue - baseline;
-
-  const update = useMemo(() => {
-    const before = softmax(ACTIONS.map((action) => action.preference));
-    const nextPrefs = ACTIONS.map((action) => (
-      action.preference + (action.id === sampledAction ? learningRate * advantage : 0)
-    ));
-    const after = softmax(nextPrefs);
-    return ACTIONS.map((action, index) => ({
-      ...action,
-      before: before[index],
-      after: after[index],
-      delta: after[index] - before[index],
-    }));
-  }, [sampledAction, learningRate, advantage]);
+  const [sampledAction, setSampledAction] = useState(POLICY_GRADIENT_DEFAULTS.sampledAction);
+  const [sampledReturn, setSampledReturn] = useState(POLICY_GRADIENT_DEFAULTS.sampledReturn);
+  const [baseline, setBaseline] = useState(POLICY_GRADIENT_DEFAULTS.baseline);
+  const [learningRate, setLearningRate] = useState(POLICY_GRADIENT_DEFAULTS.learningRate);
+  const actionReturns = POLICY_GRADIENT_ACTIONS.map((action) => action.expectedReturn);
+  const step = useMemo(() => buildPolicyGradientStep({ logits: POLICY_GRADIENT_DEFAULTS.logits, actionReturns, sampledAction, sampledReturn, baseline, learningRate }), [sampledAction, sampledReturn, baseline, learningRate]);
+  const exact = useMemo(() => exactPolicyGradient(POLICY_GRADIENT_DEFAULTS.logits, actionReturns), []);
+  const bestVarianceBaseline = exact.objective;
+  const bestLikeVariance = reinforceGradientVariance(POLICY_GRADIENT_DEFAULTS.logits, actionReturns, bestVarianceBaseline);
 
   return (
-    <div className="mx-auto flex max-w-6xl flex-col gap-6 p-6">
-      <section className="grid gap-4 lg:grid-cols-[0.9fr_1.1fr]">
-        <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
-          <div className="mb-4 flex items-center gap-2 text-sm font-semibold uppercase tracking-wide text-sky-700">
-            <SlidersHorizontal size={16} />
-            Sampled trajectory signal
-          </div>
+    <div className="space-y-6">
+      <section className="rounded-lg border border-slate-200 bg-white p-5">
+        <p className="text-xs font-black uppercase tracking-wide text-sky-700">REINFORCE lab</p>
+        <h2 className="mt-1 text-2xl font-black text-slate-950">Policy Gradients: increase log-probability in proportion to advantage</h2>
+        <p className="mt-2 max-w-4xl text-sm leading-6 text-slate-700">For a categorical softmax policy, the sampled-action score gradient is <strong>onehot(a) − π</strong>. Every logit participates; changing only the sampled logit is not the REINFORCE gradient.</p>
+      </section>
 
-          <div className="grid gap-2">
-            {ACTIONS.map((action) => (
-              <button
-                key={action.id}
-                type="button"
-                onClick={() => setSampledAction(action.id)}
-                className={`rounded-xl border px-4 py-3 text-left transition ${
-                  sampledAction === action.id
-                    ? 'border-sky-500 bg-sky-50 text-sky-900'
-                    : 'border-slate-200 bg-white text-slate-700 hover:border-slate-300'
-                }`}
-              >
-                <div className="font-semibold">{action.label}</div>
-                <div className="text-sm">Sampled action</div>
-              </button>
-            ))}
-          </div>
-
-          <label className="mt-5 block text-sm font-semibold text-slate-700" htmlFor="pg-return">
-            Return G: {returnValue}
-          </label>
-          <input
-            id="pg-return"
-            type="range"
-            min="-8"
-            max="12"
-            step="1"
-            value={returnValue}
-            onChange={(event) => setReturnValue(Number(event.target.value))}
-            className="mt-2 w-full accent-sky-500"
-          />
-
-          <label className="mt-5 block text-sm font-semibold text-slate-700" htmlFor="pg-baseline">
-            Baseline b: {baseline}
-          </label>
-          <input
-            id="pg-baseline"
-            type="range"
-            min="-4"
-            max="10"
-            step="1"
-            value={baseline}
-            onChange={(event) => setBaseline(Number(event.target.value))}
-            className="mt-2 w-full accent-sky-500"
-          />
-
-          <label className="mt-5 block text-sm font-semibold text-slate-700" htmlFor="pg-lr">
-            Learning rate: {learningRate.toFixed(2)}
-          </label>
-          <input
-            id="pg-lr"
-            type="range"
-            min="0.05"
-            max="0.8"
-            step="0.05"
-            value={learningRate}
-            onChange={(event) => setLearningRate(Number(event.target.value))}
-            className="mt-2 w-full accent-sky-500"
-          />
+      <section className="rounded-lg border border-slate-200 bg-white p-5">
+        <div className="grid gap-2 md:grid-cols-3">
+          {POLICY_GRADIENT_ACTIONS.map((action, index) => <button key={action.id} type="button" onClick={() => setSampledAction(index)} className={`rounded-lg border p-3 text-left ${sampledAction === index ? 'border-sky-500 bg-sky-50' : 'border-slate-200'}`}><strong className="block text-sm">{action.label}</strong><span className="text-xs text-slate-600">environment E[G|a] = {action.expectedReturn}</span></button>)}
         </div>
+        <div className="mt-5 grid gap-4 md:grid-cols-3">
+          <label className="grid gap-2 text-sm font-bold text-slate-700">Sampled return G: {sampledReturn}<input type="range" min="-6" max="10" step="0.5" value={sampledReturn} onChange={(event) => setSampledReturn(Number(event.target.value))} /></label>
+          <label className="grid gap-2 text-sm font-bold text-slate-700">Baseline b: {baseline.toFixed(1)}<input type="range" min="-4" max="8" step="0.25" value={baseline} onChange={(event) => setBaseline(Number(event.target.value))} /></label>
+          <label className="grid gap-2 text-sm font-bold text-slate-700">Learning rate: {learningRate.toFixed(2)}<input type="range" min="0" max="0.8" step="0.02" value={learningRate} onChange={(event) => setLearningRate(Number(event.target.value))} /></label>
+        </div>
+      </section>
 
-        <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
-          <div className="mb-4 flex items-center gap-2 text-sm font-semibold uppercase tracking-wide text-sky-700">
-            <BarChart3 size={16} />
-            Policy probabilities
-          </div>
-          <div className="space-y-4">
-            {update.map((action) => (
-              <div key={action.id} className="rounded-xl border border-slate-200 bg-slate-50 p-4">
-                <div className="flex items-center justify-between gap-3 text-sm font-semibold text-slate-900">
-                  <span>{action.label}</span>
-                  <span className={action.delta >= 0 ? 'text-emerald-700' : 'text-rose-700'}>
-                    {action.delta >= 0 ? '+' : ''}{(action.delta * 100).toFixed(1)} pp
-                  </span>
-                </div>
-                <div className="mt-3 grid gap-2">
-                  <div className="h-2 rounded-full bg-white">
-                    <div className="h-2 rounded-full bg-slate-400" style={{ width: `${action.before * 100}%` }} />
-                  </div>
-                  <div className="h-2 rounded-full bg-white">
-                    <div className="h-2 rounded-full bg-sky-500" style={{ width: `${action.after * 100}%` }} />
-                  </div>
-                </div>
-                <div className="mt-2 text-xs text-slate-600">
-                  before {(action.before * 100).toFixed(1)}%, after {(action.after * 100).toFixed(1)}%
-                </div>
+      <div className="grid gap-3 md:grid-cols-4">
+        <Stat label="Advantage" value={step.advantage.toFixed(2)} detail="G − b for this sample" />
+        <Stat label="Expected return J" value={step.objective.toFixed(3)} detail="under current policy" />
+        <Stat label="Gradient sum" value={step.gradientSum.toExponential(1)} detail="softmax shift-invariance ⇒ 0" />
+        <Stat label="Gradient variance" value={step.selectedBaselineVariance.toFixed(3)} detail={`without baseline ${step.zeroBaselineVariance.toFixed(3)}`} />
+      </div>
+
+      <section className="grid gap-4 lg:grid-cols-[1.1fr_0.9fr]">
+        <div className="rounded-lg border border-slate-200 bg-white p-5">
+          <h3 className="flex items-center gap-2 text-sm font-black uppercase tracking-wide text-slate-600"><TrendingUp size={16} /> One sampled REINFORCE step</h3>
+          <div className="mt-4 space-y-3">
+            {POLICY_GRADIENT_ACTIONS.map((action, index) => (
+              <div key={action.id} className={`rounded-lg border p-4 ${sampledAction === index ? 'border-sky-300 bg-sky-50' : 'border-slate-200 bg-slate-50'}`}>
+                <div className="flex flex-wrap justify-between gap-3"><strong>{action.label}</strong><span className="font-mono text-sm">∂J/∂z ≈ {step.gradient[index].toFixed(4)}</span></div>
+                <div className="mt-3 grid gap-2"><div className="h-2 rounded bg-white"><div className="h-2 rounded bg-slate-400" style={{ width: `${step.before[index] * 100}%` }} /></div><div className="h-2 rounded bg-white"><div className="h-2 rounded bg-sky-500" style={{ width: `${step.after[index] * 100}%` }} /></div></div>
+                <p className="mt-2 text-xs text-slate-600">π before {(step.before[index] * 100).toFixed(1)}% → after {(step.after[index] * 100).toFixed(1)}% · exact expected gradient {step.exactGradient[index].toFixed(4)}</p>
               </div>
             ))}
           </div>
+        </div>
 
-          <div className="mt-5 rounded-xl bg-slate-900 p-4 text-white">
-            <div className="flex items-center gap-2 text-xs uppercase tracking-wide text-sky-200">
-              <TrendingUp size={14} />
-              Advantage signal
-            </div>
-            <div className="mt-1 text-3xl font-bold">{advantage}</div>
-            <p className="mt-2 text-sm text-slate-300">
-              Toy update: positive advantage increases the sampled action preference before softmax; negative
-              advantage lowers it. Other probabilities move because the distribution is renormalized.
-            </p>
+        <div className="space-y-4">
+          <div className="rounded-lg border border-rose-200 bg-rose-50 p-5 text-sm leading-6 text-rose-950">
+            <strong className="block text-xs uppercase tracking-wide text-rose-700">Fixed update bug</strong>
+            Old toy rule: only add αA to the sampled logit. Correct softmax REINFORCE: <span className="font-mono">A(onehot(a) − π)</span>, so non-sampled logits receive gradient components too.
+          </div>
+          <div className="rounded-lg border border-emerald-200 bg-emerald-50 p-5 text-sm leading-6 text-emerald-950">
+            <Sigma className="mr-2 inline" size={16} /> A baseline does <strong>not</strong> change the expected policy gradient when it does not depend on the sampled action. It changes variance. Current variance {step.selectedBaselineVariance.toFixed(3)}; using b≈J ({bestVarianceBaseline.toFixed(2)}) gives {bestLikeVariance.toFixed(3)} in this toy policy.
+          </div>
+          <div className="rounded-lg border border-sky-200 bg-sky-50 p-5 text-sm leading-6 text-sky-950">
+            <Activity className="mr-2 inline" size={16} /> A single Monte Carlo gradient can point away from the exact expected gradient because returns are noisy. REINFORCE is unbiased in expectation, not noiseless per trajectory.
           </div>
         </div>
       </section>

@@ -1,203 +1,96 @@
 import React, { useMemo, useState } from 'react';
-import { GitBranch, RefreshCw, StepForward } from 'lucide-react';
+import { CheckCircle2, GitBranch, RefreshCw } from 'lucide-react';
 import AssessmentPanel from '../../components/animation-shell/AssessmentPanel';
+import { POLICY_ITERATION_DEFAULTS, POLICY_ITERATION_MDP } from './policyIterationConfig';
+import { actionValue, evaluatePolicyForSweeps, runPolicyIteration } from './policyIterationModel';
 
-const STATES = ['Start', 'Bridge', 'Trap'];
-const REWARDS = { Start: 0, Bridge: 1, Trap: -5, Goal: 10 };
-const ACTIONS = {
-  Start: {
-    risk: [{ to: 'Goal', p: 0.35 }, { to: 'Trap', p: 0.65 }],
-    safe: [{ to: 'Bridge', p: 1 }],
-  },
-  Bridge: {
-    forward: [{ to: 'Goal', p: 0.75 }, { to: 'Trap', p: 0.25 }],
-    reset: [{ to: 'Start', p: 1 }],
-  },
-  Trap: {
-    recover: [{ to: 'Bridge', p: 0.6 }, { to: 'Trap', p: 0.4 }],
-    wait: [{ to: 'Trap', p: 1 }],
-  },
-};
+const NON_TERMINAL_STATES = POLICY_ITERATION_MDP.states.filter((state) => !POLICY_ITERATION_MDP.terminalStates.includes(state));
 
-const INITIAL_POLICY = {
-  Start: 'risk',
-  Bridge: 'reset',
-  Trap: 'wait',
-};
-
-function evaluate(policy, discount, depth) {
-  let values = { Start: 0, Bridge: 0, Trap: 0, Goal: REWARDS.Goal };
-
-  for (let step = 0; step < depth; step += 1) {
-    const next = { Goal: REWARDS.Goal };
-    for (const state of STATES) {
-      next[state] = ACTIONS[state][policy[state]].reduce((sum, transition) => (
-        sum + transition.p * (REWARDS[transition.to] + discount * values[transition.to])
-      ), 0);
-    }
-    values = next;
-  }
-
-  return values;
-}
-
-function greedyAction(state, values, discount) {
-  return Object.entries(ACTIONS[state]).reduce((best, [actionId, transitions]) => {
-    const score = transitions.reduce((sum, transition) => (
-      sum + transition.p * (REWARDS[transition.to] + discount * values[transition.to])
-    ), 0);
-    return score > best.score ? { actionId, score } : best;
-  }, { actionId: null, score: Number.NEGATIVE_INFINITY });
-}
-
-function improve(policy, values, discount) {
-  return Object.fromEntries(STATES.map((state) => [
-    state,
-    greedyAction(state, values, discount).actionId,
-  ]));
-}
-
-function runPolicyIteration(rounds, depth, discount) {
-  let policy = INITIAL_POLICY;
-  const snapshots = [];
-
-  for (let round = 0; round <= rounds; round += 1) {
-    const values = evaluate(policy, discount, depth);
-    const improved = improve(policy, values, discount);
-    snapshots.push({ policy, values, improved });
-    policy = improved;
-  }
-
-  return snapshots;
+function Stat({ label, value, detail }) {
+  return <div className="rounded-lg border border-slate-200 bg-white p-4"><p className="text-xs font-black uppercase tracking-wide text-slate-500">{label}</p><strong className="mt-1 block text-2xl font-black text-slate-950">{value}</strong><span className="text-sm text-slate-600">{detail}</span></div>;
 }
 
 export default function PolicyIterationAnimation() {
-  const [rounds, setRounds] = useState(1);
-  const [depth, setDepth] = useState(3);
-  const [discount, setDiscount] = useState(0.8);
-  const snapshots = useMemo(() => (
-    runPolicyIteration(rounds, depth, discount)
-  ), [rounds, depth, discount]);
-  const snapshot = snapshots[snapshots.length - 1];
-  const stable = STATES.every((state) => snapshot.policy[state] === snapshot.improved[state]);
+  const [discount, setDiscount] = useState(POLICY_ITERATION_DEFAULTS.discount);
+  const [round, setRound] = useState(0);
+  const result = useMemo(() => runPolicyIteration(
+    POLICY_ITERATION_MDP,
+    POLICY_ITERATION_DEFAULTS.initialPolicy,
+    discount,
+    POLICY_ITERATION_DEFAULTS,
+  ), [discount]);
+  const selectedRound = Math.min(round, result.history.length - 1);
+  const snapshot = result.history[selectedRound];
+  const shortValues = useMemo(() => evaluatePolicyForSweeps(POLICY_ITERATION_MDP, snapshot.policy, discount, 2), [snapshot, discount]);
 
   return (
-    <div className="mx-auto flex max-w-6xl flex-col gap-6 p-6">
-      <section className="grid gap-4 lg:grid-cols-[0.85fr_1.15fr]">
-        <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
-          <div className="mb-4 flex items-center gap-2 text-sm font-semibold uppercase tracking-wide text-emerald-700">
-            <RefreshCw size={16} />
-            Evaluation then improvement
-          </div>
+    <div className="space-y-6">
+      <section className="rounded-lg border border-slate-200 bg-white p-5">
+        <p className="text-xs font-black uppercase tracking-wide text-emerald-700">Dynamic programming</p>
+        <h2 className="mt-1 text-2xl font-black text-slate-950">Policy Iteration: evaluate to a fixed point, then improve</h2>
+        <p className="mt-2 max-w-4xl text-sm leading-6 text-slate-700">
+          A policy is not evaluated by an arbitrary number of lookahead steps. Policy evaluation solves its Bellman equations to a tolerance;
+          policy improvement then replaces actions with greedy choices under those converged values.
+        </p>
+      </section>
 
-          <label className="block text-sm font-semibold text-slate-700" htmlFor="pi-rounds">
-            Improvement rounds: {rounds}
-          </label>
-          <input
-            id="pi-rounds"
-            type="range"
-            min="0"
-            max="5"
-            step="1"
-            value={rounds}
-            onChange={(event) => setRounds(Number(event.target.value))}
-            className="mt-2 w-full accent-emerald-500"
-          />
-
-          <label className="mt-5 block text-sm font-semibold text-slate-700" htmlFor="pi-depth">
-            Evaluation depth: {depth}
-          </label>
-          <input
-            id="pi-depth"
-            type="range"
-            min="1"
-            max="8"
-            step="1"
-            value={depth}
-            onChange={(event) => setDepth(Number(event.target.value))}
-            className="mt-2 w-full accent-emerald-500"
-          />
-
-          <label className="mt-5 block text-sm font-semibold text-slate-700" htmlFor="pi-discount">
-            Discount gamma: {discount.toFixed(2)}
-          </label>
-          <input
-            id="pi-discount"
-            type="range"
-            min="0"
-            max="1"
-            step="0.05"
-            value={discount}
-            onChange={(event) => setDiscount(Number(event.target.value))}
-            className="mt-2 w-full accent-emerald-500"
-          />
-
-          <div className={`mt-5 rounded-xl p-4 ${stable ? 'bg-emerald-900' : 'bg-slate-900'} text-white`}>
-            <div className="flex items-center gap-2 text-xs uppercase tracking-wide text-emerald-200">
-              <StepForward size={14} />
-              {stable ? 'Policy stable' : 'Policy can improve'}
-            </div>
-            <p className="mt-2 text-sm text-slate-200">
-              Evaluate current actions for each state, then greedily replace any action with a better lookahead.
-            </p>
-          </div>
+      <section className="rounded-lg border border-slate-200 bg-white p-5">
+        <label className="grid gap-2 text-sm font-bold text-slate-700">
+          Discount γ: {discount.toFixed(2)}
+          <input type="range" min="0" max="0.99" step="0.01" value={discount} onChange={(event) => { setDiscount(Number(event.target.value)); setRound(0); }} />
+        </label>
+        <div className="mt-4 flex flex-wrap gap-2">
+          {result.history.map((item, index) => (
+            <button key={item.round} type="button" onClick={() => setRound(index)} className={`rounded-lg border px-3 py-2 text-sm font-bold ${selectedRound === index ? 'border-emerald-500 bg-emerald-50 text-emerald-900' : 'border-slate-200 text-slate-700'}`}>
+              Round {index + 1}{item.improvement.stable ? ' · stable' : ''}
+            </button>
+          ))}
         </div>
+      </section>
 
-        <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
-          <div className="mb-4 flex items-center gap-2 text-sm font-semibold uppercase tracking-wide text-emerald-700">
-            <GitBranch size={16} />
-            Policy table
-          </div>
-          <div className="grid gap-3">
-            {STATES.map((state) => {
-              const current = snapshot.policy[state];
-              const next = snapshot.improved[state];
-              const changed = current !== next;
+      <div className="grid gap-3 md:grid-cols-4">
+        <Stat label="Policy rounds" value={result.rounds} detail={result.stable ? 'stable policy reached' : 'iteration cap reached'} />
+        <Stat label="Eval iterations" value={snapshot.evaluation.iterations} detail="Bellman sweeps this round" />
+        <Stat label="Eval residual" value={snapshot.evaluation.residual.toExponential(1)} detail="policy Bellman error" />
+        <Stat label="Changes" value={snapshot.improvement.changes.length} detail="actions replaced after evaluation" />
+      </div>
+
+      <section className="grid gap-4 lg:grid-cols-[1.1fr_0.9fr]">
+        <div className="rounded-lg border border-slate-200 bg-white p-5">
+          <h3 className="flex items-center gap-2 text-sm font-black uppercase tracking-wide text-slate-600"><GitBranch size={16} /> Policy evaluation + improvement</h3>
+          <div className="mt-4 space-y-3">
+            {NON_TERMINAL_STATES.map((state) => {
+              const currentAction = snapshot.policy[state];
+              const improvedAction = snapshot.improvement.policy[state];
               return (
-                <div
-                  key={state}
-                  className={`rounded-xl border p-4 ${
-                    changed ? 'border-amber-200 bg-amber-50' : 'border-emerald-200 bg-emerald-50'
-                  }`}
-                >
+                <div key={state} className={`rounded-lg border p-4 ${currentAction === improvedAction ? 'border-emerald-200 bg-emerald-50' : 'border-amber-200 bg-amber-50'}`}>
                   <div className="flex flex-wrap items-center justify-between gap-3">
-                    <div>
-                      <div className="text-sm font-semibold text-slate-900">{state}</div>
-                      <div className="text-xs text-slate-600">Value {snapshot.values[state].toFixed(2)}</div>
-                    </div>
-                    <div className="text-right text-sm">
-                      <div>Current: <strong>{current}</strong></div>
-                      <div>Improved: <strong>{next}</strong></div>
-                    </div>
+                    <div><strong className="text-slate-950">{state}</strong><p className="text-sm text-slate-600">Vπ(s) = {snapshot.evaluation.values[state].toFixed(3)}</p></div>
+                    <div className="text-right text-sm text-slate-700"><div>π(s): <strong>{currentAction}</strong></div><div>greedy: <strong>{improvedAction}</strong></div></div>
                   </div>
-                  <div className="mt-3 h-2 rounded-full bg-white">
-                    <div
-                      className={`h-2 rounded-full ${changed ? 'bg-amber-500' : 'bg-emerald-500'}`}
-                      style={{ width: `${Math.min(100, Math.max(12, Math.abs(snapshot.values[state]) * 8))}%` }}
-                    />
+                  <div className="mt-3 grid gap-2 sm:grid-cols-2">
+                    {Object.keys(POLICY_ITERATION_MDP.actions[state]).map((actionId) => (
+                      <div key={actionId} className="rounded bg-white px-3 py-2 text-xs text-slate-700">Qπ({state}, {actionId}) = <strong>{actionValue(POLICY_ITERATION_MDP, state, actionId, snapshot.evaluation.values, discount).toFixed(3)}</strong></div>
+                    ))}
                   </div>
                 </div>
               );
             })}
           </div>
         </div>
-      </section>
 
-      <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
-        <div className="mb-4 text-sm font-semibold uppercase tracking-wide text-emerald-700">Action lookaheads</div>
-        <div className="grid gap-3 md:grid-cols-3">
-          {STATES.map((state) => (
-            <div key={state} className="rounded-xl border border-slate-200 bg-slate-50 p-3">
-              <div className="text-sm font-semibold text-slate-900">{state}</div>
-              <div className="mt-2 space-y-1 text-xs text-slate-600">
-                {Object.keys(ACTIONS[state]).map((actionId) => (
-                  <div key={actionId}>
-                    {actionId}: {greedyAction(state, { ...snapshot.values, Goal: REWARDS.Goal }, discount).actionId === actionId ? 'greedy candidate' : 'alternative'}
-                  </div>
-                ))}
-              </div>
+        <div className="space-y-4">
+          <div className="rounded-lg border border-rose-200 bg-rose-50 p-5">
+            <h3 className="text-sm font-black uppercase tracking-wide text-rose-700">Truncated-evaluation trap</h3>
+            <p className="mt-2 text-sm leading-6 text-rose-950">Two sweeps can look plausible while still being far from Vπ. This is modified policy iteration, not exact policy iteration, unless you control the approximation error.</p>
+            <div className="mt-3 space-y-2 text-sm">
+              {NON_TERMINAL_STATES.map((state) => <div key={state} className="flex justify-between"><span>{state}</span><span className="font-mono">2 sweeps {shortValues[state].toFixed(2)} · converged {snapshot.evaluation.values[state].toFixed(2)}</span></div>)}
             </div>
-          ))}
+          </div>
+          <div className="rounded-lg border border-emerald-200 bg-emerald-50 p-5 text-sm leading-6 text-emerald-950">
+            <CheckCircle2 className="mr-2 inline" size={16} /> Goal is truly terminal: reward is paid on entry and <strong>V(Goal)=0</strong>. There is no hidden +10 self-loop.
+          </div>
+          <button type="button" onClick={() => { setDiscount(POLICY_ITERATION_DEFAULTS.discount); setRound(0); }} className="inline-flex items-center gap-2 rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm font-bold text-slate-800"><RefreshCw size={16} /> Reset</button>
         </div>
       </section>
 
