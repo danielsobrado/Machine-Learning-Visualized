@@ -40,7 +40,7 @@ export function maxFalsePositiveForPosterior({ prior, sensitivity, threshold }) 
   requireProbability(prior, 'prior');
   requireProbability(sensitivity, 'sensitivity');
   requireRate(threshold, 'threshold');
-  if (prior === 1 || threshold <= prior) return 1;
+  if (prior === 1) return 1;
   if (prior === 0 || sensitivity === 0) return 0;
 
   const numerator = sensitivity * prior * (1 - threshold);
