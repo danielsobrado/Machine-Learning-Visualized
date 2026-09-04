@@ -48,8 +48,14 @@ test('population counts agree with probability-space posterior', () => {
   close(result.posterior, result.truePositive / result.positiveTotal);
 });
 
-test('if the action threshold is no stricter than the prior, every false-positive rate is admissible', () => {
+test('boundary caps at one only when the formula allows every false-positive rate', () => {
   close(maxFalsePositiveForPosterior({ prior: 0.4, sensitivity: 0.8, threshold: 0.3 }), 1);
+});
+
+test('a threshold below the prior can still constrain FPR when the signal is weak', () => {
+  const boundary = maxFalsePositiveForPosterior({ prior: 0.4, sensitivity: 0.1, threshold: 0.3 });
+  assert.ok(boundary < 1);
+  close(computeBayes({ prior: 0.4, sensitivity: 0.1, falsePositive: boundary }).posterior, 0.3);
 });
 
 test('invalid probabilities fail explicitly', () => {
