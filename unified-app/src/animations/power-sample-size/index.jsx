@@ -1,265 +1,133 @@
 import React, { useMemo, useState } from 'react';
-import { AlertTriangle, BarChart3, CheckCircle2, Gauge, RotateCcw, Scale, SlidersHorizontal, Target } from 'lucide-react';
 import AssessmentPanel from '../../components/animation-shell/AssessmentPanel';
 import {
-  LessonCallout,
-  LessonEquation,
-  LessonKicker,
-  LessonPanel,
-  LessonResetButton,
-  LessonStage,
-  LessonStat,
-} from '../../components/animation-shell/LessonUi';
+  BarTrack,
+  ControlBench,
+  Formula,
+  Note,
+  NoteRow,
+  Plate,
+  Readouts,
+  Slider,
+  Steps,
+} from '../_shared/notebook';
+import { CONTROL_LIMITS, DEFAULT_SCENARIO, SCENARIO_PRESETS } from './powerConfig.js';
+import { buildPowerLab } from './powerModel.js';
 
-function erf(x) {
-  const sign = x < 0 ? -1 : 1;
-  const a = Math.abs(x);
-  const t = 1 / (1 + 0.3275911 * a);
-  const y = 1 - (((((1.061405429 * t - 1.453152027) * t) + 1.421413741) * t - 0.284496736) * t + 0.254829592) * t * Math.exp(-a * a);
-  return sign * y;
-}
+const pct = (value) => `${(value * 100).toFixed(1)}%`;
+const sliderPct = (value) => `${value}%`;
 
-function normalCdf(x) {
-  return 0.5 * (1 + erf(x / Math.SQRT2));
-}
-
-function zForPower(powerPct) {
-  if (powerPct >= 95) return 1.645;
-  if (powerPct >= 90) return 1.282;
-  if (powerPct >= 85) return 1.036;
-  if (powerPct >= 80) return 0.842;
-  if (powerPct >= 75) return 0.674;
-  return 0.524;
-}
-
-function zForAlpha(alphaPct) {
-  if (alphaPct <= 1) return 2.576;
-  if (alphaPct <= 2) return 2.326;
-  if (alphaPct <= 5) return 1.96;
-  if (alphaPct <= 10) return 1.645;
-  return 1.44;
-}
-
-function PowerCurve({ requiredN, plannedN, powerPct }) {
-  const points = Array.from({ length: 18 }, (_, index) => {
-    const n = 1000 + index * 5000;
-    const ratio = Math.sqrt(n / Math.max(1, requiredN));
-    const power = normalCdf((zForPower(powerPct) + 1.96) * ratio - 1.96);
-    return { n, power };
-  });
-  const maxN = points[points.length - 1].n;
-
+function PowerCurve({ curve, plannedTotal, targetPower }) {
+  const width = 620;
+  const height = 220;
+  const pad = 36;
+  const minN = curve[0].totalSample;
+  const maxN = curve[curve.length - 1].totalSample;
+  const x = (sample) => pad + ((sample - minN) / Math.max(1, maxN - minN)) * (width - pad * 2);
+  const y = (power) => height - pad - power * (height - pad * 2);
+  const path = curve.map((point, index) => `${index === 0 ? 'M' : 'L'} ${x(point.totalSample).toFixed(1)} ${y(point.power).toFixed(1)}`).join(' ');
+  const plannedX = x(Math.min(maxN, Math.max(minN, plannedTotal)));
+  const targetY = y(targetPower / 100);
   return (
-    <LessonPanel>
-      <LessonKicker icon={BarChart3}>Power curve</LessonKicker>
-      <div className="ua-lesson-power-bars">
-        {points.map((point) => {
-          const isPlannedZone = point.n <= plannedN;
-          return (
-            <div key={point.n} className="flex flex-1 flex-col items-center justify-end gap-1">
-              <div
-                className={`w-full rounded-t ${isPlannedZone ? 'bg-emerald-500' : 'bg-cyan-300'}`}
-                style={{ height: `${Math.max(6, point.power * 100)}%` }}
-                title={`${point.n.toLocaleString()} users: ${(point.power * 100).toFixed(0)}% power`}
-              />
-            </div>
-          );
-        })}
-      </div>
-      <div className="ua-lesson-power-axis">
-        <span>1k users</span>
-        <span>planned: {plannedN.toLocaleString()}</span>
-        <span>{maxN.toLocaleString()} users</span>
-      </div>
-      <p className="ua-lesson-footnote">
-        Power rises with sample size, but by square-root math: halving the detectable effect usually needs about four
-        times as many observations.
-      </p>
-    </LessonPanel>
+    <svg viewBox={`0 0 ${width} ${height}`} role="img" aria-label="Power by total sample size" className="w-full h-auto">
+      <line x1={pad} x2={width - pad} y1={height - pad} y2={height - pad} stroke="currentColor" opacity="0.25" />
+      <line x1={pad} x2={pad} y1={pad} y2={height - pad} stroke="currentColor" opacity="0.25" />
+      <line x1={pad} x2={width - pad} y1={targetY} y2={targetY} stroke="currentColor" opacity="0.35" strokeDasharray="6 5" />
+      <line x1={plannedX} x2={plannedX} y1={pad} y2={height - pad} stroke="currentColor" opacity="0.35" strokeDasharray="6 5" />
+      <path d={path} fill="none" stroke="currentColor" strokeWidth="3" />
+      <text x={pad} y={height - 10} fontSize="11">{minN.toLocaleString()}</text>
+      <text x={width - pad} y={height - 10} textAnchor="end" fontSize="11">{maxN.toLocaleString()}</text>
+      <text x={pad + 4} y={targetY - 7} fontSize="11">target {targetPower}%</text>
+      <text x={plannedX + 6} y={pad + 12} fontSize="11">planned N</text>
+    </svg>
   );
 }
 
 export default function PowerSampleSizeAnimation() {
-  const [baselinePct, setBaselinePct] = useState(12);
-  const [mdePct, setMdePct] = useState(6);
-  const [plannedN, setPlannedN] = useState(16000);
-  const [alphaPct, setAlphaPct] = useState(5);
-  const [targetPowerPct, setTargetPowerPct] = useState(80);
-  const [varianceMultiplier, setVarianceMultiplier] = useState(1);
-
-  const metrics = useMemo(() => {
-    const baseline = baselinePct / 100;
-    const treatment = Math.min(0.999, baseline * (1 + mdePct / 100));
-    const absoluteEffect = treatment - baseline;
-    const pooledVariance = varianceMultiplier * (baseline * (1 - baseline) + treatment * (1 - treatment));
-    const zAlpha = zForAlpha(alphaPct);
-    const zBeta = zForPower(targetPowerPct);
-    const perGroupRequired = Math.ceil(((zAlpha + zBeta) ** 2 * pooledVariance) / Math.max(0.000001, absoluteEffect ** 2));
-    const totalRequired = perGroupRequired * 2;
-    const perGroupPlanned = plannedN / 2;
-    const observedSe = Math.sqrt(pooledVariance / Math.max(1, perGroupPlanned));
-    const detectableEffect = (zAlpha + zBeta) * observedSe;
-    const detectableRelative = baseline === 0 ? 0 : detectableEffect / baseline;
-    const effectZ = absoluteEffect / observedSe;
-    const achievedPower = normalCdf(effectZ - zAlpha);
-    const falseNegativePct = Math.max(0, Math.min(100, (1 - achievedPower) * 100));
-    const underpowered = plannedN < totalRequired;
-
-    return {
-      absoluteEffect,
-      totalRequired,
-      perGroupRequired,
-      detectableRelative,
-      achievedPower,
-      falsePositivePct: alphaPct,
-      falseNegativePct,
-      underpowered,
-      varianceInflation: Math.sqrt(varianceMultiplier),
-    };
-  }, [alphaPct, baselinePct, mdePct, plannedN, targetPowerPct, varianceMultiplier]);
-
-  const reset = () => {
-    setBaselinePct(12);
-    setMdePct(6);
-    setPlannedN(16000);
-    setAlphaPct(5);
-    setTargetPowerPct(80);
-    setVarianceMultiplier(1);
-  };
-
-  const plannedRatio = Math.min(100, (plannedN / metrics.totalRequired) * 100);
-  const powerRatio = Math.min(100, metrics.achievedPower * 100);
+  const [scenario, setScenario] = useState(DEFAULT_SCENARIO);
+  const lab = useMemo(() => buildPowerLab(scenario), [scenario]);
+  const update = (key, value) => setScenario((current) => ({ ...current, [key]: value }));
+  const applyPreset = (values) => setScenario((current) => ({ ...current, ...values }));
 
   return (
-    <LessonStage>
-      <LessonPanel>
-        <div className="ua-lesson-head">
-          <div>
-            <LessonKicker>Experiment planning</LessonKicker>
-            <h2>Power & Sample Size</h2>
-            <p>
-              Power analysis asks whether an experiment has enough observations to detect the smallest effect worth
-              acting on while controlling false positives and false negatives.
-            </p>
+    <div className="nb-lesson">
+      <Plate
+        label="Experiment-design workbench"
+        title="Power & Sample Size"
+        note="Power is a repeated-sampling probability, not a badge attached to one observed p-value. This workbench uses continuous normal quantiles and solves the two-proportion design numerically for the declared baseline, MDE, alpha, allocation, and design effect."
+      >
+        <NoteRow>
+          <Note label="MDE" title="Start from a useful effect">
+            <p>Choose the smallest lift worth acting on before seeing the experiment. Smaller MDEs demand more information.</p>
+          </Note>
+          <Note label="Errors" title="Alpha and beta are different risks">
+            <p>Alpha limits false positives under the null. Power = 1 − beta is the chance to detect the declared effect when it is real.</p>
+          </Note>
+          <Note label="Information" title="Allocation and clustering matter">
+            <p>A 50/50 split is most efficient for equal per-unit costs. Design effects reduce effective information and inflate required sample.</p>
+          </Note>
+        </NoteRow>
+      </Plate>
+
+      <ControlBench label="Declare the experiment before running it" actions={<button type="button" className="nb-reset" onClick={() => setScenario(DEFAULT_SCENARIO)}>Reset</button>}>
+        <Slider label="Baseline conversion" value={scenario.baselineRate} {...CONTROL_LIMITS.baselineRate} format={sliderPct} help="Control-group event probability." onChange={(value) => update('baselineRate', value)} />
+        <Slider label="Relative MDE" value={scenario.relativeLift} {...CONTROL_LIMITS.relativeLift} format={sliderPct} help="Smallest relative improvement the design should reliably detect." onChange={(value) => update('relativeLift', value)} />
+        <Slider label="Planned total sample" value={scenario.plannedTotal} {...CONTROL_LIMITS.plannedTotal} format={(value) => value.toLocaleString()} help="Total observations across treatment and control." onChange={(value) => update('plannedTotal', value)} />
+        <Slider label="Two-sided alpha" value={scenario.alpha} {...CONTROL_LIMITS.alpha} format={sliderPct} help="Type I error budget. Critical values are computed continuously, not from lookup buckets." onChange={(value) => update('alpha', value)} />
+        <Slider label="Target power" value={scenario.targetPower} {...CONTROL_LIMITS.targetPower} format={sliderPct} help="Probability of rejecting the null when the MDE is the true effect." onChange={(value) => update('targetPower', value)} />
+        <Slider label="Treatment allocation" value={scenario.treatmentAllocation} {...CONTROL_LIMITS.treatmentAllocation} format={sliderPct} help="Share assigned to treatment. Moving away from 50/50 costs information when group costs are equal." onChange={(value) => update('treatmentAllocation', value)} />
+        <Slider label="Design effect" value={scenario.designEffect} {...CONTROL_LIMITS.designEffect} format={(value) => `${value.toFixed(1)}×`} help="Variance inflation from clustering or correlated observations. 1× means independent units." onChange={(value) => update('designEffect', value)} />
+      </ControlBench>
+
+      <div className="flex flex-wrap gap-2 -mt-2 mb-2" aria-label="Power analysis presets">
+        {SCENARIO_PRESETS.map((preset) => (
+          <button key={preset.id} type="button" className="ds-btn" onClick={() => applyPreset(preset.values)}>{preset.label}</button>
+        ))}
+      </div>
+
+      <Plate label="1 · Solve the design" title="Required sample is the smallest N that reaches the declared target power">
+        <Readouts columns={4} items={[
+          { label: 'Required total N', value: lab.metrics.requiredTotal.toLocaleString(), detail: `Target ${scenario.targetPower}% power` },
+          { label: 'Achieved power', value: pct(lab.metrics.achievedPower), detail: `β = ${pct(lab.metrics.falseNegativeRate)}` },
+          { label: 'Planned-N MDE', value: `${lab.metrics.detectableRelativeLift.toFixed(1)}%`, detail: 'Relative lift detectable at target power' },
+          { label: 'Critical z', value: lab.metrics.criticalZ.toFixed(3), detail: `Two-sided α = ${scenario.alpha}%` },
+        ]} />
+        <Formula lines={[
+          `p0 = ${pct(lab.metrics.baselineRate)}    ·    p1 at declared MDE = ${pct(lab.metrics.treatmentRate)}`,
+          'SE under alternative = sqrt(DE × [p1(1−p1)/n1 + p0(1−p0)/n0])',
+          'power = P(Z > zα/2 | effect) + P(Z < −zα/2 | effect)',
+        ]} />
+      </Plate>
+
+      <div className="nb-split">
+        <Plate label="2 · Power curve" title="More sample moves the alternative distribution past the rejection boundary">
+          <PowerCurve curve={lab.curve} plannedTotal={scenario.plannedTotal} targetPower={scenario.targetPower} />
+          <div className="nb-bar-stack mt-4">
+            <BarTrack label="Achieved power" value={pct(lab.metrics.achievedPower)} width={lab.metrics.achievedPower * 100} tone={lab.metrics.underpowered ? 'warn' : 'good'} />
+            <BarTrack label="Planned / required N" value={`${(lab.metrics.sampleRatio * 100).toFixed(0)}%`} width={Math.min(100, lab.metrics.sampleRatio * 100)} tone={lab.metrics.sampleRatio >= 1 ? 'good' : 'bad'} />
           </div>
-          <LessonResetButton onClick={reset}>
-            <RotateCcw size={16} />
-            Reset
-          </LessonResetButton>
-        </div>
-      </LessonPanel>
+        </Plate>
 
-      <LessonPanel>
-        <LessonKicker icon={SlidersHorizontal}>Planning controls</LessonKicker>
-        <div className="ua-lesson-control-grid">
-          <label>
-            Baseline conversion: {baselinePct}%
-            <input type="range" min="2" max="40" value={baselinePct} onChange={(event) => setBaselinePct(Number(event.target.value))} />
-            <span>Lower baselines often need more users for the same relative lift.</span>
-          </label>
-          <label>
-            Minimum detectable effect: {mdePct}%
-            <input type="range" min="1" max="20" value={mdePct} onChange={(event) => setMdePct(Number(event.target.value))} />
-            <span>Small effects require large experiments.</span>
-          </label>
-          <label>
-            Planned total sample: {plannedN.toLocaleString()}
-            <input type="range" min="2000" max="90000" step="1000" value={plannedN} onChange={(event) => setPlannedN(Number(event.target.value))} />
-            <span>Assumes a balanced 50/50 split.</span>
-          </label>
-          <label>
-            Alpha: {alphaPct}%
-            <input type="range" min="1" max="15" value={alphaPct} onChange={(event) => setAlphaPct(Number(event.target.value))} />
-            <span>False positive tolerance under no real effect.</span>
-          </label>
-          <label>
-            Target power: {targetPowerPct}%
-            <input type="range" min="70" max="95" step="5" value={targetPowerPct} onChange={(event) => setTargetPowerPct(Number(event.target.value))} />
-            <span>Chance to detect the MDE when it is real.</span>
-          </label>
-          <label>
-            Variance multiplier: {varianceMultiplier.toFixed(1)}x
-            <input type="range" min="0.5" max="3" step="0.1" value={varianceMultiplier} onChange={(event) => setVarianceMultiplier(Number(event.target.value))} />
-            <span>Noisier metrics widen standard errors.</span>
-          </label>
-        </div>
-      </LessonPanel>
+        <Plate label="3 · Information budget" title="A headcount is not automatically an effective sample">
+          <Readouts columns={2} items={[
+            { label: 'Treatment N', value: lab.metrics.treatmentN.toLocaleString(), detail: `${scenario.treatmentAllocation}% allocation` },
+            { label: 'Control N', value: lab.metrics.controlN.toLocaleString(), detail: `${100 - scenario.treatmentAllocation}% allocation` },
+            { label: 'Absolute MDE', value: `${(lab.metrics.absoluteEffect * 100).toFixed(2)} pts`, detail: `${scenario.relativeLift}% relative to baseline` },
+            { label: 'Target zβ', value: lab.metrics.targetZ.toFixed(3), detail: `Continuous quantile for ${scenario.targetPower}%` },
+          ]} />
+          <Steps items={[
+            { title: 'Define practical sensitivity', pass: scenario.relativeLift >= 3, body: scenario.relativeLift >= 3 ? 'The declared MDE is explicit. Whether it is economically meaningful is a product decision.' : 'A very small MDE can make the required sample explode; verify that such sensitivity is worth paying for.' },
+            { title: 'Fund the target power', pass: !lab.metrics.underpowered, body: lab.metrics.underpowered ? `The current plan is below the ${scenario.targetPower}% power target.` : `The current plan reaches at least ${scenario.targetPower}% power for the declared MDE.` },
+            { title: 'Avoid unnecessary allocation loss', pass: scenario.treatmentAllocation >= 40 && scenario.treatmentAllocation <= 60, body: scenario.treatmentAllocation >= 40 && scenario.treatmentAllocation <= 60 ? 'The split is close to the equal-allocation efficiency optimum.' : 'The unbalanced split increases total sample needed when per-unit costs are equal.' },
+          ]} />
+        </Plate>
+      </div>
 
-      <section className="ua-lesson-stat-grid">
-        <LessonStat label="Required sample" value={metrics.totalRequired.toLocaleString()} detail={`${metrics.perGroupRequired.toLocaleString()} per group`} tone={metrics.underpowered ? 'amber' : 'emerald'} />
-        <LessonStat label="Achieved power" value={`${(metrics.achievedPower * 100).toFixed(0)}%`} detail={`Target: ${targetPowerPct}%`} tone={metrics.achievedPower * 100 >= targetPowerPct ? 'emerald' : 'amber'} />
-        <LessonStat label="False positive risk" value={`${metrics.falsePositivePct}%`} detail="Controlled by alpha" tone={alphaPct <= 5 ? 'cyan' : 'amber'} />
-        <LessonStat label="False negative risk" value={`${metrics.falseNegativePct.toFixed(0)}%`} detail="Miss a real MDE" tone={metrics.falseNegativePct <= 20 ? 'emerald' : 'rose'} />
-      </section>
+      <Note tone="accent" label="Takeaway" title="“Not significant” is uninterpretable without the design sensitivity">
+        <p>An experiment can fail to reject because the true effect is near zero or because the design had little chance to detect a useful effect. Report the MDE, target power, alpha, allocation, and achieved information alongside the result.</p>
+      </Note>
 
-      <section className="ua-lesson-split-grid">
-        <PowerCurve requiredN={metrics.totalRequired} plannedN={plannedN} powerPct={targetPowerPct} />
-
-        <LessonPanel>
-          <LessonKicker icon={Gauge}>Design readout</LessonKicker>
-          <div className="ua-lesson-bar-stack">
-            <div>
-              <div className="ua-lesson-bar-label">
-                <span>Planned vs required sample</span>
-                <span>{plannedRatio.toFixed(0)}%</span>
-              </div>
-              <div className="ua-lesson-bar-track">
-                <div className={`ua-lesson-bar-fill ${metrics.underpowered ? 'ua-lesson-bar-fill-warn' : 'ua-lesson-bar-fill-treatment'}`} style={{ width: `${plannedRatio}%` }} />
-              </div>
-            </div>
-            <div>
-              <div className="ua-lesson-bar-label">
-                <span>Achieved power</span>
-                <span>{(metrics.achievedPower * 100).toFixed(0)}%</span>
-              </div>
-              <div className="ua-lesson-bar-track">
-                <div className={`ua-lesson-bar-fill ${metrics.achievedPower * 100 >= targetPowerPct ? 'ua-lesson-bar-fill-treatment' : 'ua-lesson-bar-fill-risk'}`} style={{ width: `${powerRatio}%` }} />
-              </div>
-            </div>
-          </div>
-          <LessonEquation>
-            MDE = {(metrics.absoluteEffect * 100).toFixed(2)} percentage points<br />
-            detectable with planned N = {(metrics.detectableRelative * 100).toFixed(1)}% relative lift<br />
-            noise scale = {metrics.varianceInflation.toFixed(2)}x standard error
-          </LessonEquation>
-          <p className="ua-lesson-footnote">
-            An underpowered experiment can return “not significant” even when a useful effect exists. That is a false
-            negative, not proof that the treatment does nothing.
-          </p>
-        </LessonPanel>
-      </section>
-
-      <section className="ua-lesson-callout-grid">
-        <LessonCallout tone={metrics.underpowered ? 'warn' : 'good'}>
-          <p className="ua-lesson-callout-title">
-            {metrics.underpowered ? <AlertTriangle size={14} /> : <CheckCircle2 size={14} />}
-            Sample plan
-          </p>
-          <p>
-            {metrics.underpowered ? 'The planned sample is too small for the declared MDE and power target.' : 'The planned sample can support the declared MDE and power target.'}
-          </p>
-        </LessonCallout>
-        <LessonCallout tone="neutral">
-          <p className="ua-lesson-callout-title">
-            <Scale size={14} />
-            Error tradeoff
-          </p>
-          <p>
-            Lower alpha reduces false positives, but usually demands more sample or accepts lower power.
-          </p>
-        </LessonCallout>
-        <LessonCallout tone="neutral">
-          <p className="ua-lesson-callout-title">
-            <Target size={14} />
-            Practical target
-          </p>
-          <p>
-            Choose the MDE from product value before the experiment, not from the observed result afterward.
-          </p>
-        </LessonCallout>
-      </section>
-
-      <AssessmentPanel lessonId="power-sample-size" />
-    </LessonStage>
+      <AssessmentPanel lessonId="power-sample-size" title="Power and sample size check" />
+    </div>
   );
 }
