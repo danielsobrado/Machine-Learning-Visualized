@@ -1,75 +1,24 @@
-import React, { useState, Suspense, lazy } from 'react';
-import { Gamepad2, Coins, TrendingUp } from 'lucide-react';
+import React, { useMemo, useState } from 'react';
+import { Dices, RefreshCw, Route, Sigma } from 'lucide-react';
 import AssessmentPanel from '../../components/animation-shell/AssessmentPanel';
+import { RL_DEFAULTS, RL_SCENARIOS } from './rlConfig';
+import { buildRlFoundationsLab } from './rlModel';
 
-// Lazy load panels
-const AgentPanel = lazy(() => import('./AgentPanel'));
-const RewardPanel = lazy(() => import('./RewardPanel'));
-const ReturnPanel = lazy(() => import('./ReturnPanel'));
-
-// Tab configuration
-const tabs = [
-    { id: 'agent', label: '1. The Agent & Environment', icon: Gamepad2, color: 'from-emerald-500 to-teal-500' },
-    { id: 'reward', label: '2. Rewards & Penalties', icon: Coins, color: 'from-teal-500 to-cyan-500' },
-    { id: 'return', label: '3. Discounted Returns', icon: TrendingUp, color: 'from-cyan-500 to-blue-500' },
-];
-
-// Loading fallback
-function LoadingPanel() {
-    return (
-        <div className="flex items-center justify-center p-12">
-            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-emerald-500"></div>
-        </div>
-    );
-}
+function Stat({ label, value, detail }) { return <div className="rounded-lg border border-slate-200 bg-white p-4"><p className="text-xs font-black uppercase tracking-wide text-slate-500">{label}</p><strong className="mt-1 block text-2xl font-black text-slate-950">{value}</strong><span className="text-sm text-slate-600">{detail}</span></div>; }
 
 export default function RlFoundationsAnimation() {
-    const [activeTab, setActiveTab] = useState('agent');
-
-    const renderPanel = () => {
-        switch (activeTab) {
-            case 'agent':
-                return <Suspense fallback={<LoadingPanel />}><AgentPanel /></Suspense>;
-            case 'reward':
-                return <Suspense fallback={<LoadingPanel />}><RewardPanel /></Suspense>;
-            case 'return':
-                return <Suspense fallback={<LoadingPanel />}><ReturnPanel /></Suspense>;
-            default:
-                return <Suspense fallback={<LoadingPanel />}><AgentPanel /></Suspense>;
-        }
-    };
-
-    return (
-        <div className="flex flex-col h-full">
-            {/* Navigation Tabs */}
-            <nav className="bg-white/50 backdrop-blur-sm border-b border-slate-200 sticky top-0 z-10">
-                <div className="px-4 overflow-x-auto">
-                    <div className="flex space-x-1 py-2">
-                        {tabs.map((tab) => (
-                            <button
-                                key={tab.id}
-                                onClick={() => setActiveTab(tab.id)}
-                                className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-medium transition-all whitespace-nowrap ${
-                                    activeTab === tab.id
-                                        ? `bg-gradient-to-r ${tab.color} text-white shadow-lg scale-105`
-                                        : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'
-                                }`}
-                            >
-                                <tab.icon size={18} />
-                                {tab.label}
-                            </button>
-                        ))}
-                    </div>
-                </div>
-            </nav>
-
-            {/* Panel Content */}
-            <div className="flex-1 overflow-auto">
-                {renderPanel()}
-                <div className="px-8 pb-8">
-                    <AssessmentPanel lessonId="rl-foundations" title="RL Foundations check" />
-                </div>
-            </div>
-        </div>
-    );
+  const [scenarioId, setScenarioId] = useState(RL_DEFAULTS.scenarioId);
+  const [gamma, setGamma] = useState(RL_DEFAULTS.gamma);
+  const [seed, setSeed] = useState(RL_DEFAULTS.seed);
+  const scenario = RL_SCENARIOS.find((item) => item.id === scenarioId);
+  const lab = useMemo(() => buildRlFoundationsLab({ scenario, gamma, seed }), [scenario, gamma, seed]);
+  return <div className="space-y-6">
+    <section className="rounded-lg border border-slate-200 bg-white p-5"><p className="text-xs font-black uppercase tracking-wide text-amber-700">Reinforcement-learning foundations</p><h2 className="mt-1 text-2xl font-black text-slate-950">Reward is one step. Return is the objective across a trajectory.</h2><p className="mt-2 max-w-4xl text-sm leading-6 text-slate-700">At time t the agent observes a state, chooses an action, receives the next reward, and continues. <strong>Gₜ = Rₜ₊₁ + γRₜ₊₂ + γ²Rₜ₊₃ + …</strong> scores the future trajectory, not just immediate feedback.</p></section>
+    <section className="rounded-lg border border-slate-200 bg-white p-5"><div className="grid gap-2 md:grid-cols-3">{RL_SCENARIOS.map((item) => <button key={item.id} type="button" onClick={() => setScenarioId(item.id)} className={`rounded-lg border p-3 text-left ${scenarioId === item.id ? 'border-amber-500 bg-amber-50' : 'border-slate-200'}`}><strong className="block text-sm text-slate-950">{item.label}</strong><span className="mt-1 block text-xs leading-5 text-slate-600">{item.detail}</span></button>)}</div><label className="mt-5 grid gap-2 text-sm font-bold text-slate-700">Discount factor γ: {gamma.toFixed(2)}<input type="range" min="0" max="1" step="0.01" value={gamma} onChange={(event) => setGamma(Number(event.target.value))} /></label></section>
+    <div className="grid gap-3 md:grid-cols-3"><Stat label="Best expected action" value={lab.actions.find((action) => action.id === lab.bestActionId)?.label} detail="highest expected discounted return" /><Stat label="Discount horizon" value={Number.isFinite(lab.horizon) ? `~${lab.horizon} steps` : 'unbounded'} detail="until γ^k falls below 5%" /><Stat label="Episode seed" value={seed} detail="controls sampled stochastic outcomes" /></div>
+    <section className="grid gap-4 lg:grid-cols-2">{lab.actions.map((action) => <div key={action.id} className={`rounded-lg border p-5 ${action.id === lab.bestActionId ? 'border-emerald-300 bg-emerald-50' : 'border-slate-200 bg-white'}`}><div className="flex items-start justify-between gap-3"><div><p className="text-xs font-black uppercase tracking-wide text-slate-500">Action</p><h3 className="text-lg font-black text-slate-950">{action.label}</h3></div>{action.id === lab.bestActionId && <span className="rounded-full bg-emerald-600 px-3 py-1 text-xs font-black text-white">best expectation</span>}</div><div className="mt-4 grid grid-cols-3 gap-2 text-center"><div className="rounded-lg bg-white p-3"><strong className="block text-xl">{action.immediateReward.toFixed(2)}</strong><span className="text-xs text-slate-600">expected Rₜ₊₁</span></div><div className="rounded-lg bg-white p-3"><strong className="block text-xl">{action.expectedReturn.toFixed(2)}</strong><span className="text-xs text-slate-600">expected Gₜ</span></div><div className="rounded-lg bg-white p-3"><strong className="block text-xl">{action.sampledReturn.toFixed(2)}</strong><span className="text-xs text-slate-600">sampled Gₜ</span></div></div><div className="mt-4 rounded-lg border border-slate-200 bg-white p-4"><div className="flex items-center gap-2 text-xs font-black uppercase tracking-wide text-slate-500"><Route size={15} /> sampled trajectory: {action.sampledOutcome.label}</div><div className="mt-3 flex flex-wrap gap-2">{action.sampledOutcome.rewards.map((reward, index) => <div key={index} className="rounded-lg bg-slate-100 px-3 py-2 text-sm">R{index + 1} = <strong>{reward}</strong><span className="ml-2 text-xs text-slate-500">G = {action.sampledReturns[index].toFixed(2)}</span></div>)}</div></div></div>)}</section>
+    <section className="grid gap-4 md:grid-cols-3"><div className="rounded-lg border border-amber-200 bg-amber-50 p-4 text-sm leading-6 text-amber-950"><strong className="block text-xs uppercase tracking-wide text-amber-700">Reward ≠ return</strong>An action can start at zero or a penalty and still have the larger return.</div><div className="rounded-lg border border-cyan-200 bg-cyan-50 p-4 text-sm leading-6 text-cyan-950"><strong className="block text-xs uppercase tracking-wide text-cyan-700">Expectation ≠ one episode</strong>A stochastic action is judged by probability-weighted return, while one episode shows only one outcome.</div><div className="rounded-lg border border-violet-200 bg-violet-50 p-4 text-sm leading-6 text-violet-950"><strong className="block text-xs uppercase tracking-wide text-violet-700">What γ means</strong>γ is part of the objective and can make continuing returns finite. Future rewards are not a law of nature that must literally be worth less.</div></section>
+    <button type="button" onClick={() => setSeed((value) => value + 1)} className="inline-flex items-center gap-2 rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm font-bold text-slate-800"><Dices size={16} /> Sample another episode</button><button type="button" onClick={() => { setScenarioId(RL_DEFAULTS.scenarioId); setGamma(RL_DEFAULTS.gamma); setSeed(RL_DEFAULTS.seed); }} className="ml-2 inline-flex items-center gap-2 rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm font-bold text-slate-800"><RefreshCw size={16} /> Reset</button>
+    <div className="rounded-lg bg-slate-950 p-4 font-mono text-sm text-slate-100"><Sigma size={15} className="mr-2 inline" />Gₜ = Σₖ γᵏ Rₜ₊ₖ₊₁</div><AssessmentPanel lessonId="rl-foundations" title="RL Foundations check" />
+  </div>;
 }

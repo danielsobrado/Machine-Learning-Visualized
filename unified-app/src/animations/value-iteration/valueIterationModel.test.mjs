@@ -1,0 +1,10 @@
+import assert from 'node:assert/strict'; import test from 'node:test';
+import { actionValue, bellmanBackup, bellmanResidual, runValueIteration, synchronousSweep, terminalRewardComparison, validateMdp, zeroValues } from './valueIterationModel.js';
+import { VALUE_ITERATION_MDP } from './valueIterationConfig.js';
+test('MDP is valid and Goal has no actions', () => { assert.equal(validateMdp(VALUE_ITERATION_MDP), true); assert.equal(VALUE_ITERATION_MDP.actions.Goal, undefined); });
+test('terminal state value is zero after entry reward', () => { const backup = bellmanBackup(VALUE_ITERATION_MDP, 'Goal', zeroValues(VALUE_ITERATION_MDP), 0.9); assert.equal(backup.value, 0); assert.equal(backup.actionId, null); });
+test('first sweep equals best expected immediate reward', () => { const sweep = synchronousSweep(VALUE_ITERATION_MDP, zeroValues(VALUE_ITERATION_MDP), 0.9); assert.ok(Math.abs(sweep.values.Start - (0.55 * 10 + 0.45 * -6)) < 1e-12); });
+test('action values use previous sweep values synchronously', () => { const values = zeroValues(VALUE_ITERATION_MDP); values.Bridge = 5; assert.ok(Math.abs(actionValue(VALUE_ITERATION_MDP, 'Start', 'safe', values, 0.8) - 5) < 1e-12); });
+test('value iteration converges to a Bellman fixed point', () => { const solution = runValueIteration(VALUE_ITERATION_MDP, 0.9, 1e-8, 1000); assert.equal(solution.converged, true); assert.ok(solution.residual <= 1e-8); assert.ok(bellmanResidual(VALUE_ITERATION_MDP, solution.values, 0.9) <= 1e-8); });
+test('high-discount optimal policy uses safe then forward', () => { const solution = runValueIteration(VALUE_ITERATION_MDP, 0.9, 1e-8, 1000); assert.equal(solution.policy.Start, 'safe'); assert.equal(solution.policy.Bridge, 'forward'); });
+test('terminal entry reward differs from a rewarding self-loop', () => { const comparison = terminalRewardComparison(10, 0.9); assert.equal(comparison.rewardOnEntry, 10); assert.ok(Math.abs(comparison.repeatedSelfLoopValue - 100) < 1e-10); });

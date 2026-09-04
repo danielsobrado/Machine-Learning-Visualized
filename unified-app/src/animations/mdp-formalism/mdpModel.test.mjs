@@ -1,0 +1,10 @@
+import assert from 'node:assert/strict'; import test from 'node:test';
+import { actionBreakdown, actionValue, buildMdpLab, compareActions, expectedImmediateReward, sampleTransition, validateMdp } from './mdpModel.js';
+import { CONTINUATION_VALUES, MDP_MODEL } from './mdpConfig.js';
+test('MDP transition distributions are valid', () => assert.equal(validateMdp(MDP_MODEL), true));
+test('expected immediate reward is probability weighted', () => assert.ok(Math.abs(expectedImmediateReward(MDP_MODEL.actions.Crossroad.risky) - 2.4) < 1e-12));
+test('action value combines transition reward and continuation value', () => assert.ok(Math.abs(actionValue(MDP_MODEL.actions.Crossroad.safe, CONTINUATION_VALUES, 0.8) - 5) < 1e-12));
+test('terminal next state has zero continuation', () => { const goal = actionBreakdown(MDP_MODEL, 'Crossroad', 'risky', CONTINUATION_VALUES, 0.9).transitions.find((transition) => transition.to === 'Goal'); assert.equal(goal.continuationContribution, 0); assert.ok(goal.totalContribution > 0); });
+test('action preference can change with discount', () => { assert.equal(compareActions(MDP_MODEL, 'Crossroad', CONTINUATION_VALUES, 0)[0].actionId, 'risky'); assert.equal(compareActions(MDP_MODEL, 'Crossroad', CONTINUATION_VALUES, 0.9)[0].actionId, 'safe'); });
+test('seeded transition sampling is deterministic and legal', () => { const transitions = MDP_MODEL.actions.Crossroad.risky; const first = sampleTransition(transitions, 42); assert.deepEqual(first, sampleTransition(transitions, 42)); assert.ok(transitions.some((transition) => transition.to === first.to && transition.reward === first.reward)); });
+test('terminal state exposes no actions', () => { const lab = buildMdpLab({ model: MDP_MODEL, state: 'Goal', actionId: '', values: CONTINUATION_VALUES, gamma: 0.9, seed: 1 }); assert.equal(lab.terminal, true); assert.equal(lab.selected, null); assert.deepEqual(lab.comparisons, []); });

@@ -1,136 +1,18 @@
 import React, { useMemo, useState } from 'react';
-import { ArrowRight, RotateCcw, SlidersHorizontal } from 'lucide-react';
+import { Dices, GitBranch, Sigma, Workflow } from 'lucide-react';
 import AssessmentPanel from '../../components/animation-shell/AssessmentPanel';
-
-const ACTIONS = {
-  explore: {
-    label: 'Explore',
-    reward: 2,
-    transitions: [
-      { state: 'Shortcut', probability: 0.55, reward: 8 },
-      { state: 'Loop', probability: 0.30, reward: -2 },
-      { state: 'Goal', probability: 0.15, reward: 14 },
-    ],
-  },
-  safe: {
-    label: 'Safe route',
-    reward: 4,
-    transitions: [
-      { state: 'Shortcut', probability: 0.15, reward: 8 },
-      { state: 'Loop', probability: 0.10, reward: -2 },
-      { state: 'Goal', probability: 0.75, reward: 14 },
-    ],
-  },
-};
-
-function expectedNext(action) {
-  return action.transitions.reduce((sum, transition) => (
-    sum + transition.probability * transition.reward
-  ), 0);
-}
-
+import { CONTINUATION_VALUES, MDP_DEFAULTS, MDP_MODEL } from './mdpConfig';
+import { buildMdpLab } from './mdpModel';
+function Stat({ label, value, detail }) { return <div className="rounded-lg border border-slate-200 bg-white p-4"><p className="text-xs font-black uppercase tracking-wide text-slate-500">{label}</p><strong className="mt-1 block text-2xl font-black text-slate-950">{value}</strong><span className="text-sm text-slate-600">{detail}</span></div>; }
 export default function MdpFormalismAnimation() {
-  const [actionId, setActionId] = useState('explore');
-  const [discount, setDiscount] = useState(0.8);
-  const action = ACTIONS[actionId];
-  const value = useMemo(() => (
-    action.reward + discount * expectedNext(action)
-  ), [action, discount]);
-
-  return (
-    <div className="mx-auto flex max-w-6xl flex-col gap-6 p-6">
-      <section className="grid gap-4 lg:grid-cols-[1.15fr_0.85fr]">
-        <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
-          <div className="mb-4 flex items-center gap-2 text-sm font-semibold uppercase tracking-wide text-amber-700">
-            <RotateCcw size={16} />
-            Markov Decision Process
-          </div>
-          <div className="grid gap-3 sm:grid-cols-5">
-            {['States', 'Actions', 'P(next state)', 'Rewards', 'Discount'].map((label) => (
-              <div key={label} className="rounded-xl border border-amber-100 bg-amber-50 p-3">
-                <div className="text-xs font-semibold uppercase text-amber-700">{label}</div>
-                <div className="mt-1 text-sm text-slate-700">
-                  {label === 'States' && 'Where the agent can be'}
-                  {label === 'Actions' && 'Choices available now'}
-                  {label === 'P(next state)' && 'Environment uncertainty'}
-                  {label === 'Rewards' && 'Immediate feedback'}
-                  {label === 'Discount' && 'Future reward weight'}
-                </div>
-              </div>
-            ))}
-          </div>
-
-          <div className="mt-6 rounded-xl border border-slate-200 bg-slate-50 p-4">
-            <div className="mb-3 text-sm font-semibold text-slate-700">Current state: Crossroad</div>
-            <div className="flex flex-wrap items-center gap-3">
-              <div className="rounded-xl bg-slate-900 px-4 py-3 text-sm font-semibold text-white">Crossroad</div>
-              <ArrowRight className="text-slate-400" size={22} />
-              {action.transitions.map((transition) => (
-                <div key={transition.state} className="min-w-32 rounded-xl border border-slate-200 bg-white p-3">
-                  <div className="text-sm font-semibold text-slate-900">{transition.state}</div>
-                  <div className="mt-1 h-2 rounded-full bg-slate-100">
-                    <div
-                      className="h-2 rounded-full bg-amber-500"
-                      style={{ width: `${transition.probability * 100}%` }}
-                    />
-                  </div>
-                  <div className="mt-1 text-xs text-slate-600">
-                    {Math.round(transition.probability * 100)}% chance, reward {transition.reward}
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-        </div>
-
-        <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
-          <div className="mb-4 flex items-center gap-2 text-sm font-semibold uppercase tracking-wide text-amber-700">
-            <SlidersHorizontal size={16} />
-            Decision controls
-          </div>
-          <div className="grid gap-2">
-            {Object.entries(ACTIONS).map(([id, item]) => (
-              <button
-                key={id}
-                type="button"
-                onClick={() => setActionId(id)}
-                className={`rounded-xl border px-4 py-3 text-left transition ${
-                  actionId === id
-                    ? 'border-amber-500 bg-amber-50 text-amber-900'
-                    : 'border-slate-200 bg-white text-slate-700 hover:border-slate-300'
-                }`}
-              >
-                <div className="font-semibold">{item.label}</div>
-                <div className="text-sm">Immediate reward {item.reward}</div>
-              </button>
-            ))}
-          </div>
-
-          <label className="mt-5 block text-sm font-semibold text-slate-700" htmlFor="mdp-discount">
-            Discount gamma: {discount.toFixed(2)}
-          </label>
-          <input
-            id="mdp-discount"
-            type="range"
-            min="0"
-            max="1"
-            step="0.05"
-            value={discount}
-            onChange={(event) => setDiscount(Number(event.target.value))}
-            className="mt-2 w-full accent-amber-500"
-          />
-
-          <div className="mt-5 rounded-xl bg-slate-900 p-4 text-white">
-            <div className="text-xs uppercase tracking-wide text-amber-200">Expected one-step value</div>
-            <div className="mt-1 text-3xl font-bold">{value.toFixed(2)}</div>
-            <div className="mt-2 text-sm text-slate-300">
-              reward {action.reward} + gamma {discount.toFixed(2)} x expected next reward {expectedNext(action).toFixed(2)}
-            </div>
-          </div>
-        </div>
-      </section>
-
-      <AssessmentPanel lessonId="mdp-formalism" title="MDP formalism check" />
-    </div>
-  );
+  const [state, setState] = useState(MDP_DEFAULTS.state); const [actionId, setActionId] = useState(MDP_DEFAULTS.actionId); const [gamma, setGamma] = useState(MDP_DEFAULTS.gamma); const [seed, setSeed] = useState(MDP_DEFAULTS.seed);
+  const actions = Object.keys(MDP_MODEL.actions[state] ?? {}); const lab = useMemo(() => buildMdpLab({ model: MDP_MODEL, state, actionId, values: CONTINUATION_VALUES, gamma, seed }), [state, actionId, gamma, seed]);
+  const chooseState = (nextState) => { setState(nextState); setActionId(Object.keys(MDP_MODEL.actions[nextState] ?? {})[0] ?? ''); };
+  return <div className="space-y-6">
+    <section className="rounded-lg border border-slate-200 bg-white p-5"><p className="text-xs font-black uppercase tracking-wide text-amber-700">Markov Decision Process</p><h2 className="mt-1 text-2xl font-black text-slate-950">An action owns a distribution over next state and reward.</h2><p className="mt-2 max-w-4xl text-sm leading-6 text-slate-700">An MDP is <strong>(S, A, P, R, γ)</strong>. The Bellman action value is <strong>Σ P(s′,r|s,a)[r + γV(s′)]</strong>: reward belongs to the transition, while V(s′) summarizes what can happen after arrival.</p></section>
+    <section className="rounded-lg border border-slate-200 bg-white p-5"><div className="grid gap-2 sm:grid-cols-4">{MDP_MODEL.states.map((item) => <button key={item} type="button" onClick={() => chooseState(item)} className={`rounded-lg border px-3 py-3 text-sm font-black ${state === item ? 'border-amber-500 bg-amber-50 text-amber-950' : 'border-slate-200 text-slate-700'}`}>{item}</button>)}</div>{!lab.terminal && <div className="mt-4 flex flex-wrap gap-2">{actions.map((id) => <button key={id} type="button" onClick={() => setActionId(id)} className={`rounded-lg border px-4 py-2 text-sm font-bold ${actionId === id ? 'border-cyan-500 bg-cyan-50 text-cyan-950' : 'border-slate-200'}`}>{id}</button>)}</div>}<label className="mt-5 grid gap-2 text-sm font-bold text-slate-700">Discount γ: {gamma.toFixed(2)}<input type="range" min="0" max="1" step="0.01" value={gamma} onChange={(event) => setGamma(Number(event.target.value))} /></label></section>
+    {lab.terminal ? <section className="rounded-lg border border-emerald-300 bg-emerald-50 p-6"><h3 className="text-xl font-black text-emerald-950">Goal is terminal</h3><p className="mt-2 text-sm leading-6 text-emerald-900">No action is available after termination. Any reward for reaching Goal belongs on the transition into Goal, not as a reward paid again forever.</p></section> : <><div className="grid gap-3 md:grid-cols-4"><Stat label="E[reward]" value={lab.selected.expectedImmediateReward.toFixed(2)} detail="Σ p·r" /><Stat label="E[next V]" value={lab.selected.expectedNextValue.toFixed(2)} detail="Σ p·V(s′)" /><Stat label="Q(s,a)" value={lab.selected.actionValue.toFixed(2)} detail="Σ p[r+γV(s′)]" /><Stat label="Best action" value={lab.bestActionId} detail="under supplied continuation values" /></div><section className="rounded-lg border border-slate-200 bg-white p-5"><h3 className="flex items-center gap-2 text-sm font-black uppercase tracking-wide text-slate-600"><GitBranch size={16} /> Selected transition distribution</h3><div className="mt-4 overflow-x-auto"><table className="w-full min-w-[720px] text-sm"><thead><tr className="border-b text-left text-xs uppercase tracking-wide text-slate-500"><th className="py-2">next state</th><th>p</th><th>reward</th><th>V(s′)</th><th>p·reward</th><th>p·γV(s′)</th><th>total</th></tr></thead><tbody>{lab.selected.transitions.map((row) => <tr key={`${row.to}-${row.reward}`} className="border-b border-slate-100"><td className="py-3 font-bold">{row.to}</td><td>{row.probability.toFixed(2)}</td><td>{row.reward.toFixed(1)}</td><td>{CONTINUATION_VALUES[row.to].toFixed(1)}</td><td>{row.immediateContribution.toFixed(2)}</td><td>{row.continuationContribution.toFixed(2)}</td><td className="font-black">{row.totalContribution.toFixed(2)}</td></tr>)}</tbody></table></div></section><section className="grid gap-4 lg:grid-cols-[1fr_0.8fr]"><div className="rounded-lg border border-slate-200 bg-white p-5"><h3 className="flex items-center gap-2 text-sm font-black uppercase tracking-wide text-slate-600"><Sigma size={16} /> Compare actions</h3><div className="mt-4 space-y-2">{lab.comparisons.map((row) => <div key={row.actionId} className={`flex items-center justify-between rounded-lg border p-3 ${row.actionId === lab.bestActionId ? 'border-emerald-300 bg-emerald-50' : 'border-slate-200'}`}><strong>{row.actionId}</strong><span className="font-mono font-black">Q = {row.actionValue.toFixed(2)}</span></div>)}</div></div><div className="rounded-lg border border-cyan-200 bg-cyan-50 p-5"><h3 className="flex items-center gap-2 text-sm font-black uppercase tracking-wide text-cyan-700"><Dices size={16} /> One sampled transition</h3><p className="mt-4 text-2xl font-black text-cyan-950">{state} → {lab.sampledTransition.to}</p><p className="mt-2 text-sm text-cyan-900">reward {lab.sampledTransition.reward}; this episode shows one branch, while Q uses the full distribution.</p><button type="button" onClick={() => setSeed((value) => value + 1)} className="mt-4 rounded-lg border border-cyan-300 bg-white px-3 py-2 text-sm font-bold">Sample again</button></div></section></>}
+    <section className="grid gap-4 md:grid-cols-3"><div className="rounded-lg border border-amber-200 bg-amber-50 p-4 text-sm leading-6 text-amber-950"><strong className="block text-xs uppercase text-amber-700">Markov property</strong>Given the current state and action, the transition distribution is the model. A correct state representation contains the history needed to predict the future.</div><div className="rounded-lg border border-cyan-200 bg-cyan-50 p-4 text-sm leading-6 text-cyan-950"><strong className="block text-xs uppercase text-cyan-700">Reward placement</strong>Reward can depend on s, a, and s′. Transition rewards avoid accidentally paying a terminal reward after termination.</div><div className="rounded-lg border border-violet-200 bg-violet-50 p-4 text-sm leading-6 text-violet-950"><strong className="block text-xs uppercase text-violet-700">Model vs sample</strong>The MDP specifies probabilities. An episode is one realization sampled from them.</div></section>
+    <div className="rounded-lg bg-slate-950 p-4 font-mono text-sm text-slate-100"><Workflow size={15} className="mr-2 inline" />Q(s,a) = Σₛ′ P(s′|s,a) [R(s,a,s′) + γV(s′)]</div><AssessmentPanel lessonId="mdp-formalism" title="MDP formalism check" />
+  </div>;
 }

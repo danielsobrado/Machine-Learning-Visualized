@@ -1,175 +1,19 @@
 import React, { useMemo, useState } from 'react';
-import { Calculator, RotateCcw, StepForward } from 'lucide-react';
+import { AlertTriangle, CheckCircle2, RefreshCw, Sigma } from 'lucide-react';
 import AssessmentPanel from '../../components/animation-shell/AssessmentPanel';
-
-const STATES = ['Start', 'Bridge', 'Trap', 'Goal'];
-const REWARDS = {
-  Start: 0,
-  Bridge: 1,
-  Trap: -6,
-  Goal: 10,
-};
-const ACTIONS = {
-  Start: {
-    risk: [{ to: 'Goal', p: 0.35 }, { to: 'Trap', p: 0.65 }],
-    safe: [{ to: 'Bridge', p: 1 }],
-  },
-  Bridge: {
-    forward: [{ to: 'Goal', p: 0.75 }, { to: 'Trap', p: 0.25 }],
-    reset: [{ to: 'Start', p: 1 }],
-  },
-  Trap: {
-    recover: [{ to: 'Bridge', p: 0.55 }, { to: 'Trap', p: 0.45 }],
-  },
-  Goal: {
-    stay: [{ to: 'Goal', p: 1 }],
-  },
-};
-
-function backup(state, values, discount) {
-  const actionValues = Object.entries(ACTIONS[state]).map(([actionId, transitions]) => {
-    const expected = transitions.reduce((sum, transition) => (
-      sum + transition.p * (REWARDS[transition.to] + discount * values[transition.to])
-    ), 0);
-    return { actionId, expected };
-  });
-  return actionValues.reduce((best, candidate) => (
-    candidate.expected > best.expected ? candidate : best
-  ), actionValues[0]);
-}
-
-function runSweeps(count, discount) {
-  let values = Object.fromEntries(STATES.map((state) => [state, 0]));
-  const history = [values];
-
-  for (let sweep = 0; sweep < count; sweep += 1) {
-    const next = {};
-    for (const state of STATES) {
-      next[state] = backup(state, values, discount).expected;
-    }
-    values = next;
-    history.push(values);
-  }
-
-  return history;
-}
-
+import { VALUE_ITERATION_DEFAULTS, VALUE_ITERATION_MDP } from './valueIterationConfig';
+import { buildValueIterationLab } from './valueIterationModel';
+function Stat({ label, value, detail }) { return <div className="rounded-lg border border-slate-200 bg-white p-4"><p className="text-xs font-black uppercase tracking-wide text-slate-500">{label}</p><strong className="mt-1 block text-2xl font-black text-slate-950">{value}</strong><span className="text-sm text-slate-600">{detail}</span></div>; }
 export default function ValueIterationAnimation() {
-  const [sweeps, setSweeps] = useState(3);
-  const [discount, setDiscount] = useState(0.8);
-  const history = useMemo(() => runSweeps(sweeps, discount), [sweeps, discount]);
-  const values = history[history.length - 1];
-  const previous = history[Math.max(0, history.length - 2)];
-
-  return (
-    <div className="mx-auto flex max-w-6xl flex-col gap-6 p-6">
-      <section className="grid gap-4 lg:grid-cols-[0.95fr_1.05fr]">
-        <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
-          <div className="mb-4 flex items-center gap-2 text-sm font-semibold uppercase tracking-wide text-indigo-700">
-            <Calculator size={16} />
-            Bellman planning controls
-          </div>
-
-          <label className="block text-sm font-semibold text-slate-700" htmlFor="vi-sweeps">
-            Sweeps: {sweeps}
-          </label>
-          <input
-            id="vi-sweeps"
-            type="range"
-            min="0"
-            max="8"
-            step="1"
-            value={sweeps}
-            onChange={(event) => setSweeps(Number(event.target.value))}
-            className="mt-2 w-full accent-indigo-500"
-          />
-
-          <label className="mt-5 block text-sm font-semibold text-slate-700" htmlFor="vi-discount">
-            Discount gamma: {discount.toFixed(2)}
-          </label>
-          <input
-            id="vi-discount"
-            type="range"
-            min="0"
-            max="1"
-            step="0.05"
-            value={discount}
-            onChange={(event) => setDiscount(Number(event.target.value))}
-            className="mt-2 w-full accent-indigo-500"
-          />
-
-          <div className="mt-5 rounded-xl bg-slate-900 p-4 text-white">
-            <div className="flex items-center gap-2 text-xs uppercase tracking-wide text-indigo-200">
-              <StepForward size={14} />
-              Bellman backup
-            </div>
-            <p className="mt-2 text-sm text-slate-300">
-              For each state, compare every action by adding immediate reward to discounted next-state value,
-              then keep the best action value.
-            </p>
-          </div>
-        </div>
-
-        <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
-          <div className="mb-4 flex items-center gap-2 text-sm font-semibold uppercase tracking-wide text-indigo-700">
-            <RotateCcw size={16} />
-            Value propagation
-          </div>
-          <div className="grid gap-3 sm:grid-cols-2">
-            {STATES.map((state) => {
-              const best = backup(state, values, discount);
-              const delta = values[state] - previous[state];
-              const terminal = state === 'Goal';
-              return (
-                <div
-                  key={state}
-                  className={`rounded-xl border p-4 ${
-                    terminal ? 'border-emerald-200 bg-emerald-50' : 'border-slate-200 bg-slate-50'
-                  }`}
-                >
-                  <div className="flex items-start justify-between gap-3">
-                    <div>
-                      <div className="text-sm font-semibold text-slate-900">{state}</div>
-                      <div className="text-xs text-slate-600">Reward {REWARDS[state]}</div>
-                    </div>
-                    <div className="text-right">
-                      <div className="text-2xl font-bold text-slate-900">{values[state].toFixed(2)}</div>
-                      <div className={`text-xs ${delta >= 0 ? 'text-emerald-700' : 'text-rose-700'}`}>
-                        {delta >= 0 ? '+' : ''}{delta.toFixed(2)}
-                      </div>
-                    </div>
-                  </div>
-                  <div className="mt-3 rounded-lg bg-white px-3 py-2 text-sm text-slate-700">
-                    Greedy action: <strong>{best.actionId}</strong>
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-        </div>
-      </section>
-
-      <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
-        <div className="mb-4 text-sm font-semibold uppercase tracking-wide text-indigo-700">Known model</div>
-        <div className="grid gap-3 md:grid-cols-3">
-          {Object.entries(ACTIONS).flatMap(([state, actions]) => (
-            Object.entries(actions).map(([actionId, transitions]) => (
-              <div key={`${state}-${actionId}`} className="rounded-xl border border-slate-200 bg-slate-50 p-3">
-                <div className="text-sm font-semibold text-slate-900">{state}: {actionId}</div>
-                <div className="mt-2 space-y-1 text-xs text-slate-600">
-                  {transitions.map((transition) => (
-                    <div key={`${transition.to}-${transition.p}`}>
-                      {Math.round(transition.p * 100)}% to {transition.to}
-                    </div>
-                  ))}
-                </div>
-              </div>
-            ))
-          ))}
-        </div>
-      </section>
-
-      <AssessmentPanel lessonId="value-iteration" title="Value iteration check" />
-    </div>
-  );
+  const [gamma, setGamma] = useState(VALUE_ITERATION_DEFAULTS.gamma); const [tolerance, setTolerance] = useState(VALUE_ITERATION_DEFAULTS.tolerance); const [visibleSweeps, setVisibleSweeps] = useState(VALUE_ITERATION_DEFAULTS.visibleSweeps);
+  const lab = useMemo(() => buildValueIterationLab({ model: VALUE_ITERATION_MDP, gamma, tolerance, maxIterations: VALUE_ITERATION_DEFAULTS.maxIterations, visibleSweeps }), [gamma, tolerance, visibleSweeps]); const maxVisibleSweep = Math.min(20, lab.history.length - 1);
+  return <div className="space-y-6">
+    <section className="rounded-lg border border-slate-200 bg-white p-5"><p className="text-xs font-black uppercase tracking-wide text-indigo-700">Planning with a known MDP</p><h2 className="mt-1 text-2xl font-black text-slate-950">Value Iteration: repeated Bellman optimality backups</h2><p className="mt-2 max-w-4xl text-sm leading-6 text-slate-700">Each synchronous sweep uses the <em>previous</em> value table, keeps the best action value, and repeats until the Bellman residual is small. Terminal Goal has value 0 after its entry reward has been paid.</p></section>
+    <section className="rounded-lg border border-slate-200 bg-white p-5"><div className="grid gap-4 md:grid-cols-3"><label className="grid gap-2 text-sm font-bold text-slate-700">Discount γ: {gamma.toFixed(2)}<input type="range" min="0" max="0.99" step="0.01" value={gamma} onChange={(event) => setGamma(Number(event.target.value))} /></label><label className="grid gap-2 text-sm font-bold text-slate-700">Visible sweep: {Math.min(visibleSweeps, maxVisibleSweep)}<input type="range" min="0" max={maxVisibleSweep} step="1" value={Math.min(visibleSweeps, maxVisibleSweep)} onChange={(event) => setVisibleSweeps(Number(event.target.value))} /></label><label className="grid gap-2 text-sm font-bold text-slate-700">Tolerance: {tolerance}<select value={tolerance} onChange={(event) => setTolerance(Number(event.target.value))} className="rounded-lg border border-slate-300 px-3 py-2"><option value={0.01}>1e-2</option><option value={0.001}>1e-3</option><option value={0.0001}>1e-4</option><option value={0.000001}>1e-6</option></select></label></div></section>
+    <div className="grid gap-3 md:grid-cols-4"><Stat label="Converged" value={lab.converged ? 'yes' : 'no'} detail={`${lab.history.length - 1} sweeps used`} /><Stat label="Final residual" value={lab.residual.toExponential(2)} detail="max |T*V − V|" /><Stat label="Visible residual" value={lab.visibleResidual.toExponential(2)} detail={`after sweep ${lab.visibleSweep}`} /><Stat label="Start policy" value={lab.visiblePolicy.Start ?? '—'} detail="greedy under visible values" /></div>
+    <section className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">{VALUE_ITERATION_MDP.states.map((state) => { const value = lab.visibleValues[state]; const delta = value - lab.previousValues[state]; const terminal = VALUE_ITERATION_MDP.terminalStates.includes(state); return <div key={state} className={`rounded-lg border p-4 ${terminal ? 'border-emerald-300 bg-emerald-50' : 'border-slate-200 bg-white'}`}><div className="flex items-start justify-between"><div><strong className="text-slate-950">{state}</strong><p className="text-xs text-slate-500">{terminal ? 'terminal' : `policy: ${lab.visiblePolicy[state]}`}</p></div><span className="text-2xl font-black">{value.toFixed(3)}</span></div><p className={`mt-3 text-xs font-bold ${delta >= 0 ? 'text-emerald-700' : 'text-rose-700'}`}>Δ {delta >= 0 ? '+' : ''}{delta.toFixed(3)}</p></div>; })}</section>
+    <section className="rounded-lg border border-slate-200 bg-white p-5"><h3 className="text-sm font-black uppercase tracking-wide text-slate-600">Residual shrinking across sweeps</h3><div className="mt-4 flex h-40 items-end gap-1 overflow-x-auto">{lab.history.slice(0, 21).map((row) => { const height = Math.max(3, Math.min(100, 18 * Math.log10(1 + row.residual * 10))); return <div key={row.iteration} title={`sweep ${row.iteration}: ${row.residual}`} className="min-w-5 flex-1 rounded-t bg-indigo-500" style={{ height: `${height}%` }} />; })}</div><div className="mt-2 flex justify-between text-xs text-slate-500"><span>sweep 0</span><span>toward Bellman fixed point</span></div></section>
+    <section className="grid gap-4 lg:grid-cols-[1fr_0.9fr]"><div className="rounded-lg border border-indigo-200 bg-indigo-50 p-5 text-sm leading-6 text-indigo-950"><strong className="block text-xs uppercase tracking-wide text-indigo-700">Bellman optimality</strong><div className="mt-3 font-mono">V*(s) = maxₐ Σₛ′ P(s′|s,a)[r + γV*(s′)]</div><p className="mt-3">Convergence means another optimality backup barely changes the table; it is not an arbitrary number of sweeps.</p></div><div className="rounded-lg border border-rose-300 bg-rose-50 p-5 text-sm leading-6 text-rose-950"><strong className="flex items-center gap-2 text-xs uppercase tracking-wide text-rose-700"><AlertTriangle size={15} /> terminal-state bug fixed</strong><p className="mt-3">Paying +10 once when entering Goal gives <strong>{lab.terminalComparison.rewardOnEntry}</strong>. A +10 self-loop at Goal with γ={gamma.toFixed(2)} would instead imply value <strong>{lab.terminalComparison.repeatedSelfLoopValue.toFixed(2)}</strong>. Those are different MDPs.</p></div></section>
+    <section className="rounded-lg border border-emerald-200 bg-emerald-50 p-4 text-sm leading-6 text-emerald-950"><CheckCircle2 size={16} className="mr-2 inline" />Final Bellman residual {lab.residual.toExponential(2)}; policy Start→{lab.policy.Start}, Bridge→{lab.policy.Bridge}, Trap→{lab.policy.Trap}.</section><button type="button" onClick={() => { setGamma(VALUE_ITERATION_DEFAULTS.gamma); setTolerance(VALUE_ITERATION_DEFAULTS.tolerance); setVisibleSweeps(VALUE_ITERATION_DEFAULTS.visibleSweeps); }} className="inline-flex items-center gap-2 rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm font-bold"><RefreshCw size={16} /> Reset</button><div className="rounded-lg bg-slate-950 p-4 font-mono text-sm text-slate-100"><Sigma size={15} className="mr-2 inline" />residual = maxₛ |(T*V)(s) − V(s)|</div><AssessmentPanel lessonId="value-iteration" title="Value iteration check" />
+  </div>;
 }
