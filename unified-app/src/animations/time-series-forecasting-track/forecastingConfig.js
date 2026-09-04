@@ -1,6 +1,10 @@
 export const SERIES_LENGTH = 108;
 export const SEASON_PERIOD = 12;
 export const MIN_TRAIN_POINTS = 36;
+export const RESIDUAL_WINDOW = 36;
+export const PREDICTION_INTERVAL_LEVEL = 0.8;
+export const UPPER_QUANTILE = 0.9;
+export const NORMAL_80_Z = 1.2815515655446004;
 
 export const MODEL_DEFINITIONS = [
   { id: 'naive', label: 'Naive', detail: 'Repeat the latest observation.' },

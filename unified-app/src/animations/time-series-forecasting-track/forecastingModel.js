@@ -1,8 +1,12 @@
 import {
   MIN_TRAIN_POINTS,
   MODEL_DEFINITIONS,
+  NORMAL_80_Z,
+  PREDICTION_INTERVAL_LEVEL,
+  RESIDUAL_WINDOW,
   SEASON_PERIOD,
   SERIES_LENGTH,
+  UPPER_QUANTILE,
 } from './forecastingConfig.js';
 
 const BASE_LEVEL = 50;
@@ -100,6 +104,11 @@ function scaleError(training) {
   return Math.max(EPSILON, mean(differences));
 }
 
+export function pinballLoss(actual, quantileForecast, quantile) {
+  const error = actual - quantileForecast;
+  return error >= 0 ? quantile * error : (1 - quantile) * -error;
+}
+
 export function calculateMetrics(actual, predicted, training) {
   if (actual.length !== predicted.length || actual.length === 0) {
     throw new RangeError('Actual and predicted series must have the same non-zero length.');
@@ -108,13 +117,57 @@ export function calculateMetrics(actual, predicted, training) {
   const errors = actual.map((point, index) => point.value - predicted[index].value);
   const absoluteErrors = errors.map(Math.abs);
   const squaredErrors = errors.map((error) => error ** 2);
+  const percentageErrors = actual
+    .map((point, index) => Math.abs(point.value) <= EPSILON ? null : Math.abs(errors[index] / point.value) * 100)
+    .filter((value) => value !== null);
   const mae = mean(absoluteErrors);
 
   return {
     mae: round(mae),
     rmse: round(Math.sqrt(mean(squaredErrors))),
+    mape: percentageErrors.length ? round(mean(percentageErrors)) : Number.NaN,
     mase: round(mae / scaleError(training)),
     bias: round(mean(errors)),
+  };
+}
+
+function residualScaleAtOrigin(series, origin, modelId) {
+  const firstOrigin = Math.max(MIN_TRAIN_POINTS, origin - RESIDUAL_WINDOW);
+  const errors = [];
+  for (let pastOrigin = firstOrigin; pastOrigin < origin; pastOrigin += 1) {
+    const prediction = forecastAtOrigin(series, pastOrigin, 1, modelId)[0].value;
+    errors.push(series[pastOrigin].value - prediction);
+  }
+  if (errors.length === 0) return 1;
+  return Math.max(EPSILON, Math.sqrt(mean(errors.map((error) => error ** 2))));
+}
+
+function buildPredictionDiagnostics(series, origin, forecast, modelId) {
+  const actual = series.slice(origin, origin + forecast.length);
+  const residualScale = residualScaleAtOrigin(series, origin, modelId);
+  const intervals = forecast.map((point, step) => {
+    const horizonScale = residualScale * Math.sqrt(step + 1);
+    const halfWidth = NORMAL_80_Z * horizonScale;
+    return {
+      index: point.index,
+      lower: point.value - halfWidth,
+      upper: point.value + halfWidth,
+      q90: point.value + halfWidth,
+      halfWidth,
+    };
+  });
+  const covered = intervals.filter((interval, index) => (
+    actual[index].value >= interval.lower && actual[index].value <= interval.upper
+  )).length;
+  const pinball90 = mean(intervals.map((interval, index) => (
+    pinballLoss(actual[index].value, interval.q90, UPPER_QUANTILE)
+  )));
+
+  return {
+    intervals,
+    residualScale: round(residualScale),
+    intervalCoverage: round(covered / actual.length),
+    pinball90: round(pinball90),
   };
 }
 
@@ -123,10 +176,16 @@ export function evaluateAtOrigin(series, origin, horizon) {
   const training = series.slice(0, origin);
   return MODEL_DEFINITIONS.map((model) => {
     const forecast = forecastAtOrigin(series, origin, horizon, model.id);
+    const diagnostics = buildPredictionDiagnostics(series, origin, forecast, model.id);
     return {
       ...model,
       forecast,
-      metrics: calculateMetrics(actual, forecast, training),
+      intervals: diagnostics.intervals,
+      metrics: {
+        ...calculateMetrics(actual, forecast, training),
+        pinball90: diagnostics.pinball90,
+        intervalCoverage: diagnostics.intervalCoverage,
+      },
     };
   });
 }
@@ -143,6 +202,7 @@ export function rollingBacktest(series, horizon, folds) {
       origin,
       testStart: origin,
       testEnd: origin + horizon - 1,
+      actual: series.slice(origin, origin + horizon),
       models: evaluateAtOrigin(series, origin, horizon),
     };
   });
@@ -157,10 +217,47 @@ export function summarizeBacktests(backtests) {
     return {
       ...model,
       mae: round(mean(maes)),
+      rmse: round(mean(foldMetrics.map((metrics) => metrics.rmse))),
+      mape: round(mean(foldMetrics.map((metrics) => metrics.mape))),
       mase: round(mean(foldMetrics.map((metrics) => metrics.mase))),
+      pinball90: round(mean(foldMetrics.map((metrics) => metrics.pinball90))),
+      intervalCoverage: round(mean(foldMetrics.map((metrics) => metrics.intervalCoverage))),
       bestMae: round(Math.min(...maes)),
       worstMae: round(Math.max(...maes)),
       spread: round(Math.max(...maes) - Math.min(...maes)),
+    };
+  });
+}
+
+function summarizeHorizon(backtests, modelId, horizon) {
+  return Array.from({ length: horizon }, (_, step) => {
+    const observations = backtests.map((fold) => {
+      const model = fold.models.find((candidate) => candidate.id === modelId);
+      return {
+        actual: fold.actual[step].value,
+        predicted: model.forecast[step].value,
+        interval: model.intervals[step],
+      };
+    });
+    const errors = observations.map((item) => item.actual - item.predicted);
+    const absoluteErrors = errors.map(Math.abs);
+    const mapeValues = observations
+      .map((item, index) => Math.abs(item.actual) <= EPSILON ? null : Math.abs(errors[index] / item.actual) * 100)
+      .filter((value) => value !== null);
+    const coverage = observations.filter((item) => (
+      item.actual >= item.interval.lower && item.actual <= item.interval.upper
+    )).length / observations.length;
+    const pinball90 = mean(observations.map((item) => (
+      pinballLoss(item.actual, item.interval.q90, UPPER_QUANTILE)
+    )));
+
+    return {
+      horizon: step + 1,
+      mae: round(mean(absoluteErrors)),
+      rmse: round(Math.sqrt(mean(errors.map((error) => error ** 2)))),
+      mape: mapeValues.length ? round(mean(mapeValues)) : Number.NaN,
+      pinball90: round(pinball90),
+      intervalCoverage: round(coverage),
     };
   });
 }
@@ -198,6 +295,9 @@ export function buildForecastLab(scenario) {
     backtestSummary,
     selected,
     selectedBacktest,
+    horizonSummary: summarizeHorizon(backtests, selected.id, scenario.horizon),
+    intervalLevel: PREDICTION_INTERVAL_LEVEL,
+    upperQuantile: UPPER_QUANTILE,
     winner,
     leakage: calculateLeakageTrap(series, origin, scenario.horizon),
   };

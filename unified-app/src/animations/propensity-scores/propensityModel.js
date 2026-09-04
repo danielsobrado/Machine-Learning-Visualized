@@ -1,3 +1,5 @@
+import { MATCHING_CALIPER } from './propensityConfig.js';
+
 const BASELINE_MEAN = 50;
 const OBSERVED_OUTCOME_COEFFICIENT = 7;
 const HIDDEN_OUTCOME_COEFFICIENT = 7;
@@ -44,22 +46,27 @@ function variance(values, average = mean(values)) {
 function weightedMean(rows, valueKey, weightKey, treatment) {
   const selected = rows.filter((row) => row.treatment === treatment);
   const weightSum = selected.reduce((sum, row) => sum + row[weightKey], 0);
+  if (weightSum <= 0) return Number.NaN;
   return selected.reduce((sum, row) => sum + row[weightKey] * row[valueKey], 0) / weightSum;
 }
 
 function standardizedMeanDifference(rows, valueKey, weightKey = null) {
   const treated = rows.filter((row) => row.treatment === 1);
   const control = rows.filter((row) => row.treatment === 0);
+  if (treated.length === 0 || control.length === 0) return Number.NaN;
+
   const groupStats = (group) => {
     if (!weightKey) {
       const average = mean(group.map((row) => row[valueKey]));
       return { average, variance: variance(group.map((row) => row[valueKey]), average) };
     }
     const weightSum = group.reduce((sum, row) => sum + row[weightKey], 0);
+    if (weightSum <= 0) return { average: Number.NaN, variance: Number.NaN };
     const average = group.reduce((sum, row) => sum + row[weightKey] * row[valueKey], 0) / weightSum;
     const weightedVariance = group.reduce((sum, row) => sum + row[weightKey] * (row[valueKey] - average) ** 2, 0) / weightSum;
     return { average, variance: weightedVariance };
   };
+
   const treatedStats = groupStats(treated);
   const controlStats = groupStats(control);
   const pooledSd = Math.sqrt((treatedStats.variance + controlStats.variance) / 2);
@@ -94,6 +101,46 @@ function fitPropensity(rows) {
     if (Math.max(Math.abs(delta0), Math.abs(delta1)) < 1e-8) break;
   }
   return { intercept, slope };
+}
+
+function lowerBound(rows, target) {
+  let low = 0;
+  let high = rows.length;
+  while (low < high) {
+    const mid = Math.floor((low + high) / 2);
+    if (rows[mid].estimatedPropensity < target) low = mid + 1;
+    else high = mid;
+  }
+  return low;
+}
+
+export function matchNearestPropensity(rows, caliper = MATCHING_CALIPER) {
+  const treated = rows
+    .filter((row) => row.treatment === 1)
+    .sort((a, b) => a.estimatedPropensity - b.estimatedPropensity);
+  const availableControls = rows
+    .filter((row) => row.treatment === 0)
+    .sort((a, b) => a.estimatedPropensity - b.estimatedPropensity);
+  const pairs = [];
+
+  treated.forEach((treatedRow) => {
+    if (availableControls.length === 0) return;
+    const index = lowerBound(availableControls, treatedRow.estimatedPropensity);
+    const candidates = [index - 1, index]
+      .filter((candidateIndex) => candidateIndex >= 0 && candidateIndex < availableControls.length)
+      .map((candidateIndex) => ({
+        candidateIndex,
+        distance: Math.abs(availableControls[candidateIndex].estimatedPropensity - treatedRow.estimatedPropensity),
+      }))
+      .sort((a, b) => a.distance - b.distance);
+
+    const best = candidates[0];
+    if (!best || best.distance > caliper) return;
+    const [controlRow] = availableControls.splice(best.candidateIndex, 1);
+    pairs.push({ treated: treatedRow, control: controlRow, distance: best.distance });
+  });
+
+  return pairs;
 }
 
 export function generateObservationalRows(scenario) {
@@ -141,18 +188,52 @@ export function effectiveSampleSize(rows, weightKey = 'weight') {
   return sumSquares === 0 ? 0 : (sumWeights ** 2) / sumSquares;
 }
 
+function trimmedRows(rows, threshold) {
+  if (threshold <= 0) return rows;
+  return rows.filter((row) => (
+    row.estimatedPropensity >= threshold && row.estimatedPropensity <= 1 - threshold
+  ));
+}
+
+function matchedMetrics(pairs) {
+  if (pairs.length === 0) {
+    return {
+      estimate: Number.NaN,
+      observedSmd: Number.NaN,
+      hiddenSmd: Number.NaN,
+      meanDistance: Number.NaN,
+      rows: [],
+    };
+  }
+
+  const rows = pairs.flatMap((pair) => [pair.treated, pair.control]);
+  return {
+    estimate: mean(pairs.map((pair) => pair.treated.observedOutcome - pair.control.observedOutcome)),
+    observedSmd: standardizedMeanDifference(rows, 'observedRisk'),
+    hiddenSmd: standardizedMeanDifference(rows, 'hiddenRisk'),
+    meanDistance: mean(pairs.map((pair) => pair.distance)),
+    rows,
+  };
+}
+
 export function buildPropensityLab(scenario) {
   const generated = generateObservationalRows(scenario);
   const rows = applyPropensityWeights(generated, scenario.weightCap);
   const treated = rows.filter((row) => row.treatment === 1);
   const control = rows.filter((row) => row.treatment === 0);
+  const trimmed = trimmedRows(rows, scenario.trimThreshold);
+  const matchedPairs = matchNearestPropensity(trimmed);
+  const matched = matchedMetrics(matchedPairs);
+
   const naiveEstimate = mean(treated.map((row) => row.observedOutcome)) - mean(control.map((row) => row.observedOutcome));
   const weightedEstimate = weightedMean(rows, 'observedOutcome', 'weight', 1) - weightedMean(rows, 'observedOutcome', 'weight', 0);
+  const trimmedWeightedEstimate = weightedMean(trimmed, 'observedOutcome', 'weight', 1) - weightedMean(trimmed, 'observedOutcome', 'weight', 0);
   const trueAte = mean(rows.map((row) => row.y1 - row.y0));
   const beforeObservedSmd = standardizedMeanDifference(rows, 'observedRisk');
   const afterObservedSmd = standardizedMeanDifference(rows, 'observedRisk', 'weight');
   const beforeHiddenSmd = standardizedMeanDifference(rows, 'hiddenRisk');
   const afterHiddenSmd = standardizedMeanDifference(rows, 'hiddenRisk', 'weight');
+  const trimmedObservedSmd = standardizedMeanDifference(trimmed, 'observedRisk', 'weight');
   const overlapCount = rows.filter((row) => row.estimatedPropensity >= 0.1 && row.estimatedPropensity <= 0.9).length;
   const maxRawWeight = Math.max(...rows.map((row) => row.rawWeight));
   const cappedCount = rows.filter((row) => row.rawWeight > scenario.weightCap).length;
@@ -164,16 +245,29 @@ export function buildPropensityLab(scenario) {
       trueAte,
       naiveEstimate,
       weightedEstimate,
+      trimmedWeightedEstimate,
+      matchedEstimate: matched.estimate,
       naiveBias: naiveEstimate - trueAte,
       weightedBias: weightedEstimate - trueAte,
+      trimmedBias: trimmedWeightedEstimate - trueAte,
+      matchedBias: matched.estimate - trueAte,
       beforeObservedSmd,
       afterObservedSmd,
       beforeHiddenSmd,
       afterHiddenSmd,
+      trimmedObservedSmd,
+      matchedObservedSmd: matched.observedSmd,
+      matchedHiddenSmd: matched.hiddenSmd,
       overlapRate: overlapCount / rows.length,
       effectiveSampleSize: effectiveSampleSize(rows),
+      trimmedEffectiveSampleSize: effectiveSampleSize(trimmed),
       maxRawWeight,
       cappedCount,
+      trimmedCount: rows.length - trimmed.length,
+      retainedCount: trimmed.length,
+      matchedPairs: matchedPairs.length,
+      matchingCaliper: MATCHING_CALIPER,
+      meanMatchDistance: matched.meanDistance,
       treatedCount: treated.length,
       controlCount: control.length,
     },

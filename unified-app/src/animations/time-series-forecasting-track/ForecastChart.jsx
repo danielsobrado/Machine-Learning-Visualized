@@ -4,15 +4,23 @@ const VIEWBOX = { width: 920, height: 320 };
 const MARGIN = { top: 22, right: 24, bottom: 42, left: 58 };
 const Y_PADDING = 0.08;
 
-function buildPath(points, xScale, yScale) {
+function buildPath(points, xScale, yScale, valueKey = 'value') {
   return points
-    .map((point, index) => `${index === 0 ? 'M' : 'L'} ${xScale(point.index).toFixed(2)} ${yScale(point.value).toFixed(2)}`)
+    .map((point, index) => `${index === 0 ? 'M' : 'L'} ${xScale(point.index).toFixed(2)} ${yScale(point[valueKey]).toFixed(2)}`)
     .join(' ');
 }
 
-export default function ForecastChart({ series, origin, forecast, modelLabel }) {
+function buildBandPath(intervals, xScale, yScale) {
+  if (!intervals?.length) return '';
+  const upper = intervals.map((point) => `${xScale(point.index).toFixed(2)} ${yScale(point.upper).toFixed(2)}`);
+  const lower = [...intervals].reverse().map((point) => `${xScale(point.index).toFixed(2)} ${yScale(point.lower).toFixed(2)}`);
+  return `M ${upper.join(' L ')} L ${lower.join(' L ')} Z`;
+}
+
+export default function ForecastChart({ series, origin, forecast, intervals = [], modelLabel }) {
   const chart = useMemo(() => {
-    const values = [...series, ...forecast].map((point) => point.value);
+    const intervalValues = intervals.flatMap((point) => [point.lower, point.upper]);
+    const values = [...series.map((point) => point.value), ...forecast.map((point) => point.value), ...intervalValues];
     const rawMin = Math.min(...values);
     const rawMax = Math.max(...values);
     const span = Math.max(1, rawMax - rawMin);
@@ -32,10 +40,11 @@ export default function ForecastChart({ series, origin, forecast, modelLabel }) 
       splitX: xScale(origin - 0.5),
       actualPath: buildPath(series, xScale, yScale),
       forecastPath: buildPath(forecastWithAnchor, xScale, yScale),
+      intervalPath: buildBandPath(intervals, xScale, yScale),
       xScale,
       yScale,
     };
-  }, [forecast, origin, series]);
+  }, [forecast, intervals, origin, series]);
 
   const xTicks = [0, Math.floor(origin / 2), origin, series.length - 1];
   const yTicks = [chart.minY, (chart.minY + chart.maxY) / 2, chart.maxY];
@@ -50,7 +59,7 @@ export default function ForecastChart({ series, origin, forecast, modelLabel }) 
       >
         <title id="forecast-chart-title">Chronological holdout forecast</title>
         <desc id="forecast-chart-desc">
-          The black line is the observed series. The orange line starts at the forecast origin and shows the selected model over the untouched holdout window.
+          The black line is the observed series. The orange line is the selected forecast and the shaded band is its empirical 80 percent prediction interval.
         </desc>
 
         <g className="text-slate-100 fill-current">
@@ -112,6 +121,7 @@ export default function ForecastChart({ series, origin, forecast, modelLabel }) 
           forecast origin
         </text>
 
+        {chart.intervalPath && <path d={chart.intervalPath} className="fill-orange-200/70" />}
         <path
           d={chart.actualPath}
           fill="none"
@@ -130,8 +140,9 @@ export default function ForecastChart({ series, origin, forecast, modelLabel }) 
         />
       </svg>
       <figcaption className="flex flex-wrap gap-x-5 gap-y-1 text-xs text-slate-600">
-        <span><b className="text-slate-900">Observed</b> — all values, including the holdout revealed only for scoring</span>
+        <span><b className="text-slate-900">Observed</b> — holdout revealed only for scoring</span>
         <span><b className="text-orange-600">{modelLabel}</b> — prediction made from data left of the split</span>
+        <span><b className="text-orange-700">80% interval</b> — uncertainty widens with forecast horizon</span>
       </figcaption>
     </figure>
   );

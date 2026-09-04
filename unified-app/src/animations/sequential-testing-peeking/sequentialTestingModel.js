@@ -1,6 +1,12 @@
-import { BASE_SEED, SIMULATION_RUNS } from './sequentialTestingConfig.js';
+import {
+  BASE_SEED,
+  BOUNDARY_CALIBRATION_RUNS,
+  BOUNDARY_SEARCH_STEPS,
+  SIMULATION_RUNS,
+} from './sequentialTestingConfig.js';
 
 const EPSILON = 1e-12;
+const BOUNDARY_CACHE = new Map();
 
 function clamp(value, min, max) {
   return Math.min(max, Math.max(min, value));
@@ -49,16 +55,8 @@ export function inverseNormalCdf(probability) {
     / (((((b[0] * r + b[1]) * r + b[2]) * r + b[3]) * r + b[4]) * r + 1);
 }
 
-function thresholds(alpha, looks) {
-  return {
-    naive: inverseNormalCdf(1 - alpha / 2),
-    spent: inverseNormalCdf(1 - alpha / (2 * looks)),
-  };
-}
-
-export function simulatePath(scenario, trueEffect = scenario.effect, seed = BASE_SEED) {
+function generateZPath(scenario, trueEffect, seed) {
   const random = mulberry32(seed);
-  const boundary = thresholds(scenario.alpha, scenario.looks);
   const points = [];
   let controlSum = 0;
   let treatmentSum = 0;
@@ -71,36 +69,111 @@ export function simulatePath(scenario, trueEffect = scenario.effect, seed = BASE
     treatmentSum += trueEffect * increment + Math.sqrt(increment) * normalSample(random);
     const difference = treatmentSum / n - controlSum / n;
     const standardError = Math.sqrt(2 / n);
-    const z = difference / standardError;
     points.push({
       look,
       n,
       information: n / scenario.maxPerArm,
       difference,
       standardError,
-      z,
-      naiveCrossed: Math.abs(z) >= boundary.naive,
-      spentCrossed: Math.abs(z) >= boundary.spent,
+      z: difference / standardError,
     });
     previousN = n;
   }
+
+  return points;
+}
+
+function boundaryAt(designId, criticalValue, information) {
+  if (designId === 'obrien-fleming') {
+    return criticalValue / Math.sqrt(Math.max(EPSILON, information));
+  }
+  return criticalValue;
+}
+
+function bonferroniCritical(alpha, looks) {
+  return inverseNormalCdf(1 - alpha / (2 * looks));
+}
+
+function calibratedCritical(scenario) {
+  if (scenario.designId === 'bonferroni') {
+    return bonferroniCritical(scenario.alpha, scenario.looks);
+  }
+
+  const cacheKey = [scenario.designId, scenario.alpha, scenario.looks, scenario.maxPerArm].join(':');
+  const cached = BOUNDARY_CACHE.get(cacheKey);
+  if (cached) return cached;
+
+  const nullPaths = Array.from({ length: BOUNDARY_CALIBRATION_RUNS }, (_, run) => (
+    generateZPath(scenario, 0, BASE_SEED + 900001 + run * 3571)
+  ));
+
+  const rejectionRate = (criticalValue) => {
+    let rejects = 0;
+    nullPaths.forEach((path) => {
+      const crossed = path.some((point) => (
+        Math.abs(point.z) >= boundaryAt(scenario.designId, criticalValue, point.information)
+      ));
+      if (crossed) rejects += 1;
+    });
+    return rejects / nullPaths.length;
+  };
+
+  let lower = 1;
+  let upper = 8;
+  for (let step = 0; step < BOUNDARY_SEARCH_STEPS; step += 1) {
+    const candidate = (lower + upper) / 2;
+    if (rejectionRate(candidate) > scenario.alpha) lower = candidate;
+    else upper = candidate;
+  }
+
+  const criticalValue = (lower + upper) / 2;
+  BOUNDARY_CACHE.set(cacheKey, criticalValue);
+  return criticalValue;
+}
+
+export function buildBoundaryProfile(scenario) {
+  const naive = inverseNormalCdf(1 - scenario.alpha / 2);
+  const criticalValue = calibratedCritical(scenario);
+  const plannedByLook = Array.from({ length: scenario.looks }, (_, index) => {
+    const n = Math.max(2, Math.round((scenario.maxPerArm * (index + 1)) / scenario.looks));
+    const information = n / scenario.maxPerArm;
+    return boundaryAt(scenario.designId, criticalValue, information);
+  });
+
+  return {
+    naive,
+    criticalValue,
+    plannedByLook,
+    first: plannedByLook[0],
+    final: plannedByLook.at(-1),
+  };
+}
+
+export function simulatePath(scenario, trueEffect = scenario.effect, seed = BASE_SEED) {
+  const boundary = buildBoundaryProfile(scenario);
+  const points = generateZPath(scenario, trueEffect, seed).map((point, index) => ({
+    ...point,
+    plannedBoundary: boundary.plannedByLook[index],
+    naiveCrossed: Math.abs(point.z) >= boundary.naive,
+    plannedCrossed: Math.abs(point.z) >= boundary.plannedByLook[index],
+  }));
 
   return { points, boundaries: boundary };
 }
 
 function simulateOperatingCharacteristics(scenario, trueEffect, seedOffset) {
-  const boundary = thresholds(scenario.alpha, scenario.looks);
+  const boundary = buildBoundaryProfile(scenario);
   let fixedRejects = 0;
   let naiveRejects = 0;
-  let spentRejects = 0;
+  let plannedRejects = 0;
   let naiveStopTotal = 0;
-  let spentStopTotal = 0;
+  let plannedStopTotal = 0;
   let naiveStops = 0;
-  let spentStops = 0;
+  let plannedStops = 0;
 
   for (let run = 0; run < SIMULATION_RUNS; run += 1) {
     const path = simulatePath(scenario, trueEffect, BASE_SEED + seedOffset + run * 7919).points;
-    const finalPoint = path[path.length - 1];
+    const finalPoint = path.at(-1);
     if (Math.abs(finalPoint.z) >= boundary.naive) fixedRejects += 1;
 
     const naiveStop = path.find((point) => point.naiveCrossed);
@@ -110,20 +183,20 @@ function simulateOperatingCharacteristics(scenario, trueEffect, seedOffset) {
       naiveStopTotal += naiveStop.n;
     }
 
-    const spentStop = path.find((point) => point.spentCrossed);
-    if (spentStop) {
-      spentRejects += 1;
-      spentStops += 1;
-      spentStopTotal += spentStop.n;
+    const plannedStop = path.find((point) => point.plannedCrossed);
+    if (plannedStop) {
+      plannedRejects += 1;
+      plannedStops += 1;
+      plannedStopTotal += plannedStop.n;
     }
   }
 
   return {
     fixedRate: fixedRejects / SIMULATION_RUNS,
     naiveRate: naiveRejects / SIMULATION_RUNS,
-    spentRate: spentRejects / SIMULATION_RUNS,
+    plannedRate: plannedRejects / SIMULATION_RUNS,
     naiveMeanStopN: naiveStops ? naiveStopTotal / naiveStops : scenario.maxPerArm,
-    spentMeanStopN: spentStops ? spentStopTotal / spentStops : scenario.maxPerArm,
+    plannedMeanStopN: plannedStops ? plannedStopTotal / plannedStops : scenario.maxPerArm,
   };
 }
 
@@ -131,7 +204,6 @@ export function buildSequentialLab(scenario) {
   const nullRun = simulateOperatingCharacteristics(scenario, 0, 100003);
   const alternativeRun = simulateOperatingCharacteristics(scenario, scenario.effect, 700001);
   const example = simulatePath(scenario, scenario.effect, BASE_SEED + 41);
-  const perLookAlpha = scenario.alpha / scenario.looks;
 
   return {
     scenario,
@@ -140,9 +212,8 @@ export function buildSequentialLab(scenario) {
     example,
     metrics: {
       naiveInflation: nullRun.naiveRate / scenario.alpha,
-      perLookAlpha,
       savedSamplesNaive: 1 - alternativeRun.naiveMeanStopN / scenario.maxPerArm,
-      savedSamplesSpent: 1 - alternativeRun.spentMeanStopN / scenario.maxPerArm,
+      savedSamplesPlanned: 1 - alternativeRun.plannedMeanStopN / scenario.maxPerArm,
     },
   };
 }
