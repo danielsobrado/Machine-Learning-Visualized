@@ -1,89 +1,8 @@
 import React, { useMemo, useState } from 'react';
-import { GitBranch, RotateCcw, SlidersHorizontal, Thermometer } from 'lucide-react';
-import { computeSoftmax } from '../../data/softmaxModel';
+import { Dices, GitBranch, RefreshCw, Thermometer } from 'lucide-react';
 import AssessmentPanel from '../../components/animation-shell/AssessmentPanel';
-
-const BASE_LOGITS = [
-  { token: ' clear', logit: 3.1 },
-  { token: ' careful', logit: 2.45 },
-  { token: ' creative', logit: 2.05 },
-  { token: ' risky', logit: 1.25 },
-  { token: ' strange', logit: 0.55 },
-  { token: ' broken', logit: -0.15 },
-];
-
-const STRATEGIES = {
-  greedy: {
-    label: 'Greedy',
-    detail: 'Always pick the highest-probability token.',
-    risk: 'Can become repetitive or bland because alternatives never get a chance.',
-  },
-  beam: {
-    label: 'Beam search',
-    detail: 'Keep several high-scoring partial sequences, then expand the best beams.',
-    risk: 'Can over-prefer safe generic continuations when diversity matters.',
-  },
-  temperature: {
-    label: 'Temperature',
-    detail: 'Rescale logits before softmax to sharpen or flatten the distribution.',
-    risk: 'High temperature can make weak tokens too likely; very low temperature acts almost greedy.',
-  },
-  topK: {
-    label: 'Top-k',
-    detail: 'Keep only the k most likely candidates, then sample inside that set.',
-    risk: 'A fixed k can keep too many bad tokens or remove useful tail options depending on the prompt.',
-  },
-  topP: {
-    label: 'Top-p',
-    detail: 'Keep ranked candidates until cumulative probability reaches p, including the token that crosses the threshold.',
-    risk: 'The candidate count changes by context, so p controls mass rather than a fixed number of tokens.',
-  },
-};
-
-function topPFilter(rows, topP) {
-  let cumulative = 0;
-  return rows.map((row, index) => {
-    const keep = index === 0 || cumulative < topP;
-    cumulative += row.probability;
-    return { ...row, topPKept: keep, cumulative };
-  });
-}
-
-function buildRows({ temperature, topK, topP }) {
-  const probs = computeSoftmax(BASE_LOGITS.map((item) => item.logit), temperature);
-  const ranked = BASE_LOGITS
-    .map((item, index) => ({ ...item, probability: probs[index] }))
-    .sort((a, b) => b.probability - a.probability);
-
-  return topPFilter(ranked, topP).map((row, index) => ({
-    ...row,
-    topKKept: index < topK,
-    stochasticKept: index < topK && row.topPKept,
-  }));
-}
-
-function beamRows(width) {
-  return [
-    { path: 'The answer is clear', score: -0.38 },
-    { path: 'The answer is careful', score: -0.51 },
-    { path: 'The answer is creative', score: -0.83 },
-    { path: 'The answer is risky', score: -1.42 },
-  ].map((row, index) => ({ ...row, kept: index < width }));
-}
-
-function StrategyButton({ id, active, onClick }) {
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      className={`rounded-lg border px-3 py-3 text-sm font-black transition ${
-        active ? 'border-cyan-600 bg-cyan-600 text-white' : 'border-slate-200 bg-white text-slate-700 hover:border-cyan-300'
-      }`}
-    >
-      {STRATEGIES[id].label}
-    </button>
-  );
-}
+import { BEAM_TREE, SAMPLING_DEFAULTS, STRATEGIES, TOKEN_LOGITS } from './samplingConfig';
+import { buildSamplingLab } from './samplingModel';
 
 function Stat({ label, value, detail }) {
   return (
@@ -96,154 +15,166 @@ function Stat({ label, value, detail }) {
 }
 
 export default function SamplingStrategiesAnimation() {
-  const [strategy, setStrategy] = useState('topP');
-  const [temperature, setTemperature] = useState(0.8);
-  const [topK, setTopK] = useState(4);
-  const [topP, setTopP] = useState(0.86);
-  const [beamWidth, setBeamWidth] = useState(2);
+  const [strategyId, setStrategyId] = useState(SAMPLING_DEFAULTS.strategyId);
+  const [temperature, setTemperature] = useState(SAMPLING_DEFAULTS.temperature);
+  const [topK, setTopK] = useState(SAMPLING_DEFAULTS.topK);
+  const [topP, setTopP] = useState(SAMPLING_DEFAULTS.topP);
+  const [beamWidth, setBeamWidth] = useState(SAMPLING_DEFAULTS.beamWidth);
+  const [seed, setSeed] = useState(SAMPLING_DEFAULTS.seed);
 
-  const rows = useMemo(() => buildRows({ temperature, topK, topP }), [temperature, topK, topP]);
-  const beams = useMemo(() => beamRows(beamWidth), [beamWidth]);
-  const selected = rows.find((row) => row.stochasticKept) || rows[0];
-  const candidateCount = strategy === 'beam' ? beamWidth : rows.filter((row) => row.stochasticKept).length;
-  const activeConfig = STRATEGIES[strategy];
+  const strategy = STRATEGIES.find((item) => item.id === strategyId);
+  const lab = useMemo(() => buildSamplingLab({
+    tokens: TOKEN_LOGITS,
+    strategyId,
+    temperature,
+    topK,
+    topP,
+    beamWidth,
+    seed,
+    beamTree: BEAM_TREE,
+  }), [strategyId, temperature, topK, topP, beamWidth, seed]);
 
-  const reset = () => {
-    setStrategy('topP');
-    setTemperature(0.8);
-    setTopK(4);
-    setTopP(0.86);
-    setBeamWidth(2);
-  };
+  const eligible = new Map(lab.eligible.map((row) => [row.token, row]));
 
   return (
     <div className="space-y-6">
       <section className="rounded-lg border border-slate-200 bg-white p-5">
-        <div className="flex flex-wrap items-start justify-between gap-4">
-          <div>
-            <p className="text-xs font-black uppercase tracking-wide text-slate-500">Inference-time decoding</p>
-            <h2 className="mt-1 text-2xl font-black text-slate-950">Sampling Strategies</h2>
-            <p className="mt-2 max-w-3xl text-sm leading-6 text-slate-700">
-              Decoding turns next-token probabilities into an actual continuation. Greedy and beam search favor high-score
-              paths, while temperature, top-k, and top-p control how much uncertainty survives before sampling.
-            </p>
-          </div>
-          <button
-            type="button"
-            onClick={reset}
-            className="inline-flex items-center gap-2 rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm font-bold text-slate-800"
-          >
-            <RotateCcw size={16} />
-            Reset
-          </button>
-        </div>
+        <p className="text-xs font-black uppercase tracking-wide text-cyan-700">Inference-time decoding</p>
+        <h2 className="mt-1 text-2xl font-black text-slate-950">Sampling Strategies</h2>
+        <p className="mt-2 max-w-4xl text-sm leading-6 text-slate-700">
+          Start with logits, turn them into probabilities, apply exactly one decoding rule, renormalize if filtering removed mass,
+          then actually sample. Beam search is different: it tracks sequence probability instead of sampling a single next token.
+        </p>
       </section>
 
       <section className="rounded-lg border border-slate-200 bg-white p-5">
-        <div className="mb-4 flex items-center gap-2 text-sm font-black uppercase tracking-wide text-slate-600">
-          <SlidersHorizontal size={16} />
-          Strategy controls
+        <div className="grid gap-2 sm:grid-cols-5">
+          {STRATEGIES.map((item) => (
+            <button
+              key={item.id}
+              type="button"
+              onClick={() => setStrategyId(item.id)}
+              className={`rounded-lg border p-3 text-left ${strategyId === item.id ? 'border-cyan-500 bg-cyan-50' : 'border-slate-200'}`}
+            >
+              <strong className="block text-sm text-slate-950">{item.label}</strong>
+              <span className="mt-1 block text-xs leading-5 text-slate-600">{item.detail}</span>
+            </button>
+          ))}
         </div>
-        <div className="grid gap-4 xl:grid-cols-[1.2fr_1fr]">
-          <div className="grid gap-2 sm:grid-cols-5">
-            {Object.keys(STRATEGIES).map((id) => (
-              <StrategyButton key={id} id={id} active={strategy === id} onClick={() => setStrategy(id)} />
-            ))}
-          </div>
-          <div className="grid gap-4 sm:grid-cols-2">
-            <label className="grid gap-2 text-sm font-bold text-slate-700">
-              Temperature: {temperature.toFixed(2)}
-              <input min="0.25" max="1.8" step="0.05" type="range" value={temperature} onChange={(event) => setTemperature(Number(event.target.value))} />
-            </label>
-            <label className="grid gap-2 text-sm font-bold text-slate-700">
-              Top-k: {topK}
-              <input min="1" max="6" step="1" type="range" value={topK} onChange={(event) => setTopK(Number(event.target.value))} />
-            </label>
-            <label className="grid gap-2 text-sm font-bold text-slate-700">
-              Top-p: {topP.toFixed(2)}
-              <input min="0.45" max="1" step="0.05" type="range" value={topP} onChange={(event) => setTopP(Number(event.target.value))} />
-            </label>
-            <label className="grid gap-2 text-sm font-bold text-slate-700">
-              Beam width: {beamWidth}
-              <input min="1" max="4" step="1" type="range" value={beamWidth} onChange={(event) => setBeamWidth(Number(event.target.value))} />
-            </label>
-          </div>
+
+        <div className="mt-5 grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+          <label className={`grid gap-2 text-sm font-bold ${strategyId === 'beam' ? 'text-slate-400' : 'text-slate-700'}`}>
+            Temperature: {temperature.toFixed(2)}
+            <input disabled={strategyId === 'beam'} type="range" min="0.2" max="2" step="0.05" value={temperature} onChange={(event) => setTemperature(Number(event.target.value))} />
+          </label>
+          <label className={`grid gap-2 text-sm font-bold ${strategyId === 'topK' ? 'text-slate-700' : 'text-slate-400'}`}>
+            Top-k: {topK}
+            <input disabled={strategyId !== 'topK'} type="range" min="1" max={TOKEN_LOGITS.length} step="1" value={topK} onChange={(event) => setTopK(Number(event.target.value))} />
+          </label>
+          <label className={`grid gap-2 text-sm font-bold ${strategyId === 'topP' ? 'text-slate-700' : 'text-slate-400'}`}>
+            Top-p: {topP.toFixed(2)}
+            <input disabled={strategyId !== 'topP'} type="range" min="0.2" max="1" step="0.02" value={topP} onChange={(event) => setTopP(Number(event.target.value))} />
+          </label>
+          <label className={`grid gap-2 text-sm font-bold ${strategyId === 'beam' ? 'text-slate-700' : 'text-slate-400'}`}>
+            Beam width: {beamWidth}
+            <input disabled={strategyId !== 'beam'} type="range" min="1" max="2" step="1" value={beamWidth} onChange={(event) => setBeamWidth(Number(event.target.value))} />
+          </label>
         </div>
       </section>
 
       <div className="grid gap-3 md:grid-cols-4">
-        <Stat label="Strategy" value={activeConfig.label} detail="current decoding rule" />
-        <Stat label="Candidates" value={candidateCount} detail="kept for next decision" />
-        <Stat label="Most likely" value={rows[0].token.trim()} detail={`${Math.round(rows[0].probability * 100)}% probability`} />
-        <Stat label="Selected path" value={strategy === 'beam' ? `${beamWidth} beams` : selected.token.trim()} detail="what remains eligible" />
+        <Stat label="Strategy" value={strategy.label} detail="active rule" />
+        <Stat
+          label="Candidates"
+          value={strategyId === 'beam' ? lab.beams.length : lab.eligible.length}
+          detail={strategyId === 'temperature' ? 'full vocabulary remains' : 'eligible after rule'}
+        />
+        <Stat
+          label="Entropy"
+          value={strategyId === 'beam' ? `${lab.entropyBefore.toFixed(2)} bits` : `${lab.entropyAfter.toFixed(2)} bits`}
+          detail={strategyId === 'beam' ? 'next-token distribution' : 'after filtering + renormalization'}
+        />
+        <Stat
+          label={strategyId === 'beam' ? 'Best sequence' : 'Actual sample'}
+          value={strategyId === 'beam' ? lab.selected.tokens.join('') : lab.selected.token.trim()}
+          detail={strategyId === 'beam' ? `${(lab.selected.probability * 100).toFixed(1)}% joint probability` : `seed ${seed}`}
+        />
       </div>
 
-      <div className="grid gap-4 xl:grid-cols-[1fr_0.9fr]">
+      {strategyId !== 'beam' ? (
         <section className="rounded-lg border border-slate-200 bg-white p-5">
-          <h3 className="flex items-center gap-2 text-sm font-black uppercase tracking-wide text-slate-600">
-            <Thermometer size={16} />
-            Token distribution
-          </h3>
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <h3 className="flex items-center gap-2 text-sm font-black uppercase tracking-wide text-slate-600">
+              <Thermometer size={16} /> Token pipeline
+            </h3>
+            <button type="button" onClick={() => setSeed((value) => value + 1)} className="inline-flex items-center gap-2 rounded-lg border border-slate-300 px-3 py-2 text-sm font-bold text-slate-800">
+              <Dices size={16} /> Sample again
+            </button>
+          </div>
           <div className="mt-4 space-y-3">
-            {rows.map((row, index) => {
-              const kept = strategy === 'greedy' ? index === 0 : strategy === 'topK' ? row.topKKept : strategy === 'topP' ? row.topPKept : row.stochasticKept;
+            {lab.rows.map((row) => {
+              const active = eligible.get(row.token);
               return (
-                <div key={row.token} className="grid gap-2 sm:grid-cols-[90px_1fr_78px] sm:items-center">
-                  <span className={`rounded-lg border px-3 py-2 font-mono text-sm ${kept ? 'border-cyan-300 bg-cyan-50 text-cyan-950' : 'border-slate-200 bg-slate-50 text-slate-500'}`}>
-                    {row.token}
-                  </span>
-                  <div className="h-3 overflow-hidden rounded-full bg-slate-100">
-                    <div className={kept ? 'h-full bg-cyan-500' : 'h-full bg-slate-300'} style={{ width: `${Math.max(5, row.probability * 100)}%` }} />
-                  </div>
-                  <span className="text-sm font-black text-slate-700">{Math.round(row.probability * 100)}%</span>
+                <div key={row.token} className="grid gap-2 sm:grid-cols-[90px_1fr_76px_1fr_76px] sm:items-center">
+                  <span className={`rounded-lg border px-3 py-2 font-mono text-sm ${active ? 'border-cyan-300 bg-cyan-50 text-cyan-950' : 'border-slate-200 bg-slate-50 text-slate-500'}`}>{row.token}</span>
+                  <div className="h-3 overflow-hidden rounded-full bg-slate-100"><div className="h-full bg-slate-400" style={{ width: `${Math.max(1, row.probability * 100)}%` }} /></div>
+                  <span className="text-xs font-bold text-slate-600">{(row.probability * 100).toFixed(1)}%</span>
+                  <div className="h-3 overflow-hidden rounded-full bg-cyan-50"><div className="h-full bg-cyan-500" style={{ width: `${active ? Math.max(1, active.samplingProbability * 100) : 0}%` }} /></div>
+                  <span className="text-xs font-bold text-cyan-700">{active ? `${(active.samplingProbability * 100).toFixed(1)}%` : 'filtered'}</span>
                 </div>
               );
             })}
           </div>
+          <div className="mt-5 grid gap-3 md:grid-cols-3">
+            <div className="rounded-lg bg-slate-50 p-4 text-sm leading-6 text-slate-700">
+              <strong>Before:</strong> temperature changes the probability distribution itself. Lower temperature sharpens it; higher temperature flattens it.
+            </div>
+            <div className="rounded-lg bg-cyan-50 p-4 text-sm leading-6 text-cyan-950">
+              <strong>Filter:</strong> {strategyId === 'topK' ? 'top-k removes by rank.' : strategyId === 'topP' ? 'top-p keeps the smallest prefix reaching the mass threshold.' : strategyId === 'greedy' ? 'greedy keeps only the argmax.' : 'temperature does not filter anything.'}
+            </div>
+            <div className="rounded-lg bg-emerald-50 p-4 text-sm leading-6 text-emerald-950">
+              <strong>After:</strong> retained mass before renormalization is {(lab.retainedMass * 100).toFixed(1)}%. Sampling probabilities then sum back to 100%.
+            </div>
+          </div>
         </section>
-
+      ) : (
         <section className="rounded-lg border border-slate-200 bg-white p-5">
-          <h3 className="flex items-center gap-2 text-sm font-black uppercase tracking-wide text-slate-600">
-            <GitBranch size={16} />
-            Beam comparison
-          </h3>
-          <div className="mt-4 space-y-3">
-            {beams.map((beam) => (
-              <div key={beam.path} className={`rounded-lg border p-3 ${beam.kept ? 'border-emerald-300 bg-emerald-50' : 'border-slate-200 bg-slate-50'}`}>
-                <p className="font-mono text-sm text-slate-900">{beam.path}</p>
-                <p className="mt-1 text-xs font-black uppercase tracking-wide text-slate-500">log score {beam.score.toFixed(2)}</p>
+          <h3 className="flex items-center gap-2 text-sm font-black uppercase tracking-wide text-slate-600"><GitBranch size={16} /> Real two-step beam search</h3>
+          <div className="mt-4 grid gap-3 md:grid-cols-2">
+            {lab.beams.map((beam, index) => (
+              <div key={beam.tokens.join('-')} className={`rounded-lg border p-4 ${index === 0 ? 'border-emerald-300 bg-emerald-50' : 'border-slate-200 bg-slate-50'}`}>
+                <strong className="font-mono text-lg text-slate-950">{beam.tokens.join('')}</strong>
+                <p className="mt-1 text-sm text-slate-700">joint probability {(beam.probability * 100).toFixed(2)}%</p>
+                <p className="text-xs text-slate-500">log probability {beam.logProbability.toFixed(3)}</p>
               </div>
             ))}
           </div>
+          <div className="mt-5 rounded-lg border border-amber-200 bg-amber-50 p-4 text-sm leading-6 text-amber-950">
+            <strong>Greedy counterexample:</strong> width 1 chooses <span className="font-mono">A1</span> because A is the best first token,
+            but the globally best two-step sequence is <span className="font-mono">{lab.exhaustiveBest.tokens.join('')}</span> at {(lab.exhaustiveBest.probability * 100).toFixed(1)}%.
+            Width 2 keeps B alive long enough to recover it.
+          </div>
         </section>
-      </div>
+      )}
 
-      <section className="grid gap-4 lg:grid-cols-3">
-        <div className="rounded-lg border border-cyan-200 bg-cyan-50 p-5">
-          <h3 className="text-sm font-black uppercase tracking-wide text-cyan-700">Problem solved</h3>
-          <p className="mt-3 text-sm leading-6 text-cyan-950">
-            Sampling strategies decide how deterministic, diverse, or conservative an autoregressive model should be at inference time.
-          </p>
+      <section className="grid gap-4 md:grid-cols-3">
+        <div className="rounded-lg border border-cyan-200 bg-cyan-50 p-4 text-sm leading-6 text-cyan-950">
+          <strong className="block text-xs uppercase tracking-wide text-cyan-700">Fixed bug</strong>
+          Temperature sampling now uses the full vocabulary. Top-k and top-p no longer leak into strategies where they do not belong.
         </div>
-        <div className="rounded-lg border border-amber-200 bg-amber-50 p-5">
-          <h3 className="text-sm font-black uppercase tracking-wide text-amber-700">Core math</h3>
-          <p className="mt-3 text-sm leading-6 text-amber-950">
-            Temperature rescales logits before softmax; top-k filters by rank; top-p filters by cumulative probability mass; beam search maximizes sequence score.
-          </p>
+        <div className="rounded-lg border border-amber-200 bg-amber-50 p-4 text-sm leading-6 text-amber-950">
+          <strong className="block text-xs uppercase tracking-wide text-amber-700">Real randomness</strong>
+          The displayed token is now produced by deterministic seeded sampling, not by picking the first surviving row.
         </div>
-        <div className="rounded-lg border border-emerald-200 bg-emerald-50 p-5">
-          <h3 className="text-sm font-black uppercase tracking-wide text-emerald-700">Understanding check</h3>
-          <p className="mt-3 text-sm leading-6 text-emerald-950">
-            Predict whether each control increases determinism, diversity, or candidate coverage before moving it.
-          </p>
+        <div className="rounded-lg border border-emerald-200 bg-emerald-50 p-4 text-sm leading-6 text-emerald-950">
+          <strong className="block text-xs uppercase tracking-wide text-emerald-700">Sequence score</strong>
+          Beam search now multiplies conditional probabilities, equivalently adding log probabilities, instead of showing hard-coded scores.
         </div>
       </section>
 
-      <section className="rounded-lg border border-amber-200 bg-amber-50 p-5 text-amber-950">
-        <h3 className="text-sm font-black uppercase tracking-wide text-amber-700">Mistake to avoid</h3>
-        <p className="mt-3 text-sm leading-6">{activeConfig.risk}</p>
-        <p className="mt-3 text-sm leading-6">{activeConfig.detail}</p>
-      </section>
+      <button type="button" onClick={() => setSeed(SAMPLING_DEFAULTS.seed)} className="inline-flex items-center gap-2 rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm font-bold text-slate-800">
+        <RefreshCw size={16} /> Reset sample seed
+      </button>
 
       <AssessmentPanel lessonId="sampling-strategies" title="Sampling Strategies check" />
     </div>
