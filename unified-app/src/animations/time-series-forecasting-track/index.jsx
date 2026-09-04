@@ -1,49 +1,286 @@
-import React from 'react';
-import CausalConceptLesson from '../_shared/CausalConceptLesson';
+import React, { useMemo, useState } from 'react';
+import AssessmentPanel from '../../components/animation-shell/AssessmentPanel';
+import {
+  BarTrack,
+  ControlBench,
+  Note,
+  NoteRow,
+  Plate,
+  Readouts,
+  Slider,
+  Steps,
+} from '../_shared/notebook';
+import ForecastChart from './ForecastChart';
+import {
+  CONTROL_LIMITS,
+  DEFAULT_SCENARIO,
+  MODEL_DEFINITIONS,
+  SCENARIO_PRESETS,
+} from './forecastingConfig.js';
+import { buildForecastLab } from './forecastingModel.js';
 
-const pct = (value) => `${value.toFixed(0)}%`;
+const formatOneDecimal = (value) => value.toFixed(1);
+const formatSigned = (value) => `${value >= 0 ? '+' : ''}${value.toFixed(2)}`;
+const formatCount = (value) => String(value);
 
-const config = {
-  lessonId: 'time-series-forecasting-track',
-  kicker: 'Temporal ML',
-  title: 'Time Series & Forecasting',
-  description: 'Forecasting needs time-aware validation, lagged features, seasonality checks, leakage controls, exogenous variables, and backtests that mimic future deployment.',
-  controls: [
-    { id: 'seasonality', label: 'Seasonality strength', min: 0, max: 100, step: 5, defaultValue: 60, format: pct, help: 'Recurring patterns that lag features or seasonal terms should capture.' },
-    { id: 'leakage', label: 'Future leakage risk', min: 0, max: 100, step: 5, defaultValue: 25, format: pct, help: 'How much future information sneaks into features or validation.' },
-    { id: 'backtests', label: 'Rolling backtests', min: 1, max: 12, step: 1, defaultValue: 5, format: (value) => value.toLocaleString(), help: 'More rolling windows stress-test stability across time.' },
-  ],
-  compute(values) {
-    const coverage = Math.min(100, values.backtests * 9 + values.seasonality * 0.35);
-    const reliability = Math.max(0, coverage - values.leakage * 0.8);
-    return {
-      stats: [
-        { label: 'Backtest coverage', value: pct(coverage), detail: 'Rolling-window evidence', tone: coverage > 60 ? 'emerald' : 'amber' },
-        { label: 'Leakage penalty', value: pct(values.leakage), detail: 'Future data exposure', tone: values.leakage > 35 ? 'rose' : 'cyan' },
-        { label: 'Seasonal signal', value: pct(values.seasonality), detail: 'Pattern to model', tone: 'cyan' },
-        { label: 'Forecast readiness', value: pct(reliability), detail: 'Qualitative score', tone: reliability > 55 ? 'emerald' : 'amber' },
-      ],
-      bars: [
-        { label: 'Rolling split coverage', value: pct(coverage), width: coverage, color: 'bg-emerald-500' },
-        { label: 'Future leakage risk', value: pct(values.leakage), width: values.leakage, color: 'bg-rose-500' },
-        { label: 'Seasonality captured', value: pct(values.seasonality), width: values.seasonality, color: 'bg-cyan-500' },
-      ],
-      formulaLines: [
-        'rolling split: train[0:t] -> validate[t+1:t+h]',
-        'lag feature: y[t-k], not y[t+h]',
-        'metrics: MAE, RMSE, MAPE, pinball loss',
-      ],
-      readout: 'A random row split can look excellent while leaking the future. Rolling backtests make the evaluation chronological.',
-      steps: [
-        { title: 'Respect time order', pass: values.leakage <= 25, body: values.leakage <= 25 ? 'Future information is mostly blocked.' : 'Leakage risk is high; rebuild features and splits by timestamp.' },
-        { title: 'Backtest enough windows', pass: values.backtests >= 4, body: values.backtests >= 4 ? 'Multiple cutoffs test stability across regimes.' : 'One cutoff is too brittle for a forecasting workflow.' },
-        { title: 'Model temporal structure', pass: values.seasonality >= 30, body: values.seasonality >= 30 ? 'Seasonality and lag features matter in this scenario.' : 'Simple baselines may be competitive when temporal pattern is weak.' },
-      ],
-      takeaway: 'Forecasting is mostly about time discipline: features, labels, splits, and metrics must all be aligned to what was knowable at prediction time.',
-    };
-  },
-};
+function metricValue(value) {
+  return Number.isFinite(value) ? value.toFixed(2) : '—';
+}
+
+function comparisonTone(value, baseline) {
+  if (value < baseline * 0.9) return 'text-emerald-700';
+  if (value > baseline * 1.1) return 'text-rose-700';
+  return 'text-slate-700';
+}
 
 export default function TimeSeriesForecastingTrackAnimation() {
-  return <CausalConceptLesson config={config} />;
+  const [scenario, setScenario] = useState(DEFAULT_SCENARIO);
+  const lab = useMemo(() => buildForecastLab(scenario), [scenario]);
+  const seasonalBaseline = lab.backtestSummary.find((model) => model.id === 'seasonal-naive');
+  const foldMaes = lab.backtests.map((fold) => (
+    fold.models.find((model) => model.id === lab.selected.id).metrics.mae
+  ));
+  const maxFoldMae = Math.max(...foldMaes, 1);
+  const stabilityRatio = lab.selectedBacktest.bestMae > 0
+    ? lab.selectedBacktest.worstMae / lab.selectedBacktest.bestMae
+    : 1;
+
+  const updateScenario = (key, value) => {
+    setScenario((current) => ({ ...current, [key]: value }));
+  };
+
+  const applyPreset = (values) => {
+    setScenario((current) => ({ ...current, ...values }));
+  };
+
+  return (
+    <div className="nb-lesson">
+      <Plate
+        label="Forecasting workbench"
+        title="Time Series & Forecasting"
+        note="Build a forecast the way it would run in production: establish a baseline, freeze a future holdout, backtest across multiple cutoffs, inspect error stability, then distrust anything that uses information unavailable at prediction time."
+      >
+        <NoteRow>
+          <Note label="Goal" title="Beat a credible baseline">
+            <p>A forecasting model is useful only when it improves on a simple time-aware alternative such as naive or seasonal naive.</p>
+          </Note>
+          <Note label="Constraint" title="The future stays hidden">
+            <p>Every feature, transformation, model fit, and metric must use only information that existed at the forecast origin.</p>
+          </Note>
+          <Note label="Evidence" title="One split is not enough">
+            <p>Rolling-origin backtests expose whether performance survives different seasons and changing regimes.</p>
+          </Note>
+        </NoteRow>
+      </Plate>
+
+      <ControlBench
+        label="Generate a forecasting problem"
+        actions={(
+          <button type="button" className="nb-reset" onClick={() => setScenario(DEFAULT_SCENARIO)}>
+            Reset
+          </button>
+        )}
+      >
+        <Slider
+          label="Seasonal amplitude"
+          value={scenario.seasonality}
+          {...CONTROL_LIMITS.seasonality}
+          format={formatOneDecimal}
+          help="Strength of the repeating 12-step pattern."
+          onChange={(value) => updateScenario('seasonality', value)}
+        />
+        <Slider
+          label="Trend / step"
+          value={scenario.trend}
+          {...CONTROL_LIMITS.trend}
+          format={formatSigned}
+          help="Long-run drift in the level of the series."
+          onChange={(value) => updateScenario('trend', value)}
+        />
+        <Slider
+          label="Noise"
+          value={scenario.noise}
+          {...CONTROL_LIMITS.noise}
+          format={formatOneDecimal}
+          help="Unpredictable variation around trend and seasonality."
+          onChange={(value) => updateScenario('noise', value)}
+        />
+        <Slider
+          label="Late regime shift"
+          value={scenario.regimeShift}
+          {...CONTROL_LIMITS.regimeShift}
+          format={formatSigned}
+          help="A level change near the end tests whether old validation windows still represent deployment."
+          onChange={(value) => updateScenario('regimeShift', value)}
+        />
+        <Slider
+          label="Forecast horizon"
+          value={scenario.horizon}
+          {...CONTROL_LIMITS.horizon}
+          format={formatCount}
+          help="How many future steps must be predicted from each cutoff."
+          onChange={(value) => updateScenario('horizon', value)}
+        />
+        <Slider
+          label="Rolling folds"
+          value={scenario.folds}
+          {...CONTROL_LIMITS.folds}
+          format={formatCount}
+          help="Independent chronological cutoffs used to estimate stability."
+          onChange={(value) => updateScenario('folds', value)}
+        />
+      </ControlBench>
+
+      <div className="flex flex-wrap gap-2 -mt-2 mb-2" aria-label="Scenario presets">
+        {SCENARIO_PRESETS.map((preset) => (
+          <button
+            key={preset.id}
+            type="button"
+            className="ds-btn"
+            onClick={() => applyPreset(preset.values)}
+          >
+            {preset.label}
+          </button>
+        ))}
+      </div>
+
+      <Plate label="1 · Freeze the future" title="Chronological holdout">
+        <div className="overflow-x-auto">
+          <ForecastChart
+            series={lab.series}
+            origin={lab.origin}
+            forecast={lab.selected.forecast}
+            modelLabel={lab.selected.label}
+          />
+        </div>
+      </Plate>
+
+      <Plate label="2 · Choose the challenger" title="Baselines before clever models">
+        <div className="flex flex-wrap gap-2 mb-5" role="group" aria-label="Forecast model">
+          {MODEL_DEFINITIONS.map((model) => (
+            <button
+              key={model.id}
+              type="button"
+              aria-pressed={scenario.modelId === model.id}
+              onClick={() => updateScenario('modelId', model.id)}
+              className={`ds-btn ${scenario.modelId === model.id ? 'primary' : ''}`}
+              title={model.detail}
+            >
+              {model.label}
+            </button>
+          ))}
+        </div>
+
+        <Readouts
+          columns={4}
+          items={[
+            { label: 'Holdout MAE', value: metricValue(lab.selected.metrics.mae), detail: 'Average absolute miss' },
+            { label: 'Holdout RMSE', value: metricValue(lab.selected.metrics.rmse), detail: 'Punishes large misses' },
+            { label: 'Holdout MASE', value: metricValue(lab.selected.metrics.mase), detail: '< 1 beats one-step naive scale' },
+            { label: 'Backtest winner', value: lab.winner.label, detail: `Mean MAE ${metricValue(lab.winner.mae)}` },
+          ]}
+        />
+
+        <div className="overflow-x-auto mt-5">
+          <table className="w-full text-sm border-collapse">
+            <thead>
+              <tr className="border-b border-slate-300 text-left text-xs uppercase tracking-wide text-slate-500">
+                <th className="py-2 pr-4">Model</th>
+                <th className="py-2 pr-4">Holdout MAE</th>
+                <th className="py-2 pr-4">Holdout MASE</th>
+                <th className="py-2 pr-4">Rolling MAE</th>
+                <th className="py-2">Fold range</th>
+              </tr>
+            </thead>
+            <tbody>
+              {lab.holdout.map((model) => {
+                const rolling = lab.backtestSummary.find((candidate) => candidate.id === model.id);
+                const selected = model.id === lab.selected.id;
+                return (
+                  <tr key={model.id} className={`border-b border-slate-200 ${selected ? 'font-semibold' : ''}`}>
+                    <td className="py-3 pr-4">
+                      {model.label}{selected ? ' ← selected' : ''}
+                      <div className="font-normal text-xs text-slate-500 mt-1">{model.detail}</div>
+                    </td>
+                    <td className="py-3 pr-4 tabular-nums">{metricValue(model.metrics.mae)}</td>
+                    <td className="py-3 pr-4 tabular-nums">{metricValue(model.metrics.mase)}</td>
+                    <td className={`py-3 pr-4 tabular-nums ${comparisonTone(rolling.mae, seasonalBaseline.mae)}`}>
+                      {metricValue(rolling.mae)}
+                    </td>
+                    <td className="py-3 tabular-nums text-slate-600">
+                      {metricValue(rolling.bestMae)}–{metricValue(rolling.worstMae)}
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
+      </Plate>
+
+      <div className="nb-split">
+        <Plate label="3 · Walk forward" title={`${scenario.folds} rolling-origin backtests`}>
+          <div className="nb-bar-stack">
+            {lab.backtests.map((fold, index) => {
+              const mae = foldMaes[index];
+              return (
+                <BarTrack
+                  key={fold.fold}
+                  label={`Fold ${fold.fold}: train < ${fold.origin}, test ${fold.testStart}–${fold.testEnd}`}
+                  value={`MAE ${metricValue(mae)}`}
+                  width={(mae / maxFoldMae) * 100}
+                  tone={mae <= lab.selectedBacktest.mae ? 'good' : 'warn'}
+                />
+              );
+            })}
+          </div>
+          <p className="nb-plate-note mt-4">
+            Mean MAE {metricValue(lab.selectedBacktest.mae)}; best {metricValue(lab.selectedBacktest.bestMae)}; worst {metricValue(lab.selectedBacktest.worstMae)}. A widening spread is a regime-change warning, not something to average away blindly.
+          </p>
+        </Plate>
+
+        <Plate label="4 · Shipping checklist" title="Would you trust this forecast?">
+          <Steps
+            items={[
+              {
+                title: 'Compare with a time-aware baseline',
+                pass: lab.selectedBacktest.mae <= seasonalBaseline.mae,
+                body: lab.selectedBacktest.mae <= seasonalBaseline.mae
+                  ? `The selected model matches or beats seasonal naive across rolling folds.`
+                  : `Seasonal naive is stronger. Complexity has not earned its place yet.`,
+              },
+              {
+                title: 'Demand scaled error below naive',
+                pass: lab.selectedBacktest.mase < 1,
+                body: lab.selectedBacktest.mase < 1
+                  ? `Rolling MASE is ${metricValue(lab.selectedBacktest.mase)}, below the naive error scale.`
+                  : `Rolling MASE is ${metricValue(lab.selectedBacktest.mase)}. A naive reference is still competitive.`,
+              },
+              {
+                title: 'Check stability across time',
+                pass: stabilityRatio <= 2,
+                body: stabilityRatio <= 2
+                  ? `Worst-fold MAE is within 2× the best fold.`
+                  : `Worst-fold MAE is ${stabilityRatio.toFixed(1)}× the best fold. Investigate drift or regime changes.`,
+              },
+            ]}
+          />
+        </Plate>
+      </div>
+
+      <Note tone="bad" label="Leakage trap" title="The suspiciously good centered-window feature">
+        <p>
+          If validation uses both y[t−1] and <strong>y[t+1]</strong> to predict y[t], this scenario reports MAE {metricValue(lab.leakage.mae)} over {lab.leakage.observations} holdout points. It may look attractive, but y[t+1] does not exist when predicting y[t]. The metric is invalid regardless of how small it becomes.
+        </p>
+      </Note>
+
+      <Note tone="accent" label="Takeaway" title="Forecasting is an evaluation discipline first">
+        <p>
+          Start with naive baselines, preserve chronology, match the backtest horizon to deployment, inspect fold-by-fold stability, and treat every feature as guilty until you can prove it was knowable at prediction time. Only then is a lower error worth celebrating.
+        </p>
+      </Note>
+
+      <AssessmentPanel lessonId="time-series-forecasting-track" title="Forecasting check" />
+    </div>
+  );
 }
