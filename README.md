@@ -12,7 +12,7 @@ The project started as a collection of standalone animations. It is now centered
 
 - A unified lesson browser with searchable topics and curriculum tracks.
 - Guided paths for fundamentals, experimentation and causal ML, LLMs, frontier LLMs and agentic systems, RAG, model reliability, vision and diffusion, and reinforcement learning.
-- Core ML lessons for splitting data, cross-validation, leakage, scaling, metrics, calibration, PCA, clustering, tree ensembles, classical classifiers, and time-series forecasting with rolling-origin backtests.
+- Core ML lessons for splitting data, cross-validation, leakage, scaling, metrics, calibration, PCA, clustering, tree ensembles, classical classifiers, time-series forecasting, recommender ranking, ML security evaluation, and inference/compression tradeoffs.
 - Model reliability lessons for debugging, interpretability, monitoring, fairness, and uncertainty estimation.
 - Experimentation and causal ML lessons for A/B testing foundations and power analysis, with planned modules for sequential testing, CUPED, confounding, DAGs, treatment effects, and propensity scores.
 - Transformer lessons for attention, masks, architecture families, training objectives, token generation, sampling, KV cache, Flash Attention, and fine-tuning.
@@ -76,9 +76,11 @@ The model reliability track covers post-training and deployed-system concerns: d
 
 The experimentation track connects hypothesis testing, confidence intervals, metrics, calibration, leakage, fairness, monitoring, and uncertainty to causal decision-making. Active lessons now cover A/B testing foundations, power and sample size, sequential testing and peeking, CUPED variance reduction, confounding and Simpson's paradox, causal graphs and DAGs, treatment effects, and propensity scores.
 
-Time series and forecasting has graduated from an overview into an interactive forecasting workbench with naive and seasonal-naive baselines, trend-plus-seasonal modeling, chronological holdouts, rolling-origin backtests, MAE/RMSE/MASE diagnostics, regime-shift stress tests, and a concrete future-leakage demonstration.
+The applied ML path now includes interactive workbenches for time-series forecasting, recommender systems and ranking, ML security and robustness, and efficient inference and compression. These labs use concrete baselines, metrics, failure modes, and system-level tradeoffs instead of qualitative readiness scores.
 
-The remaining next-priority applied ML pillars are active as overview lessons: recommender systems and ranking, ML security and robustness, efficient inference and compression, and data engineering for ML.
+Time series covers chronological holdouts, naive and seasonal-naive baselines, trend-plus-seasonal modeling, rolling-origin backtests, MAE/RMSE/MASE diagnostics, regime shifts, and future leakage. Recommender systems covers popularity, collaborative, and hybrid ranking with nDCG@K, precision/recall, cold start, exploration, and exposure feedback loops. ML security covers attack-success rate, benign utility, privacy exposure, defense-in-depth, and layer ablations using a synthetic defensive test suite. Efficient inference covers weight and KV memory, VRAM fit, TTFT, decode throughput, batching, quantization, speculative acceptance, bottleneck analysis, and Pareto tradeoffs through an explicitly illustrative serving model.
+
+Data engineering for ML remains the next-priority applied ML overview lesson.
 
 ### Vision and Diffusion
 
