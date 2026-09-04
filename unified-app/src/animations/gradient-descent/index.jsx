@@ -1,5 +1,5 @@
 import React, { lazy, Suspense, useCallback, useState } from 'react';
-import { CircleHelp, FlaskConical, Gauge, LineChart, Play } from 'lucide-react';
+import { FlaskConical, Gauge, HelpCircle, LineChart, Play } from 'lucide-react';
 import AssessmentPanel from '../../components/animation-shell/AssessmentPanel';
 
 const GradientDescentPanel = lazy(() => import('./GradientDescentPanel'));
@@ -12,7 +12,7 @@ const TABS = Object.freeze([
     { id: 'history', label: '2. Loss History', icon: LineChart, color: 'from-green-500 to-emerald-500' },
     { id: 'practice', label: '3. Practice Lab', icon: FlaskConical, color: 'from-rose-500 to-red-500' },
     { id: 'stability', label: '4. Stability Lab', icon: Gauge, color: 'from-amber-500 to-orange-500' },
-    { id: 'assessment', label: '5. Knowledge Check', icon: CircleHelp, color: 'from-violet-500 to-purple-500' },
+    { id: 'assessment', label: '5. Knowledge Check', icon: HelpCircle, color: 'from-violet-500 to-purple-500' },
 ]);
 
 function LoadingPanel() {
