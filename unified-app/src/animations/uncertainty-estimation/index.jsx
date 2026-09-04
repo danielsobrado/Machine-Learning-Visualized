@@ -1,332 +1,90 @@
 import React, { useMemo, useState } from 'react';
-import { CalendarRange, RefreshCw, Shield, ShieldCheck, ToggleLeft, ToggleRight } from 'lucide-react';
+import AssessmentPanel from '../../components/animation-shell/AssessmentPanel';
+import {
+  BarTrack,
+  ControlBench,
+  Note,
+  NoteRow,
+  Plate,
+  Readouts,
+  Slider,
+  Steps,
+} from '../_shared/notebook';
+import { CONTROL_LIMITS, DEFAULT_SCENARIO, SCENARIO_PRESETS } from './uncertaintyConfig.js';
+import { buildConformalLab } from './uncertaintyModel.js';
 
-const OBSERVATIONS = [
-  { id: 'traffic', y: 72, truth: 66, aleatoric: 0.22, epistemic: 0.09 },
-  { id: 'support', y: 58, truth: 63, aleatoric: 0.17, epistemic: 0.11 },
-  { id: 'conversion', y: 38, truth: 32, aleatoric: 0.19, epistemic: 0.08 },
-  { id: 'fraud', y: 89, truth: 93, aleatoric: 0.24, epistemic: 0.14 },
-  { id: 'churn', y: 44, truth: 40, aleatoric: 0.13, epistemic: 0.06 },
-  { id: 'risk', y: 61, truth: 55, aleatoric: 0.15, epistemic: 0.13 },
-];
-
-const COVERAGE_Z = {
-  0.7: 0.84,
-  0.75: 1.15,
-  0.8: 1.28,
-  0.85: 1.44,
-  0.9: 1.64,
-  0.95: 1.96,
-};
-
-const MODES = {
-  inDist: {
-    label: 'In distribution',
-    ood: 0.0,
-    description: 'Inputs are similar to training conditions.',
-  },
-  domainShift: {
-    label: 'Domain shift',
-    ood: 0.14,
-    description: 'Feature patterns moved, but labels keep the same meaning.',
-  },
-  farOOD: {
-    label: 'Out-of-domain',
-    ood: 0.25,
-    description: 'New context; predictions can remain confidently wrong.',
-  },
-};
-
-function clamp(value, min, max) {
-  return Math.min(max, Math.max(min, value));
-}
-
-function predictInterval(prediction, mode, alpha, epistemic, aleatoric, ood, abstainLimit) {
-  const z = COVERAGE_Z[alpha] || COVERAGE_Z[0.9];
-  const sigma = clamp((aleatoric * 0.95 + epistemic * 0.85 + mode.ood * ood * 0.6), 0.6, 12);
-  const half = sigma * z * (1 + abstainLimit / 100);
-  const lower = clamp(prediction - half, 0, 100);
-  const upper = clamp(prediction + half, 0, 100);
-  return { lower, upper, width: upper - lower, sigma, half, confidence: 1 / (1 + sigma) };
-}
-
-function riskColor(risk, min, max) {
-  if (risk < min) return 'bg-emerald-100 border-emerald-400 text-emerald-950';
-  if (risk < max) return 'bg-amber-100 border-amber-400 text-amber-950';
-  return 'bg-rose-100 border-rose-400 text-rose-950';
-}
-
-function Stat({ label, value, detail }) {
-  return (
-    <div className="rounded-lg border border-slate-200 bg-white p-3">
-      <p className="text-xs font-black uppercase tracking-wide text-slate-500">{label}</p>
-      <strong className="mt-1 block text-2xl font-black text-slate-900">{value}</strong>
-      <span className="mt-2 block text-xs text-slate-600">{detail}</span>
-    </div>
-  );
-}
-
-function IntervalRow({ item, prediction, interval, covered, deferred }) {
-  const style = deferred ? 'border-rose-200 bg-rose-50 text-rose-900' : 'border-slate-200 bg-slate-50 text-slate-900';
-  return (
-    <div className={`rounded-lg border ${style} p-3 text-sm`}>
-      <div className="mb-1 flex items-center justify-between">
-        <strong>{item.id}</strong>
-        <span className="font-black">{prediction.toFixed(1)} ± {interval.half.toFixed(1)}</span>
-      </div>
-      <div className="h-2 rounded bg-slate-200 mb-2 overflow-hidden">
-        <div
-          className="h-2 rounded bg-cyan-500"
-          style={{
-            width: `${prediction}%`,
-            marginLeft: `${prediction - Math.max(interval.half, 1)}%`,
-          }}
-        />
-      </div>
-      <p className="text-xs leading-6">
-        True value: <strong>{item.truth}</strong> | covered: <strong>{covered ? 'yes' : 'no'}</strong> | status: <strong>{deferred ? 'deferred' : 'served'}</strong>
-      </p>
-    </div>
-  );
-}
+const pct = (value) => value === null ? '—' : `${(value * 100).toFixed(1)}%`;
+const fixed = (value) => value === null ? '—' : value.toFixed(2);
 
 export default function UncertaintyEstimation() {
-  const [modeId, setModeId] = useState('inDist');
-  const [coverage, setCoverage] = useState(0.9);
-  const [epistemicWeight, setEpistemicWeight] = useState(1);
-  const [aleatoricWeight, setAleatoricWeight] = useState(1);
-  const [oodWeight, setOodWeight] = useState(1);
-  const [abstainLimit, setAbstainLimit] = useState(60);
-  const [useConformal, setUseConformal] = useState(true);
-
-  const mode = MODES[modeId];
-  const rows = useMemo(() => {
-    return OBSERVATIONS.map((item) => {
-      const interval = predictInterval(
-        item.y,
-        mode,
-        coverage,
-        item.epistemic * epistemicWeight,
-        item.aleatoric * aleatoricWeight,
-        oodWeight,
-        abstainLimit,
-      );
-      const covered = item.truth >= interval.lower && item.truth <= interval.upper;
-      const deferred = useConformal && interval.width > abstainLimit;
-      return {
-        id: item.id,
-        truth: item.truth,
-        prediction: item.y,
-        interval,
-        covered,
-        deferred,
-        width: interval.width,
-      };
-    });
-  }, [modeId, mode, coverage, epistemicWeight, aleatoricWeight, oodWeight, abstainLimit, useConformal]);
-
-  const coverageRate = (rows.filter((row) => row.covered).length / rows.length) * 100;
-  const deferRate = (rows.filter((row) => row.deferred).length / rows.length) * 100;
-  const meanWidth = rows.reduce((acc, row) => acc + row.width, 0) / rows.length;
-  const avgConfidence = rows.reduce((acc, row) => acc + row.interval.confidence, 0) / rows.length;
-  const unstableRows = rows.filter((row) => row.deferred || row.width > 25).length;
+  const [scenario, setScenario] = useState(DEFAULT_SCENARIO);
+  const lab = useMemo(() => buildConformalLab(scenario), [scenario]);
+  const update = (key, value) => setScenario((current) => ({ ...current, [key]: value }));
+  const applyPreset = (values) => setScenario((current) => ({ ...current, ...values }));
 
   return (
-    <div className="space-y-6">
-      <section className="rounded-lg border border-slate-200 bg-white p-5">
-        <div className="flex flex-wrap items-start justify-between gap-4">
-          <div>
-            <p className="text-xs font-black uppercase tracking-wide text-slate-500">Decision risk</p>
-            <h1 className="mt-1 text-2xl font-black text-slate-950">Uncertainty Estimation</h1>
-            <p className="mt-2 max-w-3xl text-sm leading-6 text-slate-700">
-              Separate uncertainty sources and tune policies so confident decisions are made only when the signal is reliable.
-            </p>
+    <div className="nb-lesson">
+      <Plate label="Coverage calibration lab" title="Uncertainty Estimation" note="Turn model residuals into empirically calibrated prediction intervals with split conformal prediction, then break the exchangeability assumption and watch the coverage guarantee fail.">
+        <NoteRow>
+          <Note label="Calibrate" title="Use held-out residuals"><p>The conformal score is measured on a calibration set the model did not fit.</p></Note>
+          <Note label="Guarantee" title="Coverage is marginal"><p>Finite-sample coverage relies on calibration and future examples being exchangeable.</p></Note>
+          <Note label="Shift" title="OOD breaks assumptions"><p>A narrow interval is not trustworthy merely because it came from a mathematically valid calibration procedure.</p></Note>
+        </NoteRow>
+      </Plate>
+
+      <ControlBench label="Calibrate and stress the interval" actions={<button type="button" className="nb-reset" onClick={() => setScenario(DEFAULT_SCENARIO)}>Reset</button>}>
+        <Slider label="Target coverage" value={scenario.targetCoverage} {...CONTROL_LIMITS.targetCoverage} format={pct} help="Requested marginal coverage on exchangeable future examples." onChange={(value) => update('targetCoverage', value)} />
+        <Slider label="Calibration rows" value={scenario.calibrationSize} {...CONTROL_LIMITS.calibrationSize} format={(value) => String(value)} help="More held-out residuals make the empirical quantile less coarse." onChange={(value) => update('calibrationSize', value)} />
+        <Slider label="Aleatoric noise" value={scenario.noiseScale} {...CONTROL_LIMITS.noiseScale} format={(value) => `${value}×`} help="Irreducible observation noise present in calibration and test data." onChange={(value) => update('noiseScale', value)} />
+        <Slider label="Distribution shift" value={scenario.distributionShift} {...CONTROL_LIMITS.distributionShift} format={(value) => `${value}`} help="Moves test inputs and injects extrapolation bias without recalibrating." onChange={(value) => update('distributionShift', value)} />
+        <Slider label="Defer if width exceeds" value={scenario.abstainWidth} {...CONTROL_LIMITS.abstainWidth} format={(value) => `${value} pts`} help="A product policy layered on top of the interval, not part of the conformal guarantee." onChange={(value) => update('abstainWidth', value)} />
+      </ControlBench>
+
+      <div className="flex flex-wrap gap-2 -mt-2 mb-2" aria-label="Uncertainty presets">{SCENARIO_PRESETS.map((preset) => <button key={preset.id} type="button" className="ds-btn" onClick={() => applyPreset(preset.values)}>{preset.label}</button>)}</div>
+
+      <Plate label="1 · Split conformal calibration" title="Residual scores determine q̂">
+        <Readouts columns={4} items={[
+          { label: 'Calibration n', value: String(lab.calibration.points.length), detail: 'Held-out from model fitting' },
+          { label: 'q̂', value: fixed(lab.calibration.qHat), detail: 'Finite-sample score quantile' },
+          { label: 'Target coverage', value: pct(scenario.targetCoverage), detail: 'Requested under exchangeability' },
+          { label: 'Mean interval width', value: `${fixed(lab.metrics.meanWidth)} pts`, detail: 'Varies with predicted scale' },
+        ]} />
+        <p className="nb-plate-note mt-4">Normalized score: |y − ŷ| / ŝ(x). Prediction interval: ŷ(x) ± q̂·ŝ(x). The finite-sample quantile uses rank ceil((n + 1)·coverage).</p>
+      </Plate>
+
+      <div className="nb-split">
+        <Plate label="2 · Empirical coverage" title="Did the interval actually contain truth?">
+          <div className="nb-bar-stack">
+            <BarTrack label="Requested coverage" value={pct(scenario.targetCoverage)} width={scenario.targetCoverage * 100} tone="accent" />
+            <BarTrack label="Observed test coverage" value={pct(lab.metrics.empiricalCoverage)} width={lab.metrics.empiricalCoverage * 100} tone={lab.metrics.empiricalCoverage + 0.02 >= scenario.targetCoverage ? 'good' : 'bad'} />
+            <BarTrack label="Deferred predictions" value={pct(lab.metrics.deferRate)} width={lab.metrics.deferRate * 100} tone={lab.metrics.deferRate > 0.5 ? 'warn' : 'accent'} />
           </div>
-          <button
-            type="button"
-            onClick={() => {
-              setModeId('inDist');
-              setCoverage(0.9);
-              setEpistemicWeight(1);
-              setAleatoricWeight(1);
-              setOodWeight(1);
-              setAbstainLimit(60);
-              setUseConformal(true);
-            }}
-            className="inline-flex items-center gap-2 rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm font-bold text-slate-800"
-          >
-            <RefreshCw size={16} />
-            Reset
-          </button>
-        </div>
-      </section>
+        </Plate>
+        <Plate label="3 · Selective prediction" title="Deferral is a product decision">
+          <Readouts columns={3} items={[
+            { label: 'All-prediction MAE', value: fixed(lab.metrics.allMae), detail: 'Before abstention' },
+            { label: 'Served MAE', value: fixed(lab.metrics.servedMae), detail: 'Only non-deferred rows' },
+            { label: 'Served coverage', value: pct(lab.metrics.servedCoverage), detail: 'Conditional on serving policy' },
+          ]} />
+          <p className="nb-plate-note mt-4">Deferring wide intervals can improve the risk profile of served predictions, but that conditional metric is not the original conformal coverage guarantee.</p>
+        </Plate>
+      </div>
 
-      <section className="grid gap-4 xl:grid-cols-[1.2fr_0.8fr]">
-        <div className="rounded-lg border border-slate-200 bg-white p-5">
-          <h3 className="text-sm font-black uppercase tracking-wide text-slate-600">Sources and controls</h3>
-          <div className="mt-4 grid gap-4 sm:grid-cols-2">
-            <label className="text-sm font-bold text-slate-700">
-              Deployment regime
-              <select value={modeId} onChange={(event) => setModeId(event.target.value)} className="mt-2 w-full rounded-lg border border-slate-300 bg-white px-3 py-2">
-                {Object.entries(MODES).map(([id, current]) => (
-                  <option key={id} value={id}>{current.label}</option>
-                ))}
-              </select>
-            </label>
-            <label className="text-sm font-bold text-slate-700">
-              Target coverage
-              <span className="ml-2 text-slate-500">{(coverage * 100).toFixed(0)}%</span>
-              <input
-                type="range"
-                min={0.7}
-                max={0.95}
-                step={0.05}
-                value={coverage}
-                onChange={(event) => setCoverage(Number(event.target.value))}
-                className="mt-2 w-full accent-cyan-700"
-              />
-            </label>
-            <label className="text-sm font-bold text-slate-700">
-              Epistemic multiplier
-              <span className="ml-2 text-slate-500">{epistemicWeight.toFixed(1)}x</span>
-              <input
-                type="range"
-                min={0.2}
-                max={2.5}
-                step={0.1}
-                value={epistemicWeight}
-                onChange={(event) => setEpistemicWeight(Number(event.target.value))}
-                className="mt-2 w-full accent-cyan-700"
-              />
-            </label>
-            <label className="text-sm font-bold text-slate-700">
-              Aleatoric multiplier
-              <span className="ml-2 text-slate-500">{aleatoricWeight.toFixed(1)}x</span>
-              <input
-                type="range"
-                min={0.2}
-                max={2.0}
-                step={0.1}
-                value={aleatoricWeight}
-                onChange={(event) => setAleatoricWeight(Number(event.target.value))}
-                className="mt-2 w-full accent-cyan-700"
-              />
-            </label>
-          </div>
-          <p className="mt-4 rounded-lg border border-slate-200 bg-slate-50 p-3 text-sm leading-6 text-slate-700">
-            {mode.description}
-          </p>
-        </div>
+      <Plate label="4 · Inspect intervals" title="Prediction, interval, truth, and action">
+        <div className="overflow-x-auto"><table className="w-full text-sm border-collapse"><thead><tr className="border-b border-slate-300 text-left text-xs uppercase tracking-wide text-slate-500"><th className="py-2 pr-3">x</th><th className="py-2 pr-3">Lower</th><th className="py-2 pr-3">Prediction</th><th className="py-2 pr-3">Truth</th><th className="py-2 pr-3">Upper</th><th className="py-2">Result</th></tr></thead><tbody>{lab.sampleRows.map((row) => <tr key={row.index} className="border-b border-slate-200"><td className="py-2 pr-3 tabular-nums">{row.x.toFixed(2)}</td><td className="py-2 pr-3 tabular-nums">{row.lower.toFixed(1)}</td><td className="py-2 pr-3 tabular-nums font-semibold">{row.prediction.toFixed(1)}</td><td className="py-2 pr-3 tabular-nums">{row.truth.toFixed(1)}</td><td className="py-2 pr-3 tabular-nums">{row.upper.toFixed(1)}</td><td className={`py-2 font-semibold ${!row.covered ? 'text-rose-700' : row.deferred ? 'text-amber-700' : 'text-emerald-700'}`}>{!row.covered ? 'MISS' : row.deferred ? 'DEFER' : 'COVERED'}</td></tr>)}</tbody></table></div>
+      </Plate>
 
-        <div className="grid gap-3">
-          <Stat label="Observed coverage" value={`${coverageRate.toFixed(1)}%`} detail="fraction where true value is inside interval" />
-          <Stat label="Mean interval width" value={`${meanWidth.toFixed(1)} pts`} detail="narrower may under-cover" />
-          <Stat label="Deferred proportion" value={`${deferRate.toFixed(1)}%`} detail={useConformal ? 'defer-if-wide policy' : 'policy off'} />
-          <div className="grid gap-3">
-            <label className="flex items-center justify-between rounded-lg border border-slate-200 bg-white p-3">
-              <span className="text-sm font-bold text-slate-700">Use abstain policy</span>
-              <button type="button" onClick={() => setUseConformal((value) => !value)} className="text-slate-700">
-                {useConformal ? <ToggleRight size={18} /> : <ToggleLeft size={18} />}
-              </button>
-            </label>
-            <label className="text-sm font-bold text-slate-700">
-              OOD multiplier
-              <span className="ml-2 text-slate-500">{oodWeight.toFixed(2)}x</span>
-              <input
-                type="range"
-                min={0.4}
-                max={2.2}
-                step={0.1}
-                value={oodWeight}
-                onChange={(event) => setOodWeight(Number(event.target.value))}
-                className="mt-2 w-full accent-cyan-700"
-              />
-            </label>
-            <label className="text-sm font-bold text-slate-700">
-              Deferral threshold
-              <span className="ml-2 text-slate-500">{abstainLimit.toFixed(0)}</span>
-              <input
-                type="range"
-                min={40}
-                max={120}
-                step={5}
-                value={abstainLimit}
-                onChange={(event) => setAbstainLimit(Number(event.target.value))}
-                className="mt-2 w-full accent-cyan-700"
-              />
-            </label>
-          </div>
-        </div>
-      </section>
+      <Plate label="5 · Assumption audit" title="When should you trust the coverage claim?">
+        <Steps items={[
+          { title: 'Calibration set is separate', pass: true, body: `${lab.calibration.points.length} held-out rows set q̂; test outcomes never tune it.` },
+          { title: 'Observed coverage tracks target', pass: lab.metrics.empiricalCoverage + 0.02 >= scenario.targetCoverage, body: `Observed ${pct(lab.metrics.empiricalCoverage)} vs requested ${pct(scenario.targetCoverage)}.` },
+          { title: 'Exchangeability remains plausible', pass: scenario.distributionShift === 0, body: scenario.distributionShift === 0 ? 'Calibration and test are generated from the same regime.' : `Shift=${scenario.distributionShift} changes the test regime. The nominal conformal guarantee no longer applies.` },
+        ]} />
+      </Plate>
 
-      <section className="rounded-lg border border-slate-200 bg-white p-5">
-        <div className="mb-4 flex items-center gap-2 text-sm font-black uppercase tracking-wide text-slate-600">
-          <CalendarRange size={16} />
-          Toy prediction intervals and truth checks
-        </div>
-        <div className="grid gap-3 md:grid-cols-2">
-          {rows.map((row) => (
-            <IntervalRow
-              key={row.id}
-              item={row}
-              prediction={row.prediction}
-              interval={row.interval}
-              covered={row.covered}
-              deferred={row.deferred}
-            />
-          ))}
-        </div>
-      </section>
-
-      <section className="grid gap-4 xl:grid-cols-3">
-        <div className={`rounded-lg border p-4 ${riskColor(unstableRows, 1, 3)}`}>
-          <h3 className="text-sm font-black uppercase tracking-wide">Signal health</h3>
-          <p className="mt-2 text-sm leading-6">
-            Confidence is approximately <strong>{(avgConfidence * 100).toFixed(0)}%</strong>.
-            This combines modeled aleatoric and epistemic spread in a toy way.
-          </p>
-        </div>
-        <div className="rounded-lg border border-slate-200 bg-slate-50 p-4">
-          <h3 className="text-sm font-black uppercase tracking-wide text-slate-700">Interpretation guide</h3>
-          <p className="mt-2 text-sm leading-6 text-slate-700">
-            High confidence means low spread around the prediction.
-            Wide intervals are not a model weakness by themselves—they are often a warning that the data regime changed.
-          </p>
-        </div>
-        <div className="rounded-lg border border-slate-200 bg-slate-50 p-4">
-          <h3 className="text-sm font-black uppercase tracking-wide text-slate-700">Deployment policy</h3>
-          <p className="mt-2 text-sm leading-6 text-slate-700">
-            Use an abstain policy when interval width exceeds your reliability budget.
-            Better to defer with a clear fallback than ship a high-risk prediction.
-          </p>
-        </div>
-      </section>
-
-      <section className="rounded-lg border border-cyan-200 bg-cyan-50 p-4 text-sm leading-6 text-cyan-950">
-        <div className="flex items-center gap-2 font-black uppercase tracking-wide text-cyan-700">
-          <Shield size={16} />
-          Quick check
-        </div>
-        <p className="mt-2">
-          {coverageRate >= 70
-            ? 'Coverage is acceptable for this toy setup, but monitor failures where the signal was deferred or missed entirely.'
-            : 'Coverage is low. Increase target coverage, improve calibration, or tighten feature scope.'}
-        </p>
-        <p className="mt-2">
-          <strong className="font-black">Conformal-style reminder:</strong> empirical coverage depends on calibration data and exchangeability, not only interval width.
-        </p>
-      </section>
-
-      <section className="rounded-lg border border-emerald-200 bg-emerald-50 p-4 text-sm leading-6 text-emerald-950">
-        <div className="flex items-center gap-2 font-black uppercase tracking-wide text-emerald-700">
-          <ShieldCheck size={16} />
-          Lab hint
-        </div>
-        <p className="mt-2">
-          Try moving to domain shift, set aleatoric to 2.0, and adjust abstain threshold to keep unstable cases deferred while preserving enough throughput.
-        </p>
-      </section>
+      <Note tone="bad" label="Failure mode" title="Conformal prediction is not an OOD shield"><p>Coverage guarantees do not survive arbitrary distribution shift. If deployment moves outside the calibration regime, monitor coverage on newly matured labels, detect shift separately, and recalibrate when the assumptions no longer describe production.</p></Note>
+      <Note tone="accent" label="Takeaway" title="Uncertainty needs calibration plus assumptions"><p>Do not manufacture confidence from an arbitrary variance formula. Calibrate residuals on held-out data, state the target coverage, verify empirical coverage, and make the exchangeability assumption explicit.</p></Note>
+      <AssessmentPanel lessonId="uncertainty-estimation" title="Uncertainty estimation check" />
     </div>
   );
 }
-
