@@ -10,10 +10,12 @@ export default function LessonCodeLab({ lessonId }) {
 
   return (
     <section className="ua-lesson-code-lab" id="code-lab" aria-label="Lesson code lab">
-      <div className="ua-lesson-code-lab-link">
-        <Link to="/labs">Open all code labs</Link>
-      </div>
-      <CodeFixLab key={lessonId} exercises={exercises} progressScopeId={lessonId} />
+      <CodeFixLab
+        key={lessonId}
+        exercises={exercises}
+        progressScopeId={lessonId}
+        toolbarAction={<Link to="/labs">All labs</Link>}
+      />
     </section>
   );
 }

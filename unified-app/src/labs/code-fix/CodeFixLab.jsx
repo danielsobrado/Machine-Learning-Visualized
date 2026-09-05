@@ -8,6 +8,9 @@ import {
   summarizeCodeLabProgress,
 } from '../../data/codeLabProgress';
 import { runJavaScriptExercise } from './jsWorkerRunner';
+import './CodeFixLab.css';
+
+const JS_TOKEN_PATTERN = /(\/\/.*|\/\*[\s\S]*?\*\/|(["'`])(?:\\.|(?!\2)[^\\])*\2|\b(?:const|let|var|function|return|if|else|for|while|new|throw|true|false|null|undefined)\b|\b\d+(?:\.\d+)?\b|\b[a-zA-Z_$][\w$]*(?=\s*\())/g;
 
 function statusForResults(results, error) {
   if (error) return 'error';
@@ -20,7 +23,12 @@ function formatValue(value) {
   return JSON.stringify(value);
 }
 
-const JS_TOKEN_PATTERN = /(\/\/.*|\/\*[\s\S]*?\*\/|(["'`])(?:\\.|(?!\2)[^\\])*\2|\b(?:const|let|var|function|return|if|else|for|while|new|throw|true|false|null|undefined)\b|\b\d+(?:\.\d+)?\b|\b[a-zA-Z_$][\w$]*(?=\s*\())/g;
+function feedbackTitle(status) {
+  if (status === 'passed') return 'All tests passed';
+  if (status === 'failed') return 'Keep going';
+  if (status === 'error') return 'Code error';
+  return 'Run tests to begin';
+}
 
 function highlightJavaScript(code) {
   const parts = [];
@@ -54,7 +62,7 @@ function highlightJavaScript(code) {
   return parts;
 }
 
-export default function CodeFixLab({ exercises, progressScopeId, onProgressChange }) {
+export default function CodeFixLab({ exercises, progressScopeId, onProgressChange, toolbarAction }) {
   const [activeIndex, setActiveIndex] = React.useState(0);
   const activeExercise = exercises[activeIndex];
   const highlightRef = React.useRef(null);
@@ -71,9 +79,7 @@ export default function CodeFixLab({ exercises, progressScopeId, onProgressChang
   const [progressMessage, setProgressMessage] = React.useState('');
   const [running, setRunning] = React.useState(false);
   const [showSolution, setShowSolution] = React.useState(false);
-  const [expanded, setExpanded] = React.useState(false);
-
-  const exitExpanded = React.useCallback(() => setExpanded(false), []);
+  const [focused, setFocused] = React.useState(false);
 
   const code = codeById[activeExercise.id];
   const currentResult = resultById[activeExercise.id];
@@ -82,6 +88,7 @@ export default function CodeFixLab({ exercises, progressScopeId, onProgressChang
       ? summarizeCodeLabProgress(progressScopeId, exercises, persistedProgress)
       : null
   ), [exercises, persistedProgress, progressScopeId]);
+
   const statusForExercise = React.useCallback((exercise) => {
     const result = resultById[exercise.id];
     const runtimeStatus = statusForResults(result?.results, result?.error);
@@ -90,6 +97,7 @@ export default function CodeFixLab({ exercises, progressScopeId, onProgressChang
     if (progressScopeId && progressSummary?.passedIds.has(exercise.id)) return 'passed';
     return 'idle';
   }, [progressScopeId, progressSummary, resultById]);
+
   const status = statusForExercise(activeExercise);
   const hintLevel = hintLevelById[activeExercise.id] || 0;
   const visibleHints = activeExercise.hints.slice(0, hintLevel);
@@ -116,35 +124,32 @@ export default function CodeFixLab({ exercises, progressScopeId, onProgressChang
   }, [exercises]);
 
   React.useEffect(() => {
-    setExpanded(false);
+    setFocused(false);
   }, [progressScopeId]);
 
   React.useEffect(() => {
-    if (!expanded || typeof document === 'undefined') return undefined;
+    if (!focused || typeof document === 'undefined') return undefined;
 
     const syncMainOffset = () => {
       const main = document.querySelector('.ua-main');
       const left = main?.getBoundingClientRect().left ?? 0;
-      document.documentElement.style.setProperty('--ua-code-lab-expand-left', `${left}px`);
+      document.documentElement.style.setProperty('--ua-code-lab-focus-left', `${left}px`);
     };
-
-    document.documentElement.classList.add('ua-code-lab-expanded');
-    syncMainOffset();
 
     const onKeyDown = (event) => {
-      if (event.key === 'Escape') setExpanded(false);
+      if (event.key === 'Escape') setFocused(false);
     };
 
+    syncMainOffset();
     window.addEventListener('keydown', onKeyDown);
     window.addEventListener('resize', syncMainOffset);
 
     return () => {
       window.removeEventListener('keydown', onKeyDown);
       window.removeEventListener('resize', syncMainOffset);
-      document.documentElement.classList.remove('ua-code-lab-expanded');
-      document.documentElement.style.removeProperty('--ua-code-lab-expand-left');
+      document.documentElement.style.removeProperty('--ua-code-lab-focus-left');
     };
-  }, [expanded]);
+  }, [focused]);
 
   React.useEffect(() => {
     if (!progressScopeId || typeof window === 'undefined') return undefined;
@@ -229,6 +234,11 @@ export default function CodeFixLab({ exercises, progressScopeId, onProgressChang
     highlightRef.current.scrollLeft = event.currentTarget.scrollLeft;
   }
 
+  function selectExercise(index) {
+    setActiveIndex(index);
+    setShowSolution(false);
+  }
+
   function exportProgress() {
     const blob = new Blob([exportCodeLabProgressJson()], { type: 'application/json' });
     const url = URL.createObjectURL(blob);
@@ -260,54 +270,36 @@ export default function CodeFixLab({ exercises, progressScopeId, onProgressChang
     result?.results?.length && result.results.every((check) => check.passed)
   )).length;
   const passedCount = progressSummary ? progressSummary.passedCount : localPassedCount;
+  const progressPercent = exercises.length > 0
+    ? Math.round((passedCount / exercises.length) * 100)
+    : 0;
 
   return (
-    <section className={['ua-codefix-lab', expanded && 'ua-codefix-lab--expanded'].filter(Boolean).join(' ')}>
-      <div className="ua-codefix-toolbar">
-        {expanded ? (
-          <button
-            type="button"
-            className="ua-map-expand-back"
-            onClick={exitExpanded}
-            aria-label="Exit big screen mode"
-          >
-            <span>← Back</span>
-          </button>
-        ) : null}
-        <div className="ua-codefix-toolbar-title">
+    <section className="ua-codefix-lab">
+      <header className="ua-codefix-toolbar">
+        <div className="ua-codefix-toolbar-copy">
           <span>Code lab</span>
+          <strong>Fix the TODOs, run the tests</strong>
         </div>
-        {expanded ? (
-          <span className="ua-map-expand-esc">Esc to exit</span>
-        ) : (
-          <button
-            type="button"
-            className="ua-map-expand-toggle"
-            onClick={() => setExpanded(true)}
-            aria-label="Open code lab in big screen mode"
-          >
-            <span>Big screen ↗</span>
-          </button>
-        )}
-      </div>
 
-      <div className="ua-codefix-head">
-        <span>Code Completion-style lab</span>
-        <h2>Fix the TODOs, run the tests</h2>
-        <p>
-          Each exercise is almost complete. Change the smallest piece of code needed
-          to make the tests pass.
-        </p>
-        <div className="ua-codefix-persistence">
-          <strong>Passed {passedCount}/{exercises.length} locally</strong>
+        <div
+          className="ua-codefix-summary"
+          aria-label={`${passedCount} of ${exercises.length} exercises passed`}
+        >
+          <div className="ua-codefix-summary-line">
+            <strong>{passedCount}/{exercises.length} passed</strong>
+            <span>{progressPercent}%</span>
+          </div>
+          <div className="ua-codefix-summary-track" aria-hidden="true">
+            <span style={{ width: `${progressPercent}%` }} />
+          </div>
+        </div>
+
+        <div className="ua-codefix-toolbar-actions">
           {progressScopeId && (
-            <div className="ua-codefix-persistence-actions">
-              <button type="button" onClick={exportProgress}>
-                Export progress ↓
-              </button>
-              <button type="button" onClick={() => importInputRef.current?.click()}>
-                Import progress ↑
-              </button>
+            <>
+              <button type="button" onClick={exportProgress}>Export</button>
+              <button type="button" onClick={() => importInputRef.current?.click()}>Import</button>
               <input
                 ref={importInputRef}
                 type="file"
@@ -315,55 +307,58 @@ export default function CodeFixLab({ exercises, progressScopeId, onProgressChang
                 onChange={importProgress}
                 hidden
               />
-            </div>
+            </>
           )}
-          {progressMessage && <small>{progressMessage}</small>}
+          {toolbarAction}
         </div>
-      </div>
+      </header>
 
-      <div className="ua-codefix-progress">
-        {exerciseGroups.map((group) => {
-          const passedInGroup = group.items.filter(({ exercise }) => {
-            return statusForExercise(exercise) === 'passed';
-          }).length;
+      {progressMessage && (
+        <div className="ua-codefix-progress-message" role="status">{progressMessage}</div>
+      )}
 
-          return (
-            <div className="ua-codefix-progress-group" key={group.name}>
-              <div className="ua-codefix-progress-label">
-                <strong>{group.name}</strong>
-                <span>{passedInGroup}/{group.items.length}</span>
-              </div>
-
-              <div className="ua-codefix-progress-steps">
-                {group.items.map(({ exercise, index }) => {
-                  const exerciseStatus = statusForExercise(exercise);
-
-                  return (
-                    <button
-                      key={exercise.id}
-                      type="button"
-                      onClick={() => {
-                        setActiveIndex(index);
-                        setShowSolution(false);
-                      }}
-                      className={`ua-codefix-step ${index === activeIndex ? 'active' : ''} ${exerciseStatus}`}
-                    >
-                      <span className="ua-lab-check" aria-hidden="true">{exerciseStatus === 'passed' ? '×' : ''}</span>
-                      <span>{exercise.stepLabel || `${index + 1}.`} {exercise.title}</span>
-                    </button>
-                  );
-                })}
-              </div>
+      <nav className="ua-codefix-progress" aria-label="Code lab exercises">
+        {exerciseGroups.map((group) => (
+          <div className="ua-codefix-progress-group" key={group.name}>
+            <div className="ua-codefix-progress-label">
+              <strong>{group.name}</strong>
             </div>
-          );
-        })}
-      </div>
+            <div className="ua-codefix-progress-steps">
+              {group.items.map(({ exercise, index }) => {
+                const exerciseStatus = statusForExercise(exercise);
+                const selected = index === activeIndex;
 
-      <div className="ua-codefix-grid">
+                return (
+                  <button
+                    key={exercise.id}
+                    type="button"
+                    onClick={() => selectExercise(index)}
+                    className={`ua-codefix-step ${selected ? 'active' : ''} ${exerciseStatus}`}
+                    aria-current={selected ? 'step' : undefined}
+                  >
+                    <span className="ua-codefix-step-index">
+                      {String(index + 1).padStart(2, '0')}
+                    </span>
+                    <span className="ua-codefix-step-title">{exercise.title}</span>
+                    {exerciseStatus === 'passed' && (
+                      <span className="ua-codefix-step-state" aria-label="Passed">✓</span>
+                    )}
+                    {(exerciseStatus === 'failed' || exerciseStatus === 'error') && (
+                      <span className="ua-codefix-step-state" aria-label="Needs attention">!</span>
+                    )}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+        ))}
+      </nav>
+
+      <div className={`ua-codefix-grid${focused ? ' is-focused' : ''}`}>
         <article className="ua-codefix-card ua-codefix-instructions">
-          <span>{activeExercise.difficulty}</span>
+          <span className="ua-codefix-kicker">{activeExercise.difficulty}</span>
           <h3>{activeExercise.title}</h3>
-          <p>{activeExercise.objective}</p>
+          <p className="ua-codefix-objective">{activeExercise.objective}</p>
 
           <div className="ua-codefix-concept">
             <strong>Concept</strong>
@@ -376,117 +371,133 @@ export default function CodeFixLab({ exercises, progressScopeId, onProgressChang
           </div>
         </article>
 
-        <article className="ua-codefix-card ua-codefix-editor-card">
-          <div className="ua-codefix-card-head">
-            <div>
-              <span>Editor</span>
-              <h3>Complete the TODO</h3>
+        <div className="ua-codefix-workspace">
+          <article className="ua-codefix-card ua-codefix-editor-card">
+            <div className="ua-codefix-card-head">
+              <div>
+                <span>Editor</span>
+                <h3>Complete the TODO</h3>
+              </div>
+              <div className="ua-codefix-card-head-actions">
+                <button type="button" onClick={resetExercise}>Reset</button>
+                <button
+                  type="button"
+                  className="ua-codefix-icon-action"
+                  onClick={() => setFocused((value) => !value)}
+                  aria-label={focused ? 'Exit editor focus mode' : 'Expand editor workspace'}
+                  title={focused ? 'Exit focus mode (Esc)' : 'Expand editor workspace'}
+                  aria-pressed={focused}
+                >
+                  {focused ? '×' : '↗'}
+                </button>
+              </div>
             </div>
-            <button type="button" onClick={resetExercise}>
-              Reset
-            </button>
-          </div>
 
-          <div className="ua-codefix-editor-shell">
-            <pre className="ua-codefix-highlight" aria-hidden="true" ref={highlightRef}>
-              {highlightJavaScript(code)}
-            </pre>
-            <textarea
-              className="ua-codefix-editor"
-              value={code}
-              spellCheck={false}
-              aria-label={`${activeExercise.title} code editor`}
-              onScroll={syncHighlightScroll}
-              onChange={(event) => setCodeById((previous) => ({
-                ...previous,
-                [activeExercise.id]: event.target.value,
-              }))}
-            />
-          </div>
-
-          <div className="ua-codefix-actions">
-            <button type="button" onClick={runTests} disabled={running}>
-              {running ? 'Running...' : 'Run tests'}
-            </button>
-            <button type="button" onClick={showNextHint} disabled={hintLevel >= activeExercise.hints.length}>
-              {hintLevel === 0 ? 'Show hint' : 'Next hint'}
-            </button>
-            <button
-              type="button"
-              onClick={() => setShowSolution((value) => !value)}
-              disabled={!canRevealSolution}
-              title={canRevealSolution ? undefined : 'Run tests or use a hint before revealing the solution.'}
-            >
-              {showSolution ? 'Hide solution' : canRevealSolution ? 'See solution' : 'Try first'}
-            </button>
-          </div>
-        </article>
-
-        <article className="ua-codefix-card ua-codefix-feedback">
-          <span>Checks</span>
-          <h3>
-            {status === 'passed' && 'All tests passed'}
-            {status === 'failed' && 'Keep going'}
-            {status === 'error' && 'Code error'}
-            {status === 'idle' && 'Run tests to begin'}
-          </h3>
-
-          {currentResult?.error && (
-            <pre className="ua-codefix-error">{currentResult.error}</pre>
-          )}
-
-          {currentResult?.results?.length > 0 ? (
-            <ul className="ua-codefix-checks">
-              {currentResult.results.map((check) => (
-                <li key={check.name} className={check.passed ? 'passed' : 'failed'}>
-                  <strong>{check.passed ? 'Pass' : 'Fail'}: {check.name}</strong>
-                  {!check.passed && (
-                    <small>
-                      Expected {formatValue(check.expected)}, got {formatValue(check.actual)}
-                    </small>
-                  )}
-                </li>
-              ))}
-            </ul>
-          ) : (
-            <p className="ua-codefix-empty">
-              Run the tests. If one fails, use the smallest hint that helps.
-            </p>
-          )}
-
-          {visibleHints.length > 0 && (
-            <div className="ua-codefix-hints">
-              <strong>Hints</strong>
-              {visibleHints.map((hint, index) => (
-                hint.includes('\n') ? (
-                  <div key={hint} className="ua-codefix-hint">
-                    <b>Hint {index + 1}:</b>
-                    <pre className="ua-codefix-hint-code">{hint}</pre>
-                  </div>
-                ) : (
-                  <p key={hint}>
-                    <b>Hint {index + 1}:</b> {hint}
-                  </p>
-                )
-              ))}
+            <div className="ua-codefix-editor-shell">
+              <pre className="ua-codefix-highlight" aria-hidden="true" ref={highlightRef}>
+                {highlightJavaScript(code)}
+              </pre>
+              <textarea
+                className="ua-codefix-editor"
+                value={code}
+                spellCheck={false}
+                aria-label={`${activeExercise.title} code editor`}
+                onScroll={syncHighlightScroll}
+                onChange={(event) => setCodeById((previous) => ({
+                  ...previous,
+                  [activeExercise.id]: event.target.value,
+                }))}
+              />
             </div>
-          )}
 
-          {showSolution && (
-            <div className="ua-codefix-solution">
-              <strong>Solution</strong>
-              <pre>{activeExercise.solution}</pre>
-              <button type="button" onClick={applySolution}>
-                Apply solution to editor
-              </button>
+            <div className="ua-codefix-actions">
+              <div className="ua-codefix-action-buttons">
+                <button className="primary" type="button" onClick={runTests} disabled={running}>
+                  {running ? 'Running...' : 'Run tests'}
+                </button>
+                <button
+                  type="button"
+                  onClick={showNextHint}
+                  disabled={hintLevel >= activeExercise.hints.length}
+                >
+                  {hintLevel === 0 ? 'Show hint' : 'Next hint'}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setShowSolution((value) => !value)}
+                  disabled={!canRevealSolution}
+                  title={canRevealSolution ? undefined : 'Run tests or use a hint before revealing the solution.'}
+                >
+                  {showSolution ? 'Hide solution' : canRevealSolution ? 'See solution' : 'Try first'}
+                </button>
+              </div>
+              <span className="ua-codefix-position">Exercise {activeIndex + 1}/{exercises.length}</span>
             </div>
-          )}
-        </article>
-      </div>
+          </article>
 
-      <div className="ua-codefix-footer">
-        <strong>{passedCount} / {exercises.length}</strong>
-        <span>exercises passed</span>
+          <article className={`ua-codefix-card ua-codefix-feedback status-${status}`}>
+            <div className="ua-codefix-feedback-head">
+              <div>
+                <span>Test results</span>
+                <h3>{feedbackTitle(status)}</h3>
+              </div>
+              {status !== 'idle' && (
+                <span className="ua-codefix-feedback-status">{status}</span>
+              )}
+            </div>
+
+            {currentResult?.error && (
+              <pre className="ua-codefix-error">{currentResult.error}</pre>
+            )}
+
+            {currentResult?.results?.length > 0 ? (
+              <ul className="ua-codefix-checks">
+                {currentResult.results.map((check) => (
+                  <li key={check.name} className={check.passed ? 'passed' : 'failed'}>
+                    <strong>{check.passed ? 'Pass' : 'Fail'}: {check.name}</strong>
+                    {!check.passed && (
+                      <small>
+                        Expected {formatValue(check.expected)}, got {formatValue(check.actual)}
+                      </small>
+                    )}
+                  </li>
+                ))}
+              </ul>
+            ) : (
+              <p className="ua-codefix-empty">
+                Run the tests when you are ready. Failed checks and hints appear here.
+              </p>
+            )}
+
+            {visibleHints.length > 0 && (
+              <div className="ua-codefix-hints">
+                <strong>Hints</strong>
+                {visibleHints.map((hint, index) => (
+                  hint.includes('\n') ? (
+                    <div key={hint} className="ua-codefix-hint">
+                      <b>Hint {index + 1}:</b>
+                      <pre className="ua-codefix-hint-code">{hint}</pre>
+                    </div>
+                  ) : (
+                    <p key={hint}>
+                      <b>Hint {index + 1}:</b> {hint}
+                    </p>
+                  )
+                ))}
+              </div>
+            )}
+
+            {showSolution && (
+              <div className="ua-codefix-solution">
+                <strong>Solution</strong>
+                <pre>{activeExercise.solution}</pre>
+                <button type="button" onClick={applySolution}>
+                  Apply solution to editor
+                </button>
+              </div>
+            )}
+          </article>
+        </div>
       </div>
     </section>
   );

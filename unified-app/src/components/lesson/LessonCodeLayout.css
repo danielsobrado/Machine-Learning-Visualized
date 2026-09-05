@@ -1,0 +1,53 @@
+.ua-lesson-layout--code {
+  grid-template-columns: minmax(0, 1fr);
+  grid-template-areas: "content";
+  column-gap: 0;
+  padding-inline: clamp(0.5rem, 1.5vw, 1.5rem);
+}
+
+.ua-lesson-layout--code .ua-lesson-layout-content {
+  width: 100%;
+  max-width: none;
+  padding-inline: clamp(0.35rem, 1vw, 1rem);
+}
+
+.ua-lesson-layout--code .ua-animation-header.compact {
+  gap: 0.2rem;
+  margin-bottom: 0.55rem;
+  padding: 0.2rem 0 0.7rem;
+}
+
+.ua-lesson-layout--code .ua-animation-header.compact .ds-title {
+  margin-top: 0.05rem;
+  font-size: clamp(1.65rem, 2.4vw, 2.15rem);
+}
+
+.ua-lesson-layout--code .ua-animation-header.compact .ds-subtitle {
+  margin-top: 0.1rem;
+  max-width: 80ch;
+  font-size: 0.9rem;
+}
+
+.ua-lesson-layout--code .ua-routed-lesson-code,
+.ua-lesson-layout--code .ua-lesson-code-lab {
+  width: 100%;
+  min-width: 0;
+}
+
+.ua-lesson-layout--code .ua-lesson-code-lab {
+  margin-top: 0.75rem;
+}
+
+.ua-lesson-layout--code .ua-lesson-mode-footer {
+  margin-top: 1.5rem;
+}
+
+@media (max-width: 760px) {
+  .ua-lesson-layout--code {
+    padding-inline: 0.25rem;
+  }
+
+  .ua-lesson-layout--code .ua-lesson-layout-content {
+    padding-inline: 0.35rem;
+  }
+}

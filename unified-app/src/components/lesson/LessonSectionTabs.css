@@ -1,0 +1,81 @@
+.ua-lesson-section-tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0;
+  align-items: center;
+  margin: 0 0 0.9rem;
+  padding: 0.25rem 0;
+  border-bottom: 1px solid var(--ds-rule);
+}
+
+.ua-lesson-section-tab {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  min-height: 2.25rem;
+  padding: 0.4rem 0.7rem;
+  color: var(--ds-muted);
+  font-size: 0.74rem;
+  font-weight: 700;
+  line-height: 1.2;
+  text-decoration: none;
+}
+
+.ua-lesson-section-tab + .ua-lesson-section-tab::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 0.65rem;
+  bottom: 0.65rem;
+  width: 1px;
+  background: var(--ds-rule);
+}
+
+.ua-lesson-section-tab:hover,
+.ua-lesson-section-tab.active {
+  color: var(--ds-accent);
+}
+
+.ua-lesson-section-tab.active::after {
+  content: '';
+  position: absolute;
+  left: 0.7rem;
+  right: 0.7rem;
+  bottom: -0.28rem;
+  height: 2px;
+  background: var(--ds-accent);
+}
+
+.ua-lesson-section-tab-index {
+  color: var(--ds-faint);
+  font-family: var(--ds-font-mono);
+  font-size: 0.6rem;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0.08em;
+}
+
+.ua-lesson-section-tab.active .ua-lesson-section-tab-index {
+  color: inherit;
+}
+
+@media (max-width: 640px) {
+  .ua-lesson-section-tabs {
+    overflow-x: auto;
+    flex-wrap: nowrap;
+    scrollbar-width: none;
+  }
+
+  .ua-lesson-section-tabs::-webkit-scrollbar {
+    display: none;
+  }
+
+  .ua-lesson-section-tab {
+    flex: 0 0 auto;
+    padding-inline: 0.55rem;
+  }
+
+  .ua-lesson-section-tab-index {
+    display: none;
+  }
+}
