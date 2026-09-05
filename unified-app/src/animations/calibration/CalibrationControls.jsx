@@ -16,7 +16,7 @@ export default function CalibrationControls({ scenarioId, method, onScenarioChan
 
       <div>
         <span className="text-sm font-bold text-slate-700">1. What happened in production?</span>
-        <div className="mt-2 grid gap-2 md:grid-cols-2 xl:grid-cols-4">
+        <div className="mt-2 grid gap-2 md:grid-cols-2 xl:grid-cols-5">
           {Object.entries(SHIFT_SCENARIOS).map(([id, config]) => (
             <button
               key={id}
@@ -46,7 +46,7 @@ export default function CalibrationControls({ scenarioId, method, onScenarioChan
             <Sparkles size={14} /> Use scenario recommendation
           </button>
         </div>
-        <div className="mt-2 grid gap-2 md:grid-cols-2 xl:grid-cols-4">
+        <div className="mt-2 grid gap-2 md:grid-cols-2 xl:grid-cols-5">
           {Object.entries(RECALIBRATION_METHODS).map(([id, config]) => (
             <button
               key={id}

@@ -32,12 +32,32 @@ test('randomized difference in means is unbiased across rerandomizations', () =>
   assert.ok(Math.abs(average - truth) < 0.35);
 });
 
+test('subgroup estimates expose their own uncertainty and interaction test', () => {
+  const lab = buildTreatmentEffectsLab(DEFAULT_SCENARIO);
+  assert.ok(Number.isFinite(lab.metrics.highStandardError));
+  assert.ok(Number.isFinite(lab.metrics.lowStandardError));
+  assert.ok(Number.isFinite(lab.metrics.interactionEstimate));
+  assert.ok(lab.metrics.highConfidenceInterval[0] < lab.metrics.highConfidenceInterval[1]);
+  assert.ok(lab.metrics.lowConfidenceInterval[0] < lab.metrics.lowConfidenceInterval[1]);
+});
+
+test('multiplicity-adjusted subgroup intervals widen as more subgroups are searched', () => {
+  const few = buildTreatmentEffectsLab({ ...DEFAULT_SCENARIO, subgroupSearchCount: 2 });
+  const many = buildTreatmentEffectsLab({ ...DEFAULT_SCENARIO, subgroupSearchCount: 20 });
+  const width = (interval) => interval[1] - interval[0];
+
+  assert.ok(width(few.metrics.highAdjustedInterval) > width(few.metrics.highConfidenceInterval));
+  assert.ok(width(many.metrics.highAdjustedInterval) > width(few.metrics.highAdjustedInterval));
+  assert.ok(many.metrics.adjustedCriticalValue > few.metrics.adjustedCriticalValue);
+});
+
 test('group-optimal targeting avoids a harmed segment', () => {
   const lab = buildTreatmentEffectsLab(DEFAULT_SCENARIO);
   assert.ok(lab.metrics.trueHighCate > 0);
   assert.ok(lab.metrics.trueLowCate < 0);
   assert.ok(lab.metrics.targetedValue > lab.metrics.treatAllValue);
   assert.ok(lab.metrics.targetedValue > lab.metrics.treatNoneValue);
+  assert.ok(lab.metrics.evidenceAwarePolicyValue <= lab.metrics.targetedValue + 1e-10);
 });
 
 test('when both group effects are positive targeting collapses to treat all', () => {

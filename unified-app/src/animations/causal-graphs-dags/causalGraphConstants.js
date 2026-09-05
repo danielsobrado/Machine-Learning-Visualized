@@ -57,3 +57,57 @@ export const ADJUSTMENT_PRESETS = Object.freeze([
   { id: 'confounder-mediator', label: 'Adjust C + M', nodes: ['C', 'M'] },
   { id: 'confounder-collider', label: 'Adjust C + S', nodes: ['C', 'S'] },
 ]);
+
+export const M_BIAS_NODES = Object.freeze({
+  T: { label: 'T', name: 'Treatment' },
+  A: { label: 'A', name: 'Cause of treatment' },
+  K: { label: 'K', name: 'Collider covariate' },
+  B: { label: 'B', name: 'Cause of outcome' },
+  Y: { label: 'Y', name: 'Outcome' },
+});
+
+export const M_BIAS_EDGES = Object.freeze([
+  ['A', 'T'],
+  ['A', 'K'],
+  ['B', 'K'],
+  ['B', 'Y'],
+  ['T', 'Y'],
+]);
+
+export const M_BIAS_PATH = Object.freeze({
+  id: 'm-bias',
+  label: 'M-shaped non-causal path',
+  nodes: ['T', 'A', 'K', 'B', 'Y'],
+  explanation: 'K is a collider on T ← A → K ← B → Y. Conditioning on K opens the path.',
+});
+
+export const FRONT_DOOR_SCENARIOS = Object.freeze({
+  valid: {
+    label: 'Valid front-door',
+    detail: 'M intercepts the T→Y effect, T→M has no open backdoor, and conditioning on T blocks M→Y backdoors.',
+    directBypass: false,
+    treatmentMediatorConfounding: false,
+    mediatorOutcomeConfounding: false,
+  },
+  directBypass: {
+    label: 'Direct T → Y remains',
+    detail: 'A direct causal path bypasses M, so the mediator no longer intercepts every directed T→Y path.',
+    directBypass: true,
+    treatmentMediatorConfounding: false,
+    mediatorOutcomeConfounding: false,
+  },
+  treatmentMediatorConfounding: {
+    label: 'T ↔ M confounded',
+    detail: 'An unblocked common cause of T and M violates the no-backdoor requirement for the first front-door stage.',
+    directBypass: false,
+    treatmentMediatorConfounding: true,
+    mediatorOutcomeConfounding: false,
+  },
+  mediatorOutcomeConfounding: {
+    label: 'M ↔ Y confounded',
+    detail: 'A mediator-outcome backdoor remains after conditioning on T, so the second front-door stage is not identified.',
+    directBypass: false,
+    treatmentMediatorConfounding: false,
+    mediatorOutcomeConfounding: true,
+  },
+});

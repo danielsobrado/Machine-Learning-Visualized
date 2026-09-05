@@ -65,6 +65,19 @@ test('temperature scaling repairs confidence sharpness without changing ranking'
   closeTo(result.calibratedMetrics.auc, result.rawMetrics.auc);
 });
 
+test('isotonic regression repairs nonlinear monotone reliability drift', () => {
+  const scenario = SHIFT_SCENARIOS.nonlinearDrift;
+  const result = evaluateRecalibration('isotonic', scenario.calibrationBins, scenario.evaluationBins);
+  assert.ok(result.parameters.blocks.length >= 4);
+  assert.ok(result.calibratedMetrics.ece < result.rawMetrics.ece * 0.3);
+  closeTo(result.calibratedMetrics.auc, result.rawMetrics.auc);
+
+  const probabilities = result.calibratedBins.map((bin) => bin.confidence);
+  probabilities.slice(1).forEach((probability, index) => {
+    assert.ok(probability >= probabilities[index]);
+  });
+});
+
 test('monotonic Platt scaling cannot recover AUC lost to concept drift', () => {
   const scenario = SHIFT_SCENARIOS.conceptDrift;
   const result = evaluateRecalibration('platt', scenario.calibrationBins, scenario.evaluationBins);
@@ -75,6 +88,7 @@ test('monotonic Platt scaling cannot recover AUC lost to concept drift', () => {
 
 test('shift diagnosis distinguishes calibration drift from model drift', () => {
   assert.equal(diagnoseShift(REFERENCE_BINS, SHIFT_SCENARIOS.priorShift.evaluationBins).severity, 'calibration-drift');
+  assert.equal(diagnoseShift(REFERENCE_BINS, SHIFT_SCENARIOS.nonlinearDrift.evaluationBins).severity, 'calibration-drift');
   assert.equal(diagnoseShift(REFERENCE_BINS, SHIFT_SCENARIOS.conceptDrift.evaluationBins).severity, 'model-drift');
   assert.equal(diagnoseShift(REFERENCE_BINS, SHIFT_SCENARIOS.stable.evaluationBins).severity, 'stable');
 });

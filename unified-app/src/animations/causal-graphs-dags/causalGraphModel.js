@@ -1,7 +1,14 @@
-import { ADJUSTMENT_PRESETS, CANONICAL_PATHS, CAUSAL_EDGES } from './causalGraphConstants.js';
+import {
+  ADJUSTMENT_PRESETS,
+  CANONICAL_PATHS,
+  CAUSAL_EDGES,
+  FRONT_DOOR_SCENARIOS,
+  M_BIAS_EDGES,
+  M_BIAS_PATH,
+} from './causalGraphConstants.js';
 
-function edgeExists(from, to) {
-  return CAUSAL_EDGES.some(([source, target]) => source === from && target === to);
+function edgeExists(edges, from, to) {
+  return edges.some(([source, target]) => source === from && target === to);
 }
 
 function validateAdjustment(adjustment) {
@@ -12,12 +19,11 @@ function validateAdjustment(adjustment) {
   });
 }
 
-function isCollider(previous, current, next) {
-  return edgeExists(previous, current) && edgeExists(next, current);
+function isCollider(edges, previous, current, next) {
+  return edgeExists(edges, previous, current) && edgeExists(edges, next, current);
 }
 
-export function isPathActive(pathNodes, adjustment = []) {
-  validateAdjustment(adjustment);
+function isPathActiveWithEdges(pathNodes, edges, adjustment = []) {
   if (!Array.isArray(pathNodes) || pathNodes.length < 2) throw new TypeError('pathNodes must contain at least two nodes');
   const adjusted = new Set(adjustment);
 
@@ -25,7 +31,7 @@ export function isPathActive(pathNodes, adjustment = []) {
     const previous = pathNodes[index - 1];
     const current = pathNodes[index];
     const next = pathNodes[index + 1];
-    const collider = isCollider(previous, current, next);
+    const collider = isCollider(edges, previous, current, next);
 
     if (collider && !adjusted.has(current)) return false;
     if (!collider && adjusted.has(current)) return false;
@@ -34,11 +40,16 @@ export function isPathActive(pathNodes, adjustment = []) {
   return true;
 }
 
+export function isPathActive(pathNodes, adjustment = []) {
+  validateAdjustment(adjustment);
+  return isPathActiveWithEdges(pathNodes, CAUSAL_EDGES, adjustment);
+}
+
 export function analyzeAdjustment(adjustment = []) {
   validateAdjustment(adjustment);
   const paths = CANONICAL_PATHS.map((path) => ({
     ...path,
-    active: isPathActive(path.nodes, adjustment),
+    active: isPathActiveWithEdges(path.nodes, CAUSAL_EDGES, adjustment),
   }));
 
   const causalPaths = paths.filter((path) => path.type === 'causal');
@@ -70,4 +81,60 @@ export function analyzePreset(presetId) {
   const preset = ADJUSTMENT_PRESETS.find((item) => item.id === presetId);
   if (!preset) throw new RangeError(`Unknown preset: ${presetId}`);
   return { preset, ...analyzeAdjustment(preset.nodes) };
+}
+
+export function analyzeMBias(conditionCollider = false) {
+  const adjustment = conditionCollider ? ['K'] : [];
+  const active = isPathActiveWithEdges(M_BIAS_PATH.nodes, M_BIAS_EDGES, adjustment);
+  return {
+    conditionCollider,
+    active,
+    path: { ...M_BIAS_PATH, active },
+    verdict: active
+      ? 'Conditioning on K opens the M-shaped non-causal path and can create M-bias.'
+      : 'Leaving collider K unconditioned keeps the M-shaped non-causal path blocked.',
+  };
+}
+
+export function analyzeFrontDoor(scenarioId = 'valid') {
+  const scenario = FRONT_DOOR_SCENARIOS[scenarioId];
+  if (!scenario) throw new RangeError(`Unknown front-door scenario: ${scenarioId}`);
+
+  const criteria = [
+    {
+      id: 'intercept-directed-paths',
+      label: 'M intercepts every directed T → Y path',
+      pass: !scenario.directBypass,
+      detail: scenario.directBypass
+        ? 'A direct T → Y path bypasses the mediator.'
+        : 'All directed causal flow from T to Y passes through M.',
+    },
+    {
+      id: 'treatment-mediator-backdoor',
+      label: 'No unblocked backdoor path from T to M',
+      pass: !scenario.treatmentMediatorConfounding,
+      detail: scenario.treatmentMediatorConfounding
+        ? 'A common cause of T and M confounds the first front-door stage.'
+        : 'The T → M relationship has no open backdoor in this scenario.',
+    },
+    {
+      id: 'mediator-outcome-backdoor',
+      label: 'T blocks every backdoor path from M to Y',
+      pass: !scenario.mediatorOutcomeConfounding,
+      detail: scenario.mediatorOutcomeConfounding
+        ? 'A mediator-outcome common cause remains open even after conditioning on T.'
+        : 'Conditioning on T blocks the mediator-outcome backdoor path.',
+    },
+  ];
+  const identified = criteria.every((criterion) => criterion.pass);
+
+  return {
+    scenarioId,
+    scenario,
+    criteria,
+    identified,
+    verdict: identified
+      ? 'The front-door criterion is satisfied in this teaching graph.'
+      : 'Front-door identification fails because at least one structural criterion is violated.',
+  };
 }

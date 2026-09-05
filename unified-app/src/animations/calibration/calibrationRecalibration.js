@@ -6,6 +6,7 @@ export function fitRecalibrator(method, bins) {
   if (method === 'intercept') return fitIntercept(bins);
   if (method === 'temperature') return fitTemperature(bins);
   if (method === 'platt') return fitPlatt(bins);
+  if (method === 'isotonic') return fitIsotonic(bins);
   throw new Error(`Unsupported recalibration method: ${method}`);
 }
 
@@ -32,6 +33,7 @@ export function formatParameters(method, parameters) {
   if (method === 'none') return 'identity mapping';
   if (method === 'intercept') return `logit(p) + ${parameters.intercept.toFixed(2)}`;
   if (method === 'temperature') return `temperature = ${parameters.temperature.toFixed(2)}`;
+  if (method === 'isotonic') return `${parameters.blocks.length} monotone probability blocks`;
   return `slope = ${parameters.slope.toFixed(2)}, intercept = ${parameters.intercept.toFixed(2)}`;
 }
 
@@ -66,12 +68,56 @@ function fitPlatt(bins) {
   return { slope: best.slope, intercept: best.intercept };
 }
 
+function fitIsotonic(bins) {
+  if (!Array.isArray(bins) || bins.length === 0) {
+    throw new TypeError('isotonic calibration requires at least one bin');
+  }
+
+  const sorted = [...bins].sort((left, right) => left.confidence - right.confidence);
+  const blocks = [];
+
+  sorted.forEach((bin) => {
+    blocks.push({
+      minConfidence: bin.confidence,
+      maxConfidence: bin.confidence,
+      weight: bin.count,
+      value: bin.observed,
+    });
+
+    while (blocks.length >= 2 && blocks.at(-2).value > blocks.at(-1).value) {
+      const right = blocks.pop();
+      const left = blocks.pop();
+      const weight = left.weight + right.weight;
+      blocks.push({
+        minConfidence: left.minConfidence,
+        maxConfidence: right.maxConfidence,
+        weight,
+        value: (left.value * left.weight + right.value * right.weight) / weight,
+      });
+    }
+  });
+
+  return {
+    blocks: blocks.map((block) => ({
+      minConfidence: block.minConfidence,
+      maxConfidence: block.maxConfidence,
+      value: clampProbability(block.value),
+    })),
+  };
+}
+
 function transformedLogLoss(method, bins, parameters) {
   return logLoss(applyRecalibrator(method, bins, parameters));
 }
 
 function transformProbability(method, probability, parameters) {
   if (method === 'none') return probability;
+  if (method === 'isotonic') {
+    const blocks = parameters.blocks;
+    const block = blocks.find((candidate) => probability <= candidate.maxConfidence) || blocks.at(-1);
+    return clampProbability(block.value);
+  }
+
   const score = logit(probability);
   if (method === 'intercept') return sigmoid(score + parameters.intercept);
   if (method === 'temperature') return sigmoid(score / parameters.temperature);

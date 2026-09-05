@@ -70,6 +70,27 @@ export const SHIFT_SCENARIOS = Object.freeze({
       { confidence: 0.97, observed: 0.87, count: 16 },
     ],
   },
+  nonlinearDrift: {
+    label: 'Nonlinear reliability drift',
+    short: 'Ranking survives, but the reliability curve bends in a way one sigmoid struggles to match.',
+    diagnosis: 'Nonlinear monotone calibration drift',
+    recommendedMethod: 'isotonic',
+    reason: 'With enough labeled calibration data, isotonic regression can fit a flexible monotone mapping without forcing a sigmoid shape. That flexibility is useful for curved reliability errors but can overfit small calibration sets.',
+    calibrationBins: [
+      { confidence: 0.1, observed: 0.03, count: 18 },
+      { confidence: 0.3, observed: 0.18, count: 24 },
+      { confidence: 0.5, observed: 0.62, count: 28 },
+      { confidence: 0.7, observed: 0.76, count: 24 },
+      { confidence: 0.9, observed: 0.93, count: 16 },
+    ],
+    evaluationBins: [
+      { confidence: 0.1, observed: 0.04, count: 18 },
+      { confidence: 0.3, observed: 0.20, count: 24 },
+      { confidence: 0.5, observed: 0.60, count: 28 },
+      { confidence: 0.7, observed: 0.78, count: 24 },
+      { confidence: 0.9, observed: 0.92, count: 16 },
+    ],
+  },
   conceptDrift: {
     label: 'Ranking drift',
     short: 'High scores no longer order risk as reliably as before.',
@@ -109,6 +130,10 @@ export const RECALIBRATION_METHODS = Object.freeze({
   platt: {
     label: 'Platt scaling',
     detail: 'Learn both logit slope and intercept on held-out scores.',
+  },
+  isotonic: {
+    label: 'Isotonic regression',
+    detail: 'Fit a non-decreasing step mapping. Flexible for nonlinear reliability curves, but data hungry.',
   },
 });
 
