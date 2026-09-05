@@ -370,10 +370,10 @@ export const LINEAR_REGRESSION_QUIZ = Object.freeze([
   q(
     'lr-043-leverage-point',
     'Mechanism',
-    'What is a high-leverage point in simple regression?',
-    'A point with an unusual x value that can strongly affect the fitted line',
-    ['A point whose target is missing by definition', 'A point that belongs only to the test set'],
-    'Extreme feature values can have strong influence on the fitted parameters.',
+    'A point has an extreme x value but lies almost exactly on the fitted trend. Which statement is most accurate?',
+    'It has high leverage, but it may have little influence because its residual is small',
+    ['It must be influential because leverage and influence are identical', 'It is an outlier because every high-leverage point has a large residual'],
+    'Leverage measures how unusual a point is in predictor space. Influence measures how much the fitted model changes because of that observation. High leverage creates the potential for influence, but a point near the trend can have a small residual and limited influence.',
   ),
   q(
     'lr-044-residual-pattern',
@@ -386,10 +386,10 @@ export const LINEAR_REGRESSION_QUIZ = Object.freeze([
   q(
     'lr-045-heteroscedasticity',
     'Mechanism',
-    'What does increasing residual spread as x grows suggest?',
-    'Nonconstant noise variance',
-    ['No prediction error', 'A perfectly balanced train/test split'],
-    'Changing error variance violates a common constant-variance assumption.',
+    'A residual-versus-fitted plot stays centered near zero but forms a clear funnel as fitted values grow. What does this most directly suggest?',
+    'Heteroscedasticity: the error variance is not constant',
+    ['A curved mean relationship with constant variance', 'Perfectly homoscedastic errors'],
+    'A changing residual spread is evidence of heteroscedasticity. With a correctly specified mean model and exogenous predictors, OLS coefficients can remain unbiased or consistent, but conventional homoscedastic standard errors and significance tests can be unreliable and OLS is no longer efficient.',
   ),
   q(
     'lr-046-multicollinearity',
@@ -546,10 +546,10 @@ export const LINEAR_REGRESSION_QUIZ = Object.freeze([
   q(
     'lr-065-outlier-response',
     'Application',
-    'What is a responsible first response to an influential outlier?',
-    'Check whether it is an error, rare valid case, or separate segment',
-    ['Delete it automatically every time', 'Change its target to match the line'],
-    'Outliers need diagnosis before removal or robust modeling decisions.',
+    'A point has a large studentized residual and high leverage. What is the responsible next step?',
+    'Check Cook\'s distance and the data/model context before deciding whether it is influential or removable',
+    ['Delete it automatically because either diagnostic is sufficient', 'Change its target value so it lies on the fitted line'],
+    'Studentized residuals flag unusual outcome errors, while hat values measure leverage. Cook\'s distance summarizes observation-level influence using both residual size and leverage. No single diagnostic or cutoff should trigger automatic deletion; investigate data quality and model specification first.',
   ),
   q(
     'lr-066-extrapolation-risk',
@@ -690,10 +690,10 @@ export const LINEAR_REGRESSION_QUIZ = Object.freeze([
   q(
     'lr-083-assumption-trap',
     'Tricky',
-    'Which assumption mistake can weaken linear regression conclusions?',
-    'Ignoring patterned residuals and nonconstant error variance',
-    ['Checking residuals after fitting', 'Holding out data for evaluation'],
-    'Diagnostics matter because model assumptions can be violated.',
+    'Residual diagnostics show a clear funnel, but the conditional mean model still looks defensible. What is the best first response if you need valid coefficient inference?',
+    'Use heteroscedasticity-robust standard errors and investigate the variance pattern',
+    ['Delete the largest residuals until the funnel disappears', 'Treat the usual homoscedastic standard errors as valid because the fitted line is linear'],
+    'Heteroscedasticity-robust standard errors adjust coefficient uncertainty without changing the OLS point estimates. If the variance structure is understood, a justified transformation or weighted least-squares model may also help. Robust standard errors do not repair a misspecified conditional mean.',
   ),
   q(
     'lr-084-leakage-trap',
@@ -781,7 +781,7 @@ export const LINEAR_REGRESSION_QUIZ = Object.freeze([
     'Which assumptions or caveats should you mention?',
     'Linearity, independent errors, error variance, outliers, and extrapolation limits',
     ['That all coefficients are causal', 'That high train fit proves deployment success'],
-    'Interview-ready answers include assumptions and failure modes.',
+    'For classical OLS inference, error assumptions matter. Heteroscedasticity does not automatically bias OLS coefficients when the mean model and exogeneity conditions hold, but it invalidates the usual homoscedastic standard-error formulas and can reduce efficiency.',
   ),
   q(
     'lr-095-metric-interview',
