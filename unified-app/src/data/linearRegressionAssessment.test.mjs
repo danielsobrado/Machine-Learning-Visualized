@@ -230,3 +230,33 @@ test('linear regression assessment distributes correct answer positions per page
     assert.ok(Math.max(...counts) - Math.min(...counts) <= 1, `imbalanced page at ${pageStart + 1}: ${counts.join(',')}`);
   }
 });
+
+test('linear regression assessment covers heteroscedasticity and influence diagnostics', () => {
+  const { quiz } = getLessonAssessment('linear-regression');
+  const byId = new Map(quiz.map((question) => [question.id, question]));
+  const questionText = (id) => normalized([
+    byId.get(id)?.prompt,
+    ...(byId.get(id)?.choices || []),
+    byId.get(id)?.explanation,
+  ].join(' '));
+
+  const leverage = questionText('lr-043-leverage-point');
+  assert.match(leverage, /high leverage/);
+  assert.match(leverage, /influence/);
+  assert.match(leverage, /residual/);
+
+  const heteroscedasticity = questionText('lr-045-heteroscedasticity');
+  assert.match(heteroscedasticity, /heteroscedasticity/);
+  assert.match(heteroscedasticity, /standard errors/);
+  assert.match(heteroscedasticity, /significance tests/);
+
+  const influence = questionText('lr-065-outlier-response');
+  assert.match(influence, /studentized residual/);
+  assert.match(influence, /hat values/);
+  assert.match(influence, /cook's distance/);
+
+  const robustInference = questionText('lr-083-assumption-trap');
+  assert.match(robustInference, /heteroscedasticity-robust standard errors/);
+  assert.match(robustInference, /weighted least-squares/);
+  assert.match(robustInference, /transformation/);
+});
