@@ -13,6 +13,16 @@ import {
 const TRANSFER_QUIZ_LEVELS = new Set(['Application', 'Tricky', 'Interview']);
 const DEPTH_SCENARIO_LEVELS = new Set(['application', 'calculation', 'decision', 'design', 'diagnosis']);
 const MIN_QUIZ_EVIDENCE_PER_COMPETENCY = 2;
+const REQUIRED_P0_COMPETENCY_IDS = Object.freeze([
+  'backprop-chain-rule',
+  'backprop-local-global-gradients',
+  'backprop-broken-gradient-flow',
+  'backprop-incorrect-gradient-debugging',
+  'activation-saturation',
+  'activation-dead-relu',
+  'activation-sigmoid-tanh-limitations',
+  'activation-gelu-leaky-relu-tradeoffs',
+]);
 
 function itemsById(items = []) {
   return new Map(items.map((item) => [item.id, item]));
@@ -34,6 +44,13 @@ test('deep learning P0 audit remains aligned with priority curated assessments',
   }
 });
 
+test('deep learning P0 audit keeps every required competency explicit', () => {
+  assert.deepEqual(
+    DEEP_LEARNING_P0_REQUIREMENTS.map(({ id }) => id).sort(),
+    [...REQUIRED_P0_COMPETENCY_IDS].sort(),
+  );
+});
+
 test('deep learning P0 competencies resolve to explicit live assessment ids', async (t) => {
   for (const requirement of DEEP_LEARNING_P0_REQUIREMENTS) {
     await t.test(requirement.id, () => {
@@ -44,6 +61,14 @@ test('deep learning P0 competencies resolve to explicit live assessment ids', as
       assert.ok(
         requirement.quizIds.length >= MIN_QUIZ_EVIDENCE_PER_COMPETENCY,
         `${requirement.id}: protect at least ${MIN_QUIZ_EVIDENCE_PER_COMPETENCY} quiz signals`,
+      );
+      assert.ok(
+        Number.isInteger(requirement.minScenarioEvidence) && requirement.minScenarioEvidence >= 0,
+        `${requirement.id}: minScenarioEvidence must be a nonnegative integer`,
+      );
+      assert.ok(
+        requirement.scenarioIds.length >= requirement.minScenarioEvidence,
+        `${requirement.id}: protect at least ${requirement.minScenarioEvidence} scenario signals`,
       );
 
       for (const quizId of requirement.quizIds) {
