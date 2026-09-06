@@ -12,6 +12,7 @@ export const DEEP_LEARNING_P0_AUDITED_LESSON_IDS = Object.freeze([
   'computation-graph-backprop',
   'neural-network',
   'initialization',
+  'gradient-problems',
   'relu',
   'leaky-relu',
 ]);
@@ -85,6 +86,32 @@ export const DEEP_LEARNING_P0_REQUIREMENTS = Object.freeze([
     'initialization',
     ['init-016-activation-match', 'init-097-interview-activation'],
     ['init-he-fan-in-worked'],
+    1,
+  ),
+  competency(
+    'gradient-pathology-diagnosis',
+    'gradient-problems',
+    ['grp-051-diagnose-flat-early', 'grp-052-diagnose-nans'],
+    ['gradient-depth-profile-diagnosis'],
+    1,
+  ),
+  competency(
+    'gradient-depth-effects',
+    'gradient-problems',
+    ['grp-053-depth-change', 'grp-054-multiplier-below-one', 'grp-055-multiplier-above-one'],
+  ),
+  competency(
+    'gradient-clipping-guardrail',
+    'gradient-problems',
+    ['grp-057-use-clipping', 'grp-058-clip-not-enough', 'grp-068-clip-threshold-tune'],
+    ['gradient-clipping-norm-worked'],
+    1,
+  ),
+  competency(
+    'gradient-initialization-normalization-remediation',
+    'gradient-problems',
+    ['grp-061-weight-init-small', 'grp-062-weight-init-large', 'grp-066-layer-localization'],
+    ['gradient-stabilization-mechanism-choice'],
     1,
   ),
 ]);
