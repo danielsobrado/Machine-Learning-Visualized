@@ -11,6 +11,7 @@ function competency(id, lessonId, quizIds, scenarioIds = [], minScenarioEvidence
 export const DEEP_LEARNING_P0_AUDITED_LESSON_IDS = Object.freeze([
   'computation-graph-backprop',
   'neural-network',
+  'initialization',
   'relu',
   'leaky-relu',
 ]);
@@ -63,6 +64,27 @@ export const DEEP_LEARNING_P0_REQUIREMENTS = Object.freeze([
     'leaky-relu',
     ['lrelu-029-alpha-small-tradeoff', 'lrelu-096-interview-tradeoff'],
     ['activation-gelu-leaky-tradeoff'],
+    1,
+  ),
+  competency(
+    'initialization-symmetry-breaking',
+    'initialization',
+    ['init-055-same-weight-case', 'init-095-interview-symmetry'],
+    ['initialization-symmetry-breaking-diagnosis'],
+    1,
+  ),
+  competency(
+    'initialization-xavier-vs-he',
+    'initialization',
+    ['init-053-relu-case', 'init-078-trap-xavier'],
+    ['initialization-xavier-he-activation-choice'],
+    1,
+  ),
+  competency(
+    'initialization-activation-dependent-scaling',
+    'initialization',
+    ['init-016-activation-match', 'init-097-interview-activation'],
+    ['init-he-fan-in-worked'],
     1,
   ),
 ]);
