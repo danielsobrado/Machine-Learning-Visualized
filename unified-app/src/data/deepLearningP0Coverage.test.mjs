@@ -25,6 +25,10 @@ const REQUIRED_P0_COMPETENCY_IDS = Object.freeze([
   'initialization-symmetry-breaking',
   'initialization-xavier-vs-he',
   'initialization-activation-dependent-scaling',
+  'gradient-pathology-diagnosis',
+  'gradient-depth-effects',
+  'gradient-clipping-guardrail',
+  'gradient-initialization-normalization-remediation',
 ]);
 
 function itemsById(items = []) {
