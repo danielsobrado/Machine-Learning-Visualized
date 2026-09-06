@@ -22,6 +22,9 @@ const REQUIRED_P0_COMPETENCY_IDS = Object.freeze([
   'activation-dead-relu',
   'activation-sigmoid-tanh-limitations',
   'activation-gelu-leaky-relu-tradeoffs',
+  'initialization-symmetry-breaking',
+  'initialization-xavier-vs-he',
+  'initialization-activation-dependent-scaling',
 ]);
 
 function itemsById(items = []) {
