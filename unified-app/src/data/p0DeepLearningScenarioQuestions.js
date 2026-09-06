@@ -1,0 +1,72 @@
+export const P0_DEEP_LEARNING_SCENARIOS_BY_LESSON = Object.freeze({
+  relu: [
+    {
+      id: 'activation-saturation-gradient-diagnosis',
+      level: 'diagnosis',
+      relatedComparison: 'saturating-hidden-activations-vs-relu-gradient-flow',
+      scenario: 'A deep MLP uses sigmoid hidden activations. In several early layers, most pre-activations have magnitude above 8, outputs sit close to 0 or 1, and gradient norms shrink by orders of magnitude toward the input. The team proposes switching every hidden unit to ReLU and claims this removes activation-related gradient failure entirely.',
+      prompt: 'Which diagnosis is technically strongest?',
+      choices: [
+        'The sigmoid units are operating in saturated regions with tiny local derivatives; ReLU avoids positive-side saturation but still has a zero-gradient negative branch that can create dead units',
+        'The small gradients prove the loss function is disconnected because sigmoid derivatives become exactly one whenever the output approaches 0 or 1',
+        'ReLU removes every activation-related gradient risk because its derivative is one for both positive and negative pre-activations',
+      ],
+      answerIndex: 0,
+      explanation: 'Sigmoid becomes nearly flat at large positive or negative pre-activations, so repeated local derivatives can make upstream gradients very small. ReLU keeps derivative one on its positive branch, but its negative branch has derivative zero, so it trades saturation risk for a different failure mode rather than eliminating activation-related gradient problems.',
+      misconceptionTested: 'Replacing a saturating activation with ReLU guarantees healthy gradient flow on every branch.',
+    },
+  ],
+  'neural-network': [
+    {
+      id: 'activation-sigmoid-hidden-limitations',
+      level: 'decision',
+      relatedComparison: 'sigmoid-hidden-layer-vs-output-probability-use',
+      scenario: 'A team uses sigmoid in every hidden layer because its outputs lie between 0 and 1. During training, many hidden pre-activations move far from zero, gradients become small in early layers, and the hidden activations are mostly positive rather than centered around zero. The binary output layer also uses a sigmoid-compatible loss.',
+      prompt: 'What is the best architectural conclusion from this evidence?',
+      choices: [
+        'Keep sigmoid where a binary probability interpretation is appropriate at the output, but reconsider it for deep hidden layers because saturation and non-zero-centered hidden activations can make optimization harder',
+        'Remove sigmoid from the binary output because sigmoid can never represent probabilities, while keeping it in all hidden layers specifically to avoid saturation',
+        'Keep sigmoid everywhere because bounding activations to 0 through 1 guarantees larger hidden-layer gradients than ReLU, tanh, GELU, or Leaky ReLU',
+      ],
+      answerIndex: 0,
+      explanation: 'Sigmoid is often a natural output transform for a binary probability model when paired correctly with the loss, but that does not make it an ideal default hidden activation. Deep hidden sigmoid stacks can suffer from saturation, small derivatives, and consistently positive activations that can complicate optimization.',
+      misconceptionTested: 'An activation that is appropriate for a binary output layer is automatically a good default for every hidden layer.',
+    },
+    {
+      id: 'activation-tanh-hidden-limitations',
+      level: 'diagnosis',
+      relatedComparison: 'tanh-zero-centered-vs-saturation',
+      scenario: 'A recurrent block replaces sigmoid hidden activations with tanh. The hidden states are now centered around zero more naturally, but many pre-activations reach magnitudes of 6 to 10 and gradients through long paths are still extremely small. One engineer argues that zero-centered outputs prove tanh cannot cause vanishing gradients.',
+      prompt: 'What is the correct diagnosis?',
+      choices: [
+        'Tanh being zero-centered is useful, but it still saturates near minus one and plus one at large magnitudes, so its local derivatives can become tiny and contribute to vanishing gradients',
+        'The engineer is correct because zero-centered activations always have derivative one regardless of input magnitude',
+        'Tanh can only cause exploding gradients because its outputs are bounded and therefore its derivative grows without limit near saturation',
+      ],
+      answerIndex: 0,
+      explanation: 'Tanh improves on sigmoid in one respect because its output is centered around zero, but it remains a saturating bounded nonlinearity. At large absolute pre-activation values, tanh is nearly flat, making local derivatives small and allowing gradients to decay through repeated composition.',
+      misconceptionTested: 'Zero-centered activations cannot saturate or contribute to vanishing gradients.',
+    },
+  ],
+  'leaky-relu': [
+    {
+      id: 'activation-gelu-leaky-tradeoff',
+      level: 'decision',
+      relatedComparison: 'gelu-smooth-gating-vs-leaky-relu-fixed-negative-slope',
+      scenario: 'Two teams are choosing a hidden activation. Team A is extending a transformer-style MLP whose baseline uses smooth GELU gating and wants to stay close to that architecture family. Team B has a small feedforward model with many persistently negative ReLU units and wants the simplest ReLU-like change that preserves a fixed nonzero gradient on the negative branch.',
+      prompt: 'Which choice best matches the two requirements without pretending the activations are interchangeable?',
+      choices: [
+        'GELU is the more natural baseline-preserving choice for Team A, while Leaky ReLU directly addresses Team B requirement with a simple fixed negative slope; the final choice should still be validated empirically',
+        'Leaky ReLU and GELU are mathematically identical whenever inputs are negative, so either team can swap them with no representation or optimization change',
+        'GELU is the only valid choice for Team B because it guarantees a constant negative-side derivative equal to the Leaky ReLU alpha hyperparameter',
+      ],
+      answerIndex: 0,
+      explanation: 'GELU provides smooth input-dependent gating and is common in transformer-style MLPs, while Leaky ReLU is a piecewise-linear ReLU variant with an explicit fixed negative slope. Leaky ReLU therefore maps directly to the requirement of preserving a simple nonzero negative-side gradient, while GELU may be preferable when matching an established transformer architecture. Neither choice guarantees better validation results in every model.',
+      misconceptionTested: 'GELU and Leaky ReLU have the same negative-side derivative and can be substituted without trade-offs.',
+    },
+  ],
+});
+
+export function getP0DeepLearningScenariosForLesson(lessonId) {
+  return P0_DEEP_LEARNING_SCENARIOS_BY_LESSON[lessonId] || [];
+}
