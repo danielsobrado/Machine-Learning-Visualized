@@ -1,4 +1,36 @@
 export const P0_DEEP_LEARNING_SCENARIOS_BY_LESSON = Object.freeze({
+  initialization: [
+    {
+      id: 'initialization-symmetry-breaking-diagnosis',
+      level: 'diagnosis',
+      relatedComparison: 'identical-hidden-weights-vs-random-symmetry-breaking',
+      scenario: 'A dense hidden layer has 64 units. Every unit starts with the same weight vector and the same bias. On the first batch, the units produce identical activations and receive identical gradients. A developer argues that SGD noise alone will quickly make the units specialize even if the parameters remain mathematically symmetric.',
+      prompt: 'What is the correct diagnosis and initialization fix?',
+      choices: [
+        'The hidden units are symmetry-locked and can keep learning the same feature; initialize their weights with independent variance-scaled random draws so units can specialize, while zero biases can still be acceptable',
+        'Keep all hidden weights identical because backpropagation automatically assigns different gradients to otherwise identical units in the same layer',
+        'Randomize only the target labels because symmetry is caused by the dataset rather than by equal hidden-unit parameters',
+      ],
+      answerIndex: 0,
+      explanation: 'Hidden units with identical parameters receive the same inputs, produce the same outputs, and under the same downstream structure can receive identical gradients, preserving the symmetry across updates. Independent random weight initialization breaks that symmetry so units can follow different optimization paths. Biases do not generally need the same symmetry-breaking role and are often initialized to zero.',
+      misconceptionTested: 'Optimization noise by itself reliably breaks exact hidden-unit symmetry when all corresponding parameters start identically.',
+    },
+    {
+      id: 'initialization-xavier-he-activation-choice',
+      level: 'decision',
+      relatedComparison: 'xavier-tanh-vs-he-relu',
+      scenario: 'Two deep MLPs have the same layer widths. Model A uses tanh hidden activations and Model B uses ReLU. Both currently use Xavier initialization, but Model B shows shrinking activation variance through depth. The team proposes switching both models to He initialization simply because it works better for Model B.',
+      prompt: 'Which initialization decision best matches the activation behavior?',
+      choices: [
+        'Keep Xavier or another suitable variance rule as the natural starting point for the tanh network, use He-style scaling for the ReLU network, and verify both with layerwise activation and gradient statistics',
+        'Use He for both because the newest initializer is universally better regardless of whether the activation saturates, clips, or zeros part of its input distribution',
+        'Use Xavier for both because fan-in and fan-out alone determine the correct variance and activation behavior should never affect initialization',
+      ],
+      answerIndex: 0,
+      explanation: 'Xavier-style scaling is a common match for tanh-like activations under its variance assumptions, while He scaling increases variance to account for ReLU-style gating that zeros many negative pre-activations. Initialization should therefore be chosen with the activation and architecture in mind, then checked empirically through forward and backward signal statistics rather than treated as a universal rule.',
+      misconceptionTested: 'Xavier and He are interchangeable global defaults whose choice does not depend on the activation function.',
+    },
+  ],
   relu: [
     {
       id: 'activation-saturation-gradient-diagnosis',
