@@ -1,4 +1,36 @@
 export const P0_DEEP_LEARNING_SCENARIOS_BY_LESSON = Object.freeze({
+  'gradient-problems': [
+    {
+      id: 'gradient-depth-profile-diagnosis',
+      level: 'diagnosis',
+      relatedComparison: 'depth-product-vanishing-vs-learning-rate-symptom',
+      scenario: 'A 24-layer network has gradient norms of 0.8 near the output, 0.09 around layer 18, 0.006 around layer 12, 0.0004 around layer 6, and 0.00003 in the first layer. A 12-layer version of the same architecture does not show the same collapse. Lowering the learning rate makes parameter updates smaller but leaves this layerwise gradient profile almost unchanged.',
+      prompt: 'What is the strongest diagnosis from the evidence?',
+      choices: [
+        'The network has a depth-dependent vanishing-gradient problem: repeated local contractions are shrinking the backward signal, and changing learning rate alone does not repair the raw gradient path',
+        'The learning rate is proven to be the root cause because every small early-layer gradient is created directly by a small optimizer step',
+        'The first layer is already converged because any gradient below 0.001 proves that earlier features no longer need to learn',
+      ],
+      answerIndex: 0,
+      explanation: 'The monotonic drop in raw gradient norm toward earlier layers, combined with a worse profile in the deeper model, is direct evidence of depth-amplified contraction in the backward path. Learning rate scales the parameter update after gradients are computed; reducing it can limit update size but does not restore a gradient that has already vanished through repeated chain-rule factors.',
+      misconceptionTested: 'A small learning rate is the same mechanism as vanishing gradients and therefore explains a collapsing raw gradient profile.',
+    },
+    {
+      id: 'gradient-stabilization-mechanism-choice',
+      level: 'decision',
+      relatedComparison: 'root-cause-scale-control-vs-clipping-guardrail',
+      scenario: 'Before the first optimizer step, a deep ReLU model already shows activation variance increasing sharply with depth and very large gradients in later blocks. Global-norm clipping prevents NaNs, but almost every step is clipped and training remains unstable. The current initializer ignores fan-in, and the architecture supports normalization layers that are currently disabled.',
+      prompt: 'Which remediation plan best targets the mechanism rather than only the symptom?',
+      choices: [
+        'Fix the variance-aware initialization and evaluate appropriate normalization to stabilize forward and backward scale, while retaining clipping as a guardrail for residual spikes rather than treating it as the root-cause fix',
+        'Keep the bad initializer and lower the clipping threshold until every gradient has the same tiny norm, because clipping is designed to repair both exploding and vanishing gradients at their source',
+        'Remove all normalization and increase the learning rate so large updates counteract the exploding gradients before they reach the optimizer',
+      ],
+      answerIndex: 0,
+      explanation: 'The instability is visible before any optimizer update, which strongly implicates forward/backward scale rather than only step size. Variance-aware initialization addresses the starting signal scale, and suitable normalization can keep activations in healthier ranges through depth. Clipping is still useful for exceptional spikes, but if nearly every step is clipped it is masking an unresolved scale problem rather than solving it.',
+      misconceptionTested: 'If clipping stops NaNs, the underlying exploding-gradient mechanism no longer needs initialization or normalization diagnosis.',
+    },
+  ],
   initialization: [
     {
       id: 'initialization-symmetry-breaking-diagnosis',
