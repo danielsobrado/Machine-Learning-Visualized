@@ -1,3 +1,4 @@
+import { P0_DEEP_LEARNING_SCENARIOS_BY_LESSON } from './p0DeepLearningScenarioQuestions.js';
 import { P0_EXPERIMENTATION_SCENARIOS_BY_LESSON } from './p0ExperimentationScenarioQuestions.js';
 import { P0_SCENARIO_QUESTIONS_BY_LESSON } from './p0ScenarioQuestions.js';
 import { P0_STATISTICS_DECISION_SCENARIOS_BY_LESSON } from './p0StatisticsDecisionScenarioQuestions.js';
@@ -47,6 +48,7 @@ import { P2_SCENARIOS_BY_LESSON } from './p2ScenarioQuestions.js';
 
 export const ASSESSMENT_SCENARIO_EXTENSION_SOURCES = Object.freeze([
   Object.freeze({ id: 'p0-core', priority: 'P0', questionsByLesson: P0_SCENARIO_QUESTIONS_BY_LESSON }),
+  Object.freeze({ id: 'p0-deep-learning', priority: 'P0', questionsByLesson: P0_DEEP_LEARNING_SCENARIOS_BY_LESSON }),
   Object.freeze({ id: 'p0-experimentation', priority: 'P0', questionsByLesson: P0_EXPERIMENTATION_SCENARIOS_BY_LESSON }),
   Object.freeze({ id: 'p0-statistics-decisions', priority: 'P0', questionsByLesson: P0_STATISTICS_DECISION_SCENARIOS_BY_LESSON }),
   Object.freeze({ id: 'p0-statistics-gaps', priority: 'P0', questionsByLesson: P0_STATISTICS_GAP_SCENARIOS_BY_LESSON }),
