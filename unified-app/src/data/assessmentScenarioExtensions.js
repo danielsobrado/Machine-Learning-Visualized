@@ -18,6 +18,7 @@ import { P1_CLASSIC_NLP_APPLIED_SCENARIOS_BY_LESSON } from './p1ClassicNlpApplie
 import { P1_CNN_FAILURE_MODE_SCENARIOS_BY_LESSON } from './p1CnnFailureModeScenarioQuestions.js';
 import { P1_CNN_SCENARIOS_BY_LESSON } from './p1CnnScenarioQuestions.js';
 import { P1_CURRICULUM_TAIL_APPLIED_SCENARIOS_BY_LESSON } from './p1CurriculumTailAppliedScenarioQuestions.js';
+import { P1_DIFFUSION_BASICS_SAMPLING_SCENARIOS_BY_LESSON } from './p1DiffusionBasicsSamplingScenarioQuestions.js';
 import { P1_DROPOUT_SCENARIOS_BY_LESSON } from './p1DropoutScenarioQuestions.js';
 import { P1_FINE_TUNING_RAG_CHUNKING_SCENARIOS_BY_LESSON } from './p1FineTuningRagChunkingScenarioQuestions.js';
 import { P1_FOUNDATION_MODELS_APPLIED_SCENARIOS_BY_LESSON } from './p1FoundationModelsAppliedScenarioQuestions.js';
@@ -73,6 +74,7 @@ export const ASSESSMENT_SCENARIO_EXTENSION_SOURCES = Object.freeze([
   Object.freeze({ id: 'p1-core', priority: 'P1', questionsByLesson: P1_SCENARIO_QUESTIONS_BY_LESSON }),
   Object.freeze({ id: 'p1-cnn', priority: 'P1', questionsByLesson: P1_CNN_SCENARIOS_BY_LESSON }),
   Object.freeze({ id: 'p1-cnn-failure-modes', priority: 'P1', questionsByLesson: P1_CNN_FAILURE_MODE_SCENARIOS_BY_LESSON }),
+  Object.freeze({ id: 'p1-diffusion-basics-sampling', priority: 'P1', questionsByLesson: P1_DIFFUSION_BASICS_SAMPLING_SCENARIOS_BY_LESSON }),
   Object.freeze({ id: 'p1-dropout', priority: 'P1', questionsByLesson: P1_DROPOUT_SCENARIOS_BY_LESSON }),
   Object.freeze({ id: 'p1-curriculum-tail-applied', priority: 'P1', questionsByLesson: P1_CURRICULUM_TAIL_APPLIED_SCENARIOS_BY_LESSON }),
   Object.freeze({ id: 'p1-classical-ml-applied-decisions', priority: 'P1', questionsByLesson: P1_CLASSICAL_ML_APPLIED_DECISION_SCENARIOS_BY_LESSON }),
