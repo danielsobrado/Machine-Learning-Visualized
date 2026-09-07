@@ -34,6 +34,9 @@ const REQUIRED_P0_COMPETENCY_IDS = Object.freeze([
   'loss-output-softmax-semantics',
   'loss-output-numerical-stability',
   'loss-output-incorrect-pairings',
+  'train-eval-dropout-semantics',
+  'train-eval-batchnorm-statistics',
+  'train-eval-state-transition-bugs',
 ]);
 
 function itemsById(items = []) {
