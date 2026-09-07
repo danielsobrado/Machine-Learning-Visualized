@@ -13,6 +13,7 @@ import { P1_CLASSICAL_ML_APPLIED_DECISION_SCENARIOS_BY_LESSON } from './p1Classi
 import { P1_CLASSICAL_ML_DECISION_SCENARIOS_BY_LESSON } from './p1ClassicalMlDecisionScenarioQuestions.js';
 import { P1_CLASSICAL_ML_GAP_SCENARIOS_BY_LESSON } from './p1ClassicalMlGapScenarioQuestions.js';
 import { P1_CLASSIC_NLP_APPLIED_SCENARIOS_BY_LESSON } from './p1ClassicNlpAppliedScenarioQuestions.js';
+import { P1_CNN_FAILURE_MODE_SCENARIOS_BY_LESSON } from './p1CnnFailureModeScenarioQuestions.js';
 import { P1_CNN_SCENARIOS_BY_LESSON } from './p1CnnScenarioQuestions.js';
 import { P1_CURRICULUM_TAIL_APPLIED_SCENARIOS_BY_LESSON } from './p1CurriculumTailAppliedScenarioQuestions.js';
 import { P1_DROPOUT_SCENARIOS_BY_LESSON } from './p1DropoutScenarioQuestions.js';
@@ -40,9 +41,11 @@ import { P1_PRODUCTION_SERVING_APPLIED_SCENARIOS_BY_LESSON } from './p1Productio
 import { P1_PRODUCTION_SCENARIOS_BY_LESSON } from './p1ProductionScenarioQuestions.js';
 import { P1_RAG_GROUNDING_APPLIED_SCENARIOS_BY_LESSON } from './p1RagGroundingAppliedScenarioQuestions.js';
 import { P1_RAG_RETRIEVAL_APPLIED_SCENARIOS_BY_LESSON } from './p1RagRetrievalAppliedScenarioQuestions.js';
+import { P1_RECURRENT_SCENARIOS_BY_LESSON } from './p1RecurrentScenarioQuestions.js';
 import { P1_REINFORCEMENT_LEARNING_APPLIED_SCENARIOS_BY_LESSON } from './p1ReinforcementLearningAppliedScenarioQuestions.js';
 import { P1_REMAINING_SCENARIOS_BY_LESSON } from './p1RemainingScenarioQuestions.js';
 import { P1_SCENARIO_QUESTIONS_BY_LESSON } from './p1ScenarioQuestions.js';
+import { P1_SEQUENCE_TRAINING_SCENARIOS_BY_LESSON } from './p1SequenceTrainingScenarioQuestions.js';
 import { P1_STATISTICS_APPLIED_DECISION_SCENARIOS_BY_LESSON } from './p1StatisticsAppliedDecisionScenarioQuestions.js';
 import { P1_STATISTICS_DECISION_SCENARIOS_BY_LESSON } from './p1StatisticsDecisionScenarioQuestions.js';
 import { P1_STATISTICS_GAP_SCENARIOS_BY_LESSON } from './p1StatisticsGapScenarioQuestions.js';
@@ -58,6 +61,7 @@ export const ASSESSMENT_SCENARIO_EXTENSION_SOURCES = Object.freeze([
   Object.freeze({ id: 'p0-statistics-gaps', priority: 'P0', questionsByLesson: P0_STATISTICS_GAP_SCENARIOS_BY_LESSON }),
   Object.freeze({ id: 'p1-core', priority: 'P1', questionsByLesson: P1_SCENARIO_QUESTIONS_BY_LESSON }),
   Object.freeze({ id: 'p1-cnn', priority: 'P1', questionsByLesson: P1_CNN_SCENARIOS_BY_LESSON }),
+  Object.freeze({ id: 'p1-cnn-failure-modes', priority: 'P1', questionsByLesson: P1_CNN_FAILURE_MODE_SCENARIOS_BY_LESSON }),
   Object.freeze({ id: 'p1-dropout', priority: 'P1', questionsByLesson: P1_DROPOUT_SCENARIOS_BY_LESSON }),
   Object.freeze({ id: 'p1-curriculum-tail-applied', priority: 'P1', questionsByLesson: P1_CURRICULUM_TAIL_APPLIED_SCENARIOS_BY_LESSON }),
   Object.freeze({ id: 'p1-classical-ml-applied-decisions', priority: 'P1', questionsByLesson: P1_CLASSICAL_ML_APPLIED_DECISION_SCENARIOS_BY_LESSON }),
@@ -81,9 +85,11 @@ export const ASSESSMENT_SCENARIO_EXTENSION_SOURCES = Object.freeze([
   Object.freeze({ id: 'p1-advanced-neural-architectures-applied', priority: 'P1', questionsByLesson: P1_ADVANCED_NEURAL_ARCHITECTURES_APPLIED_SCENARIOS_BY_LESSON }),
   Object.freeze({ id: 'p1-advanced-inference-applied', priority: 'P1', questionsByLesson: P1_ADVANCED_INFERENCE_APPLIED_SCENARIOS_BY_LESSON }),
   Object.freeze({ id: 'p1-neural', priority: 'P1', questionsByLesson: P1_NEURAL_SCENARIOS_BY_LESSON }),
+  Object.freeze({ id: 'p1-recurrent', priority: 'P1', questionsByLesson: P1_RECURRENT_SCENARIOS_BY_LESSON }),
   Object.freeze({ id: 'p1-nlp-transformers-applied-representation', priority: 'P1', questionsByLesson: P1_NLP_TRANSFORMER_APPLIED_REPRESENTATION_SCENARIOS_BY_LESSON }),
   Object.freeze({ id: 'p1-nlp-transformers-applied-systems', priority: 'P1', questionsByLesson: P1_NLP_TRANSFORMER_APPLIED_SYSTEMS_SCENARIOS_BY_LESSON }),
   Object.freeze({ id: 'p1-nlp-transformers', priority: 'P1', questionsByLesson: P1_NLP_TRANSFORMER_SCENARIOS_BY_LESSON }),
+  Object.freeze({ id: 'p1-sequence-training', priority: 'P1', questionsByLesson: P1_SEQUENCE_TRAINING_SCENARIOS_BY_LESSON }),
   Object.freeze({ id: 'p1-generative-applied', priority: 'P1', questionsByLesson: P1_GENERATIVE_APPLIED_SCENARIOS_BY_LESSON }),
   Object.freeze({ id: 'p1-latent-diffusion-pipeline-applied', priority: 'P1', questionsByLesson: P1_LATENT_DIFFUSION_PIPELINE_APPLIED_SCENARIOS_BY_LESSON }),
   Object.freeze({ id: 'p1-reinforcement-learning-applied', priority: 'P1', questionsByLesson: P1_REINFORCEMENT_LEARNING_APPLIED_SCENARIOS_BY_LESSON }),
