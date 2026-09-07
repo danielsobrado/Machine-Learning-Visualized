@@ -1,4 +1,5 @@
 import { P1_CLASSIFIER_FREE_GUIDANCE_SCENARIOS_BY_LESSON } from './p1ClassifierFreeGuidanceScenarioQuestions.js';
+import { P1_UNET_VS_DIT_SCENARIOS_BY_LESSON } from './p1UnetVsDitScenarioQuestions.js';
 
 export const P1_GENERATIVE_APPLIED_SCENARIOS_BY_LESSON = Object.freeze({
   'diffusion-basics': [
@@ -69,6 +70,7 @@ export const P1_GENERATIVE_APPLIED_SCENARIOS_BY_LESSON = Object.freeze({
       explanation: 'Halving patch width doubles patch count along each spatial axis, so token count grows from 256 to 1024, a 4x increase. Dense attention pairs therefore grow by 4 squared = 16x.',
       misconceptionTested: 'Reducing DiT patch size changes detail granularity without a quadratic attention-cost consequence.',
     },
+    ...P1_UNET_VS_DIT_SCENARIOS_BY_LESSON['unet-vs-dit'],
   ],
   'diffusion-language-models': [
     {
