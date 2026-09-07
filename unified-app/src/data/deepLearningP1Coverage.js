@@ -17,6 +17,8 @@ export const DEEP_LEARNING_P1_AUDITED_LESSON_IDS = Object.freeze([
   'max-pooling',
   'lstm',
   'transformer-token-generation',
+  'grouped-query-attention',
+  'positional-encoding',
 ]);
 
 export const DEEP_LEARNING_P1_REQUIREMENTS = Object.freeze([
@@ -187,5 +189,47 @@ export const DEEP_LEARNING_P1_REQUIREMENTS = Object.freeze([
     'transformer-token-generation',
     ['ttg-002-loop', 'ttg-022-decode-step', 'ttg-032-causal-mask'],
     ['sequence-parallel-training-autoregressive-inference'],
+  ),
+  competency(
+    'multihead-diverse-subspaces',
+    'grouped-query-attention',
+    ['gqa-004-mha-baseline'],
+    ['multihead-diverse-subspaces-decision'],
+  ),
+  competency(
+    'multihead-dimension-accounting',
+    'grouped-query-attention',
+    ['gqa-015-head-dim'],
+    ['multihead-dimension-accounting-worked'],
+  ),
+  competency(
+    'multihead-concat-output-projection',
+    'grouped-query-attention',
+    ['gqa-030-q-projection-shape'],
+    ['multihead-concat-output-projection-worked'],
+  ),
+  competency(
+    'multihead-redundant-heads',
+    'grouped-query-attention',
+    ['gqa-038-specialization'],
+    ['multihead-redundant-heads-diagnosis'],
+  ),
+  competency(
+    'position-order-necessity',
+    'positional-encoding',
+    ['posenc-001-purpose', 'posenc-004-dog-man'],
+    ['position-order-necessity-permutation-diagnosis'],
+  ),
+  competency(
+    'position-sinusoidal-vs-learned',
+    'positional-encoding',
+    ['posenc-016-fixed-vs-learned'],
+    ['position-sinusoidal-vs-learned-decision'],
+  ),
+  competency(
+    'position-absolute-vs-relative',
+    'positional-encoding',
+    ['posenc-035-absolute-vs-relative'],
+    ['position-absolute-vs-relative'],
   ),
 ]);
