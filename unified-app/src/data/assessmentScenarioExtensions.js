@@ -1,3 +1,4 @@
+import { P0_ATTENTION_SCENARIOS_BY_LESSON } from './p0AttentionScenarioQuestions.js';
 import { P0_DEEP_LEARNING_LOSS_OUTPUT_SCENARIOS_BY_LESSON } from './p0DeepLearningLossOutputScenarioQuestions.js';
 import { P0_DEEP_LEARNING_SCENARIOS_BY_LESSON } from './p0DeepLearningScenarioQuestions.js';
 import { P0_EXPERIMENTATION_SCENARIOS_BY_LESSON } from './p0ExperimentationScenarioQuestions.js';
@@ -54,6 +55,7 @@ import { P2_SCENARIOS_BY_LESSON } from './p2ScenarioQuestions.js';
 
 export const ASSESSMENT_SCENARIO_EXTENSION_SOURCES = Object.freeze([
   Object.freeze({ id: 'p0-core', priority: 'P0', questionsByLesson: P0_SCENARIO_QUESTIONS_BY_LESSON }),
+  Object.freeze({ id: 'p0-attention', priority: 'P0', questionsByLesson: P0_ATTENTION_SCENARIOS_BY_LESSON }),
   Object.freeze({ id: 'p0-deep-learning', priority: 'P0', questionsByLesson: P0_DEEP_LEARNING_SCENARIOS_BY_LESSON }),
   Object.freeze({ id: 'p0-deep-learning-loss-output', priority: 'P0', questionsByLesson: P0_DEEP_LEARNING_LOSS_OUTPUT_SCENARIOS_BY_LESSON }),
   Object.freeze({ id: 'p0-experimentation', priority: 'P0', questionsByLesson: P0_EXPERIMENTATION_SCENARIOS_BY_LESSON }),
