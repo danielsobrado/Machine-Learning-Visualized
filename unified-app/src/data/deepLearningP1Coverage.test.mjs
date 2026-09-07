@@ -16,6 +16,10 @@ const REQUIRED_P1_COMPETENCY_IDS = Object.freeze([
   'fundamentals-tensor-shapes',
   'fundamentals-parameter-counting',
   'fundamentals-forward-pass-reasoning',
+  'optimization-sgd-momentum-adam',
+  'optimization-learning-rate',
+  'optimization-schedules',
+  'optimization-weight-decay-vs-l2',
 ]);
 
 function itemsById(items = []) {

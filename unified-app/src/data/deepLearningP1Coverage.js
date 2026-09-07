@@ -9,6 +9,8 @@ function competency(id, lessonId, quizIds, scenarioIds) {
 
 export const DEEP_LEARNING_P1_AUDITED_LESSON_IDS = Object.freeze([
   'neural-network',
+  'optimizers',
+  'regularization',
 ]);
 
 export const DEEP_LEARNING_P1_REQUIREMENTS = Object.freeze([
@@ -35,5 +37,29 @@ export const DEEP_LEARNING_P1_REQUIREMENTS = Object.freeze([
     'neural-network',
     ['nn-021-dense-equation', 'nn-064-learning-case'],
     ['nn-fundamentals-forward-pass-worked'],
+  ),
+  competency(
+    'optimization-sgd-momentum-adam',
+    'optimizers',
+    ['opt-004-sgd', 'opt-011-momentum', 'opt-013-adam'],
+    ['optimizer-sgd-momentum-adam-choice'],
+  ),
+  competency(
+    'optimization-learning-rate',
+    'optimizers',
+    ['opt-005-learning-rate', 'opt-006-too-large', 'opt-007-too-small'],
+    ['optimizer-learning-rate-overshoot-worked'],
+  ),
+  competency(
+    'optimization-schedules',
+    'optimizers',
+    ['opt-052-slow-case', 'opt-057-momentum-case', 'opt-061-late-oscillation-case'],
+    ['optimizer-schedule-phase-choice'],
+  ),
+  competency(
+    'optimization-weight-decay-vs-l2',
+    'regularization',
+    ['reg-023-l2-gradient', 'reg-026-weight-decay', 'reg-027-decoupled-weight-decay'],
+    ['optimizer-weight-decay-vs-l2-adamw'],
   ),
 ]);
