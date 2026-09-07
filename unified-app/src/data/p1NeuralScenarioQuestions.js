@@ -1,4 +1,66 @@
 export const P1_NEURAL_SCENARIOS_BY_LESSON = Object.freeze({
+  'neural-network': [
+    {
+      id: 'nn-fundamentals-xor-nonlinearity',
+      level: 'diagnosis',
+      relatedComparison: 'linear-stack-vs-hidden-nonlinearity',
+      scenario: 'A two-input network is built for XOR. It has an affine hidden layer and an affine output layer, but the hidden activation is accidentally replaced with the identity function. The team expects the extra depth alone to solve XOR.',
+      prompt: 'Why does this architecture still fail to gain the representational advantage needed for XOR?',
+      choices: [
+        'Without a nonlinear hidden activation, the two affine layers compose into another affine map, so the model still has only a linear decision boundary and needs a nonlinear hidden representation to model XOR',
+        'Any two-layer network can represent XOR regardless of activation because depth alone makes the composed function nonlinear',
+        'XOR requires removing the hidden layer entirely because nonlinear activations prevent binary decision boundaries',
+      ],
+      answerIndex: 0,
+      explanation: 'Composing affine transformations without a nonlinear activation produces another affine transformation. XOR is not linearly separable in the original input space, so the hidden layer only adds the needed expressive power when a nonlinearity changes the representation before the final decision.',
+      misconceptionTested: 'Adding depth automatically makes a dense network nonlinear even when every activation is the identity.',
+    },
+    {
+      id: 'nn-fundamentals-tensor-shape-worked',
+      level: 'calculation',
+      relatedComparison: 'batch-feature-shape-vs-layer-weight-shape',
+      scenario: 'A batch has shape [32, 8]. A dense layer uses weight matrix W1 with shape [8, 5] and bias b1 with shape [5]. Its output feeds a second dense layer with W2 shape [5, 3] and bias b2 shape [3]. Assume the convention output = input @ W + b.',
+      prompt: 'What are the activation shapes after the first and second dense layers?',
+      choices: [
+        'The first layer produces [32, 5] and the second produces [32, 3]; the batch dimension is preserved while each weight matrix changes the feature dimension',
+        'The first layer produces [8, 5] and the second produces [5, 3] because activations always take the same shape as the weight matrices',
+        'The first layer produces [32, 8] and the second produces [32, 5] because dense layers cannot change the feature dimension',
+      ],
+      answerIndex: 0,
+      explanation: 'Matrix multiplication [32, 8] @ [8, 5] gives [32, 5], and broadcasting the [5] bias preserves that shape. The next multiplication [32, 5] @ [5, 3] gives [32, 3], then the [3] bias is added across the batch.',
+      misconceptionTested: 'Dense-layer activations inherit the full weight-matrix shape instead of preserving batch size and taking the layer output width.',
+    },
+    {
+      id: 'nn-fundamentals-parameter-count-worked',
+      level: 'calculation',
+      relatedComparison: 'weights-plus-biases-vs-width-only-counting',
+      scenario: 'A fully connected network has 8 input features, one hidden layer with 5 units, and an output layer with 3 units. Both dense layers use one bias per output unit.',
+      prompt: 'How many trainable parameters does the network have?',
+      choices: [
+        '63 parameters: 8*5 + 5 = 45 in the hidden layer and 5*3 + 3 = 18 in the output layer',
+        '55 parameters: count only 8*5 and 5*3 weights because biases are not trainable parameters',
+        '16 parameters: add only the layer widths 8 + 5 + 3 because each neuron contributes one parameter',
+      ],
+      answerIndex: 0,
+      explanation: 'A dense layer with input width n and output width m has n*m weights plus m biases. The first layer therefore has 40 + 5 = 45 parameters and the second has 15 + 3 = 18, giving 63 total.',
+      misconceptionTested: 'Parameter counting can ignore biases or be inferred by adding layer widths instead of counting every connection and bias.',
+    },
+    {
+      id: 'nn-fundamentals-forward-pass-worked',
+      level: 'calculation',
+      relatedComparison: 'affine-activation-output-composition',
+      scenario: 'For one example x = [2, -1], a hidden layer computes z1 = x @ W1 + b1 with W1 = [[1, -1], [2, 1]] and b1 = [1, 2], then h1 = ReLU(z1). The output layer computes y = h1 @ W2 + b2 with W2 = [[3], [-2]] and b2 = [0.5].',
+      prompt: 'What scalar output y does the forward pass produce?',
+      choices: [
+        '3.5: z1 = [1, -1], ReLU gives [1, 0], and [1, 0] @ [[3], [-2]] + 0.5 = 3.5',
+        '-2.5: apply the output weights directly to z1 before the ReLU and then subtract the bias',
+        '0.5: ReLU zeros the entire hidden vector whenever any one hidden pre-activation is negative',
+      ],
+      answerIndex: 0,
+      explanation: 'The first affine step gives [2*1 + (-1)*2 + 1, 2*(-1) + (-1)*1 + 2] = [1, -1]. ReLU acts elementwise, producing [1, 0]. The final affine layer is 1*3 + 0*(-2) + 0.5 = 3.5.',
+      misconceptionTested: 'A forward pass can skip the hidden activation, or one negative hidden value causes ReLU to zero the whole vector.',
+    },
+  ],
   'computation-graph-backprop': [
     {
       id: 'backprop-chain-rule-missing-path',
