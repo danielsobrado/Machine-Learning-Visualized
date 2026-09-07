@@ -60,6 +60,21 @@ export const P1_RAG_FAILURE_EVALUATION_SCENARIOS_BY_LESSON = Object.freeze({
       misconceptionTested: 'A higher global RAG metric proves every important query slice improved.',
       relatedComparison: 'Aggregate quality versus slice-specific regressions.',
     }),
+    Object.freeze({
+      id: 'rag-failure-abstain-without-valid-support',
+      level: 'decision',
+      scenario: 'A user asks for the current cancellation fee. Retrieval returns one unrelated billing FAQ and one outdated policy whose validity ended last year. No current approved source supports the requested fee.',
+      prompt: 'What should a grounded system do?',
+      choices: Object.freeze([
+        'Abstain or state that current support is unavailable, rather than converting weak or stale evidence into a confident answer',
+        'Use the outdated fee because some citation is better than no citation',
+        'Lower grounding strictness until one of the retrieved chunks passes',
+      ]),
+      answerIndex: 0,
+      explanation: 'When no valid evidence supports the claim, the grounding contract should allow a no-answer outcome. Lowering the bar to force coverage turns missing support into fabricated certainty.',
+      misconceptionTested: 'A RAG system must always answer even when no valid evidence survives grounding.',
+      relatedComparison: 'Grounded abstention versus forced unsupported coverage.',
+    }),
   ]),
   'rag-retrieval-evaluation': Object.freeze([
     Object.freeze({
