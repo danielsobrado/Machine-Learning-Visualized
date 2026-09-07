@@ -44,6 +44,7 @@ import { P1_PRODUCTION_RELIABILITY_APPLIED_SCENARIOS_BY_LESSON } from './p1Produ
 import { P1_PRODUCTION_RISK_APPLIED_SCENARIOS_BY_LESSON } from './p1ProductionRiskAppliedScenarioQuestions.js';
 import { P1_PRODUCTION_SERVING_APPLIED_SCENARIOS_BY_LESSON } from './p1ProductionServingAppliedScenarioQuestions.js';
 import { P1_PRODUCTION_SCENARIOS_BY_LESSON } from './p1ProductionScenarioQuestions.js';
+import { P1_RAG_FAILURE_EVALUATION_SCENARIOS_BY_LESSON } from './p1RagFailureEvaluationScenarioQuestions.js';
 import { P1_RAG_GROUNDING_APPLIED_SCENARIOS_BY_LESSON } from './p1RagGroundingAppliedScenarioQuestions.js';
 import { P1_RAG_INDEX_GROUNDING_SCENARIOS_BY_LESSON } from './p1RagIndexGroundingScenarioQuestions.js';
 import { P1_RAG_RETRIEVAL_APPLIED_SCENARIOS_BY_LESSON } from './p1RagRetrievalAppliedScenarioQuestions.js';
@@ -96,6 +97,7 @@ export const ASSESSMENT_SCENARIO_EXTENSION_SOURCES = Object.freeze([
   Object.freeze({ id: 'p1-generation-sampling', priority: 'P1', questionsByLesson: P1_GENERATION_SAMPLING_SCENARIOS_BY_LESSON }),
   Object.freeze({ id: 'p1-fine-tuning-rag-chunking', priority: 'P1', questionsByLesson: P1_FINE_TUNING_RAG_CHUNKING_SCENARIOS_BY_LESSON }),
   Object.freeze({ id: 'p1-rag-index-grounding', priority: 'P1', questionsByLesson: P1_RAG_INDEX_GROUNDING_SCENARIOS_BY_LESSON }),
+  Object.freeze({ id: 'p1-rag-failure-evaluation', priority: 'P1', questionsByLesson: P1_RAG_FAILURE_EVALUATION_SCENARIOS_BY_LESSON }),
   Object.freeze({ id: 'p1-neural-applied-training', priority: 'P1', questionsByLesson: P1_NEURAL_APPLIED_TRAINING_SCENARIOS_BY_LESSON }),
   Object.freeze({ id: 'p1-neural-applied-architecture', priority: 'P1', questionsByLesson: P1_NEURAL_APPLIED_ARCHITECTURE_SCENARIOS_BY_LESSON }),
   Object.freeze({ id: 'p1-advanced-neural-architectures-applied', priority: 'P1', questionsByLesson: P1_ADVANCED_NEURAL_ARCHITECTURES_APPLIED_SCENARIOS_BY_LESSON }),
