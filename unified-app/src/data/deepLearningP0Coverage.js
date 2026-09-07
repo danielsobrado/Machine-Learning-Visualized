@@ -17,6 +17,9 @@ export const DEEP_LEARNING_P0_AUDITED_LESSON_IDS = Object.freeze([
   'dropout-batchnorm',
   'relu',
   'leaky-relu',
+  'attention-mechanism',
+  'self-attention',
+  'attention-masks',
 ]);
 
 export const DEEP_LEARNING_P0_REQUIREMENTS = Object.freeze([
@@ -170,6 +173,48 @@ export const DEEP_LEARNING_P0_REQUIREMENTS = Object.freeze([
     'dropout-batchnorm',
     ['dbn-043-train-eval-flag', 'dbn-065-production-mode', 'dbn-083-trap-mode'],
     ['train-eval-validation-mode-leak'],
+    1,
+  ),
+  competency(
+    'attention-qkv-semantics',
+    'attention-mechanism',
+    ['attn-004-query-role', 'attn-005-key-role', 'attn-006-value-role'],
+    ['attention-qkv-role-transfer'],
+    1,
+  ),
+  competency(
+    'attention-scaled-dot-product',
+    'self-attention',
+    ['selfattn-021-formula-first', 'selfattn-027-scale-reason'],
+    ['attention-scaled-dot-product-worked'],
+    1,
+  ),
+  competency(
+    'attention-softmax-axis',
+    'self-attention',
+    ['selfattn-028-row-softmax', 'selfattn-029-row-total'],
+    ['attention-softmax-key-axis-worked'],
+    1,
+  ),
+  competency(
+    'attention-shape-reasoning',
+    'self-attention',
+    ['selfattn-025-row-column', 'selfattn-044-output-shape'],
+    ['attention-shape-flow-worked'],
+    1,
+  ),
+  competency(
+    'attention-mask-causal-vs-padding',
+    'attention-masks',
+    ['amask-006-causal-basic', 'amask-007-padding-basic'],
+    ['attention-mask-causal-padding-composition'],
+    1,
+  ),
+  competency(
+    'attention-mask-leakage-and-axes',
+    'attention-masks',
+    ['amask-043-lookahead-bug', 'amask-044-broadcast-convention', 'amask-048-implementation-checks'],
+    ['attention-mask-axis-leakage-diagnosis'],
     1,
   ),
 ]);
