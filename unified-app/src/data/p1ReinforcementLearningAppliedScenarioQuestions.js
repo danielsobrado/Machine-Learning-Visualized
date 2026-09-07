@@ -1,6 +1,7 @@
 import { P1_CORE_RL_ALGORITHMS_APPLIED_SCENARIOS_BY_LESSON } from './p1CoreRlAlgorithmsAppliedScenarioQuestions.js';
 import { P1_Q_LEARNING_SCENARIOS_BY_LESSON } from './p1QLearningScenarioQuestions.js';
 import { P1_RL_EXPLORATION_SCENARIOS_BY_LESSON } from './p1RlExplorationScenarioQuestions.js';
+import { P1_RL_FOUNDATIONS_SCENARIOS_BY_LESSON } from './p1RlFoundationsScenarioQuestions.js';
 
 export const P1_REINFORCEMENT_LEARNING_APPLIED_SCENARIOS_BY_LESSON = Object.freeze({
   ...P1_CORE_RL_ALGORITHMS_APPLIED_SCENARIOS_BY_LESSON,
@@ -20,6 +21,7 @@ export const P1_REINFORCEMENT_LEARNING_APPLIED_SCENARIOS_BY_LESSON = Object.free
       explanation: 'Discounted return accumulates future rewards with powers of gamma. Here the delayed reward contributes 0.25 * 8 = 2, so the total is 2 + 0 + 2 = 4.',
       misconceptionTested: 'Return is either identical to immediate reward or always an undiscounted sum regardless of gamma.',
     },
+    ...P1_RL_FOUNDATIONS_SCENARIOS_BY_LESSON['rl-foundations'],
   ],
   'q-learning': [
     {
