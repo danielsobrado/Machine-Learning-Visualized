@@ -1,3 +1,4 @@
+import { P1_COCONUT_LATENT_REASONING_SCENARIOS_BY_LESSON } from './p1CoconutLatentReasoningScenarioQuestions.js';
 import { P1_CORE_RL_ALGORITHMS_APPLIED_SCENARIOS_BY_LESSON } from './p1CoreRlAlgorithmsAppliedScenarioQuestions.js';
 import { P1_DAPO_REASONING_SCENARIOS_BY_LESSON } from './p1DapoReasoningScenarioQuestions.js';
 import { P1_GRPO_REASONING_SCENARIOS_BY_LESSON } from './p1GrpoReasoningScenarioQuestions.js';
@@ -113,6 +114,7 @@ export const P1_REINFORCEMENT_LEARNING_APPLIED_SCENARIOS_BY_LESSON = Object.free
       explanation: 'The four latent positions still execute model computation, and the six visible output tokens add six more generation steps. That gives 10 forward steps even though the user sees only 6 output tokens.',
       misconceptionTested: 'Reducing visible chain-of-thought tokens makes latent reasoning positions computationally free.',
     },
+    ...P1_COCONUT_LATENT_REASONING_SCENARIOS_BY_LESSON['coconut-latent-reasoning'],
   ],
   'reasoning-rlvr-grpo': [
     {
