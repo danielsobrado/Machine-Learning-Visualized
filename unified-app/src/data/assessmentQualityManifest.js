@@ -7,10 +7,15 @@ export const P0_PRIORITY_ASSESSMENT_LESSON_IDS = Object.freeze([
   'model-interpretability',
 ]);
 
+export const P1_DEEP_LEARNING_PRIORITY_ASSESSMENT_LESSON_IDS = Object.freeze([
+  'lstm',
+]);
+
 export const ASSESSMENT_QUALITY_PRIORITY_LESSON_IDS = Object.freeze([
   ...new Set([
     ...BASE_PRIORITY_ASSESSMENT_LESSON_IDS,
     ...P0_PRIORITY_ASSESSMENT_LESSON_IDS,
+    ...P1_DEEP_LEARNING_PRIORITY_ASSESSMENT_LESSON_IDS,
   ]),
 ]);
 
