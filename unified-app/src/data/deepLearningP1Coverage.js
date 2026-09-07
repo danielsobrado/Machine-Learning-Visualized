@@ -11,6 +11,8 @@ export const DEEP_LEARNING_P1_AUDITED_LESSON_IDS = Object.freeze([
   'neural-network',
   'optimizers',
   'regularization',
+  'dropout-batchnorm',
+  'layer-normalization',
 ]);
 
 export const DEEP_LEARNING_P1_REQUIREMENTS = Object.freeze([
@@ -61,5 +63,23 @@ export const DEEP_LEARNING_P1_REQUIREMENTS = Object.freeze([
     'regularization',
     ['reg-023-l2-gradient', 'reg-026-weight-decay', 'reg-027-decoupled-weight-decay'],
     ['optimizer-weight-decay-vs-l2-adamw'],
+  ),
+  competency(
+    'normalization-batchnorm-vs-layernorm',
+    'layer-normalization',
+    ['ln-012-batchnorm-difference', 'ln-040-batchnorm-contrast', 'ln-093-interview-batchnorm'],
+    ['layernorm-vs-batchnorm'],
+  ),
+  competency(
+    'normalization-small-batch-behavior',
+    'dropout-batchnorm',
+    ['dbn-028-batch-size', 'dbn-055-small-batch-finetune'],
+    ['batchnorm-small-batch'],
+  ),
+  competency(
+    'normalization-train-eval-statistics',
+    'dropout-batchnorm',
+    ['dbn-011-bn-training', 'dbn-012-bn-eval', 'dbn-054-bn-inference-bug'],
+    ['dropout-batchnorm-eval-mode-diagnosis'],
   ),
 ]);
