@@ -26,6 +26,10 @@ const REQUIRED_P1_COMPETENCY_IDS = Object.freeze([
   'dropout-inverted-scaling',
   'dropout-inference-behavior',
   'dropout-normalization-interaction',
+  'cnn-stride-padding-dilation',
+  'cnn-receptive-field',
+  'cnn-parameter-sharing',
+  'cnn-shape-calculations',
 ]);
 
 function itemsById(items = []) {
