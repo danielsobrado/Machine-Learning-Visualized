@@ -14,6 +14,9 @@ export const DEEP_LEARNING_P1_AUDITED_LESSON_IDS = Object.freeze([
   'dropout-batchnorm',
   'layer-normalization',
   'conv2d',
+  'max-pooling',
+  'lstm',
+  'transformer-token-generation',
 ]);
 
 export const DEEP_LEARNING_P1_REQUIREMENTS = Object.freeze([
@@ -124,5 +127,65 @@ export const DEEP_LEARNING_P1_REQUIREMENTS = Object.freeze([
     'conv2d',
     ['c2d-052-shape-valid-2d', 'c2d-054-shape-stride-2d', 'c2d-055-filter-count-shape'],
     ['conv2d-output-shape-channels-worked'],
+  ),
+  competency(
+    'cnn-failure-translation-behavior',
+    'conv2d',
+    ['c2d-009-translation', 'c2d-076-false-location-trap'],
+    ['cnn-translation-shift-diagnosis'],
+  ),
+  competency(
+    'cnn-failure-pooling-information-loss',
+    'max-pooling',
+    ['mp-010-information-loss', 'mp-036-spatial-detail'],
+    ['cnn-pooling-localization-loss-diagnosis'],
+  ),
+  competency(
+    'cnn-failure-shortcut-learning',
+    'conv2d',
+    ['c2d-049-feature-detector'],
+    ['cnn-shortcut-background-cue-diagnosis'],
+  ),
+  competency(
+    'recurrent-state-semantics',
+    'lstm',
+    ['lstm-046-stateful', 'lstm-047-reset-boundary'],
+    ['recurrent-state-boundary-diagnosis'],
+  ),
+  competency(
+    'recurrent-long-term-dependencies',
+    'lstm',
+    ['lstm-015-long-context', 'lstm-027-additive-path'],
+    ['recurrent-long-dependency-mechanism'],
+  ),
+  competency(
+    'recurrent-gradient-problems',
+    'lstm',
+    ['lstm-028-gradient', 'lstm-045-clipping'],
+    ['recurrent-gradient-pathology-diagnosis'],
+  ),
+  competency(
+    'recurrent-rnn-lstm-gru-model-choice',
+    'lstm',
+    ['lstm-016-not-perfect', 'lstm-049-computation-cost'],
+    ['recurrent-rnn-lstm-gru-model-choice'],
+  ),
+  competency(
+    'sequence-training-teacher-forcing',
+    'transformer-token-generation',
+    ['ttg-046-sampling-vs-training'],
+    ['sequence-teacher-forcing-mechanism'],
+  ),
+  competency(
+    'sequence-training-exposure-bias',
+    'transformer-token-generation',
+    ['ttg-010-append', 'ttg-045-prompt-plus-output'],
+    ['sequence-exposure-bias-diagnosis'],
+  ),
+  competency(
+    'sequence-training-autoregressive-inference',
+    'transformer-token-generation',
+    ['ttg-002-loop', 'ttg-022-decode-step', 'ttg-032-causal-mask'],
+    ['sequence-parallel-training-autoregressive-inference'],
   ),
 ]);
