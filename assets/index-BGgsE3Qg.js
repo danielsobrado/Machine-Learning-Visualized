@@ -1,0 +1,1 @@
+import{k as t}from"./react-vendor-BeqvafmB.js";import o from"./QwenChapter-1YZnOzvI.js";import"./router-BOQIj1s7.js";import"./curriculum-depth-data-DOVeooQP.js";function i(){return t.jsx(o,{chapterId:"qwen-multimodal-moe"})}export{i as default};
