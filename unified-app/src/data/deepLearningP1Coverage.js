@@ -19,6 +19,7 @@ export const DEEP_LEARNING_P1_AUDITED_LESSON_IDS = Object.freeze([
   'transformer-token-generation',
   'grouped-query-attention',
   'positional-encoding',
+  'transformer',
 ]);
 
 export const DEEP_LEARNING_P1_REQUIREMENTS = Object.freeze([
@@ -231,5 +232,35 @@ export const DEEP_LEARNING_P1_REQUIREMENTS = Object.freeze([
     'positional-encoding',
     ['posenc-035-absolute-vs-relative'],
     ['position-absolute-vs-relative'],
+  ),
+  competency(
+    'transformer-complexity-quadratic-attention',
+    'transformer',
+    ['transformer-045-compute-cost'],
+    ['transformer-complexity-sequence-doubling-worked'],
+  ),
+  competency(
+    'transformer-complexity-attention-vs-mlp',
+    'transformer',
+    ['transformer-066-param-breakdown'],
+    ['transformer-complexity-attention-vs-mlp-decision'],
+  ),
+  competency(
+    'transformer-complexity-parameters-vs-context',
+    'transformer',
+    ['transformer-043-parameter-sharing'],
+    ['transformer-complexity-parameters-vs-context-worked'],
+  ),
+  competency(
+    'transformer-complexity-kv-cache-decode',
+    'transformer',
+    ['transformer-062-generation'],
+    ['transformer-complexity-kv-cache-decode-diagnosis'],
+  ),
+  competency(
+    'transformer-complexity-attention-memory',
+    'transformer',
+    ['transformer-046-memory-cost'],
+    ['transformer-complexity-attention-memory-diagnosis'],
   ),
 ]);
