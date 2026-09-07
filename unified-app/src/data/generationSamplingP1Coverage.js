@@ -40,7 +40,7 @@ export const GENERATION_SAMPLING_P1_REQUIREMENTS = Object.freeze([
   competency(
     'sampling-greedy-vs-stochastic',
     'sampling-strategies',
-    ['samp-002-greedy', 'samp-032-sampling-randomness', 'samp-038-beam-vs-sampling'],
+    ['samp-002-greedy', 'samp-007-deterministic', 'samp-038-beam-vs-sampling'],
     ['sampling-overconstrained-repetition'],
   ),
   competency(
