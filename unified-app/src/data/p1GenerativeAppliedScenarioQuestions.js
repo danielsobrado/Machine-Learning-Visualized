@@ -1,3 +1,5 @@
+import { P1_CLASSIFIER_FREE_GUIDANCE_SCENARIOS_BY_LESSON } from './p1ClassifierFreeGuidanceScenarioQuestions.js';
+
 export const P1_GENERATIVE_APPLIED_SCENARIOS_BY_LESSON = Object.freeze({
   'diffusion-basics': [
     {
@@ -49,6 +51,7 @@ export const P1_GENERATIVE_APPLIED_SCENARIOS_BY_LESSON = Object.freeze({
       explanation: 'The conditional-unconditional direction is 0.30. Scaling it by 3 gives 0.90, then adding the unconditional baseline 0.20 gives 1.10. CFG extrapolates along the conditioning direction rather than merely scaling one prediction.',
       misconceptionTested: 'Classifier-free guidance is just conditional prediction multiplied by the guidance scale.',
     },
+    ...P1_CLASSIFIER_FREE_GUIDANCE_SCENARIOS_BY_LESSON['classifier-free-guidance'],
   ],
   'unet-vs-dit': [
     {
