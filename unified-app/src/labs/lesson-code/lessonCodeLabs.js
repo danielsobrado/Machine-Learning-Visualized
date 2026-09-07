@@ -1,3 +1,4 @@
+import { QWEN_NEXT_LABS } from './categories/qwenNextLabs.js';
 import { NLP_LESSON_LABS } from './categories/nlpLessonLabs.js';
 import { TRANSFORMER_LESSON_LABS } from './categories/transformerLessonLabs.js';
 import { PAPER_LESSON_LABS } from './categories/paperLessonLabs.js';
@@ -17,7 +18,8 @@ export const LESSON_CODE_LAB_GROUPS = [
   ...NLP_LESSON_LABS,
   ...TRANSFORMER_LESSON_LABS,
   ...PAPER_LESSON_LABS,
-  ...FRONTIER_LLM_LESSON_LABS,
+  ...FRONTIER_LLM_LESSON_LABS.filter(group => !QWEN_NEXT_LABS.some(q => q.lessonId === group.lessonId)),
+  ...QWEN_NEXT_LABS,
   ...NEURAL_NETWORK_LESSON_LABS,
   ...ADVANCED_MODEL_LESSON_LABS,
   ...MATH_FUNDAMENTAL_LESSON_LABS,

@@ -1,3 +1,4 @@
+import { chapters as qwenChapters } from './qwenNext.js';
 import {
   Brain,
   Calculator,
@@ -152,6 +153,7 @@ export const categories = [
     icon: Cpu,
     color: 'from-teal-600 to-amber-500',
     items: [
+      ...qwenChapters.map(c => ({ id: c.id, name: c.title, icon: Cpu, description: c.description })),
       {
         id: 'frontier-llm-architecture-overview',
         name: 'Frontier LLM Architecture Overview',
@@ -2000,7 +2002,8 @@ function makeCurriculumMetadata(item, category) {
     estimatedMinutes: 15,
     prerequisites: [],
   };
-  const override = CURRICULUM_OVERRIDES[item.id] || {};
+  const chapter = qwenChapters.find(c => c.id === item.id);
+  const override = CURRICULUM_OVERRIDES[item.id] || (chapter ? { difficulty: 'advanced', estimatedMinutes: chapter.minutes, prerequisites: chapter.prerequisites, learningObjectives: [chapter.objective, 'Complete the worked examples and explain the experiment'], commonMisconception: chapter.trap } : {});
   const difficulty = override.difficulty || defaults.difficulty;
   const estimatedMinutes = override.estimatedMinutes || defaults.estimatedMinutes;
 

@@ -1,3 +1,4 @@
+import { qwenAssessments } from './qwenNext.js';
 import * as base from './lessonAssessmentsBase.js';
 import { getAssessmentSource } from './assessmentQuality.js';
 import { ASSESSMENT_QUALITY_PRIORITY_LESSON_IDS } from './assessmentQualityManifest.js';
@@ -68,9 +69,9 @@ function buildAssessment(lessonId, assessment) {
 export const PRIORITY_ASSESSMENT_LESSON_IDS = ASSESSMENT_QUALITY_PRIORITY_LESSON_IDS;
 
 export const lessonAssessments = Object.freeze(Object.fromEntries(
-  Object.entries(base.lessonAssessments).map(([lessonId, assessment]) => [
+  Object.entries({ ...base.lessonAssessments, ...qwenAssessments }).map(([lessonId, assessment]) => [
     lessonId,
-    buildAssessment(lessonId, assessment),
+    buildAssessment(lessonId, { ...base.lessonAssessments[lessonId], ...assessment }),
   ]),
 ));
 

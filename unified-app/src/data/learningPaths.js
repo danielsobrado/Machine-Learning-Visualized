@@ -1,3 +1,4 @@
+import { chapters as qwenChapters } from './qwenNext.js';
 export const HUB_LEARNING_PATHS = [
   {
     id: 'start-here',
@@ -188,4 +189,6 @@ export const HUB_LEARNING_PATHS = [
       'pagerank',
     ],
   },
+  { id: 'qwen-flash-next', label: 'Qwen Flash-Next', description: 'Six chapters on attention, residual gates, n-gram tables, sparse experts, training and reasoning effort.', nodes: qwenChapters.map(c => c.id) },
+
 ];

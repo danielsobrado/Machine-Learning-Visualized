@@ -1,4 +1,6 @@
+import { chapters as qwenChapters } from './qwenNext.js';
 export const MINDMAP_CURATIONS = {
+  ...Object.fromEntries(qwenChapters.map(c => [c.id, [c.analogy, c.objective, c.experiment, c.trap]])),
   'bag-of-words': ['Document as counts', 'Count words, ignore order, compare vectors.', 'Which repeated word moves the vector most?', 'Word order and negation disappear.'],
   word2vec: ['Meaning from neighbors', 'Move words close when they share contexts.', 'Which context words pull two tokens together?', 'The vector stores usage patterns, not dictionary truth.'],
   glove: ['Global co-occurrence map', 'Use corpus-wide word-pair counts to shape vectors.', 'Which rare co-occurrence should matter most?', 'Raw counts need weighting or common words dominate.'],

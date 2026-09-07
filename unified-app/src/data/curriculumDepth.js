@@ -1,3 +1,4 @@
+import { chapters as qwenChapters, QWEN_SOURCE } from './qwenNext.js';
 export const conceptComparisons = [
   {
     id: 'attention-cache-family',
@@ -1479,6 +1480,12 @@ function matchesLesson(item, animation) {
 }
 
 export function getCurriculumDepth(animation) {
+  const chapter = qwenChapters.find(c => c.id === animation.id);
+  if (chapter) return {
+    comparisons: [], failures: [],
+    caveats: [{ id: `${chapter.id}-boundaries`, solves: [chapter.objective], doesNotSolve: [chapter.trap], toyFormula: chapter.formula, whatIsSimplified: ['Numerical controls isolate one mechanism; they do not execute Qwen or predict benchmark performance.'], whatStillHolds: [chapter.worked], howToTest: [chapter.exercises[2][1], chapter.exercises[2][2]] }],
+    paperSignals: [{ id: `${chapter.id}-source`, phrase: chapter.fact, sourceType: 'Official model card', sourceName: QWEN_SOURCE, sourceYear: '2026', freshnessDate: '2026-09-07', claimStatus: 'Published specification; toy examples are separate', ask: [chapter.objective], means: chapter.description, doesNotMean: chapter.trap, check: ['Confirm the exact model variant and serving engine.', 'Report both quality and resource use with workload details.'] }],
+  };
   return {
     comparisons: conceptComparisons.filter((item) => matchesLesson(item, animation)),
     failures: failureGalleryItems.filter((item) => matchesLesson(item, animation)),

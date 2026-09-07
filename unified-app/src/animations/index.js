@@ -3,6 +3,13 @@ import { lazy } from 'react';
 // Registry of available animation components
 // All animations are now integrated from their individual projects
 const animationRegistry = {
+  'qwen-hybrid-qsa': lazy(() => import('./qwen-hybrid-qsa')),
+  'qwen-gated-residual': lazy(() => import('./qwen-gated-residual')),
+  'qwen-ngram-embedding': lazy(() => import('./qwen-ngram-embedding')),
+  'qwen-multimodal-moe': lazy(() => import('./qwen-multimodal-moe')),
+  'qwen-training-recipe': lazy(() => import('./qwen-training-recipe')),
+  'qwen-reasoning-control': lazy(() => import('./qwen-reasoning-control')),
+
   // NLP & Text Processing
   'bag-of-words': lazy(() => import('./bag-of-words')),
   'word2vec': lazy(() => import('./word2vec')),

@@ -1,8 +1,11 @@
+import { chapters as qwenChapters } from '../../data/qwenNext';
 import React, { Suspense, useMemo } from 'react';
 import { allAnimations } from '../../data/animations';
 import { createLearningModel } from '../../data/animationLearning';
 import LessonDepthView from './LessonDepthView';
 import LessonGlossaryView from './LessonGlossaryView';
+
+const QwenCompanion = React.lazy(() => import('../../animations/qwen-shared/QwenChapter').then(m => ({ default: m.QwenCompanion })));
 
 const AssessmentPanel = React.lazy(() => import('../animation-shell/AssessmentPanel'));
 const ConceptMindmap = React.lazy(() => import('../animation-shell/ConceptMindmap'));
@@ -17,6 +20,11 @@ export default function LessonSectionView({ animation, sectionId }) {
     () => createLearningModel(animation, allAnimations),
     [animation],
   );
+
+  const qwenChapter = qwenChapters.find(c => c.id === animation.id);
+  if (qwenChapter && ['glossary', 'concept-map'].includes(sectionId)) {
+    return <Suspense fallback={<LoadingSection label={sectionId} />}><QwenCompanion chapter={qwenChapter} sectionId={sectionId} /></Suspense>;
+  }
 
   if (sectionId === 'questions') {
     return (

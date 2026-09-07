@@ -48,6 +48,7 @@ test('hub learning paths define animated chains with active lesson ids', () => {
       'experimentation-causal-path',
       'vision-path',
       'rl-path',
+      'qwen-flash-next',
     ],
   );
 

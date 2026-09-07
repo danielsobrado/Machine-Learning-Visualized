@@ -1,3 +1,4 @@
+import { chapters as qwenChapters } from './qwenNext.js';
 import { ADVANCED_INFERENCE_AUDITED_LESSON_IDS } from './advancedInferenceCoverage.js';
 import { ADVANCED_NEURAL_ARCHITECTURES_AUDITED_LESSON_IDS } from './advancedNeuralArchitecturesCoverage.js';
 import { ASSESSMENT_QUALITY_PRIORITY_LESSON_IDS } from './assessmentQualityManifest.js';
@@ -19,6 +20,7 @@ export const CURRICULUM_TAIL_AUDITED_LESSON_IDS = Object.freeze([
 ]);
 
 const REVIEW_COVERAGE_SOURCES = Object.freeze([
+  qwenChapters.map(c => c.id),
   ASSESSMENT_QUALITY_PRIORITY_LESSON_IDS,
   ADVANCED_INFERENCE_AUDITED_LESSON_IDS,
   ADVANCED_NEURAL_ARCHITECTURES_AUDITED_LESSON_IDS,
