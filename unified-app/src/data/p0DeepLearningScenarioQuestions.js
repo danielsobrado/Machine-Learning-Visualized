@@ -1,4 +1,51 @@
 export const P0_DEEP_LEARNING_SCENARIOS_BY_LESSON = Object.freeze({
+  'dropout-batchnorm': [
+    {
+      id: 'train-eval-dropout-serving-mode',
+      level: 'diagnosis',
+      relatedComparison: 'dropout-training-randomness-vs-inference-determinism',
+      scenario: 'A classifier contains dropout but no batch-dependent normalization. After loading a checkpoint into the serving process, the same input produces noticeably different logits across repeated requests. The weights are not changing, but the model was never explicitly switched out of training mode.',
+      prompt: 'What should be fixed first?',
+      choices: [
+        'Switch the model to evaluation mode before ordinary validation or serving so dropout stops sampling random masks; keep training mode only while optimization updates are actually being performed',
+        'Keep training mode active because ordinary inference should average randomness by changing the dropout mask on every request',
+        'Increase the dropout rate until the repeated predictions become identical because stronger masking removes stochasticity',
+      ],
+      answerIndex: 0,
+      explanation: 'Standard dropout is intentionally stochastic during training and disabled during ordinary inference. If a loaded model remains in training mode, repeated predictions can vary even though parameters are fixed. Evaluation mode restores the inference semantics expected by validation and serving.',
+      misconceptionTested: 'A model with frozen weights behaves like inference automatically even if its train/eval mode is wrong.',
+    },
+    {
+      id: 'train-eval-batchnorm-request-batch',
+      level: 'diagnosis',
+      relatedComparison: 'batchnorm-current-batch-stats-vs-running-inference-stats',
+      scenario: 'A model uses BatchNorm and no dropout. In production, the prediction for one example changes depending on which other requests happen to share its batch. Monitoring also shows the BatchNorm running mean drifting during serving. The checkpoint itself is unchanged.',
+      prompt: 'Which mode error best explains both symptoms?',
+      choices: [
+        'The model is still in training mode, so BatchNorm is using current request-batch statistics and updating its running estimates; ordinary inference should use evaluation mode with stored running statistics',
+        'The model is correctly in evaluation mode because BatchNorm is supposed to recompute and update statistics from every serving batch',
+        'The BatchNorm epsilon is necessarily too large because epsilon alone makes predictions depend on unrelated examples in the same serving batch',
+      ],
+      answerIndex: 0,
+      explanation: 'Training-mode BatchNorm depends on the current mini-batch and updates running estimates. That makes predictions sensitive to arbitrary request grouping and mutates state during serving. Evaluation mode instead uses the stored running mean and variance for stable ordinary inference.',
+      misconceptionTested: 'BatchNorm should keep adapting its running statistics from arbitrary production request batches during standard inference.',
+    },
+    {
+      id: 'train-eval-validation-mode-leak',
+      level: 'diagnosis',
+      relatedComparison: 'validation-eval-mode-vs-resumed-training-mode',
+      scenario: 'A training loop correctly calls evaluation mode before each validation pass. After validation, it resumes optimizer steps but forgets to switch the model back to training mode. Loss still decreases, so the bug survives for many epochs. The network contains both dropout and BatchNorm.',
+      prompt: 'What silent training error is occurring?',
+      choices: [
+        'Subsequent optimization runs with dropout disabled and BatchNorm using frozen running statistics instead of training-batch statistics; switch back to training mode before resuming parameter updates',
+        'Nothing is wrong because optimizer steps automatically force every layer back into training behavior before the forward pass',
+        'Only validation is affected because train/eval mode cannot change the forward behavior used to compute gradients during later optimizer steps',
+      ],
+      answerIndex: 0,
+      explanation: 'The optimizer does not control module mode. If evaluation mode leaks into the next training phase, gradients can still be computed and weights can still update, but the forward pass has the wrong semantics: dropout remains off and BatchNorm stops using/updating training statistics. This is especially dangerous because training may appear to continue normally.',
+      misconceptionTested: 'Calling the optimizer or backward pass automatically restores training-mode behavior after validation.',
+    },
+  ],
   'gradient-problems': [
     {
       id: 'gradient-depth-profile-diagnosis',
