@@ -13,6 +13,7 @@ export const DEEP_LEARNING_P1_AUDITED_LESSON_IDS = Object.freeze([
   'regularization',
   'dropout-batchnorm',
   'layer-normalization',
+  'conv2d',
 ]);
 
 export const DEEP_LEARNING_P1_REQUIREMENTS = Object.freeze([
@@ -99,5 +100,29 @@ export const DEEP_LEARNING_P1_REQUIREMENTS = Object.freeze([
     'dropout-batchnorm',
     ['dbn-040-not-replacement', 'dbn-048-dropout-after-bn'],
     ['dropout-batchnorm-order-diagnosis'],
+  ),
+  competency(
+    'cnn-stride-padding-dilation',
+    'conv2d',
+    ['c2d-010-stride-basic', 'c2d-011-padding-basic', 'c2d-041-dilation-basic'],
+    ['conv2d-stride-padding-dilation-worked'],
+  ),
+  competency(
+    'cnn-receptive-field',
+    'conv2d',
+    ['c2d-040-receptive-field'],
+    ['conv2d-stacked-receptive-field-worked'],
+  ),
+  competency(
+    'cnn-parameter-sharing',
+    'conv2d',
+    ['c2d-006-weight-sharing', 'c2d-045-kernel-reuse-gradient'],
+    ['conv2d-parameter-sharing-worked'],
+  ),
+  competency(
+    'cnn-shape-calculations',
+    'conv2d',
+    ['c2d-052-shape-valid-2d', 'c2d-054-shape-stride-2d', 'c2d-055-filter-count-shape'],
+    ['conv2d-output-shape-channels-worked'],
   ),
 ]);
