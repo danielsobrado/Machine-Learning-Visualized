@@ -1,4 +1,5 @@
 import { P1_CORE_RL_ALGORITHMS_APPLIED_SCENARIOS_BY_LESSON } from './p1CoreRlAlgorithmsAppliedScenarioQuestions.js';
+import { P1_Q_LEARNING_SCENARIOS_BY_LESSON } from './p1QLearningScenarioQuestions.js';
 
 export const P1_REINFORCEMENT_LEARNING_APPLIED_SCENARIOS_BY_LESSON = Object.freeze({
   ...P1_CORE_RL_ALGORITHMS_APPLIED_SCENARIOS_BY_LESSON,
@@ -35,6 +36,7 @@ export const P1_REINFORCEMENT_LEARNING_APPLIED_SCENARIOS_BY_LESSON = Object.free
       explanation: 'A terminal transition has target equal to the terminal reward, so the TD error is 2 - 4 = -2. Multiplying by alpha gives -0.5, moving Q from 4.0 to 3.5 rather than fully replacing it.',
       misconceptionTested: 'Q-learning should bootstrap through terminal states or ignore the learning rate on terminal updates.',
     },
+    ...P1_Q_LEARNING_SCENARIOS_BY_LESSON['q-learning'],
   ],
   'rl-exploration': [
     {
