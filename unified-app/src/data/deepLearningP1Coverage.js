@@ -82,4 +82,22 @@ export const DEEP_LEARNING_P1_REQUIREMENTS = Object.freeze([
     ['dbn-011-bn-training', 'dbn-012-bn-eval', 'dbn-054-bn-inference-bug'],
     ['dropout-batchnorm-eval-mode-diagnosis'],
   ),
+  competency(
+    'dropout-inverted-scaling',
+    'dropout-batchnorm',
+    ['dbn-032-inverted-dropout', 'dbn-034-rate-p'],
+    ['dropout-inverted-expectation-worked'],
+  ),
+  competency(
+    'dropout-inference-behavior',
+    'dropout-batchnorm',
+    ['dbn-077-trap-inference-dropout', 'dbn-093-interview-mode'],
+    ['dropout-train-inference'],
+  ),
+  competency(
+    'dropout-normalization-interaction',
+    'dropout-batchnorm',
+    ['dbn-040-not-replacement', 'dbn-048-dropout-after-bn'],
+    ['dropout-batchnorm-order-diagnosis'],
+  ),
 ]);
