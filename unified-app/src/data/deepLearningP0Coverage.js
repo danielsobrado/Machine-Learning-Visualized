@@ -14,6 +14,7 @@ export const DEEP_LEARNING_P0_AUDITED_LESSON_IDS = Object.freeze([
   'initialization',
   'gradient-problems',
   'loss-functions-likelihoods',
+  'dropout-batchnorm',
   'relu',
   'leaky-relu',
 ]);
@@ -148,6 +149,27 @@ export const DEEP_LEARNING_P0_REQUIREMENTS = Object.freeze([
     'loss-functions-likelihoods',
     ['losslik-010-classification', 'losslik-089-trap-target'],
     ['loss-output-incorrect-pairing-diagnosis'],
+    1,
+  ),
+  competency(
+    'train-eval-dropout-semantics',
+    'dropout-batchnorm',
+    ['dbn-009-training-mode', 'dbn-010-eval-dropout', 'dbn-053-train-inference-gap'],
+    ['train-eval-dropout-serving-mode'],
+    1,
+  ),
+  competency(
+    'train-eval-batchnorm-statistics',
+    'dropout-batchnorm',
+    ['dbn-011-bn-training', 'dbn-012-bn-eval', 'dbn-054-bn-inference-bug'],
+    ['train-eval-batchnorm-request-batch'],
+    1,
+  ),
+  competency(
+    'train-eval-state-transition-bugs',
+    'dropout-batchnorm',
+    ['dbn-043-train-eval-flag', 'dbn-065-production-mode', 'dbn-083-trap-mode'],
+    ['train-eval-validation-mode-leak'],
     1,
   ),
 ]);
