@@ -54,6 +54,7 @@ import { P1_STATISTICS_DECISION_SCENARIOS_BY_LESSON } from './p1StatisticsDecisi
 import { P1_STATISTICS_GAP_SCENARIOS_BY_LESSON } from './p1StatisticsGapScenarioQuestions.js';
 import { P1_STATISTICS_SCENARIOS_BY_LESSON } from './p1StatisticsScenarioQuestions.js';
 import { P1_TRANSFORMER_COMPLEXITY_SCENARIOS_BY_LESSON } from './p1TransformerComplexityScenarioQuestions.js';
+import { P1_TRANSFORMER_FAMILY_OBJECTIVE_SCENARIOS_BY_LESSON } from './p1TransformerFamilyObjectiveScenarioQuestions.js';
 import { P2_SCENARIOS_BY_LESSON } from './p2ScenarioQuestions.js';
 
 export const ASSESSMENT_SCENARIO_EXTENSION_SOURCES = Object.freeze([
@@ -88,6 +89,7 @@ export const ASSESSMENT_SCENARIO_EXTENSION_SOURCES = Object.freeze([
   Object.freeze({ id: 'p1-model-reliability-applied', priority: 'P1', questionsByLesson: P1_MODEL_RELIABILITY_APPLIED_SCENARIOS_BY_LESSON }),
   Object.freeze({ id: 'p1-multi-head-positional', priority: 'P1', questionsByLesson: P1_MULTI_HEAD_POSITIONAL_SCENARIOS_BY_LESSON }),
   Object.freeze({ id: 'p1-transformer-complexity', priority: 'P1', questionsByLesson: P1_TRANSFORMER_COMPLEXITY_SCENARIOS_BY_LESSON }),
+  Object.freeze({ id: 'p1-transformer-family-objectives', priority: 'P1', questionsByLesson: P1_TRANSFORMER_FAMILY_OBJECTIVE_SCENARIOS_BY_LESSON }),
   Object.freeze({ id: 'p1-neural-applied-training', priority: 'P1', questionsByLesson: P1_NEURAL_APPLIED_TRAINING_SCENARIOS_BY_LESSON }),
   Object.freeze({ id: 'p1-neural-applied-architecture', priority: 'P1', questionsByLesson: P1_NEURAL_APPLIED_ARCHITECTURE_SCENARIOS_BY_LESSON }),
   Object.freeze({ id: 'p1-advanced-neural-architectures-applied', priority: 'P1', questionsByLesson: P1_ADVANCED_NEURAL_ARCHITECTURES_APPLIED_SCENARIOS_BY_LESSON }),
