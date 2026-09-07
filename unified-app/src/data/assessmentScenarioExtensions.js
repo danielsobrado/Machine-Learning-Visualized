@@ -19,6 +19,7 @@ import { P1_CNN_FAILURE_MODE_SCENARIOS_BY_LESSON } from './p1CnnFailureModeScena
 import { P1_CNN_SCENARIOS_BY_LESSON } from './p1CnnScenarioQuestions.js';
 import { P1_CURRICULUM_TAIL_APPLIED_SCENARIOS_BY_LESSON } from './p1CurriculumTailAppliedScenarioQuestions.js';
 import { P1_DROPOUT_SCENARIOS_BY_LESSON } from './p1DropoutScenarioQuestions.js';
+import { P1_FINE_TUNING_RAG_CHUNKING_SCENARIOS_BY_LESSON } from './p1FineTuningRagChunkingScenarioQuestions.js';
 import { P1_FOUNDATION_MODELS_APPLIED_SCENARIOS_BY_LESSON } from './p1FoundationModelsAppliedScenarioQuestions.js';
 import { P1_FRONTIER_SYSTEMS_APPLIED_SCENARIOS_BY_LESSON } from './p1FrontierSystemsAppliedScenarioQuestions.js';
 import { P1_GENERATION_SAMPLING_SCENARIOS_BY_LESSON } from './p1GenerationSamplingScenarioQuestions.js';
@@ -92,6 +93,7 @@ export const ASSESSMENT_SCENARIO_EXTENSION_SOURCES = Object.freeze([
   Object.freeze({ id: 'p1-transformer-complexity', priority: 'P1', questionsByLesson: P1_TRANSFORMER_COMPLEXITY_SCENARIOS_BY_LESSON }),
   Object.freeze({ id: 'p1-transformer-family-objectives', priority: 'P1', questionsByLesson: P1_TRANSFORMER_FAMILY_OBJECTIVE_SCENARIOS_BY_LESSON }),
   Object.freeze({ id: 'p1-generation-sampling', priority: 'P1', questionsByLesson: P1_GENERATION_SAMPLING_SCENARIOS_BY_LESSON }),
+  Object.freeze({ id: 'p1-fine-tuning-rag-chunking', priority: 'P1', questionsByLesson: P1_FINE_TUNING_RAG_CHUNKING_SCENARIOS_BY_LESSON }),
   Object.freeze({ id: 'p1-neural-applied-training', priority: 'P1', questionsByLesson: P1_NEURAL_APPLIED_TRAINING_SCENARIOS_BY_LESSON }),
   Object.freeze({ id: 'p1-neural-applied-architecture', priority: 'P1', questionsByLesson: P1_NEURAL_APPLIED_ARCHITECTURE_SCENARIOS_BY_LESSON }),
   Object.freeze({ id: 'p1-advanced-neural-architectures-applied', priority: 'P1', questionsByLesson: P1_ADVANCED_NEURAL_ARCHITECTURES_APPLIED_SCENARIOS_BY_LESSON }),
