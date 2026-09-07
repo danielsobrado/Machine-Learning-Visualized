@@ -47,6 +47,11 @@ const REQUIRED_P1_COMPETENCY_IDS = Object.freeze([
   'position-order-necessity',
   'position-sinusoidal-vs-learned',
   'position-absolute-vs-relative',
+  'transformer-complexity-quadratic-attention',
+  'transformer-complexity-attention-vs-mlp',
+  'transformer-complexity-parameters-vs-context',
+  'transformer-complexity-kv-cache-decode',
+  'transformer-complexity-attention-memory',
 ]);
 
 function itemsById(items = []) {
