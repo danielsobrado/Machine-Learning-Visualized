@@ -30,6 +30,16 @@ const REQUIRED_P1_COMPETENCY_IDS = Object.freeze([
   'cnn-receptive-field',
   'cnn-parameter-sharing',
   'cnn-shape-calculations',
+  'cnn-failure-translation-behavior',
+  'cnn-failure-pooling-information-loss',
+  'cnn-failure-shortcut-learning',
+  'recurrent-state-semantics',
+  'recurrent-long-term-dependencies',
+  'recurrent-gradient-problems',
+  'recurrent-rnn-lstm-gru-model-choice',
+  'sequence-training-teacher-forcing',
+  'sequence-training-exposure-bias',
+  'sequence-training-autoregressive-inference',
 ]);
 
 function itemsById(items = []) {
