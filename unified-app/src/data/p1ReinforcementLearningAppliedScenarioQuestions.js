@@ -1,4 +1,5 @@
 import { P1_CORE_RL_ALGORITHMS_APPLIED_SCENARIOS_BY_LESSON } from './p1CoreRlAlgorithmsAppliedScenarioQuestions.js';
+import { P1_GRPO_REASONING_SCENARIOS_BY_LESSON } from './p1GrpoReasoningScenarioQuestions.js';
 import { P1_Q_LEARNING_SCENARIOS_BY_LESSON } from './p1QLearningScenarioQuestions.js';
 import { P1_RL_EXPLORATION_SCENARIOS_BY_LESSON } from './p1RlExplorationScenarioQuestions.js';
 import { P1_RL_FOUNDATIONS_SCENARIOS_BY_LESSON } from './p1RlFoundationsScenarioQuestions.js';
@@ -75,6 +76,7 @@ export const P1_REINFORCEMENT_LEARNING_APPLIED_SCENARIOS_BY_LESSON = Object.free
       explanation: 'The group mean is (1 + 1 + 3 + 5) / 4 = 2.5. Under the explicitly stated mean-centering rule, the reward-5 completion receives advantage 5 - 2.5 = 2.5.',
       misconceptionTested: 'Group-relative optimization uses raw verifier reward directly without comparing sibling completions.',
     },
+    ...P1_GRPO_REASONING_SCENARIOS_BY_LESSON['grpo-reasoning'],
   ],
   'dapo-reasoning-rl': [
     {
