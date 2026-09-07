@@ -20,6 +20,9 @@ const REQUIRED_P1_COMPETENCY_IDS = Object.freeze([
   'optimization-learning-rate',
   'optimization-schedules',
   'optimization-weight-decay-vs-l2',
+  'normalization-batchnorm-vs-layernorm',
+  'normalization-small-batch-behavior',
+  'normalization-train-eval-statistics',
 ]);
 
 function itemsById(items = []) {
@@ -69,7 +72,7 @@ test('deep learning P1 competencies resolve to explicit live assessment ids', as
   }
 });
 
-test('deep learning P1 fundamentals require applied reasoning evidence', () => {
+test('deep learning P1 competencies require applied reasoning evidence', () => {
   for (const requirement of DEEP_LEARNING_P1_REQUIREMENTS) {
     const assessment = getLessonAssessment(requirement.lessonId);
     const scenarios = itemsById(assessment.scenarioQuestions);
