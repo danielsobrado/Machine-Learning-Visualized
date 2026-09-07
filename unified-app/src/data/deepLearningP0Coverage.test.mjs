@@ -37,6 +37,12 @@ const REQUIRED_P0_COMPETENCY_IDS = Object.freeze([
   'train-eval-dropout-semantics',
   'train-eval-batchnorm-statistics',
   'train-eval-state-transition-bugs',
+  'attention-qkv-semantics',
+  'attention-scaled-dot-product',
+  'attention-softmax-axis',
+  'attention-shape-reasoning',
+  'attention-mask-causal-vs-padding',
+  'attention-mask-leakage-and-axes',
 ]);
 
 function itemsById(items = []) {
