@@ -1,5 +1,6 @@
 import { P1_CORE_RL_ALGORITHMS_APPLIED_SCENARIOS_BY_LESSON } from './p1CoreRlAlgorithmsAppliedScenarioQuestions.js';
 import { P1_Q_LEARNING_SCENARIOS_BY_LESSON } from './p1QLearningScenarioQuestions.js';
+import { P1_RL_EXPLORATION_SCENARIOS_BY_LESSON } from './p1RlExplorationScenarioQuestions.js';
 
 export const P1_REINFORCEMENT_LEARNING_APPLIED_SCENARIOS_BY_LESSON = Object.freeze({
   ...P1_CORE_RL_ALGORITHMS_APPLIED_SCENARIOS_BY_LESSON,
@@ -54,6 +55,7 @@ export const P1_REINFORCEMENT_LEARNING_APPLIED_SCENARIOS_BY_LESSON = Object.free
       explanation: 'The greedy action is chosen through exploitation with probability 0.80 and can also be selected during uniform exploration with probability 0.20 * 0.25 = 0.05, giving 0.85 total.',
       misconceptionTested: 'The epsilon exploration branch necessarily excludes the action that is currently greedy.',
     },
+    ...P1_RL_EXPLORATION_SCENARIOS_BY_LESSON['rl-exploration'],
   ],
   'grpo-reasoning': [
     {
