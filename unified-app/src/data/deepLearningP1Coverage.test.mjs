@@ -40,6 +40,13 @@ const REQUIRED_P1_COMPETENCY_IDS = Object.freeze([
   'sequence-training-teacher-forcing',
   'sequence-training-exposure-bias',
   'sequence-training-autoregressive-inference',
+  'multihead-diverse-subspaces',
+  'multihead-dimension-accounting',
+  'multihead-concat-output-projection',
+  'multihead-redundant-heads',
+  'position-order-necessity',
+  'position-sinusoidal-vs-learned',
+  'position-absolute-vs-relative',
 ]);
 
 function itemsById(items = []) {
