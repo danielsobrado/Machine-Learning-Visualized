@@ -1,4 +1,5 @@
 import { P1_CORE_RL_ALGORITHMS_APPLIED_SCENARIOS_BY_LESSON } from './p1CoreRlAlgorithmsAppliedScenarioQuestions.js';
+import { P1_DAPO_REASONING_SCENARIOS_BY_LESSON } from './p1DapoReasoningScenarioQuestions.js';
 import { P1_GRPO_REASONING_SCENARIOS_BY_LESSON } from './p1GrpoReasoningScenarioQuestions.js';
 import { P1_Q_LEARNING_SCENARIOS_BY_LESSON } from './p1QLearningScenarioQuestions.js';
 import { P1_RL_EXPLORATION_SCENARIOS_BY_LESSON } from './p1RlExplorationScenarioQuestions.js';
@@ -94,6 +95,7 @@ export const P1_REINFORCEMENT_LEARNING_APPLIED_SCENARIOS_BY_LESSON = Object.free
       explanation: 'Only the 28 mixed groups provide the contrast Dynamic Sampling is designed to keep. Dividing 28 by 64 gives 0.4375, or 43.75%, showing how much rollout budget actually reaches the optimizer.',
       misconceptionTested: 'All-correct and all-wrong groups are equally informative for group-relative reasoning updates.',
     },
+    ...P1_DAPO_REASONING_SCENARIOS_BY_LESSON['dapo-reasoning-rl'],
   ],
   'coconut-latent-reasoning': [
     {
