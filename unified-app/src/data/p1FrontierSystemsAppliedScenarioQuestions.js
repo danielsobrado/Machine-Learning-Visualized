@@ -1,3 +1,5 @@
+import { P1_LONG_CONTEXT_FRONTIER_SCENARIOS_BY_LESSON } from './p1LongContextFrontierScenarioQuestions.js';
+
 export const P1_FRONTIER_SYSTEMS_APPLIED_SCENARIOS_BY_LESSON = Object.freeze({
   'test-time-compute-thinking-budgets': [
     {
@@ -32,6 +34,7 @@ export const P1_FRONTIER_SYSTEMS_APPLIED_SCENARIOS_BY_LESSON = Object.freeze({
       explanation: 'Maximum accepted sequence length is a capacity claim, not a guarantee of uniform reasoning quality. The strong position effect and collapse on separated multi-hop evidence show that usable context depends on where evidence appears, distractor load, and the reasoning required to combine it.',
       misconceptionTested: 'A model that accepts a very long prompt and passes a simple needle benchmark necessarily uses all positions and multi-hop evidence with equal reliability.',
     },
+    ...P1_LONG_CONTEXT_FRONTIER_SCENARIOS_BY_LESSON['long-context-frontier-models'],
   ],
   'omni-multimodal-architectures': [
     {
