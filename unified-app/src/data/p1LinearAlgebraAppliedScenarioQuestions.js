@@ -1,3 +1,5 @@
+import { P1_QR_DECOMPOSITION_SCENARIOS_BY_LESSON } from './p1QrDecompositionScenarioQuestions.js';
+
 export const P1_LINEAR_ALGEBRA_APPLIED_SCENARIOS_BY_LESSON = Object.freeze({
   'matrix-multiplication': [
     {
@@ -83,6 +85,7 @@ export const P1_LINEAR_ALGEBRA_APPLIED_SCENARIOS_BY_LESSON = Object.freeze({
       explanation: 'The second row gives 3x2 = 6, so x2 = 2. Substituting into the first row gives 2x1 + 2 = 5, hence x1 = 1.5. QR solves least squares through an orthogonal transform followed by a stable triangular solve, avoiding the conditioning damage of explicitly forming A^T A.',
       misconceptionTested: 'Once Q^T b is computed, least squares is solved directly without using R, or normal equations are the only practical route from a rectangular system to coefficients.',
     },
+    ...P1_QR_DECOMPOSITION_SCENARIOS_BY_LESSON['qr-decomposition'],
   ],
   svd: [
     {
