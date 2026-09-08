@@ -1,4 +1,5 @@
 import { P1_AGENTIC_CODING_SYSTEMS_SCENARIOS_BY_LESSON } from './p1AgenticCodingSystemsScenarioQuestions.js';
+import { P1_FRONTIER_EVALUATION_SAFETY_SCENARIOS_BY_LESSON } from './p1FrontierEvaluationSafetyScenarioQuestions.js';
 import { P1_TOOL_USING_REASONING_MODELS_SCENARIOS_BY_LESSON } from './p1ToolUsingReasoningModelsScenarioQuestions.js';
 
 export const P1_AGENTIC_APPLIED_SCENARIOS_BY_LESSON = Object.freeze({
@@ -54,6 +55,7 @@ export const P1_AGENTIC_APPLIED_SCENARIOS_BY_LESSON = Object.freeze({
       explanation: 'The public score is weak evidence of generalization when training exposure is plausible. The fresh evaluation is below the explicit 80% capability threshold, and the safety evaluation violates the zero-prohibited-action requirement. Both independent release gates fail, so the headline benchmark cannot justify approval.',
       misconceptionTested: 'A strong aggregate benchmark can override contamination concerns, fresh generalization evidence, or explicit rare-event safety gates in a frontier-model release decision.',
     },
+    ...P1_FRONTIER_EVALUATION_SAFETY_SCENARIOS_BY_LESSON['frontier-evaluation-safety'],
   ],
 });
 
