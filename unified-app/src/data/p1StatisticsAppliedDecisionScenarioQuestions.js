@@ -1,6 +1,7 @@
 import { P1_BAYES_RULE_ML_SCENARIOS_BY_LESSON } from './p1BayesRuleMlScenarioQuestions.js';
 import { P1_CONFOUNDING_SIMPSONS_PARADOX_SCENARIOS_BY_LESSON } from './p1ConfoundingSimpsonsParadoxScenarioQuestions.js';
 import { P1_MAXIMUM_LIKELIHOOD_ESTIMATION_SCENARIOS_BY_LESSON } from './p1MaximumLikelihoodEstimationScenarioQuestions.js';
+import { P1_SAMPLING_CONFIDENCE_INTERVALS_SCENARIOS_BY_LESSON } from './p1SamplingConfidenceIntervalsScenarioQuestions.js';
 import { P1_SEQUENTIAL_TESTING_PEEKING_SCENARIOS_BY_LESSON } from './p1SequentialTestingPeekingScenarioQuestions.js';
 
 export const P1_STATISTICS_APPLIED_DECISION_SCENARIOS_BY_LESSON = Object.freeze({
@@ -46,6 +47,7 @@ export const P1_STATISTICS_APPLIED_DECISION_SCENARIOS_BY_LESSON = Object.freeze(
       explanation: 'The independent experimental units are patients, not daily rows. Cluster-level resampling preserves within-patient dependence and avoids pretending repeated measurements create independent information. The confidence-interval method should match the sampling and assignment structure.',
       misconceptionTested: 'Confidence intervals can treat every recorded row as independent even when treatment and dependence operate at a higher grouping level.',
     },
+    ...P1_SAMPLING_CONFIDENCE_INTERVALS_SCENARIOS_BY_LESSON['sampling-confidence-intervals'],
   ],
   'sequential-testing-peeking': [
     {
