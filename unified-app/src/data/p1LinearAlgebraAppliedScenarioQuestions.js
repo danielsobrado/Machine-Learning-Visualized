@@ -1,3 +1,4 @@
+import { P1_MATRIX_MULTIPLICATION_SCENARIOS_BY_LESSON } from './p1MatrixMultiplicationScenarioQuestions.js';
 import { P1_QR_DECOMPOSITION_SCENARIOS_BY_LESSON } from './p1QrDecompositionScenarioQuestions.js';
 import { P1_SVD_SCENARIOS_BY_LESSON } from './p1SvdScenarioQuestions.js';
 
@@ -18,6 +19,7 @@ export const P1_LINEAR_ALGEBRA_APPLIED_SCENARIOS_BY_LESSON = Object.freeze({
       explanation: 'The inner dimensions 128 match, so XW has shape 32 x 64. Each of 32 x 64 output values is a dot product of length 128, giving 32 x 64 x 128 = 262,144 scalar multiplications. Matrix dimensions therefore determine both representational shape and compute cost.',
       misconceptionTested: 'Matrix multiplication shape rules can be reasoned about independently from the compute implied by the same dimensions, or the input feature width must remain the output width.',
     },
+    ...P1_MATRIX_MULTIPLICATION_SCENARIOS_BY_LESSON['matrix-multiplication'],
   ],
   pca: [
     {
