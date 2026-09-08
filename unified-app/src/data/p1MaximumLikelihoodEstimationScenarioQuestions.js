@@ -1,0 +1,113 @@
+export const P1_MAXIMUM_LIKELIHOOD_ESTIMATION_SCENARIOS_BY_LESSON = Object.freeze({
+  'maximum-likelihood-estimation': [
+    {
+      id: 'mle-bernoulli-log-likelihood-worked',
+      level: 'calculation',
+      relatedComparison: 'empirical-rate-mle-vs-wrong-bernoulli-candidate',
+      scenario: 'A Bernoulli dataset contains 8 successes and 2 failures. Compare candidate p = 0.8 with p = 0.5 using log L(p) = 8 log(p) + 2 log(1 - p). Using natural logs, log L(0.8) is about -5.00 and log L(0.5) is about -6.93.',
+      prompt: 'Which candidate is better supported by the observed data, and why?',
+      choices: [
+        'p = 0.8 because -5.00 is the larger log-likelihood and it matches the observed success fraction',
+        'p = 0.5 because a more negative log-likelihood means a larger likelihood',
+        'They are equally supported because log-likelihood cannot compare Bernoulli parameters',
+      ],
+      answerIndex: 0,
+      explanation: 'Log is monotonic, so the candidate with the larger log-likelihood also has the larger likelihood. The observed success fraction is 8/10 = 0.8, which is the Bernoulli MLE. The approximately 1.93 log-likelihood gap quantifies how much the data prefer p = 0.8 over p = 0.5 under this model.',
+      misconceptionTested: 'Negative log-likelihood values should be compared by absolute magnitude, or a Bernoulli MLE can be identified without respecting the success and failure counts.',
+    },
+    {
+      id: 'mle-gaussian-mean-variance-worked',
+      level: 'calculation',
+      relatedComparison: 'gaussian-mle-variance-vs-unbiased-sample-variance',
+      scenario: 'Assume x = [2, 4, 6, 8] are iid Gaussian observations with both mean and variance unknown. The sample mean is 5, and the squared residuals around 5 sum to 20. For Gaussian MLE, the variance estimate divides this residual sum by n, not by n - 1.',
+      prompt: 'What are the Gaussian MLE estimates for the mean and variance?',
+      choices: [
+        'mu_hat = 5 and sigma_hat^2 = 5 because 20 / 4 = 5',
+        'mu_hat = 5 and sigma_hat^2 = 20/3 because MLE always uses the unbiased variance denominator',
+        'mu_hat = 4 and sigma_hat^2 = 5 because the MLE mean must be one observed value',
+      ],
+      answerIndex: 0,
+      explanation: 'The Gaussian MLE for the mean is the sample average, 5. With the mean fitted by MLE, the variance MLE is (1/n) times the residual sum of squares, so 20/4 = 5. Dividing by n - 1 gives the usual unbiased sample-variance estimator, which is a different estimation criterion.',
+      misconceptionTested: 'The Gaussian variance MLE and the unbiased sample-variance estimator are numerically identical and therefore always use the same denominator.',
+    },
+    {
+      id: 'mle-log-likelihood-ratio-worked',
+      level: 'calculation',
+      relatedComparison: 'log-likelihood-gap-vs-likelihood-ratio',
+      scenario: 'Two fixed parameter candidates are evaluated on the same observed data. Candidate A has log-likelihood -120 and candidate B has log-likelihood -123. The likelihood ratio L(A)/L(B) equals exp(log L(A) - log L(B)).',
+      prompt: 'Approximately how much more likelihood does candidate A have than candidate B?',
+      choices: [
+        'About 20 times, because exp(-120 - (-123)) = exp(3) is about 20.1',
+        'About 3 times, because likelihood ratios equal raw log-likelihood differences',
+        'About 1/20 as much, because -120 is numerically smaller in magnitude than -123',
+      ],
+      answerIndex: 0,
+      explanation: 'The log-likelihood difference is 3, so the likelihood ratio is exp(3) ≈ 20.1. Differences in log-likelihood become multiplicative evidence ratios after exponentiation; the raw difference itself is not the likelihood ratio.',
+      misconceptionTested: 'A difference of three log-likelihood units means one candidate is only three times as likely as the other.',
+    },
+    {
+      id: 'mle-log-space-underflow-diagnosis',
+      level: 'diagnosis',
+      relatedComparison: 'raw-probability-product-vs-log-likelihood-sum',
+      scenario: 'A production scorer multiplies thousands of probabilities and both candidate likelihoods become floating-point zero. Their accumulated log-likelihoods are still finite at -6812 and -6849.',
+      prompt: 'How should the implementation compare these candidates without losing the information?',
+      choices: [
+        'Keep the computation in log space and prefer -6812 because it is the larger log-likelihood',
+        'Treat the candidates as tied because both raw products underflowed to zero',
+        'Exponentiate each per-row probability before multiplying so the final product becomes larger',
+      ],
+      answerIndex: 0,
+      explanation: 'Products of many probabilities can underflow even when the candidates are meaningfully different. Summing log probabilities preserves the ordering and remains numerically stable. Since -6812 is greater than -6849, the first candidate has higher likelihood.',
+      misconceptionTested: 'Once raw likelihood products underflow to the same floating-point value, the statistical evidence has become genuinely identical.',
+    },
+    {
+      id: 'mle-iid-dependence-diagnosis',
+      level: 'diagnosis',
+      relatedComparison: 'row-level-iid-likelihood-vs-clustered-dependence',
+      scenario: 'A dataset has 10,000 sensor rows but only 100 physical machines. Measurements within each machine are strongly correlated. The fitted likelihood multiplies all 10,000 row contributions as though they were independent and reports an extremely sharp likelihood peak.',
+      prompt: 'What is the main statistical concern with interpreting that sharp peak?',
+      choices: [
+        'The iid likelihood can overstate the amount of independent information because repeated rows from one machine are correlated',
+        'Correlation within a machine increases the effective sample size above 10,000',
+        'MLE does not require any assumptions about dependence between observations',
+      ],
+      answerIndex: 0,
+      explanation: 'A product likelihood over rows implicitly encodes an independence structure unless the joint model says otherwise. Strong within-machine dependence means 10,000 rows do not behave like 10,000 independent experimental units, so naive curvature and uncertainty can be far too confident.',
+      misconceptionTested: 'The number of stored rows is automatically the number of independent likelihood contributions, regardless of clustering or repeated measurements.',
+    },
+    {
+      id: 'mle-poisson-overdispersion-diagnosis',
+      level: 'diagnosis',
+      relatedComparison: 'poisson-mean-variance-assumption-vs-overdispersed-counts',
+      scenario: 'A count model uses a Poisson likelihood. The fitted mean count is about 4, but held-out groups repeatedly show variance near 30 and many more large counts than the Poisson model predicts.',
+      prompt: 'What should the team conclude about the likelihood model?',
+      choices: [
+        'The Poisson family is likely misspecified for the dispersion pattern, so the MLE can be the best Poisson parameter and still give poor uncertainty or predictions',
+        'The Poisson MLE proves the variance must equal 4 in the real data-generating process',
+        'A maximum likelihood estimate automatically repairs any mismatch between the selected family and the observed distribution',
+      ],
+      answerIndex: 0,
+      explanation: 'MLE finds the best parameter inside the assumed family; it does not make the family correct. Poisson models tie mean and variance, so variance around 30 at mean 4 is strong overdispersion evidence. A different count family or richer structure should be evaluated.',
+      misconceptionTested: 'Finding an MLE validates the chosen probability family and guarantees its distributional assumptions match the data.',
+    },
+    {
+      id: 'mle-aic-complexity-worked-decision',
+      level: 'decision',
+      relatedComparison: 'raw-training-likelihood-vs-complexity-penalized-model-selection',
+      scenario: 'Two models are fit to the same data. Model A has k = 2 free parameters and log-likelihood -100. Model B has k = 10 and log-likelihood -95. If the team explicitly chooses AIC = 2k - 2 log L as its model-selection rule, AIC(A) = 204 and AIC(B) = 210.',
+      prompt: 'Which model does the stated AIC rule prefer, despite Model B having higher raw training likelihood?',
+      choices: [
+        'Model A because lower AIC is preferred and its smaller complexity outweighs Model B’s five log-likelihood-unit gain',
+        'Model B because maximum raw training likelihood must always win even when the selection rule includes a complexity penalty',
+        'They tie because AIC ignores the number of fitted parameters',
+      ],
+      answerIndex: 0,
+      explanation: 'Raw training likelihood generally cannot decrease when a nested model gains useful flexibility, so model-family comparison needs a stated criterion. Under the specified AIC rule, Model A scores 204 versus Model B at 210, so A is preferred. This does not mean AIC is universally the right criterion; it means the declared complexity-adjusted rule must actually be applied.',
+      misconceptionTested: 'The model with the largest in-sample likelihood is automatically the best model even when comparing different model complexities.',
+    },
+  ],
+});
+
+export function getP1MaximumLikelihoodEstimationScenariosForLesson(lessonId) {
+  return P1_MAXIMUM_LIKELIHOOD_ESTIMATION_SCENARIOS_BY_LESSON[lessonId] || [];
+}
