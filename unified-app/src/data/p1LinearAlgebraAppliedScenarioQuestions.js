@@ -1,4 +1,5 @@
 import { P1_QR_DECOMPOSITION_SCENARIOS_BY_LESSON } from './p1QrDecompositionScenarioQuestions.js';
+import { P1_SVD_SCENARIOS_BY_LESSON } from './p1SvdScenarioQuestions.js';
 
 export const P1_LINEAR_ALGEBRA_APPLIED_SCENARIOS_BY_LESSON = Object.freeze({
   'matrix-multiplication': [
@@ -103,6 +104,7 @@ export const P1_LINEAR_ALGEBRA_APPLIED_SCENARIOS_BY_LESSON = Object.freeze({
       explanation: 'Rank 2 retains 80/85 = 94.1%, which misses the 95% target. Rank 3 retains 84/85 = 98.8%, so it is the smallest rank that satisfies the energy requirement. Rank selection should use the cumulative squared singular values when the objective is retained Frobenius energy.',
       misconceptionTested: 'Singular-value rank selection can use raw singular values or rounded intuition without checking the squared-energy threshold that defines Frobenius reconstruction quality.',
     },
+    ...P1_SVD_SCENARIOS_BY_LESSON.svd,
   ],
 });
 
