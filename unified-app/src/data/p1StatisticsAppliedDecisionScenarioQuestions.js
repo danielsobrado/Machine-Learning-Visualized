@@ -1,5 +1,6 @@
 import { P1_BAYES_RULE_ML_SCENARIOS_BY_LESSON } from './p1BayesRuleMlScenarioQuestions.js';
 import { P1_CONFOUNDING_SIMPSONS_PARADOX_SCENARIOS_BY_LESSON } from './p1ConfoundingSimpsonsParadoxScenarioQuestions.js';
+import { P1_MAXIMUM_LIKELIHOOD_ESTIMATION_SCENARIOS_BY_LESSON } from './p1MaximumLikelihoodEstimationScenarioQuestions.js';
 import { P1_SEQUENTIAL_TESTING_PEEKING_SCENARIOS_BY_LESSON } from './p1SequentialTestingPeekingScenarioQuestions.js';
 
 export const P1_STATISTICS_APPLIED_DECISION_SCENARIOS_BY_LESSON = Object.freeze({
@@ -16,6 +17,9 @@ export const P1_STATISTICS_APPLIED_DECISION_SCENARIOS_BY_LESSON = Object.freeze(
       misconceptionTested: 'Sensitivity can be read directly as the probability that a positive prediction is actually positive.',
     },
     ...P1_BAYES_RULE_ML_SCENARIOS_BY_LESSON['bayes-rule-ml'],
+  ],
+  'maximum-likelihood-estimation': [
+    ...P1_MAXIMUM_LIKELIHOOD_ESTIMATION_SCENARIOS_BY_LESSON['maximum-likelihood-estimation'],
   ],
   'loss-functions-likelihoods': [
     {
