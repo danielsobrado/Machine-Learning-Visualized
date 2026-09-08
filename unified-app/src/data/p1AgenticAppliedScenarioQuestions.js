@@ -1,3 +1,4 @@
+import { P1_AGENTIC_CODING_SYSTEMS_SCENARIOS_BY_LESSON } from './p1AgenticCodingSystemsScenarioQuestions.js';
 import { P1_TOOL_USING_REASONING_MODELS_SCENARIOS_BY_LESSON } from './p1ToolUsingReasoningModelsScenarioQuestions.js';
 
 export const P1_AGENTIC_APPLIED_SCENARIOS_BY_LESSON = Object.freeze({
@@ -35,6 +36,7 @@ export const P1_AGENTIC_APPLIED_SCENARIOS_BY_LESSON = Object.freeze({
       explanation: 'Each reliable midpoint test halves the candidate interval. Starting with 8 possible bad commits, three binary decisions are sufficient in the worst case: 8 to 4, 4 to 2, and 2 to 1. This is why disciplined bisect-style localization can beat sequential inspection on deterministic regressions.',
       misconceptionTested: 'A coding agent must inspect or test every recent commit individually even when a deterministic good/bad predicate supports binary-search regression localization.',
     },
+    ...P1_AGENTIC_CODING_SYSTEMS_SCENARIOS_BY_LESSON['agentic-coding-systems'],
   ],
   'frontier-evaluation-safety': [
     {
