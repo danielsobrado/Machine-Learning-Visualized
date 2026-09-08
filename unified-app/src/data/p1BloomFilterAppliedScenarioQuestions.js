@@ -1,3 +1,5 @@
+import { P1_BLOOM_FILTER_OPERATIONAL_SCENARIOS_BY_LESSON } from './p1BloomFilterOperationalScenarioQuestions.js';
+
 export const P1_BLOOM_FILTER_APPLIED_SCENARIOS_BY_LESSON = Object.freeze({
   'bloom-filter': [
     {
@@ -60,6 +62,7 @@ export const P1_BLOOM_FILTER_APPLIED_SCENARIOS_BY_LESSON = Object.freeze({
       explanation: 'Clearing bit 17 in a plain filter would erase evidence still needed by B and can create a false negative. Counting Bloom filters replace single bits with small counters, increment on insertion, and decrement on deletion; a position becomes absent only when the counter reaches zero. That preserves shared evidence when deletes are required.',
       misconceptionTested: 'A plain Bloom filter can safely delete an item by clearing all of its hashed bits even though those bits may also represent other inserted keys.',
     },
+    ...P1_BLOOM_FILTER_OPERATIONAL_SCENARIOS_BY_LESSON['bloom-filter'],
   ],
 });
 
