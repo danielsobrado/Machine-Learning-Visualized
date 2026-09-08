@@ -1,3 +1,5 @@
+import { P1_RESIDUAL_STREAM_SCENARIOS_BY_LESSON } from './p1ResidualStreamScenarioQuestions.js';
+
 export const P1_NLP_TRANSFORMER_APPLIED_REPRESENTATION_SCENARIOS_BY_LESSON = Object.freeze({
   'tokenization': [
     {
@@ -115,5 +117,6 @@ export const P1_NLP_TRANSFORMER_APPLIED_REPRESENTATION_SCENARIOS_BY_LESSON = Obj
       explanation: 'Residual connections preserve the current representation and add a learned update: (1.0+0.5, 2.0-1.0, -1.0+2.0) = (1.5,1.0,1.0). Replacing x with a would remove the identity path the residual design is meant to preserve.',
       misconceptionTested: 'A transformer sublayer normally contributes an additive update to the residual stream rather than overwriting the whole representation.',
     },
+    ...P1_RESIDUAL_STREAM_SCENARIOS_BY_LESSON['residual-stream'],
   ],
 });
