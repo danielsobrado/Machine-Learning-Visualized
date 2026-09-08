@@ -25,7 +25,7 @@ export const P1_NLP_TRANSFORMER_APPLIED_SYSTEMS_SCENARIOS_BY_LESSON = Object.fre
       prompt: 'How does Model B KV-cache width compare with Model A?',
       choices: ['It is 4x smaller for K/V states because 8 KV heads are stored instead of 32 while the query-head count can remain 32', 'It is identical because only query heads determine KV-cache width', 'It is 4x larger because sharing a KV head requires storing four copies'],
       answerIndex: 0,
-      explanation: 'For fixed head dimension, layers, precision, and tokens, cache width is proportional to the number of K/V heads. Reducing 32 KV heads to 8 cuts K/V cache storage and related bandwidth by a factor of four.',
+      explanation: 'For fixed head dimension, layers, precision, and tokens, cache width is proportional to the number of KV heads. Reducing 32 KV heads to 8 cuts K/V cache storage and related bandwidth by a factor of four.',
       misconceptionTested: 'Grouped-query attention can reduce inference cache cost even when the number of query heads and model width remain unchanged.',
     },
     ...P1_GROUPED_QUERY_ATTENTION_SCENARIO_QUESTIONS,
