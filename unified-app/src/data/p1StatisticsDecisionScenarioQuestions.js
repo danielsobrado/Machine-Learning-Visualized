@@ -1,3 +1,5 @@
+import { P1_FEATURE_SCALING_PREPROCESSING_SCENARIOS_BY_LESSON } from './p1FeatureScalingPreprocessingScenarioQuestions.js';
+
 export const P1_STATISTICS_DECISION_SCENARIOS_BY_LESSON = Object.freeze({
   'logistic-regression': [
     {
@@ -50,6 +52,7 @@ export const P1_STATISTICS_DECISION_SCENARIOS_BY_LESSON = Object.freeze({
       explanation: 'A log-like transform can compress multiplicative skew, while robust scaling reduces domination by extreme magnitudes. Both transformations must be fit inside the training boundary to avoid evaluation leakage and reproduced at serving time.',
       misconceptionTested: 'Standard or min-max scaling are the only useful transformations, and distance-based models do not care about skewed scale.',
     },
+    ...P1_FEATURE_SCALING_PREPROCESSING_SCENARIOS_BY_LESSON['feature-scaling-preprocessing'],
   ],
   'recommender-systems-ranking-track': [
     {
