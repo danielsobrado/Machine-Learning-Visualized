@@ -1,3 +1,5 @@
+import { P1_KV_CACHE_SCENARIOS } from './p1KvCacheScenarioQuestions.js';
+
 export const P1_NLP_TRANSFORMER_APPLIED_SYSTEMS_SCENARIOS_BY_LESSON = Object.freeze({
   'kv-cache': [
     {
@@ -11,6 +13,7 @@ export const P1_NLP_TRANSFORMER_APPLIED_SYSTEMS_SCENARIOS_BY_LESSON = Object.fre
       explanation: 'Multiplying layers, KV heads, head dimension, the K/V factor, bytes per element, and tokens gives 2,147,483,648 bytes, which is 2 GiB. KV-cache storage is linear in cached tokens for fixed model dimensions.',
       misconceptionTested: 'KV-cache memory is not quadratic in context length like dense attention pair computation; it stores per-token key and value states.',
     },
+    ...P1_KV_CACHE_SCENARIOS,
   ],
   'grouped-query-attention': [
     {
