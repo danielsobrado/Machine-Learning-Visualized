@@ -1,4 +1,5 @@
 import { P1_BAYES_RULE_ML_SCENARIOS_BY_LESSON } from './p1BayesRuleMlScenarioQuestions.js';
+import { P1_CONFOUNDING_SIMPSONS_PARADOX_SCENARIOS_BY_LESSON } from './p1ConfoundingSimpsonsParadoxScenarioQuestions.js';
 import { P1_SEQUENTIAL_TESTING_PEEKING_SCENARIOS_BY_LESSON } from './p1SequentialTestingPeekingScenarioQuestions.js';
 
 export const P1_STATISTICS_APPLIED_DECISION_SCENARIOS_BY_LESSON = Object.freeze({
@@ -81,6 +82,7 @@ export const P1_STATISTICS_APPLIED_DECISION_SCENARIOS_BY_LESSON = Object.freeze(
       explanation: 'Under equal weighting, A is (90% + 20%) / 2 = 55% and B is (80% + 10%) / 2 = 45%. A is better within each subgroup, but the unadjusted aggregate reverses the comparison because A contains many more high-risk cases.',
       misconceptionTested: 'An aggregate rate is always a fair treatment comparison even when subgroup composition differs and the direction reverses within strata.',
     },
+    ...P1_CONFOUNDING_SIMPSONS_PARADOX_SCENARIOS_BY_LESSON['confounding-simpsons-paradox'],
   ],
   'treatment-effects': [
     {
