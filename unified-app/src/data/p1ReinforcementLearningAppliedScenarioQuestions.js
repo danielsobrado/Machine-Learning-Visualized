@@ -3,6 +3,7 @@ import { P1_CORE_RL_ALGORITHMS_APPLIED_SCENARIOS_BY_LESSON } from './p1CoreRlAlg
 import { P1_DAPO_REASONING_SCENARIOS_BY_LESSON } from './p1DapoReasoningScenarioQuestions.js';
 import { P1_GRPO_REASONING_SCENARIOS_BY_LESSON } from './p1GrpoReasoningScenarioQuestions.js';
 import { P1_Q_LEARNING_SCENARIOS_BY_LESSON } from './p1QLearningScenarioQuestions.js';
+import { P1_REASONING_RLVR_GRPO_SCENARIOS_BY_LESSON } from './p1ReasoningRlvrGrpoScenarioQuestions.js';
 import { P1_RL_EXPLORATION_SCENARIOS_BY_LESSON } from './p1RlExplorationScenarioQuestions.js';
 import { P1_RL_FOUNDATIONS_SCENARIOS_BY_LESSON } from './p1RlFoundationsScenarioQuestions.js';
 
@@ -132,5 +133,6 @@ export const P1_REINFORCEMENT_LEARNING_APPLIED_SCENARIOS_BY_LESSON = Object.free
       explanation: 'The gap between training reward and independent correctness is evidence of verifier exploitation. Continuing to optimize the same proxy is likely to amplify the shortcut, so the reward and held-out evaluation need repair first.',
       misconceptionTested: 'A rising verifiable reward is sufficient evidence of reasoning improvement even when independent correctness does not move.',
     },
+    ...P1_REASONING_RLVR_GRPO_SCENARIOS_BY_LESSON['reasoning-rlvr-grpo'],
   ],
 });
