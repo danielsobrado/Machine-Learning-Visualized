@@ -1,5 +1,6 @@
 import { P1_BAYES_RULE_ML_SCENARIOS_BY_LESSON } from './p1BayesRuleMlScenarioQuestions.js';
 import { P1_CONFOUNDING_SIMPSONS_PARADOX_SCENARIOS_BY_LESSON } from './p1ConfoundingSimpsonsParadoxScenarioQuestions.js';
+import { P1_LOSS_FUNCTIONS_LIKELIHOODS_SCENARIOS_BY_LESSON } from './p1LossFunctionsLikelihoodsScenarioQuestions.js';
 import { P1_MAXIMUM_LIKELIHOOD_ESTIMATION_SCENARIOS_BY_LESSON } from './p1MaximumLikelihoodEstimationScenarioQuestions.js';
 import { P1_SAMPLING_CONFIDENCE_INTERVALS_SCENARIOS_BY_LESSON } from './p1SamplingConfidenceIntervalsScenarioQuestions.js';
 import { P1_SEQUENTIAL_TESTING_PEEKING_SCENARIOS_BY_LESSON } from './p1SequentialTestingPeekingScenarioQuestions.js';
@@ -34,6 +35,7 @@ export const P1_STATISTICS_APPLIED_DECISION_SCENARIOS_BY_LESSON = Object.freeze(
       explanation: 'Because |r| = 10 exceeds δ = 2, Huber loss is 2 × (10 - 1) = 18. The loss grows linearly outside the quadratic region, so one extreme residual has less leverage than under squared error.',
       misconceptionTested: 'Robust regression losses penalize large residuals exactly like squared error once the residual is outside the central region.',
     },
+    ...P1_LOSS_FUNCTIONS_LIKELIHOODS_SCENARIOS_BY_LESSON['loss-functions-likelihoods'],
   ],
   'sampling-confidence-intervals': [
     {
