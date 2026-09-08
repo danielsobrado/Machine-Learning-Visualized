@@ -1,3 +1,5 @@
+import { P1_SEQUENTIAL_TESTING_PEEKING_SCENARIOS_BY_LESSON } from './p1SequentialTestingPeekingScenarioQuestions.js';
+
 export const P1_STATISTICS_APPLIED_DECISION_SCENARIOS_BY_LESSON = Object.freeze({
   'bayes-rule-ml': [
     {
@@ -50,6 +52,7 @@ export const P1_STATISTICS_APPLIED_DECISION_SCENARIOS_BY_LESSON = Object.freeze(
       explanation: 'The design spends only about 0.0167 of significance level at each of the three looks. Since 0.020 is larger than 0.0167, the result does not cross the stated boundary. More efficient sequential boundaries exist, but the pre-specified rule must be followed rather than reverting to 0.05 after looking.',
       misconceptionTested: 'Repeated interim looks may each use the full ordinary significance threshold without changing the experiment-wide false-positive rate.',
     },
+    ...P1_SEQUENTIAL_TESTING_PEEKING_SCENARIOS_BY_LESSON['sequential-testing-peeking'],
   ],
   'cuped-variance-reduction': [
     {
