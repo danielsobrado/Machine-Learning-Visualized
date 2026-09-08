@@ -1,3 +1,4 @@
+import { P1_DIFFUSION_LANGUAGE_MODELS_SCENARIOS_BY_LESSON } from './p1DiffusionLanguageModelsScenarioQuestions.js';
 import { P1_LONG_CONTEXT_FRONTIER_SCENARIOS_BY_LESSON } from './p1LongContextFrontierScenarioQuestions.js';
 import { P1_OMNI_MULTIMODAL_ARCHITECTURES_SCENARIOS_BY_LESSON } from './p1OmniMultimodalArchitecturesScenarioQuestions.js';
 
@@ -54,6 +55,9 @@ export const P1_FRONTIER_SYSTEMS_APPLIED_SCENARIOS_BY_LESSON = Object.freeze({
       misconceptionTested: 'Multimodal alignment failures should be attributed to model capacity before verifying whether modality clocks and sampling timelines actually refer to the same real-world moments.',
     },
     ...P1_OMNI_MULTIMODAL_ARCHITECTURES_SCENARIOS_BY_LESSON['omni-multimodal-architectures'],
+  ],
+  'diffusion-language-models': [
+    ...P1_DIFFUSION_LANGUAGE_MODELS_SCENARIOS_BY_LESSON['diffusion-language-models'],
   ],
 });
 
