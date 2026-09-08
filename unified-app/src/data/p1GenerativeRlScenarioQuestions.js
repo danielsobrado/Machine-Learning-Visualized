@@ -1,3 +1,5 @@
+import { P1_TEST_TIME_COMPUTE_SCENARIOS_BY_LESSON } from './p1TestTimeComputeScenarioQuestions.js';
+
 export const P1_GENERATIVE_RL_SCENARIOS_BY_LESSON = Object.freeze({
   vae: [
     {
@@ -152,6 +154,7 @@ export const P1_GENERATIVE_RL_SCENARIOS_BY_LESSON = Object.freeze({
       explanation: 'Test-time compute should be allocated against a cost-quality frontier; diminishing returns make maximum search wasteful on easier or already-saturated cases.',
       misconceptionTested: 'More inference compute is always economically optimal when accuracy rises at all.',
     },
+    ...P1_TEST_TIME_COMPUTE_SCENARIOS_BY_LESSON['test-time-compute-thinking-budgets'],
   ],
   'tool-using-reasoning-models': [
     {
