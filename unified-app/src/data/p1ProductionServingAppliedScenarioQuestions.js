@@ -1,3 +1,5 @@
+import { P1_EFFICIENT_LLM_SERVING_SCENARIOS_BY_LESSON } from './p1EfficientLlmServingScenarioQuestions.js';
+
 export const P1_PRODUCTION_SERVING_APPLIED_SCENARIOS_BY_LESSON = Object.freeze({
   'efficient-inference-compression-track': [
     {
@@ -32,6 +34,7 @@ export const P1_PRODUCTION_SERVING_APPLIED_SCENARIOS_BY_LESSON = Object.freeze({
       explanation: 'Policy C violates both latency limits. Policies A and B both satisfy the SLOs, but B raises throughput from 900 to 1,250 tokens/s while staying below 700 ms TTFT and 60 ms inter-token latency. Serving configuration is constrained optimization, not single-metric maximization.',
       misconceptionTested: 'Batching should be selected by minimizing latency or maximizing throughput independently instead of choosing the best point that satisfies all product SLOs.',
     },
+    ...P1_EFFICIENT_LLM_SERVING_SCENARIOS_BY_LESSON['efficient-llm-serving'],
   ],
   'model-debugging': [
     {
