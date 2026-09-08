@@ -1,3 +1,4 @@
+import { P1_BAYES_RULE_ML_SCENARIOS_BY_LESSON } from './p1BayesRuleMlScenarioQuestions.js';
 import { P1_SEQUENTIAL_TESTING_PEEKING_SCENARIOS_BY_LESSON } from './p1SequentialTestingPeekingScenarioQuestions.js';
 
 export const P1_STATISTICS_APPLIED_DECISION_SCENARIOS_BY_LESSON = Object.freeze({
@@ -13,6 +14,7 @@ export const P1_STATISTICS_APPLIED_DECISION_SCENARIOS_BY_LESSON = Object.freeze(
       explanation: 'Among positive predictions there are about 90 true positives and 495 false positives. The posterior positive probability is therefore 90 / (90 + 495) ≈ 15.4%. Base rate matters even when sensitivity is high and the false-positive rate looks small.',
       misconceptionTested: 'Sensitivity can be read directly as the probability that a positive prediction is actually positive.',
     },
+    ...P1_BAYES_RULE_ML_SCENARIOS_BY_LESSON['bayes-rule-ml'],
   ],
   'loss-functions-likelihoods': [
     {
