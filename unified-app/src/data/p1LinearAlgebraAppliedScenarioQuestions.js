@@ -1,3 +1,4 @@
+import { P1_FUNDAMENTAL_SUBSPACES_SCENARIOS_BY_LESSON } from './p1FundamentalSubspacesScenarioQuestions.js';
 import { P1_MATRIX_MULTIPLICATION_SCENARIOS_BY_LESSON } from './p1MatrixMultiplicationScenarioQuestions.js';
 import { P1_QR_DECOMPOSITION_SCENARIOS_BY_LESSON } from './p1QrDecompositionScenarioQuestions.js';
 import { P1_SVD_SCENARIOS_BY_LESSON } from './p1SvdScenarioQuestions.js';
@@ -54,6 +55,7 @@ export const P1_LINEAR_ALGEBRA_APPLIED_SCENARIOS_BY_LESSON = Object.freeze({
       explanation: 'Every vector in the left null space is orthogonal to the column space. If Ax = b had a solution, b would lie in the column space and therefore satisfy y^T b = 0. Here y^T b = -4, so the proposed b cannot be produced by A and the system is inconsistent.',
       misconceptionTested: 'The left null space is only an abstract companion to the ordinary null space and cannot diagnose whether a particular right-hand side belongs to the column space.',
     },
+    ...P1_FUNDAMENTAL_SUBSPACES_SCENARIOS_BY_LESSON['fundamental-subspaces'],
   ],
   'matrix-decompositions': [
     {
