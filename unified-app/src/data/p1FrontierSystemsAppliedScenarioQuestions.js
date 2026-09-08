@@ -1,4 +1,5 @@
 import { P1_LONG_CONTEXT_FRONTIER_SCENARIOS_BY_LESSON } from './p1LongContextFrontierScenarioQuestions.js';
+import { P1_OMNI_MULTIMODAL_ARCHITECTURES_SCENARIOS_BY_LESSON } from './p1OmniMultimodalArchitecturesScenarioQuestions.js';
 
 export const P1_FRONTIER_SYSTEMS_APPLIED_SCENARIOS_BY_LESSON = Object.freeze({
   'test-time-compute-thinking-budgets': [
@@ -52,6 +53,7 @@ export const P1_FRONTIER_SYSTEMS_APPLIED_SCENARIOS_BY_LESSON = Object.freeze({
       explanation: 'At 20 ms per audio step, 120 ms corresponds to 6 audio steps. At 40 ms per video frame, it corresponds to 3 video frames. That systematic offset corrupts the cross-modal correspondence the model is supposed to learn, so the data/timestamp contract should be repaired before adding capacity.',
       misconceptionTested: 'Multimodal alignment failures should be attributed to model capacity before verifying whether modality clocks and sampling timelines actually refer to the same real-world moments.',
     },
+    ...P1_OMNI_MULTIMODAL_ARCHITECTURES_SCENARIOS_BY_LESSON['omni-multimodal-architectures'],
   ],
 });
 
