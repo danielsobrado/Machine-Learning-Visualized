@@ -1,3 +1,5 @@
+import { P1_TOOL_USING_REASONING_MODELS_SCENARIOS_BY_LESSON } from './p1ToolUsingReasoningModelsScenarioQuestions.js';
+
 export const P1_AGENTIC_APPLIED_SCENARIOS_BY_LESSON = Object.freeze({
   'tool-using-reasoning-models': [
     {
@@ -15,6 +17,7 @@ export const P1_AGENTIC_APPLIED_SCENARIOS_BY_LESSON = Object.freeze({
       explanation: 'A timeout creates an unknown-outcome state, not a known failure. The agent should reconcile the original transaction through an idempotency key or status endpoint before any new side effect. Blind retries with new identifiers can duplicate actions; blind success assumptions can corrupt local state.',
       misconceptionTested: 'A tool timeout can safely be treated as either definite failure or definite success when the remote system may already have performed an irreversible side effect.',
     },
+    ...P1_TOOL_USING_REASONING_MODELS_SCENARIOS_BY_LESSON['tool-using-reasoning-models'],
   ],
   'agentic-coding-systems': [
     {
