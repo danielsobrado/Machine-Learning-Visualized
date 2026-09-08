@@ -1,0 +1,57 @@
+export const P1_BLOOM_FILTER_OPERATIONAL_SCENARIOS_BY_LESSON = Object.freeze({
+  'bloom-filter': Object.freeze([
+    Object.freeze({
+      id: 'bloom-positive-authority-decision',
+      level: 'decision',
+      relatedComparison: 'probabilistic-membership-hint-vs-authoritative-membership-proof',
+      scenario: 'An authorization service places a Bloom filter in front of its exact entitlement store. For user U and resource R, every Bloom-filter position is 1, so the filter returns maybe present. The backing store has not been checked yet.',
+      prompt: 'What is the safe authorization decision?',
+      choices: Object.freeze([
+        'Verify the entitlement in the authoritative store before granting access, because maybe present can be a false positive',
+        'Grant access immediately, because all queried bits being 1 proves the entitlement was inserted',
+        'Deny access immediately, because Bloom-filter positive results are always false positives until rebuilt',
+      ]),
+      answerIndex: 0,
+      explanation: 'A standard Bloom filter gives one-sided membership evidence: a zero can prove absence, but all ones only mean the key may be present. Security-sensitive positive decisions therefore require confirmation from an exact source of truth.',
+      misconceptionTested: 'A Bloom-filter maybe-present result is authoritative enough to grant access or make another irreversible positive decision.',
+    }),
+    Object.freeze({
+      id: 'bloom-capacity-drift-diagnosis',
+      level: 'diagnosis',
+      kind: 'visual-state',
+      visualState: Object.freeze({
+        plannedItems: '1,000,000',
+        actualItems: '2,400,000',
+        targetFalsePositiveRate: '1%',
+        observedFalsePositiveRate: '7.8%',
+        bitFillRatio: '91%',
+      }),
+      relatedComparison: 'planned-capacity-vs-saturated-production-filter',
+      scenario: 'A production Bloom filter was sized for one million keys at a 1% false-positive target. Traffic growth pushes the inserted population to 2.4 million. The dashboard now shows 91% of bits set and a 7.8% observed false-positive rate on held-out absent probes.',
+      prompt: 'What is the most defensible diagnosis and remediation?',
+      choices: Object.freeze([
+        'The filter has exceeded its sizing assumptions; rebuild or migrate to a larger filter sized for the new capacity and error budget',
+        'The filter is healthier because a higher fill ratio means more membership evidence, so no action is needed',
+        'Randomly clear one bits until the fill ratio falls, because that lowers false positives without affecting inserted keys',
+      ]),
+      answerIndex: 0,
+      explanation: 'The target false-positive rate depends on m, n, k, and hash behavior. Once n greatly exceeds the design point, saturation removes useful zero evidence and false positives rise. Random bit clearing is unsafe because it can create false negatives for inserted keys.',
+      misconceptionTested: 'Capacity drift can be repaired by random bit clearing or ignored as long as the filter still returns answers quickly.',
+    }),
+    Object.freeze({
+      id: 'bloom-seed-mismatch-diagnosis',
+      level: 'diagnosis',
+      relatedComparison: 'serialized-bit-array-vs-compatible-hash-configuration',
+      scenario: 'Service A builds a Bloom filter with m=8,000, k=5, and hash-seed set version 12, then stores the bit array. Service B restores the same bit array but accidentally starts with seed set version 13. A key known to have been inserted by Service A now finds a zero at one of Service B\'s computed positions.',
+      prompt: 'What should the team conclude?',
+      choices: Object.freeze([
+        'The restored filter is incompatible: bit arrays must be interpreted with the same m, k, hash definitions, and seed version, so the service should reject or rebuild it',
+        'The known key was never inserted, because Bloom filters can never produce an absent result for an inserted key under any configuration mismatch',
+        'Seed changes are harmless because only the number of set bits matters at query time',
+      ]),
+      answerIndex: 0,
+      explanation: 'The no-false-negative property assumes insertion and query use the same addressing scheme. Changing hash seeds changes the positions checked, so old bits no longer correspond to new queries and inserted keys can appear absent. Compatibility metadata must therefore travel with serialized filters.',
+      misconceptionTested: 'A Bloom-filter bit array can be safely reused after changing hash seeds or other addressing parameters.',
+    }),
+  ]),
+});
