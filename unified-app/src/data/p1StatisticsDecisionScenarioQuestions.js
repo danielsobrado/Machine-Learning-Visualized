@@ -1,4 +1,5 @@
 import { P1_FEATURE_SCALING_PREPROCESSING_SCENARIOS_BY_LESSON } from './p1FeatureScalingPreprocessingScenarioQuestions.js';
+import { P1_LOGISTIC_REGRESSION_SCENARIOS_BY_LESSON } from './p1LogisticRegressionScenarioQuestions.js';
 
 export const P1_STATISTICS_DECISION_SCENARIOS_BY_LESSON = Object.freeze({
   'logistic-regression': [
@@ -13,6 +14,7 @@ export const P1_STATISTICS_DECISION_SCENARIOS_BY_LESSON = Object.freeze({
       explanation: 'Set (1 - p) × 1 = p × 9. This gives 1 - p = 9p, so p = 0.10. With calibrated probabilities and these stated costs, the business-optimal threshold is therefore far below the default 0.50.',
       misconceptionTested: 'A 0.50 classification threshold is optimal even when false negatives and false positives have very different costs.',
     },
+    ...P1_LOGISTIC_REGRESSION_SCENARIOS_BY_LESSON['logistic-regression'],
   ],
   'classification-metrics': [
     {
