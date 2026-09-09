@@ -6,6 +6,7 @@ import { P1_LOSS_FUNCTIONS_LIKELIHOODS_SCENARIOS_BY_LESSON } from './p1LossFunct
 import { P1_MAXIMUM_LIKELIHOOD_ESTIMATION_SCENARIOS_BY_LESSON } from './p1MaximumLikelihoodEstimationScenarioQuestions.js';
 import { P1_PROPENSITY_SCORES_SCENARIOS_BY_LESSON } from './p1PropensityScoresScenarioQuestions.js';
 import { P1_SAMPLING_CONFIDENCE_INTERVALS_SCENARIOS_BY_LESSON } from './p1SamplingConfidenceIntervalsScenarioQuestions.js';
+import { P1_SPEARMAN_CORRELATION_SCENARIOS_BY_LESSON } from './p1SpearmanCorrelationScenarioQuestions.js';
 import { P1_SEQUENTIAL_TESTING_PEEKING_SCENARIOS_BY_LESSON } from './p1SequentialTestingPeekingScenarioQuestions.js';
 import { P1_TREATMENT_EFFECTS_SCENARIOS_BY_LESSON } from './p1TreatmentEffectsScenarioQuestions.js';
 
@@ -129,6 +130,7 @@ export const P1_STATISTICS_APPLIED_DECISION_SCENARIOS_BY_LESSON = Object.freeze(
       explanation: 'Correlating rank vectors [1, 2.5, 2.5, 4] and [1, 2, 3, 4] gives approximately 0.949. The relationship is strongly monotonic but not perfectly rank-aligned because the tie in X maps to two different Y ranks.',
       misconceptionTested: 'Spearman correlation must be exactly 1 whenever the raw values mostly increase together, even when tied ranks prevent perfect rank agreement.',
     },
+    ...P1_SPEARMAN_CORRELATION_SCENARIOS_BY_LESSON['spearman-correlation'],
   ],
 });
 
