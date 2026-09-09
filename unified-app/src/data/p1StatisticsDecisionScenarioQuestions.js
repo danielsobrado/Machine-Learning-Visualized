@@ -1,4 +1,5 @@
 import { P1_AB_TESTING_FOUNDATIONS_SCENARIOS_BY_LESSON } from './p1AbTestingFoundationsScenarioQuestions.js';
+import { P1_CLASSIFICATION_METRICS_SCENARIOS_BY_LESSON } from './p1ClassificationMetricsScenarioQuestions.js';
 import { P1_FEATURE_SCALING_PREPROCESSING_SCENARIOS_BY_LESSON } from './p1FeatureScalingPreprocessingScenarioQuestions.js';
 import { P1_HYPOTHESIS_TESTING_INTUITION_SCENARIOS_BY_LESSON } from './p1HypothesisTestingIntuitionScenarioQuestions.js';
 import { P1_LOGISTIC_REGRESSION_SCENARIOS_BY_LESSON } from './p1LogisticRegressionScenarioQuestions.js';
@@ -31,6 +32,7 @@ export const P1_STATISTICS_DECISION_SCENARIOS_BY_LESSON = Object.freeze({
       explanation: 'Recall is TP / (TP + FN). Subgroup A is 80 / 100 = 80%, while subgroup B is 45 / 90 = 50%. The absolute difference is 30 percentage points, which an aggregate metric can conceal.',
       misconceptionTested: 'Acceptable aggregate classification metrics guarantee similar error rates across important subgroups.',
     },
+    ...P1_CLASSIFICATION_METRICS_SCENARIOS_BY_LESSON['classification-metrics'],
   ],
   'roc-pr-curves': [
     {
