@@ -23,15 +23,15 @@ const DEPTH_SCENARIO_LEVELS = new Set([
 ]);
 
 const REQUIRED_COMPETENCY_IDS = Object.freeze([
-  'losslik-categorical-nll-calculation',
-  'losslik-stable-logits-crossentropy',
-  'losslik-gaussian-predicted-variance-nll',
-  'losslik-huber-outlier-robustness',
-  'losslik-quantile-asymmetric-objective',
-  'losslik-weighted-reduction-scale',
+  'losslik-categorical-nll-arithmetic',
+  'losslik-logits-numerical-stability',
+  'losslik-gaussian-scale-nll',
+  'losslik-robust-huber-outliers',
+  'losslik-quantile-asymmetric-cost',
+  'losslik-weighting-reduction-scale',
   'losslik-surrogate-metric-alignment',
+  'losslik-label-smoothing-tradeoff',
   'losslik-output-loss-representation-pairing',
-  'losslik-label-smoothing-not-calibration',
 ]);
 
 function itemsById(items = []) {
