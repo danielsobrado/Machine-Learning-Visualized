@@ -1,3 +1,4 @@
+import { P1_AB_TESTING_FOUNDATIONS_SCENARIOS_BY_LESSON } from './p1AbTestingFoundationsScenarioQuestions.js';
 import { P1_FEATURE_SCALING_PREPROCESSING_SCENARIOS_BY_LESSON } from './p1FeatureScalingPreprocessingScenarioQuestions.js';
 import { P1_HYPOTHESIS_TESTING_INTUITION_SCENARIOS_BY_LESSON } from './p1HypothesisTestingIntuitionScenarioQuestions.js';
 import { P1_LOGISTIC_REGRESSION_SCENARIOS_BY_LESSON } from './p1LogisticRegressionScenarioQuestions.js';
@@ -83,6 +84,9 @@ export const P1_STATISTICS_DECISION_SCENARIOS_BY_LESSON = Object.freeze({
       explanation: 'The MLE is 8 / 10 = 0.80. The Beta(2, 2) MAP is 9 / 12 = 0.75, showing concretely how an informative symmetric prior pulls a small-sample estimate toward the prior center.',
       misconceptionTested: 'Adding a prior changes terminology but cannot change the numerical parameter estimate.',
     },
+  ],
+  'ab-testing-foundations': [
+    ...P1_AB_TESTING_FOUNDATIONS_SCENARIOS_BY_LESSON['ab-testing-foundations'],
   ],
   'power-sample-size': [
     {
