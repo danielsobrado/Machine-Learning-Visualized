@@ -1,3 +1,4 @@
+import { P1_EFFICIENT_INFERENCE_COMPRESSION_SCENARIOS_BY_LESSON } from './p1EfficientInferenceCompressionScenarioQuestions.js';
 import { P1_EFFICIENT_LLM_SERVING_SCENARIOS_BY_LESSON } from './p1EfficientLlmServingScenarioQuestions.js';
 
 export const P1_PRODUCTION_SERVING_APPLIED_SCENARIOS_BY_LESSON = Object.freeze({
@@ -17,6 +18,7 @@ export const P1_PRODUCTION_SERVING_APPLIED_SCENARIOS_BY_LESSON = Object.freeze({
       explanation: 'The FP16 deployment uses about 26 + 8 = 34 GB, while the INT4 deployment uses about 6.5 + 8 = 14.5 GB. The total reduction is therefore about 34 / 14.5 = 2.34x, not 4x, because quantization directly shrinks weights rather than every runtime-memory component.',
       misconceptionTested: 'A fourfold reduction in weight precision implies a fourfold reduction in total serving memory regardless of KV cache and runtime overhead.',
     },
+    ...P1_EFFICIENT_INFERENCE_COMPRESSION_SCENARIOS_BY_LESSON['efficient-inference-compression-track'],
   ],
   'efficient-llm-serving': [
     {
