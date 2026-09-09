@@ -90,5 +90,20 @@ export const P1_LOGISTIC_REGRESSION_SCENARIOS_BY_LESSON = Object.freeze({
       explanation: 'Highly correlated predictors can substitute for each other in the linear score, so many coefficient combinations yield similar predictions. Predictive performance can remain stable while individual coefficients are poorly identified. Regularization and domain-aware feature handling can improve stability, but coefficients should not be treated as automatic causal effects.',
       misconceptionTested: 'Stable predictive performance implies stable and causally interpretable individual coefficients under severe multicollinearity.',
     },
+    {
+      id: 'logreg-oversampling-calibration-diagnosis',
+      level: 'diagnosis',
+      relatedComparison: 'balanced-training-sample-vs-population-probability-calibration',
+      scenario: 'Fraud prevalence is 1% in production. To make training easier, the team oversamples positive examples until the training set is 50% fraud and 50% non-fraud. The resulting logistic model ranks cases well on a representative validation set, but its raw predicted probabilities are far too high compared with observed production frequencies.',
+      prompt: 'What is the correct interpretation and next step?',
+      choices: [
+        'Oversampling changed the class prior seen during fitting; evaluate and correct or recalibrate probabilities on data with representative prevalence before using probability-based thresholds',
+        'A balanced training sample guarantees calibrated 50% priors are valid in production regardless of the real base rate',
+        'The only valid fix is to force the classification threshold back to 0.5 while continuing to interpret the raw scores as population probabilities',
+      ],
+      answerIndex: 0,
+      explanation: 'Resampling can improve learning signal for rare classes, but it changes the effective class distribution used during fitting. Ranking may remain useful while the intercept and raw probability scale no longer reflect the deployment population. Probability-sensitive decisions need representative validation and an appropriate prior correction or recalibration.',
+      misconceptionTested: 'Class balancing through oversampling changes optimization only and can never affect the probability scale or calibration of logistic-regression outputs.',
+    },
   ],
 });

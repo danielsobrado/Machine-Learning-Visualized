@@ -23,13 +23,14 @@ const DEPTH_SCENARIO_LEVELS = new Set([
 ]);
 
 const REQUIRED_COMPETENCY_IDS = Object.freeze([
-  'logreg-cost-sensitive-threshold',
-  'logreg-odds-probability-interpretation',
+  'logreg-odds-ratio-to-probability',
   'logreg-separation-regularization',
-  'logreg-nonlinear-feature-representation',
-  'logreg-calibration-prior-shift',
-  'logreg-stable-logits-loss',
-  'logreg-multicollinearity-coefficient-stability',
+  'logreg-nonlinear-feature-interaction',
+  'logreg-base-rate-shift-calibration',
+  'logreg-stable-bce-from-logits',
+  'logreg-multicollinearity-coefficient-instability',
+  'logreg-asymmetric-cost-threshold',
+  'logreg-imbalance-resampling-calibration',
 ]);
 
 function itemsById(items = []) {
