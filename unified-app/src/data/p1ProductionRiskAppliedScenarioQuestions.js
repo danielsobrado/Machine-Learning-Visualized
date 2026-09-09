@@ -1,3 +1,5 @@
+import { P1_ML_SECURITY_ROBUSTNESS_SCENARIOS_BY_LESSON } from './p1MlSecurityRobustnessScenarioQuestions.js';
+
 export const P1_PRODUCTION_RISK_APPLIED_SCENARIOS_BY_LESSON = Object.freeze({
   'model-interpretability': [
     {
@@ -32,6 +34,7 @@ export const P1_PRODUCTION_RISK_APPLIED_SCENARIOS_BY_LESSON = Object.freeze({
       explanation: 'Capability separation limits what a compromised reasoning loop can do. Read-only search should not inherit write authority, low-value credits should be bounded by tool-side policy, and exceptional actions should require an external approval path. Prompt instructions alone cannot provide the same authorization boundary.',
       misconceptionTested: 'A single powerful service credential is safe if the model is instructed to behave, so privilege separation and tool-side limits add little security value.',
     },
+    ...P1_ML_SECURITY_ROBUSTNESS_SCENARIOS_BY_LESSON['ml-security-robustness-track'],
   ],
   'data-engineering-for-ml-track': [
     {
