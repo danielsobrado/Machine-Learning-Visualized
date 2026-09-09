@@ -1,3 +1,5 @@
+import { P1_OVERFITTING_SCENARIOS_BY_LESSON } from './p1OverfittingScenarioQuestions.js';
+
 export const P1_CLASSICAL_ML_DECISION_SCENARIOS_BY_LESSON = Object.freeze({
   'linear-regression': [
     {
@@ -63,6 +65,7 @@ export const P1_CLASSICAL_ML_DECISION_SCENARIOS_BY_LESSON = Object.freeze({
       explanation: 'Repeatedly choosing changes based on the same validation results leaks information about that validation set into the model-selection process. The validation score becomes optimistic; an untouched test set is useful only after the final procedure is frozen.',
       misconceptionTested: 'A validation set cannot be overfit unless its labels are directly included in model training or gradient updates.',
     },
+    ...P1_OVERFITTING_SCENARIOS_BY_LESSON.overfitting,
   ],
 });
 
