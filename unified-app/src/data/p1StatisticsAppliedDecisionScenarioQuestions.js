@@ -4,6 +4,7 @@ import { P1_CONFOUNDING_SIMPSONS_PARADOX_SCENARIOS_BY_LESSON } from './p1Confoun
 import { P1_CUPED_VARIANCE_REDUCTION_SCENARIOS_BY_LESSON } from './p1CupedVarianceReductionScenarioQuestions.js';
 import { P1_LOSS_FUNCTIONS_LIKELIHOODS_SCENARIOS_BY_LESSON } from './p1LossFunctionsLikelihoodsScenarioQuestions.js';
 import { P1_MAXIMUM_LIKELIHOOD_ESTIMATION_SCENARIOS_BY_LESSON } from './p1MaximumLikelihoodEstimationScenarioQuestions.js';
+import { P1_PROPENSITY_SCORES_SCENARIOS_BY_LESSON } from './p1PropensityScoresScenarioQuestions.js';
 import { P1_SAMPLING_CONFIDENCE_INTERVALS_SCENARIOS_BY_LESSON } from './p1SamplingConfidenceIntervalsScenarioQuestions.js';
 import { P1_SEQUENTIAL_TESTING_PEEKING_SCENARIOS_BY_LESSON } from './p1SequentialTestingPeekingScenarioQuestions.js';
 import { P1_TREATMENT_EFFECTS_SCENARIOS_BY_LESSON } from './p1TreatmentEffectsScenarioQuestions.js';
@@ -98,6 +99,9 @@ export const P1_STATISTICS_APPLIED_DECISION_SCENARIOS_BY_LESSON = Object.freeze(
   ],
   'causal-graphs-dags': [
     ...P1_CAUSAL_GRAPHS_DAGS_SCENARIOS_BY_LESSON['causal-graphs-dags'],
+  ],
+  'propensity-scores': [
+    ...P1_PROPENSITY_SCORES_SCENARIOS_BY_LESSON['propensity-scores'],
   ],
   'treatment-effects': [
     {
