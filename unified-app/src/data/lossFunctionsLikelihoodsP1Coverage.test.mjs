@@ -38,7 +38,7 @@ function itemsById(items = []) {
   return new Map(items.map((item) => [item.id, item]));
 }
 
-test('loss functions and likelihoods remains a priority curated P1 assessment', () => {
+test('loss functions likelihoods remains a priority curated P1 assessment', () => {
   const priorityIds = new Set(PRIORITY_ASSESSMENT_LESSON_IDS);
 
   for (const lessonId of LOSS_FUNCTIONS_LIKELIHOODS_P1_AUDITED_LESSON_IDS) {
@@ -51,14 +51,14 @@ test('loss functions and likelihoods remains a priority curated P1 assessment', 
   }
 });
 
-test('loss functions and likelihoods P1 contract keeps required competencies explicit', () => {
+test('loss functions likelihoods P1 contract keeps required competencies explicit', () => {
   assert.deepEqual(
     LOSS_FUNCTIONS_LIKELIHOODS_P1_REQUIREMENTS.map(({ id }) => id).sort(),
     [...REQUIRED_COMPETENCY_IDS].sort(),
   );
 });
 
-test('loss functions and likelihoods P1 competencies resolve to live assessment evidence', async (t) => {
+test('loss functions likelihoods P1 competencies resolve to live assessment evidence', async (t) => {
   for (const requirement of LOSS_FUNCTIONS_LIKELIHOODS_P1_REQUIREMENTS) {
     await t.test(requirement.id, () => {
       const assessment = getLessonAssessment(requirement.lessonId);
@@ -78,7 +78,7 @@ test('loss functions and likelihoods P1 competencies resolve to live assessment 
   }
 });
 
-test('loss functions and likelihoods P1 competencies require applied reasoning', () => {
+test('loss functions likelihoods P1 competencies require applied reasoning', () => {
   for (const requirement of LOSS_FUNCTIONS_LIKELIHOODS_P1_REQUIREMENTS) {
     const scenarios = itemsById(getLessonAssessment(requirement.lessonId).scenarioQuestions);
 
@@ -89,7 +89,7 @@ test('loss functions and likelihoods P1 competencies require applied reasoning',
   }
 });
 
-test('loss functions and likelihoods scenario evidence remains tagged P1', () => {
+test('loss functions likelihoods scenario evidence remains tagged P1', () => {
   const extensionPriorityByScenarioId = new Map(
     getAssessmentScenarioExtensionEntries().map(({ priority, question }) => [question.id, priority]),
   );
@@ -105,7 +105,7 @@ test('loss functions and likelihoods scenario evidence remains tagged P1', () =>
   }
 });
 
-test('loss functions and likelihoods P1 contract keeps evidence independent', () => {
+test('loss functions likelihoods P1 contract keeps evidence independent', () => {
   const requirementIds = LOSS_FUNCTIONS_LIKELIHOODS_P1_REQUIREMENTS.map(({ id }) => id);
   assert.equal(new Set(requirementIds).size, requirementIds.length, 'competency ids must be unique');
 
