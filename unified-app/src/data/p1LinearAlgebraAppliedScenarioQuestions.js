@@ -1,6 +1,7 @@
 import { P1_FUNDAMENTAL_SUBSPACES_SCENARIOS_BY_LESSON } from './p1FundamentalSubspacesScenarioQuestions.js';
 import { P1_MATRIX_DECOMPOSITIONS_SCENARIOS_BY_LESSON } from './p1MatrixDecompositionsScenarioQuestions.js';
 import { P1_MATRIX_MULTIPLICATION_SCENARIOS_BY_LESSON } from './p1MatrixMultiplicationScenarioQuestions.js';
+import { P1_PCA_SCENARIOS_BY_LESSON } from './p1PcaScenarioQuestions.js';
 import { P1_QR_DECOMPOSITION_SCENARIOS_BY_LESSON } from './p1QrDecompositionScenarioQuestions.js';
 import { P1_SVD_SCENARIOS_BY_LESSON } from './p1SvdScenarioQuestions.js';
 
@@ -39,6 +40,7 @@ export const P1_LINEAR_ALGEBRA_APPLIED_SCENARIOS_BY_LESSON = Object.freeze({
       explanation: 'The square roots of the eigenvalues are 3, 2, and 1. Dividing [6, 2, 1] by [3, 2, 1] gives [2, 1, 1]. Ordinary PCA projection decorrelates into principal axes; whitening additionally rescales those axes so their variances are approximately one.',
       misconceptionTested: 'Projecting onto principal components automatically whitens the data, so explained-variance scale no longer differs across retained PCA coordinates.',
     },
+    ...P1_PCA_SCENARIOS_BY_LESSON.pca,
   ],
   'fundamental-subspaces': [
     {
