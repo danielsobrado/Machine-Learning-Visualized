@@ -1,6 +1,7 @@
 import { P1_FEATURE_SCALING_PREPROCESSING_SCENARIOS_BY_LESSON } from './p1FeatureScalingPreprocessingScenarioQuestions.js';
 import { P1_HYPOTHESIS_TESTING_INTUITION_SCENARIOS_BY_LESSON } from './p1HypothesisTestingIntuitionScenarioQuestions.js';
 import { P1_LOGISTIC_REGRESSION_SCENARIOS_BY_LESSON } from './p1LogisticRegressionScenarioQuestions.js';
+import { P1_POWER_SAMPLE_SIZE_SCENARIOS_BY_LESSON } from './p1PowerSampleSizeScenarioQuestions.js';
 
 export const P1_STATISTICS_DECISION_SCENARIOS_BY_LESSON = Object.freeze({
   'logistic-regression': [
@@ -95,6 +96,7 @@ export const P1_STATISTICS_DECISION_SCENARIOS_BY_LESSON = Object.freeze({
       explanation: 'For continuous outcomes, detectability depends on the effect relative to outcome variability. A 2-unit effect is 0.4 standard deviations when SD = 5 but only 0.1 when SD = 20, so the noisier experiment generally needs more data.',
       misconceptionTested: 'Raw effect size alone determines power for continuous outcomes regardless of outcome variance.',
     },
+    ...P1_POWER_SAMPLE_SIZE_SCENARIOS_BY_LESSON['power-sample-size'],
   ],
   'hypothesis-testing-intuition': [
     {
