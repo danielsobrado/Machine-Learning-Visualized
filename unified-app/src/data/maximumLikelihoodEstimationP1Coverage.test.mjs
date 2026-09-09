@@ -23,14 +23,16 @@ const DEPTH_SCENARIO_LEVELS = new Set([
 ]);
 
 const REQUIRED_COMPETENCY_IDS = Object.freeze([
-  'mle-bernoulli-log-likelihood-arithmetic',
+  'mle-bernoulli-log-likelihood-comparison',
   'mle-gaussian-mean-variance-estimation',
-  'mle-log-likelihood-ratio-interpretation',
+  'mle-likelihood-ratio-interpretation',
   'mle-log-space-numerical-stability',
   'mle-iid-dependence-assumption',
-  'mle-model-family-misspecification',
-  'mle-model-complexity-selection',
-  'mle-vs-map-prior-distinction',
+  'mle-model-misspecification-diagnostics',
+  'mle-complexity-aware-model-selection',
+  'mle-map-vs-mle-prior',
+  'mle-boundary-estimate-vs-numerical-clamp',
+  'mle-identifiability-likelihood-ridge',
 ]);
 
 function itemsById(items = []) {

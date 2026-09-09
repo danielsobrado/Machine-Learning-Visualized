@@ -13,43 +13,53 @@ export const MAXIMUM_LIKELIHOOD_ESTIMATION_P1_AUDITED_LESSON_IDS = Object.freeze
 
 export const MAXIMUM_LIKELIHOOD_ESTIMATION_P1_REQUIREMENTS = Object.freeze([
   competency(
-    'mle-bernoulli-log-likelihood-arithmetic',
-    ['mle-021-bernoulli-form', 'mle-051-scenario-80'],
+    'mle-bernoulli-log-likelihood-comparison',
+    ['mle-022-log-bernoulli'],
     ['mle-bernoulli-log-likelihood-worked'],
   ),
   competency(
     'mle-gaussian-mean-variance-estimation',
-    ['mle-029-sigma', 'mle-030-sample-mean'],
+    ['mle-030-sample-mean'],
     ['mle-gaussian-mean-variance-worked'],
   ),
   competency(
-    'mle-log-likelihood-ratio-interpretation',
-    ['mle-042-likelihood-ratio', 'mle-063-scenario-relative'],
+    'mle-likelihood-ratio-interpretation',
+    ['mle-042-likelihood-ratio'],
     ['mle-log-likelihood-ratio-worked'],
   ),
   competency(
     'mle-log-space-numerical-stability',
-    ['mle-032-products', 'mle-069-scenario-log-space'],
+    ['mle-032-products'],
     ['mle-log-space-underflow-diagnosis'],
   ),
   competency(
     'mle-iid-dependence-assumption',
-    ['mle-033-independent', 'mle-034-iid'],
+    ['mle-033-independent'],
     ['mle-iid-dependence-diagnosis'],
   ),
   competency(
-    'mle-model-family-misspecification',
-    ['mle-035-model-family', 'mle-036-misspecification'],
+    'mle-model-misspecification-diagnostics',
+    ['mle-036-misspecification'],
     ['mle-poisson-overdispersion-diagnosis'],
   ),
   competency(
-    'mle-model-complexity-selection',
-    ['mle-046-comparing-models', 'mle-067-scenario-overfit'],
+    'mle-complexity-aware-model-selection',
+    ['mle-046-comparing-models'],
     ['mle-aic-complexity-worked-decision'],
   ),
   competency(
-    'mle-vs-map-prior-distinction',
-    ['mle-039-map', 'mle-066-scenario-map'],
-    ['mle-vs-map-prior'],
+    'mle-map-vs-mle-prior',
+    ['mle-039-map'],
+    ['mle-map-bernoulli-worked'],
+  ),
+  competency(
+    'mle-boundary-estimate-vs-numerical-clamp',
+    ['mle-023-boundary'],
+    ['mle-boundary-estimate-diagnosis'],
+  ),
+  competency(
+    'mle-identifiability-likelihood-ridge',
+    ['mle-027-flatness'],
+    ['mle-likelihood-ridge-identifiability-diagnosis'],
   ),
 ]);

@@ -105,6 +105,36 @@ export const P1_MAXIMUM_LIKELIHOOD_ESTIMATION_SCENARIOS_BY_LESSON = Object.freez
       explanation: 'Raw training likelihood generally cannot decrease when a nested model gains useful flexibility, so model-family comparison needs a stated criterion. Under the specified AIC rule, Model A scores 204 versus Model B at 210, so A is preferred. This does not mean AIC is universally the right criterion; it means the declared complexity-adjusted rule must actually be applied.',
       misconceptionTested: 'The model with the largest in-sample likelihood is automatically the best model even when comparing different model complexities.',
     },
+    {
+      id: 'mle-boundary-estimate-diagnosis',
+      level: 'diagnosis',
+      relatedComparison: 'statistical-boundary-mle-vs-numerical-clamping',
+      scenario: 'A Bernoulli dataset contains 20 successes and zero failures. Over the parameter space 0 <= p <= 1, the likelihood is L(p) = p^20. An implementation clamps candidate probabilities to [1e-6, 1 - 1e-6] before taking logs.',
+      prompt: 'What is the correct interpretation of the estimate and the clamp?',
+      choices: [
+        'The mathematical MLE is p = 1 at the boundary; the clamp is a numerical device and should not be mistaken for evidence that the statistical optimum is below 1',
+        'The MLE must equal 1 - 1e-6 because numerical clamps redefine the statistical parameter space automatically',
+        'Boundary estimates are invalid, so this dataset has no maximum likelihood estimate',
+      ],
+      answerIndex: 0,
+      explanation: 'With no observed failures, p^20 increases all the way to p = 1, so the Bernoulli MLE lies on the boundary. Clamping can keep log computations finite, but an implementation detail should not silently change the reported estimand or its interpretation.',
+      misconceptionTested: 'Numerical clipping used to avoid log(0) changes the underlying maximum-likelihood problem or makes legitimate boundary estimates impossible.',
+    },
+    {
+      id: 'mle-likelihood-ridge-identifiability-diagnosis',
+      level: 'diagnosis',
+      relatedComparison: 'unique-parameter-maximum-vs-likelihood-ridge',
+      scenario: 'A model has two parameters a and b, but for every observation the likelihood depends on them only through the sum a + b. The data strongly support a + b = 10, producing the same maximum likelihood for (2, 8), (4, 6), (7, 3), and every other pair with the same sum.',
+      prompt: 'What does this likelihood shape imply about estimating a and b separately?',
+      choices: [
+        'The parameters are not separately identifiable from these data; extra structure, constraints, or information is needed to choose a unique pair',
+        'The optimizer should pick whichever pair it reaches first and report both parameters as precisely identified',
+        'A flat ridge proves the sample size is effectively infinite because many maxima are equally good',
+      ],
+      answerIndex: 0,
+      explanation: 'The data identify only the combination a + b, not the individual values. A ridge of equally good maxima means the parameterization is non-identifiable for the available evidence. Numerical optimization can return one point on the ridge without making that point uniquely supported by the data.',
+      misconceptionTested: 'If an optimizer returns one maximum-likelihood parameter vector, every component of that vector must be uniquely identified by the likelihood.',
+    },
   ],
 });
 
