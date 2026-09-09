@@ -1,4 +1,5 @@
 import { P1_FUNDAMENTAL_SUBSPACES_SCENARIOS_BY_LESSON } from './p1FundamentalSubspacesScenarioQuestions.js';
+import { P1_MATRIX_DECOMPOSITIONS_SCENARIOS_BY_LESSON } from './p1MatrixDecompositionsScenarioQuestions.js';
 import { P1_MATRIX_MULTIPLICATION_SCENARIOS_BY_LESSON } from './p1MatrixMultiplicationScenarioQuestions.js';
 import { P1_QR_DECOMPOSITION_SCENARIOS_BY_LESSON } from './p1QrDecompositionScenarioQuestions.js';
 import { P1_SVD_SCENARIOS_BY_LESSON } from './p1SvdScenarioQuestions.js';
@@ -73,6 +74,7 @@ export const P1_LINEAR_ALGEBRA_APPLIED_SCENARIOS_BY_LESSON = Object.freeze({
       explanation: 'For a dense symmetric positive-definite matrix, Cholesky directly exploits the matrix structure and produces triangular solves that can be reused across many right-hand sides. QR and especially full SVD are valuable for different numerical or rank-deficiency needs but pay unnecessary cost for this stated case.',
       misconceptionTested: 'The most general matrix decomposition is automatically the best engineering choice even when the matrix has structure that permits a cheaper specialized factorization.',
     },
+    ...P1_MATRIX_DECOMPOSITIONS_SCENARIOS_BY_LESSON['matrix-decompositions'],
   ],
   'qr-decomposition': [
     {
