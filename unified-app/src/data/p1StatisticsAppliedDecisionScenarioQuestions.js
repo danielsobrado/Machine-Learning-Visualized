@@ -1,5 +1,6 @@
 import { P1_BAYES_RULE_ML_SCENARIOS_BY_LESSON } from './p1BayesRuleMlScenarioQuestions.js';
 import { P1_CONFOUNDING_SIMPSONS_PARADOX_SCENARIOS_BY_LESSON } from './p1ConfoundingSimpsonsParadoxScenarioQuestions.js';
+import { P1_CUPED_VARIANCE_REDUCTION_SCENARIOS_BY_LESSON } from './p1CupedVarianceReductionScenarioQuestions.js';
 import { P1_LOSS_FUNCTIONS_LIKELIHOODS_SCENARIOS_BY_LESSON } from './p1LossFunctionsLikelihoodsScenarioQuestions.js';
 import { P1_MAXIMUM_LIKELIHOOD_ESTIMATION_SCENARIOS_BY_LESSON } from './p1MaximumLikelihoodEstimationScenarioQuestions.js';
 import { P1_SAMPLING_CONFIDENCE_INTERVALS_SCENARIOS_BY_LESSON } from './p1SamplingConfidenceIntervalsScenarioQuestions.js';
@@ -77,6 +78,7 @@ export const P1_STATISTICS_APPLIED_DECISION_SCENARIOS_BY_LESSON = Object.freeze(
       explanation: 'ρ² = 0.80² = 0.64, so CUPED can remove about 64% of the outcome variance under the stated approximation, leaving about 36%. The benefit depends on using a genuinely pre-treatment covariate and estimating the adjustment without leaking post-treatment information.',
       misconceptionTested: 'CUPED variance reduction is equal to the raw correlation rather than the squared correlation under the standard single-covariate approximation.',
     },
+    ...P1_CUPED_VARIANCE_REDUCTION_SCENARIOS_BY_LESSON['cuped-variance-reduction'],
   ],
   'confounding-simpsons-paradox': [
     {
