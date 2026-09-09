@@ -4,6 +4,7 @@ import { P1_FEATURE_SCALING_PREPROCESSING_SCENARIOS_BY_LESSON } from './p1Featur
 import { P1_HYPOTHESIS_TESTING_INTUITION_SCENARIOS_BY_LESSON } from './p1HypothesisTestingIntuitionScenarioQuestions.js';
 import { P1_LOGISTIC_REGRESSION_SCENARIOS_BY_LESSON } from './p1LogisticRegressionScenarioQuestions.js';
 import { P1_POWER_SAMPLE_SIZE_SCENARIOS_BY_LESSON } from './p1PowerSampleSizeScenarioQuestions.js';
+import { P1_ROC_PR_CURVES_SCENARIOS_BY_LESSON } from './p1RocPrCurvesScenarioQuestions.js';
 
 export const P1_STATISTICS_DECISION_SCENARIOS_BY_LESSON = Object.freeze({
   'logistic-regression': [
@@ -46,6 +47,7 @@ export const P1_STATISTICS_DECISION_SCENARIOS_BY_LESSON = Object.freeze({
       explanation: 'Precision is TP / (TP + FP) = 90 / (90 + 99), about 47.6%. A seemingly small 1% false-positive rate can therefore produce mediocre precision when negatives vastly outnumber positives.',
       misconceptionTested: 'A low false-positive rate or strong ROC view guarantees high precision on a rare-positive problem.',
     },
+    ...P1_ROC_PR_CURVES_SCENARIOS_BY_LESSON['roc-pr-curves'],
   ],
   'feature-scaling-preprocessing': [
     {
