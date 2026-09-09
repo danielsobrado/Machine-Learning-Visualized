@@ -90,5 +90,20 @@ export const P1_LOSS_FUNCTIONS_LIKELIHOODS_SCENARIOS_BY_LESSON = Object.freeze({
       explanation: 'A surrogate is useful only insofar as it drives the desired deployment behavior. If held-out recall@10 degrades while NLL improves, the optimization objective is not a sufficient release criterion and the mismatch should be addressed explicitly.',
       misconceptionTested: 'Improving the training surrogate guarantees monotonic improvement in the final business or ranking metric.',
     },
+    {
+      id: 'losslik-bce-logits-double-sigmoid-diagnosis',
+      level: 'diagnosis',
+      relatedComparison: 'raw-logits-bcewithlogits-vs-probabilities-bce',
+      scenario: 'A binary classifier emits raw logits. The training code first applies sigmoid to convert them to probabilities and then passes those probabilities into a BCE-with-logits loss function, which internally applies the stable sigmoid/logistic formulation again.',
+      prompt: 'What is wrong with this pipeline?',
+      choices: [
+        'The sigmoid is effectively applied twice; pass raw logits directly to the logits-aware BCE loss, or use an ordinary probability BCE only if the input is already a valid probability',
+        'Nothing is wrong because every binary loss requires an explicit sigmoid before any library loss function',
+        'The fix is to apply softmax after sigmoid so the single positive-class probability sums to one',
+      ],
+      answerIndex: 0,
+      explanation: 'A logits-aware BCE expects unbounded logits and combines the sigmoid with the log-loss algebra for numerical stability. Feeding already-sigmoided probabilities changes the objective and compresses the signal a second time. Output representation and loss API must agree.',
+      misconceptionTested: 'Probabilities and logits are interchangeable inputs to binary cross-entropy APIs, so applying sigmoid before a logits-aware loss is harmless.',
+    },
   ],
 });
