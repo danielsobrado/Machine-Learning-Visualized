@@ -1,4 +1,5 @@
 import { P1_BAYES_RULE_ML_SCENARIOS_BY_LESSON } from './p1BayesRuleMlScenarioQuestions.js';
+import { P1_CAUSAL_GRAPHS_DAGS_SCENARIOS_BY_LESSON } from './p1CausalGraphsDagsScenarioQuestions.js';
 import { P1_CONFOUNDING_SIMPSONS_PARADOX_SCENARIOS_BY_LESSON } from './p1ConfoundingSimpsonsParadoxScenarioQuestions.js';
 import { P1_CUPED_VARIANCE_REDUCTION_SCENARIOS_BY_LESSON } from './p1CupedVarianceReductionScenarioQuestions.js';
 import { P1_LOSS_FUNCTIONS_LIKELIHOODS_SCENARIOS_BY_LESSON } from './p1LossFunctionsLikelihoodsScenarioQuestions.js';
@@ -93,6 +94,9 @@ export const P1_STATISTICS_APPLIED_DECISION_SCENARIOS_BY_LESSON = Object.freeze(
       misconceptionTested: 'An aggregate rate is always a fair treatment comparison even when subgroup composition differs and the direction reverses within strata.',
     },
     ...P1_CONFOUNDING_SIMPSONS_PARADOX_SCENARIOS_BY_LESSON['confounding-simpsons-paradox'],
+  ],
+  'causal-graphs-dags': [
+    ...P1_CAUSAL_GRAPHS_DAGS_SCENARIOS_BY_LESSON['causal-graphs-dags'],
   ],
   'treatment-effects': [
     {
