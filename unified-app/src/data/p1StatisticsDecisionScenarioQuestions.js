@@ -1,4 +1,5 @@
 import { P1_FEATURE_SCALING_PREPROCESSING_SCENARIOS_BY_LESSON } from './p1FeatureScalingPreprocessingScenarioQuestions.js';
+import { P1_HYPOTHESIS_TESTING_INTUITION_SCENARIOS_BY_LESSON } from './p1HypothesisTestingIntuitionScenarioQuestions.js';
 import { P1_LOGISTIC_REGRESSION_SCENARIOS_BY_LESSON } from './p1LogisticRegressionScenarioQuestions.js';
 
 export const P1_STATISTICS_DECISION_SCENARIOS_BY_LESSON = Object.freeze({
@@ -107,6 +108,7 @@ export const P1_STATISTICS_DECISION_SCENARIOS_BY_LESSON = Object.freeze({
       explanation: 'When the goal is exploratory discovery and some false leads are acceptable, FDR control can preserve more power than strict family-wise error control. The later confirmatory stage should use its own pre-specified validation design.',
       misconceptionTested: 'All multiple-testing problems require the same error criterion regardless of the downstream decision process.',
     },
+    ...P1_HYPOTHESIS_TESTING_INTUITION_SCENARIOS_BY_LESSON['hypothesis-testing-intuition'],
   ],
   'causal-graphs-dags': [
     {
