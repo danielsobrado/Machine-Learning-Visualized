@@ -1,4 +1,5 @@
 import { P1_BIAS_VARIANCE_TRADEOFF_SCENARIOS_BY_LESSON } from './p1BiasVarianceTradeoffScenarioQuestions.js';
+import { P1_GRADIENT_DESCENT_SCENARIOS_BY_LESSON } from './p1GradientDescentScenarioQuestions.js';
 import { P1_KNN_NAIVE_BAYES_SVM_SCENARIOS_BY_LESSON } from './p1KnnNaiveBayesSvmScenarioQuestions.js';
 import { P1_OVERFITTING_SCENARIOS_BY_LESSON } from './p1OverfittingScenarioQuestions.js';
 import { P1_RECOMMENDER_SYSTEMS_RANKING_SCENARIOS_BY_LESSON } from './p1RecommenderSystemsRankingScenarioQuestions.js';
@@ -88,6 +89,9 @@ export const P1_CLASSICAL_ML_DECISION_SCENARIOS_BY_LESSON = Object.freeze({
   ],
   'recommender-systems-ranking-track': [
     ...P1_RECOMMENDER_SYSTEMS_RANKING_SCENARIOS_BY_LESSON['recommender-systems-ranking-track'],
+  ],
+  'gradient-descent': [
+    ...P1_GRADIENT_DESCENT_SCENARIOS_BY_LESSON['gradient-descent'],
   ],
 });
 
