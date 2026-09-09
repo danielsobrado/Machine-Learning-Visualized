@@ -1,4 +1,5 @@
 import { P1_AB_TESTING_FOUNDATIONS_SCENARIOS_BY_LESSON } from './p1AbTestingFoundationsScenarioQuestions.js';
+import { P1_CALIBRATION_SCENARIOS_BY_LESSON } from './p1CalibrationScenarioQuestions.js';
 import { P1_CLASSIFICATION_METRICS_SCENARIOS_BY_LESSON } from './p1ClassificationMetricsScenarioQuestions.js';
 import { P1_FEATURE_SCALING_PREPROCESSING_SCENARIOS_BY_LESSON } from './p1FeatureScalingPreprocessingScenarioQuestions.js';
 import { P1_HYPOTHESIS_TESTING_INTUITION_SCENARIOS_BY_LESSON } from './p1HypothesisTestingIntuitionScenarioQuestions.js';
@@ -34,6 +35,9 @@ export const P1_STATISTICS_DECISION_SCENARIOS_BY_LESSON = Object.freeze({
       misconceptionTested: 'Acceptable aggregate classification metrics guarantee similar error rates across important subgroups.',
     },
     ...P1_CLASSIFICATION_METRICS_SCENARIOS_BY_LESSON['classification-metrics'],
+  ],
+  calibration: [
+    ...P1_CALIBRATION_SCENARIOS_BY_LESSON.calibration,
   ],
   'roc-pr-curves': [
     {
