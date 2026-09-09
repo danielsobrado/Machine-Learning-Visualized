@@ -1,5 +1,6 @@
 import { P1_BIAS_VARIANCE_TRADEOFF_SCENARIOS_BY_LESSON } from './p1BiasVarianceTradeoffScenarioQuestions.js';
 import { P1_OVERFITTING_SCENARIOS_BY_LESSON } from './p1OverfittingScenarioQuestions.js';
+import { P1_REGULARIZATION_SCENARIOS_BY_LESSON } from './p1RegularizationScenarioQuestions.js';
 
 export const P1_CLASSICAL_ML_DECISION_SCENARIOS_BY_LESSON = Object.freeze({
   'linear-regression': [
@@ -70,6 +71,9 @@ export const P1_CLASSICAL_ML_DECISION_SCENARIOS_BY_LESSON = Object.freeze({
   ],
   'bias-variance-tradeoff': [
     ...P1_BIAS_VARIANCE_TRADEOFF_SCENARIOS_BY_LESSON['bias-variance-tradeoff'],
+  ],
+  regularization: [
+    ...P1_REGULARIZATION_SCENARIOS_BY_LESSON.regularization,
   ],
 });
 
