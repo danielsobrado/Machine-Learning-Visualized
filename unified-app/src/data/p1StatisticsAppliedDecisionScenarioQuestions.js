@@ -6,6 +6,7 @@ import { P1_LOSS_FUNCTIONS_LIKELIHOODS_SCENARIOS_BY_LESSON } from './p1LossFunct
 import { P1_MAXIMUM_LIKELIHOOD_ESTIMATION_SCENARIOS_BY_LESSON } from './p1MaximumLikelihoodEstimationScenarioQuestions.js';
 import { P1_SAMPLING_CONFIDENCE_INTERVALS_SCENARIOS_BY_LESSON } from './p1SamplingConfidenceIntervalsScenarioQuestions.js';
 import { P1_SEQUENTIAL_TESTING_PEEKING_SCENARIOS_BY_LESSON } from './p1SequentialTestingPeekingScenarioQuestions.js';
+import { P1_TREATMENT_EFFECTS_SCENARIOS_BY_LESSON } from './p1TreatmentEffectsScenarioQuestions.js';
 
 export const P1_STATISTICS_APPLIED_DECISION_SCENARIOS_BY_LESSON = Object.freeze({
   'bayes-rule-ml': [
@@ -110,6 +111,7 @@ export const P1_STATISTICS_APPLIED_DECISION_SCENARIOS_BY_LESSON = Object.freeze(
       explanation: 'Subgroup A has a smaller estimated uplift but its interval excludes zero, while subgroup B has much greater uncertainty and remains compatible with a negative effect. Policy decisions should consider uncertainty and multiplicity, not rank subgroups only by point estimates.',
       misconceptionTested: 'The subgroup with the largest estimated treatment effect is automatically the subgroup with the strongest evidence or best targeting case.',
     },
+    ...P1_TREATMENT_EFFECTS_SCENARIOS_BY_LESSON['treatment-effects'],
   ],
   'spearman-correlation': [
     {
