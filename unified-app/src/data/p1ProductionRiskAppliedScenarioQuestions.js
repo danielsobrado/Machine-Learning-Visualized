@@ -1,3 +1,4 @@
+import { P1_DATA_ENGINEERING_FOR_ML_SCENARIOS_BY_LESSON } from './p1DataEngineeringForMlScenarioQuestions.js';
 import { P1_ML_SECURITY_ROBUSTNESS_SCENARIOS_BY_LESSON } from './p1MlSecurityRobustnessScenarioQuestions.js';
 
 export const P1_PRODUCTION_RISK_APPLIED_SCENARIOS_BY_LESSON = Object.freeze({
@@ -52,6 +53,7 @@ export const P1_PRODUCTION_RISK_APPLIED_SCENARIOS_BY_LESSON = Object.freeze({
       explanation: 'The model was trained against the v3 feature semantics, so sending raw v2 values changes the meaning and scale of its inputs. The first fix is to restore and enforce transformation-version parity through schema/version checks or shared transformation artifacts, not to retrain around an accidental serving mismatch.',
       misconceptionTested: 'Matching feature names and model weights is enough for train/serve parity even when the offline and online transformation versions produce different numerical semantics.',
     },
+    ...P1_DATA_ENGINEERING_FOR_ML_SCENARIOS_BY_LESSON['data-engineering-for-ml-track'],
   ],
 });
 
