@@ -1,3 +1,5 @@
+import { P1_LSTM_APPLIED_SCENARIOS_BY_LESSON } from './p1LstmAppliedScenarioQuestions.js';
+
 export const P1_RECURRENT_SCENARIOS_BY_LESSON = Object.freeze({
   lstm: [
     {
@@ -60,6 +62,7 @@ export const P1_RECURRENT_SCENARIOS_BY_LESSON = Object.freeze({
       explanation: 'GRUs combine gating with a simpler state update than LSTMs and can be a good efficiency/quality trade-off. LSTMs provide a separate cell state and more explicit gating capacity. The right choice depends on dependency length, data, latency, memory, and measured validation behavior.',
       misconceptionTested: 'RNN, GRU, and LSTM have a fixed universal ranking that makes task-specific benchmarking unnecessary.',
     },
+    ...P1_LSTM_APPLIED_SCENARIOS_BY_LESSON.lstm,
   ],
 });
 
