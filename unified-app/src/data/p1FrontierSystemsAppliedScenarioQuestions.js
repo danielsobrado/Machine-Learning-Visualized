@@ -1,6 +1,7 @@
 import { P1_DIFFUSION_LANGUAGE_MODELS_SCENARIOS_BY_LESSON } from './p1DiffusionLanguageModelsScenarioQuestions.js';
 import { P1_LONG_CONTEXT_FRONTIER_SCENARIOS_BY_LESSON } from './p1LongContextFrontierScenarioQuestions.js';
 import { P1_OMNI_MULTIMODAL_ARCHITECTURES_SCENARIOS_BY_LESSON } from './p1OmniMultimodalArchitecturesScenarioQuestions.js';
+import { P1_TEST_TIME_COMPUTE_APPLIED_SCENARIOS_BY_LESSON } from './p1TestTimeComputeAppliedScenarioQuestions.js';
 
 export const P1_FRONTIER_SYSTEMS_APPLIED_SCENARIOS_BY_LESSON = Object.freeze({
   'test-time-compute-thinking-budgets': [
@@ -19,6 +20,7 @@ export const P1_FRONTIER_SYSTEMS_APPLIED_SCENARIOS_BY_LESSON = Object.freeze({
       explanation: 'Adaptive compute meets both constraints. Easy queries gain almost nothing from 8x compute, while hard queries gain substantially. Routing only the hard 30% to 8x yields 89.9% expected accuracy for $0.31, whereas fixed 1x misses the quality target and fixed 8x violates the cost ceiling.',
       misconceptionTested: 'Test-time compute should use one fixed maximum or minimum budget for every query instead of allocating inference effort where its marginal value is highest.',
     },
+    ...P1_TEST_TIME_COMPUTE_APPLIED_SCENARIOS_BY_LESSON['test-time-compute-thinking-budgets'],
   ],
   'long-context-frontier-models': [
     {
