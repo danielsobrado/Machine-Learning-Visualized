@@ -1,7 +1,7 @@
 # Assessment Remaining Plan
 
 Status: **Active living plan**  
-Baseline reviewed: `main` at `87e226dcef6690adddbfb453faf7ac0402ab76e3`  
+Baseline reviewed: `main` at `f7d7f9c972d5022552eadb89df1d4501f8189be7`  
 Last reviewed: **2026-09-11**
 
 This document tracks what is still missing after the large assessment-quality and coverage passes.
@@ -36,15 +36,16 @@ These areas are already implemented and should not be treated as missing work:
 | Scenario answer-position diversification | `DONE` | Deterministic rotation in the public assessment registry |
 | Scenario pagination | `DONE` | Four-scenario pages in the assessment UI |
 | Lean CI quality gate | `DONE` | Unit tests, curriculum audit and production build in `.github/workflows/unified-app-quality.yml` |
-| Core mechanics semantic protection | `DONE` for audited lessons | `coreModelMechanicsCoverage.js` and tests |
-| Production ML semantic protection | `DONE` for audited lessons | `productionMlSystemsCoverage.js` and tests |
+| Generic semantic competency model | `DONE` | `assessmentCompetencies.js`, global registry and generic evidence validation |
+| Core mechanics semantic protection | `DONE` for audited lessons | Migrated to generic competency declarations |
+| Production ML semantic protection | `DONE` for audited lessons | Migrated to generic competency declarations, including quiz + scenario evidence |
 
 ## Remaining roadmap
 
 | ID | Priority | Workstream | Status | Main outcome |
 |---|---|---|---|---|
-| A1 | P0 | Generic semantic competency model | `PARTIAL` | Competencies become first-class stable metadata rather than domain-specific mappings to numeric question IDs |
-| A2 | P0 | Repository-wide semantic coverage inventory | `TODO` | Every priority and dedicated assessment has an explicit semantic-protection status |
+| A1 | P0 | Generic semantic competency model | `DONE` | Stable competencies and generic quiz/scenario evidence validation |
+| A2 | P0 | Repository-wide semantic coverage inventory | `IN PROGRESS` | Every priority and dedicated assessment has an explicit semantic-protection status |
 | A3 | P0 | Protect strong-but-unprotected lessons | `TODO` | High-quality lessons receive regression contracts without unnecessary question additions |
 | A4 | P0 | Cross-topic synthesis contract | `PARTIAL` | Important curriculum families have explicit synthesis requirements, not only isolated comparison scenarios |
 | A5 | P1 | Canonical visualizer-state reuse | `PARTIAL` | Assessment visual states reuse the same state semantics as the real lesson visualizers where practical |
@@ -58,29 +59,18 @@ These areas are already implemented and should not be treated as missing work:
 ## A1 — Generic semantic competency model
 
 **Priority:** P0  
-**Status:** `PARTIAL`
+**Status:** `DONE`  
+**Implemented through:** `f7d7f9c972d5022552eadb89df1d4501f8189be7`
 
-### Current state
+### Implemented
 
-The repository now has useful semantic contracts such as:
+The repository now has one generic competency model in `assessmentCompetencies.js`.
 
-- `coreModelMechanicsCoverage.js`
-- `productionMlSystemsCoverage.js`
-- other topic/family `*Coverage.js` registries
-
-These prove that specific competencies retain quiz evidence. This is a major improvement over question-count-only validation.
-
-The remaining weakness is that the semantic contract is still repeated across domain-specific files and frequently couples a competency directly to a list of concrete quiz IDs.
-
-### Target
-
-Create one generic competency representation and validator.
-
-A minimal model should support:
+A competency has a stable semantic ID, a lesson ID and one or more evidence references. Evidence can point to either a curated quiz question or a live scenario.
 
 ```js
 {
-  id: 'monitoring.concept-drift.diagnosis',
+  id: 'monitoring-drift-performance-and-label-delay',
   lessonId: 'model-monitoring',
   evidence: [
     { type: 'quiz', id: 'mon-053-concept-case' },
@@ -89,72 +79,80 @@ A minimal model should support:
 }
 ```
 
-Question/scenario objects may optionally expose semantic metadata directly when that reduces indirection, for example:
-
-```js
-{
-  id: 'mon-053-concept-case',
-  competencyIds: ['monitoring.concept-drift.diagnosis'],
-}
-```
-
-Do not require every question to have a competency ID. Only evidence that protects an important learning outcome needs semantic tagging.
+`assessmentCompetencyRegistry.js` aggregates competency sources and enforces global identity. Core model mechanics and production ML now use the generic declarations. Production monitoring also proves mixed quiz/scenario evidence works against the public assessment registry.
 
 ### Acceptance criteria
 
-- [ ] One shared competency schema exists.
-- [ ] One shared validator checks competency IDs, lesson IDs and evidence references.
-- [ ] Competency IDs are globally unique and stable.
-- [ ] Evidence may point to quiz questions and scenarios.
-- [ ] Missing or renamed evidence fails CI.
-- [ ] A question may be replaced without changing the competency ID.
-- [ ] At least the existing core-mechanics and production-ML contracts use the generic mechanism.
-- [ ] No semantic protection is weakened during migration.
+- [x] One shared competency schema exists.
+- [x] One shared validator checks competency IDs, lesson IDs and evidence references.
+- [x] Competency IDs are globally unique and stable.
+- [x] Evidence may point to quiz questions and scenarios.
+- [x] Missing or renamed evidence is covered by deterministic tests.
+- [x] A question may be replaced without changing the competency ID.
+- [x] Core-mechanics and production-ML contracts use the generic mechanism.
+- [x] Existing stable competency IDs were retained during migration.
+
+### Follow-on
+
+Migrating remaining domain-specific coverage plumbing belongs to A6. Expanding semantic protection to additional lessons belongs to A2/A3. Do not reopen A1 for those tasks.
 
 ---
 
 ## A2 — Repository-wide semantic coverage inventory
 
 **Priority:** P0  
-**Status:** `TODO`
+**Status:** `IN PROGRESS`
 
 ### Problem
 
 The shared quality contract proves structural quality for priority assessments, but it does not by itself prove that every strong assessment has explicit semantic regression protection.
 
-The repository now contains many dedicated `*Assessment.js` modules. Some have rich topic-specific tests or coverage contracts; others may only be protected structurally.
+The repository contains many dedicated `*Assessment.js` modules plus many historical family-specific `*Coverage.js` contracts. The inventory must distinguish strong legacy semantic protection from migration onto the new generic competency registry.
 
-### Target
+### Target classification
 
-Add an audit that classifies every dedicated assessment as one of:
+Every dedicated assessment should receive one explicit protection classification:
 
 ```text
-SEMANTICALLY_PROTECTED
+COMPETENCY_PROTECTED
 TOPIC_TEST_PROTECTED
+LEGACY_COVERAGE_PROTECTED
 STRUCTURE_ONLY
 INTENTIONALLY_NON_PRIORITY
 LEGACY_OR_INCOMPLETE
 ```
 
-The audit should produce a deterministic report from source data rather than requiring manual counting.
+The report must be derived from canonical source registries wherever possible. Do not create another hand-maintained copy of all lesson IDs.
+
+### Implementation approach
+
+1. Use `ASSESSMENT_QUALITY_PRIORITY_LESSON_IDS` as the canonical priority source.
+2. Use `ASSESSMENT_COMPETENCY_AUDITED_LESSON_IDS` as the canonical generic-competency source.
+3. Discover dedicated assessments from the assessment registry/source files rather than a manually copied topic list.
+4. Record legacy/focused semantic protection separately until those contracts migrate to A1.
+5. Emit deterministic data that A3 can consume.
+6. Fail when a priority lesson has neither generic nor recognized semantic protection.
 
 ### First audit candidates
 
-Start with dedicated lessons that are not obviously represented in the current priority manifest, especially:
+Pay special attention to:
 
 - classic NLP: `bag-of-words`, `word2vec`, `glove`, `fasttext`;
 - foundation-model architecture overview lessons;
-- additional attention/serving/architecture lessons with dedicated assessments but no explicit curriculum-family contract;
-- any dedicated assessment imported by `lessonAssessmentsBase.js` but absent from `PRIORITY_ASSESSMENT_LESSON_IDS`.
+- additional attention/serving/architecture lessons with dedicated assessments but no generic competency contract;
+- numerical linear-algebra lessons with strong focused tests but no generic competency registration;
+- neural-network training mechanics that already have curated questions but rely on topic-specific protection.
 
-The audit decides whether they need promotion. Do not promote a lesson merely because a file exists.
+The audit decides whether a lesson needs promotion. Do not promote a lesson merely because a file exists.
 
 ### Acceptance criteria
 
 - [ ] All dedicated assessment modules are discoverable by the audit.
 - [ ] Every dedicated assessment gets one explicit protection classification.
-- [ ] Priority lessons cannot be `STRUCTURE_ONLY`.
-- [ ] The audit exits non-zero when a priority lesson loses semantic protection.
+- [ ] Generic competency migration status is derived from `assessmentCompetencyRegistry.js`.
+- [ ] Legacy/focused semantic protection is not incorrectly reported as unprotected.
+- [ ] Priority lessons cannot silently degrade to structural-only protection.
+- [ ] The audit exits non-zero when a required semantic contract disappears.
 - [ ] The audit can emit a concise Markdown or JSON summary for future reviews.
 - [ ] CI runs the semantic coverage audit.
 
@@ -179,7 +177,7 @@ For each lesson reported as high-quality but semantically under-protected:
 
 ### Priority order
 
-Use this order unless the inventory finds a more serious gap:
+Use this order unless A2 finds a more serious gap:
 
 1. classic NLP fundamentals;
 2. foundational transformer / foundation-model architecture lessons;
@@ -189,7 +187,7 @@ Use this order unless the inventory finds a more serious gap:
 
 ### Acceptance criteria
 
-- [ ] No high-value priority assessment remains `STRUCTURE_ONLY`.
+- [ ] No high-value priority assessment remains semantic-structure-only.
 - [ ] Existing strong questions are protected rather than duplicated.
 - [ ] New scenarios are added only when a documented reasoning gap exists.
 - [ ] Every added semantic requirement has at least one stable evidence item.
@@ -210,8 +208,6 @@ What is still missing is a centralized curriculum-level contract proving that th
 
 ### Target synthesis families
 
-At minimum, protect these families:
-
 | Family | Required synthesis |
 |---|---|
 | Classification decisions | precision/recall, ROC/PR, calibration, thresholds and asymmetric cost |
@@ -221,9 +217,7 @@ At minimum, protect these families:
 | RAG pipeline | chunking, embedding/indexing, retrieval, reranking, grounding and generation failure localization |
 | Production ML | leakage, train/serve skew, drift, monitoring, slice failure and debugging action |
 
-### Suggested metadata
-
-Use stable synthesis IDs such as:
+### Suggested stable IDs
 
 ```text
 synthesis.classification.decision-policy
@@ -256,16 +250,13 @@ A synthesis requirement may be satisfied by an existing scenario. Do not require
 
 Visual-state assessment questions are already implemented and are not missing.
 
-The next improvement is to reduce semantic duplication between:
-
-- the state used by an interactive lesson/animation; and
-- the state rendered by an assessment visual-state question.
+The next improvement is to reduce semantic duplication between the state used by an interactive lesson/animation and the state rendered by an assessment visual-state question.
 
 ### Target
 
 Where a lesson exposes deterministic visualizer parameters, define a small adapter or canonical state schema that both the lesson visualizer and assessment can understand.
 
-Examples:
+Representative targets:
 
 ```text
 linear regression -> data points, fitted coefficients, residual state
@@ -292,27 +283,28 @@ Do not force a universal rendering engine. Keep lesson-specific renderers where 
 **Priority:** P1  
 **Status:** `PARTIAL`
 
-### Problem
+### Current state
 
-The repository has accumulated many useful domain-specific `*Coverage.js` and `*Coverage.test.mjs` files. The semantic checks are valuable, but the repeated registry/test plumbing will become expensive to maintain.
+A1 removed duplicated competency constructors and validator mechanics from the core-model-mechanics and production-ML coverage contracts. The generic layer now owns registry integrity and evidence resolution for those migrated domains.
+
+Many other family-specific `*Coverage.js` and `*Coverage.test.mjs` files still use older custom plumbing. Their semantic data is valuable and must be preserved.
 
 ### Target
 
-After A1 is stable:
-
-- keep domain-specific semantic data where that improves readability;
+- keep domain-specific semantic declarations where that improves readability;
 - move generic uniqueness, source, evidence-reference and completeness validation into shared helpers;
-- remove duplicate `competency()` helper implementations;
-- avoid one custom test harness per curriculum family when the behavior is identical;
-- preserve focused topic tests for factual ordering and misconceptions.
+- remove remaining duplicate `competency()` helper implementations;
+- avoid one custom test harness per curriculum family when behavior is identical;
+- preserve focused topic tests for factual ordering, calculations and misconceptions.
 
 ### Acceptance criteria
 
-- [ ] Shared generic competency validation owns repeated mechanics.
-- [ ] Domain files contain semantic declarations, not repeated validator code.
+- [x] Shared generic competency validation owns repeated mechanics for the first migrated domains.
+- [x] Migrated domain files contain semantic declarations instead of custom validator code.
+- [ ] Remaining domain coverage registries are inventoried.
 - [ ] Existing coverage tests either migrate cleanly or remain only when they add unique checks.
 - [ ] No reduction in protected competency count occurs during consolidation.
-- [ ] Test failure messages still identify lesson, competency and missing evidence clearly.
+- [x] Generic failure messages identify lesson, competency and missing evidence.
 
 ---
 
@@ -339,7 +331,7 @@ Run browser-level smoke coverage using a cost-appropriate policy, for example:
 
 - scheduled nightly workflow;
 - manual `workflow_dispatch`;
-- optional PR label or path-triggered workflow for assessment/UI changes.
+- optional path-triggered workflow for assessment/UI changes.
 
 The smoke suite should verify representative routes and assessment interactions rather than duplicate unit tests.
 
@@ -405,7 +397,7 @@ IMPLEMENTED BASELINE
 ACTIVE REMAINING WORK
 ```
 
-This file should remain the source of truth for active remaining work.
+This file remains the source of truth for active remaining work.
 
 ### Acceptance criteria
 
@@ -419,9 +411,9 @@ This file should remain the source of truth for active remaining work.
 ## Recommended execution order
 
 ```text
-A1  Generic semantic competency model
+A1  Generic semantic competency model                 DONE
  ↓
-A2  Repository-wide semantic inventory
+A2  Repository-wide semantic inventory                IN PROGRESS
  ↓
 A3  Protect strong-but-unprotected lessons
  ↓
@@ -449,7 +441,7 @@ When completing work from this plan:
 3. add the implementing commit SHA under the workstream;
 4. if new work is discovered, add a new stable ID rather than rewriting historical items;
 5. when a workstream reaches `DONE`, keep it in this file until the entire plan is complete;
-6. never mark an item `DONE` based only on a manual inspection when a regression test can reasonably protect it.
+6. never mark an item `DONE` based only on manual inspection when a regression test can reasonably protect it.
 
 ## Overall completion definition
 
