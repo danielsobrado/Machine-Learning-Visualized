@@ -36,8 +36,19 @@ export function defineQuizCompetency(id, lessonId, quizIds) {
   });
 }
 
+function flattenScenarioRequirements(requirements) {
+  return (requirements || []).flatMap((requirement) => {
+    if (!Array.isArray(requirement.competencies)) return [requirement];
+
+    return requirement.competencies.map((competency) => ({
+      ...competency,
+      lessonId: competency.lessonId || requirement.lessonId,
+    }));
+  });
+}
+
 export function defineScenarioCompetenciesFromRequirements(requirements, { idPrefix = '' } = {}) {
-  return Object.freeze((requirements || []).map((requirement) => {
+  return Object.freeze(flattenScenarioRequirements(requirements).map((requirement) => {
     const semanticId = requirement.id || requirement.competency;
     const scenarioIds = requirement.scenarioIds || (requirement.scenarioId ? [requirement.scenarioId] : []);
 
