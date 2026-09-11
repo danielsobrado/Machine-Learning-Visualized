@@ -6,11 +6,13 @@ import { ADVANCED_INFERENCE_DEPTH_REQUIREMENTS } from './advancedInferenceCovera
 import { ADVANCED_NEURAL_ARCHITECTURES_DEPTH_REQUIREMENTS } from './advancedNeuralArchitecturesCoverage.js';
 import { BLOOM_FILTER_DEPTH_REQUIREMENTS } from './bloomFilterCoverage.js';
 import { CLASSICAL_ML_STATISTICS_DEPTH_REQUIREMENTS } from './classicalMlStatisticsCoverage.js';
+import { CORE_RL_ALGORITHMS_DEPTH_REQUIREMENTS } from './coreRlAlgorithmsCoverage.js';
 import { FRONTIER_SYSTEMS_DEPTH_REQUIREMENTS } from './frontierSystemsCoverage.js';
 import { GENERATIVE_RL_DEPTH_REQUIREMENTS } from './generativeRlCoverage.js';
 import { INFORMATION_THEORY_DEPTH_REQUIREMENTS } from './informationTheoryCoverage.js';
 import { LATENT_DIFFUSION_PIPELINE_DEPTH_REQUIREMENTS } from './latentDiffusionPipelineCoverage.js';
 import { LINEAR_ALGEBRA_DEPTH_REQUIREMENTS } from './linearAlgebraCoverage.js';
+import { MODEL_RELIABILITY_DEPTH_REQUIREMENTS } from './modelReliabilityCoverage.js';
 import { NEURAL_NETWORK_DEPTH_REQUIREMENTS } from './neuralNetworkCoverage.js';
 import { NLP_TRANSFORMER_DEPTH_REQUIREMENTS } from './nlpTransformerCoverage.js';
 import { PROBABILITY_REASONING_DEPTH_REQUIREMENTS } from './probabilityReasoningCoverage.js';
@@ -36,11 +38,13 @@ export const LEGACY_MIGRATED_COMPETENCY_SOURCES = Object.freeze([
   migratedSource('advanced-neural-architectures', ADVANCED_NEURAL_ARCHITECTURES_DEPTH_REQUIREMENTS),
   migratedSource('bloom-filter-depth', BLOOM_FILTER_DEPTH_REQUIREMENTS),
   migratedSource('classical-ml-statistics', CLASSICAL_ML_STATISTICS_DEPTH_REQUIREMENTS),
+  migratedSource('core-rl-algorithms', CORE_RL_ALGORITHMS_DEPTH_REQUIREMENTS),
   migratedSource('frontier-systems', FRONTIER_SYSTEMS_DEPTH_REQUIREMENTS),
   migratedSource('generative-rl', GENERATIVE_RL_DEPTH_REQUIREMENTS),
   migratedSource('information-theory', INFORMATION_THEORY_DEPTH_REQUIREMENTS),
   migratedSource('latent-diffusion-pipeline', LATENT_DIFFUSION_PIPELINE_DEPTH_REQUIREMENTS),
   migratedSource('linear-algebra-depth', LINEAR_ALGEBRA_DEPTH_REQUIREMENTS),
+  migratedSource('model-reliability', MODEL_RELIABILITY_DEPTH_REQUIREMENTS),
   migratedSource('neural-network-depth', NEURAL_NETWORK_DEPTH_REQUIREMENTS),
   migratedSource('nlp-transformer-depth', NLP_TRANSFORMER_DEPTH_REQUIREMENTS),
   migratedSource('probability-reasoning', PROBABILITY_REASONING_DEPTH_REQUIREMENTS),
