@@ -9,6 +9,7 @@
     "test:assessment-browser": "node scripts/assessment-browser-smoke.mjs",
     "audit:quality": "node scripts/generate-curriculum-audit.mjs",
     "audit:assessment-semantic": "node scripts/audit-assessment-semantic-coverage.mjs",
+    "audit:assessment-duplicates": "node scripts/audit-assessment-near-duplicates.mjs",
     "images:optimize": "node scripts/optimize-images.mjs",
     "test": "node --test src/**/*.test.mjs",
     "build": "vite build",
