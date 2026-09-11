@@ -152,6 +152,9 @@ jobs:
           set -o pipefail
           npm test 2>&1 | tee test-output.log
 
+      - name: Audit assessment semantic coverage
+        run: npm run audit:assessment-semantic
+
       - name: Upload test output
         if: always()
         uses: actions/upload-artifact@v4

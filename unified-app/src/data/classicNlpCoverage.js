@@ -1,3 +1,5 @@
+import { defineAssessmentCompetency, scenarioEvidence } from './assessmentCompetencies.js';
+
 export const CLASSIC_NLP_AUDITED_LESSON_IDS = Object.freeze([
   'bag-of-words',
   'word2vec',
@@ -27,3 +29,11 @@ export const CLASSIC_NLP_DEPTH_REQUIREMENTS = Object.freeze([
     scenarioIds: Object.freeze(['fasttext-oov-ngram-average']),
   }),
 ]);
+
+export const CLASSIC_NLP_COMPETENCIES = Object.freeze(
+  CLASSIC_NLP_DEPTH_REQUIREMENTS.map(({ lessonId, competency, scenarioIds }) => defineAssessmentCompetency({
+    id: competency,
+    lessonId,
+    evidence: scenarioIds.map(scenarioEvidence),
+  })),
+);

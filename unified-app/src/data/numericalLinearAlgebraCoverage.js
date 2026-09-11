@@ -1,3 +1,5 @@
+import { defineAssessmentCompetency, scenarioEvidence } from './assessmentCompetencies.js';
+
 function requirement(scenarioIds) {
   return Object.freeze({ scenarioIds: Object.freeze(scenarioIds) });
 }
@@ -38,3 +40,11 @@ export const NUMERICAL_LINEAR_ALGEBRA_DEPTH_REQUIREMENTS = Object.freeze([
   depthRequirement('low-rank-storage-calculation', 'low-rank-approximation', ['low-rank-storage-worked']),
   depthRequirement('dominant-eigenvector-power-iteration-diagnosis', 'eigenvalue', ['eigen-power-method-diagnosis']),
 ]);
+
+export const NUMERICAL_LINEAR_ALGEBRA_COMPETENCIES = Object.freeze(
+  NUMERICAL_LINEAR_ALGEBRA_DEPTH_REQUIREMENTS.map(({ id, lessonId, scenarioIds }) => defineAssessmentCompetency({
+    id,
+    lessonId,
+    evidence: scenarioIds.map(scenarioEvidence),
+  })),
+);

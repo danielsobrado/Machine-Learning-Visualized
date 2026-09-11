@@ -1,3 +1,5 @@
+import { defineAssessmentCompetency, scenarioEvidence } from './assessmentCompetencies.js';
+
 export const FOUNDATION_MODELS_AUDITED_LESSON_IDS = Object.freeze([
   'bert',
   'gpt2-comprehensive',
@@ -27,3 +29,13 @@ export const FOUNDATION_MODELS_DEPTH_REQUIREMENTS = Object.freeze([
     ]),
   }),
 ]);
+
+export const FOUNDATION_MODELS_COMPETENCIES = Object.freeze(
+  FOUNDATION_MODELS_DEPTH_REQUIREMENTS.flatMap(({ lessonId, competencies }) => competencies.map((competency) => (
+    defineAssessmentCompetency({
+      id: competency.competency,
+      lessonId,
+      evidence: [scenarioEvidence(competency.scenarioId)],
+    })
+  ))),
+);
