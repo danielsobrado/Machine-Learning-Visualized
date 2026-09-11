@@ -36,6 +36,23 @@ export function defineQuizCompetency(id, lessonId, quizIds) {
   });
 }
 
+export function defineScenarioCompetenciesFromRequirements(requirements, { idPrefix = '' } = {}) {
+  return Object.freeze((requirements || []).map((requirement) => {
+    const semanticId = requirement.id || requirement.competency;
+    const scenarioIds = requirement.scenarioIds || (requirement.scenarioId ? [requirement.scenarioId] : []);
+
+    return defineAssessmentCompetency({
+      id: `${idPrefix}${semanticId}`,
+      lessonId: requirement.lessonId,
+      evidence: scenarioIds.map(scenarioEvidence),
+    });
+  }));
+}
+
+export function competencyLessonIds(competencies) {
+  return Object.freeze([...new Set((competencies || []).map(({ lessonId }) => lessonId))]);
+}
+
 function validateIdentifier(value, label, errors) {
   if (typeof value !== 'string' || value.trim().length === 0) {
     errors.push(`${label} must be a non-empty string`);
