@@ -75,9 +75,16 @@ export async function buildAssessmentSemanticCoverageInventory() {
     discoverTopicTestLessonIds(files),
     discoverLegacyCoverageLessonIds(files),
   ]);
+  const lessonIds = new Set([
+    ...Object.keys(lessonAssessments),
+    ...priorityLessonIds,
+    ...competencyLessonIds,
+  ]);
 
-  const records = Object.entries(lessonAssessments)
-    .map(([lessonId, assessment]) => {
+  const records = [...lessonIds]
+    .sort()
+    .map((lessonId) => {
+      const assessment = lessonAssessments[lessonId] || { source: 'empty' };
       const classification = classifyAssessmentSemanticProtection({
         lessonId,
         source: assessment.source,
@@ -94,8 +101,7 @@ export async function buildAssessmentSemanticCoverageInventory() {
         source: assessment.source,
         classification,
       });
-    })
-    .sort((left, right) => left.lessonId.localeCompare(right.lessonId));
+    });
 
   const dedicatedAssessmentModuleFiles = files
     .filter((name) => DEDICATED_ASSESSMENT_PATTERN.test(name))
