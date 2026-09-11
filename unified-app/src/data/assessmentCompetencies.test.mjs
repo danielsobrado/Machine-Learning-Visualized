@@ -4,6 +4,7 @@ import test from 'node:test';
 import {
   ASSESSMENT_COMPETENCY_EVIDENCE_TYPES,
   defineAssessmentCompetency,
+  defineScenarioCompetenciesFromRequirements,
   quizEvidence,
   scenarioEvidence,
   validateAssessmentCompetencyEvidence,
@@ -48,6 +49,44 @@ test('competency evidence supports quiz and scenario references', () => {
 
   assert.ok(evidenceTypes.has(ASSESSMENT_COMPETENCY_EVIDENCE_TYPES.QUIZ));
   assert.ok(evidenceTypes.has(ASSESSMENT_COMPETENCY_EVIDENCE_TYPES.SCENARIO));
+});
+
+test('scenario competency adapter supports flat and nested legacy requirements', () => {
+  const competencies = defineScenarioCompetenciesFromRequirements([
+    {
+      id: 'flat-depth',
+      lessonId: 'flat-lesson',
+      scenarioIds: ['flat-scenario'],
+    },
+    {
+      lessonId: 'nested-lesson',
+      competencies: [
+        { competency: 'nested-depth-a', scenarioId: 'nested-scenario-a' },
+        { competency: 'nested-depth-b', scenarioId: 'nested-scenario-b' },
+      ],
+    },
+  ], { idPrefix: 'migrated.' });
+
+  assert.deepEqual(
+    competencies.map(({ id, lessonId, evidence }) => ({ id, lessonId, evidence })),
+    [
+      {
+        id: 'migrated.flat-depth',
+        lessonId: 'flat-lesson',
+        evidence: [{ type: 'scenario', id: 'flat-scenario' }],
+      },
+      {
+        id: 'migrated.nested-depth-a',
+        lessonId: 'nested-lesson',
+        evidence: [{ type: 'scenario', id: 'nested-scenario-a' }],
+      },
+      {
+        id: 'migrated.nested-depth-b',
+        lessonId: 'nested-lesson',
+        evidence: [{ type: 'scenario', id: 'nested-scenario-b' }],
+      },
+    ],
+  );
 });
 
 test('generic validator rejects malformed semantic contracts', () => {
