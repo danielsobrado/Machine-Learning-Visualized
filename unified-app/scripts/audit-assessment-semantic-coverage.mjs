@@ -13,6 +13,8 @@ import { lessonAssessments } from '../src/data/lessonAssessments.js';
 
 const DATA_DIR = fileURLToPath(new URL('../src/data/', import.meta.url));
 const AUDITED_EXPORT_SUFFIX = '_AUDITED_LESSON_IDS';
+const REQUIREMENTS_EXPORT_PATTERN = /_REQUIREMENTS$/;
+const COVERAGE_EXPORT_PATTERN = /_COVERAGE$/;
 const ASSESSMENT_TEST_PATTERN = /Assessment\.test\.mjs$/;
 const COVERAGE_MODULE_PATTERN = /Coverage\.js$/;
 const DEDICATED_ASSESSMENT_PATTERN = /Assessment\.js$/;
@@ -36,21 +38,44 @@ async function discoverTopicTestLessonIds(files) {
   return lessonIds;
 }
 
+function addLessonId(lessonIds, lessonId) {
+  if (typeof lessonId === 'string' && lessonId.length > 0) lessonIds.add(lessonId);
+}
+
+export function getCoverageLessonIdsFromModule(module) {
+  const lessonIds = new Set();
+
+  for (const [exportName, value] of Object.entries(module)) {
+    if (exportName.endsWith(AUDITED_EXPORT_SUFFIX) && Array.isArray(value)) {
+      for (const lessonId of value) addLessonId(lessonIds, lessonId);
+      continue;
+    }
+
+    if (REQUIREMENTS_EXPORT_PATTERN.test(exportName) && Array.isArray(value)) {
+      for (const requirement of value) addLessonId(lessonIds, requirement?.lessonId);
+      continue;
+    }
+
+    if (COVERAGE_EXPORT_PATTERN.test(exportName) && value && typeof value === 'object' && !Array.isArray(value)) {
+      for (const lessonId of Object.keys(value)) addLessonId(lessonIds, lessonId);
+    }
+  }
+
+  return lessonIds;
+}
+
 async function discoverLegacyCoverageLessonIds(files) {
   const lessonIds = new Set();
 
   for (const fileName of files.filter((name) => COVERAGE_MODULE_PATTERN.test(name))) {
     const filePath = path.join(DATA_DIR, fileName);
     const source = await readFile(filePath, 'utf8');
-    if (!source.includes(AUDITED_EXPORT_SUFFIX)) continue;
+    if (!source.includes('_COVERAGE') && !source.includes('_REQUIREMENTS') && !source.includes(AUDITED_EXPORT_SUFFIX)) {
+      continue;
+    }
 
     const module = await import(pathToFileURL(filePath).href);
-    for (const [exportName, value] of Object.entries(module)) {
-      if (!exportName.endsWith(AUDITED_EXPORT_SUFFIX) || !Array.isArray(value)) continue;
-      for (const lessonId of value) {
-        if (typeof lessonId === 'string' && lessonId.length > 0) lessonIds.add(lessonId);
-      }
-    }
+    for (const lessonId of getCoverageLessonIdsFromModule(module)) lessonIds.add(lessonId);
   }
 
   return lessonIds;

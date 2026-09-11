@@ -11,6 +11,7 @@ import {
   buildAssessmentSemanticCoverageInventory,
   formatAssessmentSemanticCoverageJson,
   formatAssessmentSemanticCoverageMarkdown,
+  getCoverageLessonIdsFromModule,
 } from '../../scripts/audit-assessment-semantic-coverage.mjs';
 
 const baseInput = Object.freeze({
@@ -53,6 +54,25 @@ test('semantic coverage classification has deterministic precedence', () => {
     classify({ source: 'fallback', priorityLessonIds: new Set() }),
     ASSESSMENT_SEMANTIC_PROTECTION.LEGACY_OR_INCOMPLETE,
   );
+});
+
+test('coverage discovery understands audited, requirement, and coverage-map contracts', () => {
+  const lessonIds = getCoverageLessonIdsFromModule({
+    EXAMPLE_AUDITED_LESSON_IDS: Object.freeze(['audited-lesson']),
+    EXAMPLE_DEPTH_REQUIREMENTS: Object.freeze([
+      Object.freeze({ lessonId: 'requirement-lesson', scenarioIds: Object.freeze(['scenario-a']) }),
+    ]),
+    EXAMPLE_COVERAGE: Object.freeze({
+      'coverage-map-lesson': Object.freeze({ scenarioIds: Object.freeze(['scenario-b']) }),
+    }),
+    EXAMPLE_METADATA: Object.freeze({ ignored: true }),
+  });
+
+  assert.deepEqual([...lessonIds].sort(), [
+    'audited-lesson',
+    'coverage-map-lesson',
+    'requirement-lesson',
+  ]);
 });
 
 test('semantic coverage validation rejects priority structural-only regressions', () => {
