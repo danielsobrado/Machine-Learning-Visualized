@@ -3,6 +3,8 @@ import { RESIDUAL_SCENARIOS } from '../animations/linear-regression/linearRegres
 import { diagnoseResidualPattern } from '../animations/linear-regression/linearRegressionModel.js';
 import { distributionMoments } from '../animations/probability-distributions/distributionModel.js';
 
+const CLASSIFICATION_VISUAL_COUNTS = Object.freeze({ tp: 28, fp: 2, fn: 62, tn: 108 });
+
 function freezeResiduals(residuals) {
   return Object.freeze(residuals.map(({ predictedY, error }) => Object.freeze({
     fitted: predictedY,
@@ -55,4 +57,30 @@ export function classificationThresholdAssessmentState({
     falseNegativeCost,
     confusion: Object.freeze({ ...counts }),
   });
+}
+
+const CANONICAL_VISUAL_STATE_FACTORIES = Object.freeze({
+  'probability-distributions': Object.freeze({
+    'prob-visual-normal-spread': () => normalDistributionAssessmentState({ mean: 0, sigma: 2, marker: 4 }),
+  }),
+  'linear-regression': Object.freeze({
+    'lr-visual-residual-curve': () => linearRegressionResidualAssessmentState('nonlinear'),
+  }),
+  'classification-metrics': Object.freeze({
+    'metrics-visual-threshold-cost': () => classificationThresholdAssessmentState({
+      threshold: 0.8,
+      counts: CLASSIFICATION_VISUAL_COUNTS,
+      falseNegativeCost: 'high',
+    }),
+  }),
+});
+
+export function applyCanonicalAssessmentVisualState(lessonId, question) {
+  const factory = CANONICAL_VISUAL_STATE_FACTORIES[lessonId]?.[question.id];
+  if (!factory) return question;
+
+  return {
+    ...question,
+    visualState: factory(),
+  };
 }
