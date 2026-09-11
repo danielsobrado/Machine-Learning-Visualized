@@ -3,6 +3,7 @@ import * as base from './lessonAssessmentsBase.js';
 import { getAssessmentSource } from './assessmentQuality.js';
 import { ASSESSMENT_QUALITY_PRIORITY_LESSON_IDS } from './assessmentQualityManifest.js';
 import { getAssessmentScenarioExtensions } from './assessmentScenarioExtensions.js';
+import { applyCanonicalAssessmentVisualState } from './assessmentVisualizerStateAdapters.js';
 import { PROBABILITY_DISTRIBUTIONS_QUIZ } from './probabilityDistributionsAssessment.js';
 
 export * from './lessonAssessmentsBase.js';
@@ -72,7 +73,8 @@ function buildAssessment(lessonId, assessment) {
   const scenarioQuestions = [
     ...(withOverride.scenarioQuestions || []),
     ...getAssessmentScenarioExtensions(lessonId),
-  ].map((question) => rotateScenarioChoices(lessonId, question));
+  ].map((question) => applyCanonicalAssessmentVisualState(lessonId, question))
+    .map((question) => rotateScenarioChoices(lessonId, question));
 
   return Object.freeze({
     ...withOverride,
