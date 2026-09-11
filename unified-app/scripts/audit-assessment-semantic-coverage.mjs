@@ -71,6 +71,7 @@ export async function buildAssessmentSemanticCoverageInventory() {
   const files = await dataFiles();
   const priorityLessonIds = new Set(ASSESSMENT_QUALITY_PRIORITY_LESSON_IDS);
   const competencyLessonIds = new Set(ASSESSMENT_COMPETENCY_AUDITED_LESSON_IDS);
+  const intentionallyNonPriorityLessonIds = new Set();
   const [topicTestLessonIds, legacyCoverageLessonIds] = await Promise.all([
     discoverTopicTestLessonIds(files),
     discoverLegacyCoverageLessonIds(files),
@@ -92,6 +93,7 @@ export async function buildAssessmentSemanticCoverageInventory() {
         competencyLessonIds,
         topicTestLessonIds,
         legacyCoverageLessonIds,
+        intentionallyNonPriorityLessonIds,
       });
 
       return Object.freeze({

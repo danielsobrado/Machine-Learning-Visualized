@@ -28,6 +28,7 @@ export function classifyAssessmentSemanticProtection({
   competencyLessonIds,
   topicTestLessonIds,
   legacyCoverageLessonIds,
+  intentionallyNonPriorityLessonIds,
 }) {
   if (contains(competencyLessonIds, lessonId)) {
     return ASSESSMENT_SEMANTIC_PROTECTION.COMPETENCY_PROTECTED;
@@ -38,11 +39,11 @@ export function classifyAssessmentSemanticProtection({
   if (contains(legacyCoverageLessonIds, lessonId)) {
     return ASSESSMENT_SEMANTIC_PROTECTION.LEGACY_COVERAGE_PROTECTED;
   }
-  if (source === 'curated' && contains(priorityLessonIds, lessonId)) {
-    return ASSESSMENT_SEMANTIC_PROTECTION.STRUCTURE_ONLY;
+  if (contains(intentionallyNonPriorityLessonIds, lessonId)) {
+    return ASSESSMENT_SEMANTIC_PROTECTION.INTENTIONALLY_NON_PRIORITY;
   }
   if (source === 'curated') {
-    return ASSESSMENT_SEMANTIC_PROTECTION.INTENTIONALLY_NON_PRIORITY;
+    return ASSESSMENT_SEMANTIC_PROTECTION.STRUCTURE_ONLY;
   }
   return ASSESSMENT_SEMANTIC_PROTECTION.LEGACY_OR_INCOMPLETE;
 }

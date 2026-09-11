@@ -20,6 +20,7 @@ const baseInput = Object.freeze({
   competencyLessonIds: new Set(),
   topicTestLessonIds: new Set(),
   legacyCoverageLessonIds: new Set(),
+  intentionallyNonPriorityLessonIds: new Set(),
 });
 
 function classify(overrides = {}) {
@@ -39,10 +40,14 @@ test('semantic coverage classification has deterministic precedence', () => {
     classify({ legacyCoverageLessonIds: new Set(['lesson-a']) }),
     ASSESSMENT_SEMANTIC_PROTECTION.LEGACY_COVERAGE_PROTECTED,
   );
+  assert.equal(
+    classify({ intentionallyNonPriorityLessonIds: new Set(['lesson-a']) }),
+    ASSESSMENT_SEMANTIC_PROTECTION.INTENTIONALLY_NON_PRIORITY,
+  );
   assert.equal(classify(), ASSESSMENT_SEMANTIC_PROTECTION.STRUCTURE_ONLY);
   assert.equal(
     classify({ priorityLessonIds: new Set() }),
-    ASSESSMENT_SEMANTIC_PROTECTION.INTENTIONALLY_NON_PRIORITY,
+    ASSESSMENT_SEMANTIC_PROTECTION.STRUCTURE_ONLY,
   );
   assert.equal(
     classify({ source: 'fallback', priorityLessonIds: new Set() }),
