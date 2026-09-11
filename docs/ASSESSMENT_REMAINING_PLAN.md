@@ -35,6 +35,7 @@ The current implementation was intentionally completed before aggregate validati
 - Repository-wide semantic coverage audit.
 - Cross-topic synthesis contract.
 - Canonical visualizer-state reuse for representative lessons.
+- Shared adapter for stable legacy depth contracts.
 - Scheduled/manual browser-level assessment smoke coverage.
 - Deterministic report-only near-duplicate audit.
 
@@ -47,7 +48,7 @@ The current implementation was intentionally completed before aggregate validati
 | A3 | P0 | Protect strong-but-unprotected lessons | `IN PROGRESS` | Major strong families promoted; final audit candidates still need aggregate review |
 | A4 | P0 | Cross-topic synthesis contract | `DONE` | Six required synthesis families have explicit live evidence |
 | A5 | P1 | Canonical visualizer-state reuse | `DONE` | Three representative assessments derive state from real lesson models |
-| A6 | P1 | Competency/coverage contract consolidation | `PARTIAL` | Stable-ID legacy families use one adapter; prose-ID families remain intentionally legacy-protected |
+| A6 | P1 | Competency/coverage contract consolidation | `DONE` | Stable legacy depth contracts use one shared adapter while focused domain tests remain |
 | A7 | P1 | Browser-level assessment smoke CI | `DONE` | Nightly/manual Playwright smoke without normal-commit browser cost |
 | A8 | P2 | Semantic near-duplicate audit | `DONE` | Deterministic report-only token-overlap audit with allowlisting |
 | A9 | P2 | Documentation synchronization | `DONE` | Design/completion docs point back to this living plan |
@@ -108,22 +109,17 @@ Large parts of the original candidate list are now protected through the generic
 
 - classic NLP;
 - numerical linear algebra;
-- foundation models;
-- frontier architecture overview;
-- classical ML/statistics depth;
-- neural-network training depth;
-- NLP/transformer depth;
-- advanced inference;
-- frontier systems;
-- linear algebra;
-- information theory;
-- probability reasoning;
+- foundation models and frontier architecture overview;
+- classical ML/statistics;
+- neural-network and advanced-neural-architecture depth;
+- NLP/transformer and advanced-inference depth;
+- linear algebra, information theory, and probability reasoning;
 - Bloom filters;
-- advanced neural architectures;
-- generative AI/RL topics with stable IDs;
+- generative AI/RL and core RL algorithms;
 - latent diffusion pipeline;
 - RAG;
-- production ML depth;
+- production ML and model reliability;
+- frontier systems;
 - time-series forecasting;
 - recommender systems.
 
@@ -131,7 +127,7 @@ Large parts of the original candidate list are now protected through the generic
 
 Run the aggregate semantic inventory and review only lessons still emitted as promotion candidates or `STRUCTURE_ONLY`.
 
-Do not create questions merely to make every lesson generic. A focused topic test or legacy semantic contract remains valid protection when its semantic IDs are not ready for stable migration.
+Do not create questions merely to make every lesson generic. A focused topic test or legacy semantic contract remains valid protection when it adds a genuinely domain-specific invariant.
 
 ---
 
@@ -182,27 +178,19 @@ The live assessment assembly replaces representative authored visual payloads wi
 
 ## A6 — Competency/coverage contract consolidation
 
-**Status:** `PARTIAL`
+**Status:** `DONE`
 
 Implemented shared plumbing:
 
-- `defineScenarioCompetenciesFromRequirements(...)`
+- `defineScenarioCompetenciesFromRequirements(...)`;
 - nested and flat legacy requirement support;
 - `competencyLessonIds(...)`;
 - `legacyAssessmentCompetencySources.js`;
 - global generic evidence validation for migrated families.
 
-Most mature families with intentional stable depth IDs now use the shared adapter while retaining focused domain tests for their unique factual/calculation checks.
+All mature depth-contract families now expose intentional stable IDs to the shared competency registry, including core RL algorithms and model reliability. Human-readable competency descriptions remain in their domain files for teaching and focused tests.
 
-### Intentionally not auto-migrated
-
-`coreRlAlgorithmsCoverage.js` and `modelReliabilityCoverage.js` currently contain human-readable competency prose rather than intentional stable semantic IDs. Generating IDs mechanically from that prose would make the registry brittle. They remain semantically protected by their focused legacy contracts until stable IDs are authored explicitly.
-
-### Remaining action
-
-- assign intentional stable IDs to prose-ID families when useful;
-- remove only genuinely duplicated validation plumbing;
-- retain family tests that check domain-specific calculations, misconceptions, ordering, or source integrity.
+Focused family tests were deliberately retained when they add domain-specific checks such as numerical calculations, misconception wording, answer-position behavior, source registration, or scenario richness. Consolidation removes repeated generic identity/evidence plumbing without flattening valuable semantic tests.
 
 ---
 
@@ -289,5 +277,4 @@ Expected interpretation:
 - semantic audit failures are blocking and should be fixed;
 - near-duplicate findings are review candidates, not failures;
 - browser smoke is intentionally outside the normal per-commit quality workflow;
-- A3 should be closed only after remaining semantic-promotion candidates are reviewed;
-- A6 should be closed only when remaining prose-ID legacy families receive intentional stable IDs or are explicitly retained as legacy contracts.
+- A3 should be closed only after remaining semantic-promotion candidates are reviewed.
