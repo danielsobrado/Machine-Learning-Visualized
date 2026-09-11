@@ -44,6 +44,7 @@ Later passes built on this baseline without changing the original structural qua
 
 - generic semantic competency/evidence contracts;
 - repository-wide semantic coverage inventory;
+- shared migration of stable legacy depth contracts into the global competency registry;
 - cross-topic synthesis contracts;
 - canonical visualizer-state reuse for representative assessments;
 - scenario pagination and deterministic answer rotation;
@@ -60,8 +61,7 @@ The only active assessment roadmap is:
 
 [`docs/ASSESSMENT_REMAINING_PLAN.md`](./ASSESSMENT_REMAINING_PLAN.md)
 
-At the current baseline, the remaining implementation work is primarily:
+At the current baseline, the remaining work is:
 
 - review any final A3 semantic-promotion candidates emitted by the repository audit;
-- finish A6 only where legacy families have intentional stable competency IDs;
 - perform the requested aggregate test/audit/build/browser validation.
