@@ -16,7 +16,7 @@ export const GENERATION_SAMPLING_P1_REQUIREMENTS = Object.freeze([
   competency(
     'generation-autoregressive-state-loop',
     'transformer-token-generation',
-    ['ttg-002-loop', 'ttg-010-append', 'ttg-045-prompt-plus-output'],
+    ['ttg-001-purpose', 'ttg-011-repeat', 'ttg-020-foundation-summary'],
     ['generation-context-state-update'],
   ),
   competency(

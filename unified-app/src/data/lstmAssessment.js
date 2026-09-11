@@ -1,10 +1,21 @@
+function stableHash(value) {
+  return [...String(value)].reduce((hash, char) => ((hash * 31) + char.charCodeAt(0)) >>> 0, 0);
+}
+
 function q(id, level, prompt, correct, distractors, explanation) {
+  const number = Number(/^lstm-(\d{3})/.exec(id)?.[1] || 1);
+  const registryRotation = stableHash(`lstm:${id}`) % 3;
+  const targetAnswerIndex = (number - 1) % 3;
+  const answerIndex = (targetAnswerIndex + registryRotation) % 3;
+  const choices = [...distractors];
+  choices.splice(answerIndex, 0, correct);
+
   return {
     id,
     level,
     prompt,
-    choices: [correct, ...distractors],
-    answerIndex: 0,
+    choices,
+    answerIndex,
     explanation,
   };
 }

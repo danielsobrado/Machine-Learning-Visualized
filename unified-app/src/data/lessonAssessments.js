@@ -11,6 +11,17 @@ const CURATED_QUIZ_OVERRIDES = Object.freeze({
   'probability-distributions': PROBABILITY_DISTRIBUTIONS_QUIZ,
 });
 
+const CURATED_LAB_OVERRIDES = Object.freeze({
+  'probability-distributions': Object.freeze([
+    Object.freeze({
+      id: 'compare-count-dispersion',
+      title: 'Compare count dispersion',
+      prompt: 'Compare a Poisson assumption with an overdispersed count sample and decide whether mean-variance equality still holds.',
+      successCriteria: 'You can explain when a simple Poisson model is inadequate because observed variance substantially exceeds the mean.',
+    }),
+  ]),
+});
+
 function stableHash(value) {
   return [...String(value)].reduce((hash, char) => ((hash * 31) + char.charCodeAt(0)) >>> 0, 0);
 }
@@ -35,22 +46,29 @@ function questionSkill(level) {
   return 'transfer';
 }
 
-function applyQuizOverride(assessment, quiz) {
-  if (!quiz) return assessment;
+function applyQuizOverride(assessment, quiz, labs) {
+  if (!quiz && !labs) return assessment;
 
   const masteryRequired = assessment.completionPolicy?.masteryRequired ?? 10;
   return {
     ...assessment,
-    quiz: quiz.map((question, index) => ({
-      skill: question.skill || questionSkill(question.level),
-      ...question,
-      countsForCompletion: index < masteryRequired,
-    })),
+    quiz: quiz
+      ? quiz.map((question, index) => ({
+        skill: question.skill || questionSkill(question.level),
+        ...question,
+        countsForCompletion: index < masteryRequired,
+      }))
+      : assessment.quiz,
+    labs: labs || assessment.labs,
   };
 }
 
 function buildAssessment(lessonId, assessment) {
-  const withOverride = applyQuizOverride(assessment, CURATED_QUIZ_OVERRIDES[lessonId]);
+  const withOverride = applyQuizOverride(
+    assessment,
+    CURATED_QUIZ_OVERRIDES[lessonId],
+    CURATED_LAB_OVERRIDES[lessonId],
+  );
   const scenarioQuestions = [
     ...(withOverride.scenarioQuestions || []),
     ...getAssessmentScenarioExtensions(lessonId),

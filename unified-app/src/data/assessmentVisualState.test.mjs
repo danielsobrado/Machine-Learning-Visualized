@@ -9,7 +9,7 @@ import { getLessonAssessment } from './lessonAssessments.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const APP_SRC_DIR = path.resolve(__dirname, '..');
-const PANEL_PATH = path.join(APP_SRC_DIR, 'components', 'animation-shell', 'AssessmentPanel.jsx');
+const PANEL_PATH = path.join(APP_SRC_DIR, 'components', 'animation-shell', 'AssessmentPanelContent.jsx');
 const RENDERER_PATH = path.join(APP_SRC_DIR, 'components', 'animation-shell', 'AssessmentVisualState.jsx');
 
 function requiredVisualQuestionCount() {

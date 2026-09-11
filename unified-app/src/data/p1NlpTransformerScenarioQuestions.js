@@ -122,7 +122,7 @@ export const P1_NLP_TRANSFORMER_SCENARIOS_BY_LESSON = Object.freeze({
       misconceptionTested: 'BERT and GPT use the same attention mask and pretraining objective.',
     },
   ],
-  'gpt-2': [
+  'gpt2-comprehensive': [
     {
       id: 'gpt2-causal-mask',
       level: 'mechanism',

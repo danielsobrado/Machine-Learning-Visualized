@@ -12,7 +12,7 @@ import {
 test('lesson sections keep the standard learning-mode order', () => {
   assert.deepEqual(
     LESSON_SECTIONS.map((section) => section.id),
-    ['lesson', 'questions', 'glossary', 'code', 'deep-dive'],
+    ['lesson', 'questions', 'concept-map', 'glossary', 'code', 'deep-dive'],
   );
 });
 
@@ -33,6 +33,7 @@ test('static lesson routes include every learning mode', () => {
   assert.deepEqual(getLessonStaticRouteParts('linear-regression'), [
     ['animation', 'linear-regression'],
     ['animation', 'linear-regression', 'questions'],
+    ['animation', 'linear-regression', 'concept-map'],
     ['animation', 'linear-regression', 'glossary'],
     ['animation', 'linear-regression', 'code'],
     ['animation', 'linear-regression', 'deep-dive'],

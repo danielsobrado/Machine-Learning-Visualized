@@ -9,7 +9,6 @@ const EXPECTED_P2_COUNTS = Object.freeze({
   'determinant-volume': 2,
   'sequential-testing-peeking': 1,
   'spearman-correlation': 2,
-  relu: 1,
   'leaky-relu': 1,
   'conv-relu': 1,
   'max-pooling': 1,

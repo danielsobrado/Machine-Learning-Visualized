@@ -60,20 +60,6 @@ export const P1_PRODUCTION_SCENARIOS_BY_LESSON = Object.freeze({
       misconceptionTested: 'All LLM serving latency comes from the autoregressive decode loop.',
     },
   ],
-  'time-series-forecasting-track': [
-    {
-      id: 'ts-prediction-interval-coverage',
-      level: 'application',
-      kind: 'visual-state',
-      visualState: { nominalInterval: '90%', observedCoverage: '63%', intervalWidth: 'narrow', horizon: 14 },
-      scenario: 'Visual state: a forecast advertises a 90% prediction interval, but only 63% of held-out outcomes fall inside it at horizon 14.',
-      prompt: 'What should be diagnosed?',
-      choices: ['The predictive uncertainty is under-covered or miscalibrated at that horizon', 'The point forecast must be exactly unbiased', 'A 90% interval only needs to contain 50% of outcomes'],
-      answerIndex: 0,
-      explanation: 'Prediction intervals should be checked for empirical coverage on held-out data, ideally by horizon and slice; 63% coverage for a nominal 90% interval is far too narrow or miscalibrated.',
-      misconceptionTested: 'A model-provided uncertainty interval is valid without empirical coverage checks.',
-    },
-  ],
   'model-monitoring': [
     {
       id: 'monitoring-delayed-labels-proxy',

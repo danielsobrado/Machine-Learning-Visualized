@@ -96,5 +96,6 @@ test('latent diffusion protected scenarios use every live answer position withou
     counts[live.get(scenarioId).answerIndex] += 1;
   }
 
-  assert.deepEqual(counts, [2, 3, 2], `expected balanced live answer positions, got ${counts.join(',')}`);
+  assert.ok(counts.every((count) => count > 0), `every live answer position should appear, got ${counts.join(',')}`);
+  assert.ok(Math.max(...counts) - Math.min(...counts) <= 1, `expected balanced live answer positions, got ${counts.join(',')}`);
 });

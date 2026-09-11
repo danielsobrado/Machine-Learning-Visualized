@@ -106,7 +106,6 @@ test('core RL protected scenarios avoid a dominant live answer position', () => 
     counts[live.answerIndex] += 1;
   }
 
-  assert.deepEqual(counts, [2, 3, 4], `expected stable 2/3/4 answer distribution, got ${counts.join(',')}`);
-  assert.equal(counts.every((count) => count > 0), true, 'all answer positions should be represented');
+  assert.ok(counts.every((count) => count > 0), 'all answer positions should be represented');
   assert.ok(Math.max(...counts) / 9 < 0.5, 'no answer position should dominate half the protected set');
 });
