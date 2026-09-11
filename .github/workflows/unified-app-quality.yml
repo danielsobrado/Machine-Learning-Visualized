@@ -155,6 +155,10 @@ jobs:
       - name: Audit assessment semantic coverage
         run: npm run audit:assessment-semantic
 
+      - name: Report assessment near-duplicates
+        continue-on-error: true
+        run: npm run audit:assessment-duplicates
+
       - name: Upload test output
         if: always()
         uses: actions/upload-artifact@v4
