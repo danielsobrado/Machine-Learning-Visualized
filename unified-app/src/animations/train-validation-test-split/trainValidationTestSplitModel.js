@@ -97,16 +97,20 @@ export function auditSplit(mode, targetId, splits) {
   const needsEntityIsolation = targetId === 'unseenEntity' || targetId === 'futureEntity';
   const needsChronology = targetId === 'future' || targetId === 'futureEntity';
   const failures = [];
+  const warnings = [];
 
   if (needsEntityIsolation && overlap.length) failures.push(`${overlap.length} entities cross partitions`);
   if (needsChronology && (chronology.trainIntoValidation || chronology.validationIntoTest)) failures.push('future rows leak backward across the boundary');
-  if (targetId === 'exchangeable' && mode === 'random') failures.push('label proportions may drift by chance; stratification is safer when classes are imbalanced');
+  if (targetId === 'exchangeable' && mode === 'random') {
+    warnings.push('label proportions can drift by chance; stratification can reduce split-to-split variance when classes are imbalanced');
+  }
 
   return {
     target,
     overlap,
     chronology,
     failures,
+    warnings,
     valid: failures.length === 0,
   };
 }
