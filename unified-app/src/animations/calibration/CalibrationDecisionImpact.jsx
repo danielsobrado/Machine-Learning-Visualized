@@ -24,7 +24,7 @@ function Stat({ label, raw, calibrated, formatter = Math.round }) {
 export default function CalibrationDecisionImpact({ rawBins, calibratedBins, threshold, onThresholdChange }) {
   const raw = useMemo(() => thresholdStats(rawBins, threshold), [rawBins, threshold]);
   const calibrated = useMemo(() => thresholdStats(calibratedBins, threshold), [calibratedBins, threshold]);
-  const percent = (value) => `${Math.round(value * 100)}%`;
+  const percent = (value) => value === null ? '—' : `${Math.round(value * 100)}%`;
 
   return (
     <section className="rounded-lg border border-slate-200 bg-white p-5">
@@ -57,7 +57,7 @@ export default function CalibrationDecisionImpact({ rawBins, calibratedBins, thr
       </div>
 
       <p className="mt-4 rounded-lg bg-slate-50 p-3 text-xs font-semibold leading-5 text-slate-600">
-        After changing calibration, revalidate the deployment threshold against real costs and capacity. Do not assume an old cutoff remains the best policy.
+        After changing calibration, revalidate the deployment threshold against real costs and capacity. Do not assume an old cutoff remains the best policy. A dash means the metric denominator is empty at that threshold, not zero performance.
       </p>
     </section>
   );
