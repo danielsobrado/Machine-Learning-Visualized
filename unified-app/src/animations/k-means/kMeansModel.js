@@ -68,11 +68,10 @@ export function maxCentroidShift(previousCentroids, centroids) {
 }
 
 export function runKMeansForData(points, initialCentroids, iterations) {
+  validatePointSet(points, 'points');
+  validatePointSet(initialCentroids, 'initialCentroids');
   if (!Number.isInteger(iterations) || iterations < 0) {
     throw new RangeError('iterations must be a non-negative integer');
-  }
-  if (!initialCentroids.length) {
-    throw new RangeError('at least one centroid is required');
   }
 
   let centroids = initialCentroids.map((centroid) => [...centroid]);
@@ -120,10 +119,14 @@ export function runKMeansForData(points, initialCentroids, iterations) {
 }
 
 export function runKMeans(k, iterations) {
+  if (!Number.isInteger(k) || k < 1 || k > INITIAL_CENTROIDS.length) {
+    throw new RangeError(`k must be an integer between 1 and ${INITIAL_CENTROIDS.length}`);
+  }
   return runKMeansForData(POINTS, INITIAL_CENTROIDS.slice(0, k), iterations);
 }
 
 export function farthestFirstCentroids(points, k) {
+  validatePointSet(points, 'points');
   if (!Number.isInteger(k) || k < 1 || k > points.length) {
     throw new RangeError('k must be an integer between 1 and the number of points');
   }
@@ -140,6 +143,10 @@ export function farthestFirstCentroids(points, k) {
 }
 
 export function silhouetteScore(points, assignments) {
+  validatePointSet(points, 'points');
+  if (!Array.isArray(assignments) || assignments.length !== points.length) {
+    throw new RangeError('assignments must match the number of points');
+  }
   const clusters = [...new Set(assignments)];
   if (clusters.length < 2) return 0;
 
@@ -162,6 +169,10 @@ export function silhouetteScore(points, assignments) {
 }
 
 export function evaluateKChoices(points, kValues, iterations = 12) {
+  validatePointSet(points, 'points');
+  if (!Array.isArray(kValues) || !kValues.length) {
+    throw new RangeError('kValues must be a non-empty array');
+  }
   return kValues.map((k) => {
     const initialCentroids = farthestFirstCentroids(points, k);
     const result = runKMeansForData(points, initialCentroids, iterations);
@@ -175,8 +186,117 @@ export function evaluateKChoices(points, kValues, iterations = 12) {
   });
 }
 
+export function compareOutlierSensitivity(points, outlier, initialCentroids, iterations = 12) {
+  validatePointSet(points, 'points');
+  validatePoint(outlier, 'outlier');
+  validatePointSet(initialCentroids, 'initialCentroids');
+
+  const baseline = runKMeansForData(points, initialCentroids, iterations);
+  const contaminated = runKMeansForData([...points, outlier], initialCentroids, iterations);
+  const shifts = baseline.centroids.map((centroid, cluster) => ({
+    cluster,
+    shift: distance(centroid, contaminated.centroids[cluster]),
+  }));
+  const largestShift = shifts.reduce((best, current) => (current.shift > best.shift ? current : best));
+
+  return {
+    baseline,
+    contaminated,
+    outlierCluster: contaminated.assignments[contaminated.assignments.length - 1],
+    largestShiftCluster: largestShift.cluster,
+    largestCentroidShift: largestShift.shift,
+    inertiaIncrease: contaminated.inertia - baseline.inertia,
+  };
+}
+
+export function buildConcentricRingCase(config) {
+  if (!config || !Array.isArray(config.center) || config.center.length !== 2) {
+    throw new TypeError('ring config must contain a two-dimensional center');
+  }
+  const { center, innerRadius, outerRadius, pointsPerRing } = config;
+  if (![...center, innerRadius, outerRadius].every(Number.isFinite)) {
+    throw new TypeError('ring geometry must be finite');
+  }
+  if (innerRadius <= 0 || outerRadius <= innerRadius) {
+    throw new RangeError('outerRadius must be greater than innerRadius > 0');
+  }
+  if (!Number.isInteger(pointsPerRing) || pointsPerRing < 4) {
+    throw new RangeError('pointsPerRing must be an integer of at least 4');
+  }
+
+  const points = [];
+  const labels = [];
+  for (const [label, radius] of [['inner', innerRadius], ['outer', outerRadius]]) {
+    for (let index = 0; index < pointsPerRing; index += 1) {
+      const angle = (2 * Math.PI * index) / pointsPerRing;
+      points.push([
+        center[0] + radius * Math.cos(angle),
+        center[1] + radius * Math.sin(angle),
+      ]);
+      labels.push(label);
+    }
+  }
+  return { points, labels };
+}
+
+export function clusterLabelComposition(assignments, labels, clusterCount) {
+  if (!Array.isArray(assignments) || !Array.isArray(labels) || assignments.length !== labels.length) {
+    throw new RangeError('assignments and labels must have the same length');
+  }
+  if (!Number.isInteger(clusterCount) || clusterCount < 1) {
+    throw new RangeError('clusterCount must be a positive integer');
+  }
+
+  return Array.from({ length: clusterCount }, (_, cluster) => {
+    const counts = {};
+    assignments.forEach((assignment, index) => {
+      if (assignment !== cluster) return;
+      counts[labels[index]] = (counts[labels[index]] || 0) + 1;
+    });
+    return { cluster, counts, size: Object.values(counts).reduce((sum, count) => sum + count, 0) };
+  });
+}
+
+export function labelPurity(assignments, labels, clusterCount) {
+  const composition = clusterLabelComposition(assignments, labels, clusterCount);
+  if (!labels.length) return 0;
+  const dominant = composition.reduce((sum, cluster) => {
+    const largest = Math.max(0, ...Object.values(cluster.counts));
+    return sum + largest;
+  }, 0);
+  return dominant / labels.length;
+}
+
+export function evaluateNonConvexCase(config, iterations = 12) {
+  if (!config?.initialCentroids) {
+    throw new TypeError('non-convex case requires initialCentroids');
+  }
+  const { points, labels } = buildConcentricRingCase(config);
+  const result = runKMeansForData(points, config.initialCentroids, iterations);
+  return {
+    points,
+    labels,
+    result,
+    composition: clusterLabelComposition(result.assignments, labels, result.centroids.length),
+    purity: labelPurity(result.assignments, labels, result.centroids.length),
+  };
+}
+
 export function toScreen([x, y]) {
   return [40 + x * 46, 330 - y * 48];
+}
+
+function validatePointSet(points, name) {
+  if (!Array.isArray(points) || !points.length) {
+    throw new RangeError(`${name} must be a non-empty array of points`);
+  }
+  points.forEach((point, index) => validatePoint(point, `${name}[${index}]`));
+}
+
+function validatePoint(point, name) {
+  if (!Array.isArray(point) || point.length !== 2 || !point.every(Number.isFinite)) {
+    throw new TypeError(`${name} must be a finite two-dimensional point`);
+  }
 }
 
 function average(values) {

@@ -6,17 +6,24 @@ import {
   EMPTY_CLUSTER_CASE,
   INITIALIZATION_CASES,
   K_DIAGNOSTIC_VALUES,
+  NON_CONVEX_CASE,
+  OUTLIER_SENSITIVITY_CASE,
 } from './kMeansDiagnosticsConstants.js';
 import {
   INITIAL_CENTROIDS,
   POINTS,
   assign,
   assignmentChanges,
+  buildConcentricRingCase,
+  clusterLabelComposition,
   clusterSizes,
+  compareOutlierSensitivity,
   emptyClusterIds,
   evaluateKChoices,
+  evaluateNonConvexCase,
   farthestFirstCentroids,
   inertia,
+  labelPurity,
   maxCentroidShift,
   runKMeans,
   runKMeansForData,
@@ -79,10 +86,13 @@ test('runKMeans records one trace entry per requested state and exposes converge
   assert.equal(result.trace[result.convergedAt].assignmentChanges, 0);
 });
 
-test('runKMeansForData rejects invalid iteration budgets', () => {
+test('runKMeansForData rejects invalid geometry and iteration budgets', () => {
   assert.throws(() => runKMeansForData(POINTS, INITIAL_CENTROIDS, -1), RangeError);
   assert.throws(() => runKMeansForData(POINTS, INITIAL_CENTROIDS, 1.5), RangeError);
   assert.throws(() => runKMeansForData(POINTS, [], 1), RangeError);
+  assert.throws(() => runKMeansForData([], INITIAL_CENTROIDS, 1), RangeError);
+  assert.throws(() => runKMeansForData([[Number.NaN, 0]], [[0, 0]], 1), TypeError);
+  assert.throws(() => runKMeans(5, 1), RangeError);
 });
 
 test('computed inertia matches assigned squared distances', () => {
@@ -130,4 +140,50 @@ test('duplicate initial seeds expose the preserve-centroid empty-cluster policy'
   assert.ok(result.trace[0].emptyClusters.includes(1));
   assert.ok(result.emptyClusters.includes(1));
   assert.equal(result.converged, true);
+});
+
+test('one distant observation measurably pulls a mean centroid and raises converged inertia', () => {
+  const experiment = compareOutlierSensitivity(
+    POINTS,
+    OUTLIER_SENSITIVITY_CASE.point,
+    INITIAL_CENTROIDS,
+    DIAGNOSTIC_ITERATIONS,
+  );
+
+  assert.equal(experiment.outlierCluster, 1);
+  assert.equal(experiment.largestShiftCluster, 1);
+  assert.ok(experiment.largestCentroidShift > 0.3);
+  assert.ok(experiment.inertiaIncrease > 3);
+  assert.ok(experiment.contaminated.inertia > experiment.baseline.inertia);
+});
+
+test('concentric rings expose the non-convex shape limitation despite convergence', () => {
+  const experiment = evaluateNonConvexCase(NON_CONVEX_CASE, DIAGNOSTIC_ITERATIONS);
+
+  assert.equal(experiment.result.converged, true);
+  closeTo(experiment.purity, 0.5);
+  assert.deepEqual(
+    experiment.composition.map((cluster) => [cluster.counts.inner, cluster.counts.outer]),
+    [[7, 7], [5, 5]],
+  );
+});
+
+test('shape-diagnostic helpers calculate label composition and purity explicitly', () => {
+  const assignments = [0, 0, 1, 1];
+  const labels = ['inner', 'outer', 'inner', 'inner'];
+
+  assert.deepEqual(clusterLabelComposition(assignments, labels, 2), [
+    { cluster: 0, counts: { inner: 1, outer: 1 }, size: 2 },
+    { cluster: 1, counts: { inner: 2 }, size: 2 },
+  ]);
+  closeTo(labelPurity(assignments, labels, 2), 0.75);
+  assert.throws(() => clusterLabelComposition([0], ['a', 'b'], 2), RangeError);
+});
+
+test('concentric-ring generator rejects invalid geometry instead of producing a misleading case', () => {
+  const valid = buildConcentricRingCase(NON_CONVEX_CASE);
+  assert.equal(valid.points.length, NON_CONVEX_CASE.pointsPerRing * 2);
+  assert.equal(valid.labels.filter((label) => label === 'inner').length, NON_CONVEX_CASE.pointsPerRing);
+  assert.throws(() => buildConcentricRingCase({ ...NON_CONVEX_CASE, outerRadius: 0.5 }), RangeError);
+  assert.throws(() => buildConcentricRingCase({ ...NON_CONVEX_CASE, pointsPerRing: 3 }), RangeError);
 });

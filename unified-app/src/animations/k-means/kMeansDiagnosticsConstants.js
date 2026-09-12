@@ -30,3 +30,20 @@ export const EMPTY_CLUSTER_CASE = Object.freeze({
     [5.7, 5.1],
   ]),
 });
+
+export const OUTLIER_SENSITIVITY_CASE = Object.freeze({
+  label: 'Mean-centroid outlier sensitivity',
+  point: Object.freeze([6.8, 1.2]),
+});
+
+export const NON_CONVEX_CASE = Object.freeze({
+  label: 'Concentric rings',
+  center: Object.freeze([3.5, 3.5]),
+  innerRadius: 1,
+  outerRadius: 3,
+  pointsPerRing: 12,
+  initialCentroids: Object.freeze([
+    [0.5, 3.5],
+    [6.5, 3.5],
+  ]),
+});

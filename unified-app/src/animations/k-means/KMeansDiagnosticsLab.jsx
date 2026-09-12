@@ -1,20 +1,25 @@
 import React, { useMemo } from 'react';
-import { AlertTriangle, BarChart3, Shuffle } from 'lucide-react';
+import { AlertTriangle, BarChart3, CircleDot, Shuffle } from 'lucide-react';
 import {
   DIAGNOSTIC_ITERATIONS,
   EMPTY_CLUSTER_CASE,
   INITIALIZATION_CASES,
   K_DIAGNOSTIC_VALUES,
+  NON_CONVEX_CASE,
+  OUTLIER_SENSITIVITY_CASE,
 } from './kMeansDiagnosticsConstants.js';
 import {
   COLORS,
+  INITIAL_CENTROIDS,
   POINTS,
+  compareOutlierSensitivity,
   evaluateKChoices,
+  evaluateNonConvexCase,
   runKMeansForData,
   toScreen,
 } from './kMeansModel.js';
 
-function MiniClusterPlot({ result, initialCentroids, label }) {
+function MiniClusterPlot({ result, initialCentroids, label, points = POINTS }) {
   return (
     <div className="rounded-lg border border-slate-200 bg-white p-4">
       <div className="flex items-center justify-between gap-3">
@@ -22,10 +27,10 @@ function MiniClusterPlot({ result, initialCentroids, label }) {
         <span className="font-mono text-xs font-black text-slate-600">inertia {result.inertia.toFixed(1)}</span>
       </div>
       <svg viewBox="0 0 360 360" className="mt-3 h-auto w-full rounded-lg border border-slate-200 bg-slate-50" role="img" aria-label={`${label} clustering result`}>
-        {POINTS.map((point, index) => {
+        {points.map((point, index) => {
           const [x, y] = toScreen(point);
           const cluster = result.assignments[index];
-          return <circle key={`${point[0]}-${point[1]}`} cx={x} cy={y} r="6" fill={COLORS[cluster]} opacity="0.84" />;
+          return <circle key={`${index}-${point[0]}-${point[1]}`} cx={x} cy={y} r="6" fill={COLORS[cluster]} opacity="0.84" />;
         })}
         {initialCentroids.map((centroid, index) => {
           const [x, y] = toScreen(centroid);
@@ -49,6 +54,18 @@ function MiniClusterPlot({ result, initialCentroids, label }) {
   );
 }
 
+function CompositionRow({ cluster }) {
+  const inner = cluster.counts.inner || 0;
+  const outer = cluster.counts.outer || 0;
+  return (
+    <div className="grid grid-cols-[90px_1fr_1fr] gap-3 rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm">
+      <strong style={{ color: COLORS[cluster.cluster] }}>cluster {cluster.cluster + 1}</strong>
+      <span>inner: <strong>{inner}</strong></span>
+      <span>outer: <strong>{outer}</strong></span>
+    </div>
+  );
+}
+
 export default function KMeansDiagnosticsLab() {
   const kChoices = useMemo(
     () => evaluateKChoices(POINTS, K_DIAGNOSTIC_VALUES, DIAGNOSTIC_ITERATIONS),
@@ -68,6 +85,19 @@ export default function KMeansDiagnosticsLab() {
     () => runKMeansForData(POINTS, EMPTY_CLUSTER_CASE.centroids, 4),
     [],
   );
+  const outlierExperiment = useMemo(
+    () => compareOutlierSensitivity(
+      POINTS,
+      OUTLIER_SENSITIVITY_CASE.point,
+      INITIAL_CENTROIDS,
+      DIAGNOSTIC_ITERATIONS,
+    ),
+    [],
+  );
+  const nonConvexExperiment = useMemo(
+    () => evaluateNonConvexCase(NON_CONVEX_CASE, DIAGNOSTIC_ITERATIONS),
+    [],
+  );
   const bestInitialization = initializationResults.reduce((best, current) => (
     current.result.inertia < best.result.inertia ? current : best
   ));
@@ -75,6 +105,7 @@ export default function KMeansDiagnosticsLab() {
     current.result.inertia > worst.result.inertia ? current : worst
   ));
   const seedPenalty = worstInitialization.result.inertia - bestInitialization.result.inertia;
+  const outlierPoints = [...POINTS, OUTLIER_SENSITIVITY_CASE.point];
 
   return (
     <section className="space-y-5">
@@ -83,7 +114,7 @@ export default function KMeansDiagnosticsLab() {
         <h3 className="mt-1 text-xl font-black text-slate-950">A low inertia is not proof that the clustering is useful</h3>
         <p className="mt-2 max-w-4xl text-sm leading-6 text-slate-700">
           K-means optimizes one geometric objective. You still have to choose k, rerun different initializations, scale features deliberately,
-          handle empty clusters, and check whether roughly spherical Euclidean clusters match the structure you care about.
+          handle empty clusters, inspect outlier influence, and check whether Voronoi-style Euclidean clusters match the structure you care about.
         </p>
       </div>
 
@@ -160,6 +191,72 @@ export default function KMeansDiagnosticsLab() {
           <p className="mt-2 text-sm leading-6 text-amber-950">
             The unlucky start finishes with {seedPenalty.toFixed(1)} more inertia on exactly the same data and k. Production implementations commonly use k-means++ and multiple restarts, select the lowest-objective run, then assess whether the resulting structure is stable and meaningful.
           </p>
+        </div>
+      </div>
+
+      <div className="rounded-lg border border-amber-200 bg-amber-50 p-5">
+        <p className="flex items-center gap-2 text-xs font-black uppercase tracking-wide text-amber-800"><AlertTriangle size={14} /> Mean-centroid sensitivity</p>
+        <h4 className="mt-2 text-lg font-black text-amber-950">One distant observation pulls the centroid even after convergence</h4>
+        <p className="mt-2 max-w-4xl text-sm leading-6 text-amber-950">
+          Both runs use the same k=4 initialization and converge. The only change is adding point ({OUTLIER_SENSITIVITY_CASE.point[0]}, {OUTLIER_SENSITIVITY_CASE.point[1]}). Because each centroid is an arithmetic mean, that single point moves its assigned cluster center.
+        </p>
+        <div className="mt-4 grid gap-4 lg:grid-cols-2">
+          <MiniClusterPlot
+            label="Original observations"
+            initialCentroids={INITIAL_CENTROIDS}
+            result={outlierExperiment.baseline}
+          />
+          <MiniClusterPlot
+            label="Same data + one distant point"
+            initialCentroids={INITIAL_CENTROIDS}
+            result={outlierExperiment.contaminated}
+            points={outlierPoints}
+          />
+        </div>
+        <div className="mt-4 grid gap-3 sm:grid-cols-3">
+          <div className="rounded-lg border border-amber-200 bg-white/70 p-4">
+            <p className="text-xs font-black uppercase tracking-wide text-amber-700">Affected cluster</p>
+            <strong className="mt-1 block text-2xl text-amber-950">{outlierExperiment.largestShiftCluster + 1}</strong>
+          </div>
+          <div className="rounded-lg border border-amber-200 bg-white/70 p-4">
+            <p className="text-xs font-black uppercase tracking-wide text-amber-700">Centroid movement</p>
+            <strong className="mt-1 block text-2xl text-amber-950">{outlierExperiment.largestCentroidShift.toFixed(3)}</strong>
+          </div>
+          <div className="rounded-lg border border-amber-200 bg-white/70 p-4">
+            <p className="text-xs font-black uppercase tracking-wide text-amber-700">Inertia increase</p>
+            <strong className="mt-1 block text-2xl text-amber-950">+{outlierExperiment.inertiaIncrease.toFixed(1)}</strong>
+          </div>
+        </div>
+        <p className="mt-4 text-sm leading-6 text-amber-950">
+          Scaling fixes unequal feature units; it does not make arithmetic means robust to extreme observations. Outlier policy and the choice of clustering algorithm are separate decisions.
+        </p>
+      </div>
+
+      <div className="grid gap-4 xl:grid-cols-[1fr_0.9fr]">
+        <MiniClusterPlot
+          label={NON_CONVEX_CASE.label}
+          initialCentroids={NON_CONVEX_CASE.initialCentroids}
+          result={nonConvexExperiment.result}
+          points={nonConvexExperiment.points}
+        />
+        <div className="rounded-lg border border-cyan-200 bg-cyan-50 p-5">
+          <p className="flex items-center gap-2 text-xs font-black uppercase tracking-wide text-cyan-800"><CircleDot size={14} /> Shape mismatch</p>
+          <h4 className="mt-2 text-lg font-black text-cyan-950">Converged does not mean the geometry matches the real groups</h4>
+          <p className="mt-2 text-sm leading-6 text-cyan-950">
+            The known structure is an inner ring and an outer ring. K-means with k=2 still converges, but nearest-centroid Voronoi regions cut the plane into spatial halves instead of recovering concentric membership.
+          </p>
+          <div className="mt-4 space-y-2">
+            {nonConvexExperiment.composition.map((cluster) => (
+              <CompositionRow key={cluster.cluster} cluster={cluster} />
+            ))}
+          </div>
+          <div className="mt-4 rounded-lg border border-cyan-200 bg-white/70 p-4">
+            <p className="text-xs font-black uppercase tracking-wide text-cyan-700">Ring-label purity</p>
+            <strong className="mt-1 block text-3xl text-cyan-950">{(nonConvexExperiment.purity * 100).toFixed(0)}%</strong>
+            <p className="mt-2 text-sm leading-6 text-cyan-950">
+              Every found cluster mixes inner and outer points. The algorithm optimized its squared-distance objective correctly; the objective simply encodes the wrong cluster shape for this problem.
+            </p>
+          </div>
         </div>
       </div>
 
