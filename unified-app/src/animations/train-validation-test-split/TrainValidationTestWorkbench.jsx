@@ -1,16 +1,23 @@
 import React, { useState } from 'react';
 import { RotateCcw } from 'lucide-react';
+import PreprocessingLeakageLab from './PreprocessingLeakageLab.jsx';
 import SplitStrategyLab from './SplitStrategyLab.jsx';
 import TestContaminationLab from './TestContaminationLab.jsx';
 import TrainServeSkewLab from './TrainServeSkewLab.jsx';
-import { DEFAULT_SPLIT } from './trainValidationTestSplitConstants.js';
+import {
+  DEFAULT_SPLIT,
+  PREPROCESSING_LEAKAGE_DEMO,
+  SELECTION_EXPERIMENT,
+} from './trainValidationTestSplitConstants.js';
 
 export default function TrainValidationTestWorkbench() {
   const [targetId, setTargetId] = useState('unseenEntity');
   const [mode, setMode] = useState('stratified');
   const [validationPercent, setValidationPercent] = useState(DEFAULT_SPLIT.validation);
   const [testPercent, setTestPercent] = useState(DEFAULT_SPLIT.test);
-  const [candidateCount, setCandidateCount] = useState(1);
+  const [candidateCount, setCandidateCount] = useState(SELECTION_EXPERIMENT.defaultCandidates);
+  const [testSize, setTestSize] = useState(SELECTION_EXPERIMENT.defaultTestSize);
+  const [holdoutShift, setHoldoutShift] = useState(PREPROCESSING_LEAKAGE_DEMO.defaultShift);
   const [contractId, setContractId] = useState('aligned');
 
   const reset = () => {
@@ -18,7 +25,9 @@ export default function TrainValidationTestWorkbench() {
     setMode('stratified');
     setValidationPercent(DEFAULT_SPLIT.validation);
     setTestPercent(DEFAULT_SPLIT.test);
-    setCandidateCount(1);
+    setCandidateCount(SELECTION_EXPERIMENT.defaultCandidates);
+    setTestSize(SELECTION_EXPERIMENT.defaultTestSize);
+    setHoldoutShift(PREPROCESSING_LEAKAGE_DEMO.defaultShift);
     setContractId('aligned');
   };
 
@@ -50,7 +59,13 @@ export default function TrainValidationTestWorkbench() {
         onTestChange={setTestPercent}
       />
 
-      <TestContaminationLab candidateCount={candidateCount} onCandidateCountChange={setCandidateCount} />
+      <PreprocessingLeakageLab holdoutShift={holdoutShift} onHoldoutShiftChange={setHoldoutShift} />
+      <TestContaminationLab
+        candidateCount={candidateCount}
+        testSize={testSize}
+        onCandidateCountChange={setCandidateCount}
+        onTestSizeChange={setTestSize}
+      />
       <TrainServeSkewLab contractId={contractId} onContractChange={setContractId} />
 
       <section className="grid gap-4 lg:grid-cols-2 xl:grid-cols-4">

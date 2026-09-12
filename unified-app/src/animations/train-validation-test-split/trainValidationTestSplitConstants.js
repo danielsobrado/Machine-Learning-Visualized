@@ -83,27 +83,26 @@ export const PIPELINE_CONTRACTS = Object.freeze({
   },
 });
 
-export const SELECTION_REPLAY = Object.freeze([
-  { id: 1, testDelta: 0.002, freshDelta: -0.004 },
-  { id: 2, testDelta: -0.006, freshDelta: 0.003 },
-  { id: 3, testDelta: 0.011, freshDelta: -0.002 },
-  { id: 4, testDelta: 0.004, freshDelta: 0.005 },
-  { id: 5, testDelta: 0.018, freshDelta: -0.006 },
-  { id: 6, testDelta: 0.007, freshDelta: 0.001 },
-  { id: 7, testDelta: 0.014, freshDelta: 0.002 },
-  { id: 8, testDelta: 0.025, freshDelta: -0.008 },
-  { id: 9, testDelta: 0.009, freshDelta: 0.004 },
-  { id: 10, testDelta: 0.017, freshDelta: -0.001 },
-  { id: 11, testDelta: 0.031, freshDelta: -0.009 },
-  { id: 12, testDelta: 0.012, freshDelta: 0.003 },
-  { id: 13, testDelta: 0.021, freshDelta: -0.005 },
-  { id: 14, testDelta: 0.036, freshDelta: -0.010 },
-  { id: 15, testDelta: 0.016, freshDelta: 0.001 },
-  { id: 16, testDelta: 0.028, freshDelta: -0.004 },
-  { id: 17, testDelta: 0.041, freshDelta: -0.012 },
-  { id: 18, testDelta: 0.019, freshDelta: 0.002 },
-  { id: 19, testDelta: 0.033, freshDelta: -0.007 },
-  { id: 20, testDelta: 0.046, freshDelta: -0.013 },
-]);
+export const SELECTION_EXPERIMENT = Object.freeze({
+  trueAccuracy: 0.75,
+  candidateMin: 1,
+  candidateMax: 20,
+  candidateStep: 1,
+  defaultCandidates: 4,
+  testSizeMin: 40,
+  testSizeMax: 320,
+  testSizeStep: 20,
+  defaultTestSize: 80,
+  freshSize: 400,
+  trials: 400,
+  seed: 0x51f15e,
+});
 
-export const REPLAY_BASE_QUALITY = 0.75;
+export const PREPROCESSING_LEAKAGE_DEMO = Object.freeze({
+  trainValues: Object.freeze([10, 12, 14, 16, 18, 20]),
+  holdoutBaseValues: Object.freeze([22, 24]),
+  shiftMin: 0,
+  shiftMax: 30,
+  shiftStep: 2,
+  defaultShift: 16,
+});

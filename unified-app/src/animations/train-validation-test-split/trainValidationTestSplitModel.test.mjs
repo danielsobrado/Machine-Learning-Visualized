@@ -9,6 +9,7 @@ import {
   driftGap,
   entityOverlap,
   positiveRate,
+  preprocessingLeakageDemo,
   simulateRepeatedSelection,
   splitCounts,
   trainServeSkew,
@@ -72,12 +73,47 @@ test('pipeline contract detects semantic and missing-value train-serve skew inde
   assert.equal(trainServeSkew('doubleSkew').issues.length, 2);
 });
 
-test('repeated selection on one test set creates a widening synthetic winner gap', () => {
-  const first = simulateRepeatedSelection(1);
-  const many = simulateRepeatedSelection(20);
-  assert.ok(many.selected.testScore > first.selected.testScore);
-  assert.ok(many.optimism > first.optimism);
-  assert.equal(many.selected.id, 20);
+test('reusing a finite test set creates measured winner optimism as more equal candidates are tried', () => {
+  const one = simulateRepeatedSelection(1, 80);
+  const four = simulateRepeatedSelection(4, 80);
+  const twenty = simulateRepeatedSelection(20, 80);
+
+  assert.ok(Math.abs(one.optimism) < 0.01);
+  assert.ok(four.optimism > one.optimism + 0.03);
+  assert.ok(twenty.optimism > four.optimism + 0.02);
+  assert.ok(Math.abs(twenty.meanFreshScore - twenty.trueAccuracy) < 0.01);
+  assert.ok(twenty.meanSelectedTestScore > twenty.meanFreshScore);
+});
+
+test('larger untouched test samples reduce selection optimism without changing candidate quality', () => {
+  const small = simulateRepeatedSelection(20, 40);
+  const large = simulateRepeatedSelection(20, 320);
+
+  assert.equal(small.trueAccuracy, large.trueAccuracy);
+  assert.ok(small.optimism > large.optimism * 2);
+  assert.ok(Math.abs(large.meanFreshScore - large.trueAccuracy) < 0.01);
+});
+
+test('train-only preprocessing stays independent of holdout shift while globally fitted scaling leaks it', () => {
+  const near = preprocessingLeakageDemo(0);
+  const shifted = preprocessingLeakageDemo(30);
+
+  assert.deepEqual(shifted.trainStats, near.trainStats);
+  assert.notDeepEqual(shifted.leakedStats, near.leakedStats);
+  assert.ok(shifted.trainOnlyHoldoutMeanZ > near.trainOnlyHoldoutMeanZ);
+  assert.ok(shifted.leakedHoldoutMeanZ < shifted.trainOnlyHoldoutMeanZ);
+});
+
+test('invalid split, experiment, target, and serving inputs fail instead of silently falling back', () => {
+  assert.throws(() => splitCounts(2, 0.2, 0.2), RangeError);
+  assert.throws(() => splitCounts(24, -0.1, 0.2), RangeError);
+  assert.throws(() => splitCounts(4, 0.49, 0.49), RangeError);
+  assert.throws(() => assignByMode('mystery', 0.2, 0.2), RangeError);
+  assert.throws(() => auditSplit('random', 'mystery', assignByMode('random', 0.2, 0.2)), RangeError);
+  assert.throws(() => trainServeSkew('mystery'), RangeError);
+  assert.throws(() => simulateRepeatedSelection(0, 80), RangeError);
+  assert.throws(() => simulateRepeatedSelection(4, 10), RangeError);
+  assert.throws(() => preprocessingLeakageDemo(31), RangeError);
 });
 
 test('legacy diagnostics remain stable and interpretable', () => {

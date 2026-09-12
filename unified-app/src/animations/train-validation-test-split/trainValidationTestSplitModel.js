@@ -3,8 +3,9 @@ import {
   DEFAULT_SPLIT,
   EVALUATION_TARGETS,
   PIPELINE_CONTRACTS,
-  REPLAY_BASE_QUALITY,
-  SELECTION_REPLAY,
+  PREPROCESSING_LEAKAGE_DEMO,
+  SELECTION_EXPERIMENT,
+  SPLIT_MODES,
 } from './trainValidationTestSplitConstants.js';
 
 export const TRAIN_VALIDATION_ROWS = Object.freeze([
@@ -35,29 +36,44 @@ export const TRAIN_VALIDATION_ROWS = Object.freeze([
 ]);
 
 export function splitCounts(total, validationPercent = DEFAULT_SPLIT.validation, testPercent = DEFAULT_SPLIT.test) {
+  if (!Number.isInteger(total) || total < 3) {
+    throw new RangeError('total must be an integer of at least 3');
+  }
+  validateSplitRatio(validationPercent, 'validationPercent');
+  validateSplitRatio(testPercent, 'testPercent');
+  if (validationPercent + testPercent >= 1) {
+    throw new RangeError('validationPercent + testPercent must be less than 1');
+  }
+
   const test = Math.max(1, Math.round(total * testPercent));
   const validation = Math.max(1, Math.round(total * validationPercent));
-  const train = Math.max(1, total - validation - test);
+  const train = total - validation - test;
+  if (train < 1) {
+    throw new RangeError('split ratios leave no training rows after rounding');
+  }
   return { train, validation, test };
 }
 
 export function assignByMode(mode, validationPercent, testPercent, rows = TRAIN_VALIDATION_ROWS) {
+  if (!Object.hasOwn(SPLIT_MODES, mode)) throw new RangeError(`Unknown split mode: ${mode}`);
+  if (!Array.isArray(rows) || rows.length < 3) throw new RangeError('rows must contain at least 3 examples');
   const counts = splitCounts(rows.length, validationPercent, testPercent);
 
   if (mode === 'time') return splitInOrder([...rows].sort((a, b) => a.time - b.time), counts);
   if (mode === 'stratified') return stratifiedSplit(rows, counts);
   if (mode === 'group') return groupedSplit(rows, counts, false);
   if (mode === 'groupTime') return groupedSplit(rows, counts, true);
-
   return splitInOrder([...rows].sort((a, b) => randomRank(a) - randomRank(b)), counts);
 }
 
 export function positiveRate(rows) {
+  if (!Array.isArray(rows)) throw new TypeError('rows must be an array');
   if (!rows.length) return 0;
   return rows.filter((row) => row.y === 1).length / rows.length;
 }
 
 export function meanX(rows) {
+  if (!Array.isArray(rows)) throw new TypeError('rows must be an array');
   if (!rows.length) return 0;
   return rows.reduce((sum, row) => sum + row.x, 0) / rows.length;
 }
@@ -67,6 +83,7 @@ export function driftGap(trainRows, targetRows) {
 }
 
 export function entityOverlap(splits) {
+  validateSplitShape(splits);
   const membership = new Map();
   for (const bucket of BUCKETS) {
     for (const row of splits[bucket]) {
@@ -80,6 +97,7 @@ export function entityOverlap(splits) {
 }
 
 export function chronologyViolations(splits) {
+  validateSplitShape(splits, true);
   const trainMax = Math.max(...splits.train.map((row) => row.time));
   const validationMin = Math.min(...splits.validation.map((row) => row.time));
   const validationMax = Math.max(...splits.validation.map((row) => row.time));
@@ -91,9 +109,12 @@ export function chronologyViolations(splits) {
 }
 
 export function auditSplit(mode, targetId, splits) {
+  if (!Object.hasOwn(SPLIT_MODES, mode)) throw new RangeError(`Unknown split mode: ${mode}`);
+  if (!Object.hasOwn(EVALUATION_TARGETS, targetId)) throw new RangeError(`Unknown evaluation target: ${targetId}`);
+
   const overlap = entityOverlap(splits);
   const chronology = chronologyViolations(splits);
-  const target = EVALUATION_TARGETS[targetId] ?? EVALUATION_TARGETS.exchangeable;
+  const target = EVALUATION_TARGETS[targetId];
   const needsEntityIsolation = targetId === 'unseenEntity' || targetId === 'futureEntity';
   const needsChronology = targetId === 'future' || targetId === 'futureEntity';
   const failures = [];
@@ -116,7 +137,8 @@ export function auditSplit(mode, targetId, splits) {
 }
 
 export function trainServeSkew(contractId) {
-  const contract = PIPELINE_CONTRACTS[contractId] ?? PIPELINE_CONTRACTS.aligned;
+  if (!Object.hasOwn(PIPELINE_CONTRACTS, contractId)) throw new RangeError(`Unknown pipeline contract: ${contractId}`);
+  const contract = PIPELINE_CONTRACTS[contractId];
   const semanticSkew = contract.trainWindowDays !== contract.serveWindowDays;
   const missingSkew = contract.trainMissing !== contract.serveMissing;
   const issues = [];
@@ -125,21 +147,92 @@ export function trainServeSkew(contractId) {
   return { ...contract, semanticSkew, missingSkew, issues, aligned: issues.length === 0 };
 }
 
-export function simulateRepeatedSelection(candidateCount) {
-  const count = Math.max(1, Math.min(SELECTION_REPLAY.length, Math.round(candidateCount)));
-  const candidates = SELECTION_REPLAY.slice(0, count).map((candidate) => ({
-    ...candidate,
-    testScore: REPLAY_BASE_QUALITY + candidate.testDelta,
-    freshScore: REPLAY_BASE_QUALITY + candidate.freshDelta,
-  }));
-  const selected = candidates.reduce((best, candidate) => (
-    !best || candidate.testScore > best.testScore ? candidate : best
-  ), null);
+export function simulateRepeatedSelection(
+  candidateCount,
+  testSize = SELECTION_EXPERIMENT.defaultTestSize,
+) {
+  validateExperimentInteger(
+    candidateCount,
+    SELECTION_EXPERIMENT.candidateMin,
+    SELECTION_EXPERIMENT.candidateMax,
+    'candidateCount',
+  );
+  validateExperimentInteger(
+    testSize,
+    SELECTION_EXPERIMENT.testSizeMin,
+    SELECTION_EXPERIMENT.testSizeMax,
+    'testSize',
+  );
+
+  let selectedTestTotal = 0;
+  let freshTotal = 0;
+  let representative = null;
+
+  for (let trial = 0; trial < SELECTION_EXPERIMENT.trials; trial += 1) {
+    const candidates = Array.from({ length: candidateCount }, (_, index) => ({
+      id: index + 1,
+      testScore: sampleAccuracy(
+        testSize,
+        SELECTION_EXPERIMENT.trueAccuracy,
+        candidateSeed(trial, index, 0),
+      ),
+    }));
+    const selected = candidates.reduce((best, candidate) => (
+      candidate.testScore > best.testScore ? candidate : best
+    ), candidates[0]);
+    const freshScore = sampleAccuracy(
+      SELECTION_EXPERIMENT.freshSize,
+      SELECTION_EXPERIMENT.trueAccuracy,
+      candidateSeed(trial, selected.id - 1, 1),
+    );
+
+    selectedTestTotal += selected.testScore;
+    freshTotal += freshScore;
+    if (trial === 0) {
+      representative = {
+        candidates,
+        selected: { ...selected, freshScore },
+      };
+    }
+  }
+
+  const meanSelectedTestScore = selectedTestTotal / SELECTION_EXPERIMENT.trials;
+  const meanFreshScore = freshTotal / SELECTION_EXPERIMENT.trials;
   return {
-    count,
-    selected,
-    candidates,
-    optimism: selected.testScore - selected.freshScore,
+    count: candidateCount,
+    testSize,
+    trueAccuracy: SELECTION_EXPERIMENT.trueAccuracy,
+    trials: SELECTION_EXPERIMENT.trials,
+    meanSelectedTestScore,
+    meanFreshScore,
+    optimism: meanSelectedTestScore - meanFreshScore,
+    representative,
+  };
+}
+
+export function preprocessingLeakageDemo(holdoutShift = PREPROCESSING_LEAKAGE_DEMO.defaultShift) {
+  validateRange(
+    holdoutShift,
+    PREPROCESSING_LEAKAGE_DEMO.shiftMin,
+    PREPROCESSING_LEAKAGE_DEMO.shiftMax,
+    'holdoutShift',
+  );
+
+  const trainValues = [...PREPROCESSING_LEAKAGE_DEMO.trainValues];
+  const holdoutValues = PREPROCESSING_LEAKAGE_DEMO.holdoutBaseValues.map((value) => value + holdoutShift);
+  const trainStats = summaryStats(trainValues);
+  const leakedStats = summaryStats([...trainValues, ...holdoutValues]);
+  const trainOnlyHoldoutZ = holdoutValues.map((value) => (value - trainStats.mean) / trainStats.std);
+  const leakedHoldoutZ = holdoutValues.map((value) => (value - leakedStats.mean) / leakedStats.std);
+
+  return {
+    holdoutShift,
+    trainValues,
+    holdoutValues,
+    trainStats,
+    leakedStats,
+    trainOnlyHoldoutMeanZ: mean(trainOnlyHoldoutZ),
+    leakedHoldoutMeanZ: mean(leakedHoldoutZ),
   };
 }
 
@@ -231,4 +324,74 @@ function randomRank(row) {
 
 function randomEntityRank(entity) {
   return entity.charCodeAt(0) * 17 % 31;
+}
+
+function validateSplitRatio(value, name) {
+  if (!Number.isFinite(value) || value <= 0 || value >= 1) {
+    throw new RangeError(`${name} must be a finite number between 0 and 1`);
+  }
+}
+
+function validateSplitShape(splits, requireNonEmpty = false) {
+  if (!splits || typeof splits !== 'object') throw new TypeError('splits must be an object');
+  for (const bucket of BUCKETS) {
+    if (!Array.isArray(splits[bucket])) throw new TypeError(`splits.${bucket} must be an array`);
+    if (requireNonEmpty && splits[bucket].length === 0) throw new RangeError(`splits.${bucket} must not be empty`);
+  }
+}
+
+function validateExperimentInteger(value, min, max, name) {
+  if (!Number.isInteger(value) || value < min || value > max) {
+    throw new RangeError(`${name} must be an integer from ${min} to ${max}`);
+  }
+}
+
+function validateRange(value, min, max, name) {
+  if (!Number.isFinite(value) || value < min || value > max) {
+    throw new RangeError(`${name} must be between ${min} and ${max}`);
+  }
+}
+
+function candidateSeed(trial, candidateIndex, stream) {
+  return (
+    SELECTION_EXPERIMENT.seed
+    ^ Math.imul(trial + 1, 0x85ebca6b)
+    ^ Math.imul(candidateIndex + 1, 0xc2b2ae35)
+    ^ Math.imul(stream + 1, 0x27d4eb2f)
+  ) >>> 0;
+}
+
+function sampleAccuracy(size, accuracy, seed) {
+  let successes = 0;
+  for (let index = 0; index < size; index += 1) {
+    const drawSeed = (seed + Math.imul(index + 1, 0x9e3779b1)) >>> 0;
+    if (uniform(drawSeed) < accuracy) successes += 1;
+  }
+  return successes / size;
+}
+
+function uniform(seed) {
+  return hash32(seed) / 4294967296;
+}
+
+function hash32(value) {
+  let x = value >>> 0;
+  x ^= x >>> 16;
+  x = Math.imul(x, 0x7feb352d);
+  x ^= x >>> 15;
+  x = Math.imul(x, 0x846ca68b);
+  x ^= x >>> 16;
+  return x >>> 0;
+}
+
+function summaryStats(values) {
+  const average = mean(values);
+  const variance = values.reduce((sum, value) => sum + (value - average) ** 2, 0) / values.length;
+  const std = Math.sqrt(variance);
+  if (std === 0) throw new RangeError('standard deviation must be positive');
+  return { mean: average, std };
+}
+
+function mean(values) {
+  return values.reduce((sum, value) => sum + value, 0) / values.length;
 }
