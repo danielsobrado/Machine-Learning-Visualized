@@ -2,6 +2,7 @@ import React, { useMemo } from 'react';
 import { AlertTriangle, BarChart3, Shuffle } from 'lucide-react';
 import {
   DIAGNOSTIC_ITERATIONS,
+  EMPTY_CLUSTER_CASE,
   INITIALIZATION_CASES,
   K_DIAGNOSTIC_VALUES,
 } from './kMeansDiagnosticsConstants.js';
@@ -63,6 +64,10 @@ export default function KMeansDiagnosticsLab() {
     })),
     [],
   );
+  const emptyClusterResult = useMemo(
+    () => runKMeansForData(POINTS, EMPTY_CLUSTER_CASE.centroids, 4),
+    [],
+  );
   const bestInitialization = initializationResults.reduce((best, current) => (
     current.result.inertia < best.result.inertia ? current : best
   ));
@@ -78,7 +83,7 @@ export default function KMeansDiagnosticsLab() {
         <h3 className="mt-1 text-xl font-black text-slate-950">A low inertia is not proof that the clustering is useful</h3>
         <p className="mt-2 max-w-4xl text-sm leading-6 text-slate-700">
           K-means optimizes one geometric objective. You still have to choose k, rerun different initializations, scale features deliberately,
-          and check whether roughly spherical Euclidean clusters match the structure you care about.
+          handle empty clusters, and check whether roughly spherical Euclidean clusters match the structure you care about.
         </p>
       </div>
 
@@ -88,7 +93,7 @@ export default function KMeansDiagnosticsLab() {
             <BarChart3 size={16} /> The inertia trap
           </div>
           <p className="mt-2 text-sm leading-6 text-slate-700">
-            Inertia must fall as k increases, so choosing the smallest inertia would always push you toward more clusters. Compare it with separation quality instead.
+            The best achievable k-means objective cannot increase when k grows because an extra centroid adds flexibility. A particular finite run can still finish worse because initialization and local optima matter. These diagnostic runs all converged before comparison.
           </p>
 
           <div className="mt-5 space-y-3">
@@ -98,9 +103,10 @@ export default function KMeansDiagnosticsLab() {
                 <div key={choice.k} className={`rounded-lg border p-3 ${selected ? 'border-emerald-300 bg-emerald-50' : 'border-slate-200 bg-slate-50'}`}>
                   <div className="flex flex-wrap items-center justify-between gap-2">
                     <strong className="text-sm text-slate-950">k = {choice.k}</strong>
-                    <div className="flex gap-3 font-mono text-xs font-bold text-slate-600">
+                    <div className="flex flex-wrap gap-3 font-mono text-xs font-bold text-slate-600">
                       <span>inertia {choice.inertia.toFixed(1)}</span>
                       <span>silhouette {choice.silhouette.toFixed(3)}</span>
+                      <span>{choice.converged ? 'converged' : 'budget-limited'}</span>
                     </div>
                   </div>
                   <div className="mt-3 grid gap-2 sm:grid-cols-2">
@@ -124,7 +130,7 @@ export default function KMeansDiagnosticsLab() {
           <strong className="mt-2 block text-3xl font-black text-emerald-950">k = {bestChoice.k}</strong>
           <p className="mt-2 text-sm leading-6 text-emerald-950">
             The sample has four compact visible groups, and silhouette peaks at {bestChoice.silhouette.toFixed(3)} for k={bestChoice.k}.
-            Inertia continues falling beyond that point, which is why inertia alone cannot choose k.
+            The converged diagnostic inertia continues falling beyond that point, which is why inertia alone cannot choose k.
           </p>
           <div className="mt-4 rounded-lg border border-emerald-200 bg-white/70 p-4 text-sm leading-6 text-emerald-950">
             Silhouette is not a universal truth either. It favors separated compact clusters and should be combined with domain meaning, stability, and downstream usefulness.
@@ -152,8 +158,29 @@ export default function KMeansDiagnosticsLab() {
         <div className="mt-4 rounded-lg border border-amber-200 bg-amber-50 p-4">
           <p className="flex items-center gap-2 text-xs font-black uppercase tracking-wide text-amber-800"><AlertTriangle size={14} /> Initialization penalty</p>
           <p className="mt-2 text-sm leading-6 text-amber-950">
-            The unlucky start finishes with {seedPenalty.toFixed(1)} more inertia on exactly the same data and k. Production implementations use smarter initialization such as k-means++ and multiple restarts, then keep the best stable solution.
+            The unlucky start finishes with {seedPenalty.toFixed(1)} more inertia on exactly the same data and k. Production implementations commonly use k-means++ and multiple restarts, select the lowest-objective run, then assess whether the resulting structure is stable and meaningful.
           </p>
+        </div>
+      </div>
+
+      <div className="grid gap-4 lg:grid-cols-[0.9fr_1.1fr]">
+        <MiniClusterPlot
+          label={EMPTY_CLUSTER_CASE.label}
+          initialCentroids={EMPTY_CLUSTER_CASE.centroids}
+          result={emptyClusterResult}
+        />
+        <div className="rounded-lg border border-rose-200 bg-rose-50 p-5">
+          <p className="flex items-center gap-2 text-xs font-black uppercase tracking-wide text-rose-800"><AlertTriangle size={14} /> Empty-cluster policy</p>
+          <h4 className="mt-2 text-lg font-black text-rose-950">One requested centroid has no members</h4>
+          <p className="mt-2 text-sm leading-6 text-rose-950">
+            Duplicate initial seeds tie on every nearby point, so deterministic tie-breaking sends those points to the first seed. Cluster {emptyClusterResult.emptyClusters.map((cluster) => cluster + 1).join(', ')} remains empty.
+          </p>
+          <p className="mt-3 text-sm leading-6 text-rose-950">
+            This lesson's model keeps an empty centroid at its previous location instead of dividing by zero. That is a documented fallback, not a universal k-means rule. Production libraries may reinitialize an empty centroid, choose a difficult point, or apply another explicit recovery policy.
+          </p>
+          <div className="mt-4 rounded-lg border border-rose-200 bg-white/70 p-4 text-sm leading-6 text-rose-950">
+            A run can be stationary under its empty-cluster policy while using fewer than k effective clusters. “Converged” therefore does not automatically mean the requested clustering is healthy.
+          </div>
         </div>
       </div>
     </section>
