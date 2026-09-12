@@ -3,6 +3,18 @@ import test from 'node:test';
 
 import { getLessonAssessment } from './lessonAssessments.js';
 
+const ASSESSMENTS = new Map([
+  ['ab-testing-foundations', getLessonAssessment('ab-testing-foundations')],
+  ['knn-naive-bayes-svm', getLessonAssessment('knn-naive-bayes-svm')],
+  ['computation-graph-backprop', getLessonAssessment('computation-graph-backprop')],
+  ['attention-masks', getLessonAssessment('attention-masks')],
+  ['kv-cache', getLessonAssessment('kv-cache')],
+  ['model-fairness', getLessonAssessment('model-fairness')],
+  ['q-learning', getLessonAssessment('q-learning')],
+  ['ppo-clipped-policy-gradient', getLessonAssessment('ppo-clipped-policy-gradient')],
+  ['least-squares-projection', getLessonAssessment('least-squares-projection')],
+]);
+
 const REQUIREMENTS = Object.freeze([
   Object.freeze({ lessonId: 'ab-testing-foundations', scenarioId: 'ab-sample-ratio-mismatch-randomization-diagnosis' }),
   Object.freeze({ lessonId: 'knn-naive-bayes-svm', scenarioId: 'classifier-knn-distance-concentration-diagnosis' }),
@@ -18,7 +30,7 @@ const REQUIREMENTS = Object.freeze([
 const DEPTH_LEVELS = new Set(['application', 'calculation', 'decision', 'design', 'diagnosis']);
 
 function scenarioById(lessonId, scenarioId) {
-  return getLessonAssessment(lessonId).scenarioQuestions.find(({ id }) => id === scenarioId);
+  return ASSESSMENTS.get(lessonId)?.scenarioQuestions.find(({ id }) => id === scenarioId);
 }
 
 test('high-priority gap scenarios stay live', async (t) => {
