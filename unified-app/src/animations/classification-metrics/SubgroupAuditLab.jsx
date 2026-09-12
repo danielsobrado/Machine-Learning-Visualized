@@ -12,11 +12,17 @@ function pct(value, digits = 0) {
   return `${(value * 100).toFixed(digits)}%`;
 }
 
+function actualClassCounts(counts) {
+  return {
+    positives: counts.tp + counts.fn,
+    negatives: counts.tn + counts.fp,
+  };
+}
+
 export default function SubgroupAuditLab({ threshold }) {
-  const aggregate = useMemo(
-    () => metricsFromCounts(confusionMatrix(CLASSIFICATION_ROWS, threshold)),
-    [threshold],
-  );
+  const aggregateCounts = useMemo(() => confusionMatrix(CLASSIFICATION_ROWS, threshold), [threshold]);
+  const aggregate = useMemo(() => metricsFromCounts(aggregateCounts), [aggregateCounts]);
+  const aggregateClasses = actualClassCounts(aggregateCounts);
   const groups = useMemo(() => metricsByGroup(CLASSIFICATION_ROWS, threshold), [threshold]);
   const recallGap = maxMetricGap(groups, 'recall');
   const precisionGap = maxMetricGap(groups, 'precision');
@@ -29,23 +35,50 @@ export default function SubgroupAuditLab({ threshold }) {
         The same threshold is applied to every row. Compare the overall score with each subgroup before concluding that one headline recall or F1 value describes deployment behavior.
       </p>
 
-      <div className="mt-5 overflow-hidden rounded-lg border border-slate-200">
-        <table className="w-full text-left text-sm">
+      <div className="mt-5 overflow-x-auto rounded-lg border border-slate-200">
+        <table className="min-w-[760px] w-full text-left text-sm">
           <thead className="bg-slate-100 text-xs font-black uppercase tracking-wide text-slate-500">
-            <tr><th className="px-3 py-2">Slice</th><th className="px-3 py-2">Rows</th><th className="px-3 py-2">Precision</th><th className="px-3 py-2">Recall / TPR</th><th className="px-3 py-2">Specificity</th><th className="px-3 py-2">F1</th></tr>
+            <tr>
+              <th className="px-3 py-2">Slice</th>
+              <th className="px-3 py-2">Rows</th>
+              <th className="px-3 py-2">Actual + / −</th>
+              <th className="px-3 py-2">Precision</th>
+              <th className="px-3 py-2">Recall / TPR</th>
+              <th className="px-3 py-2">Specificity</th>
+              <th className="px-3 py-2">F1</th>
+            </tr>
           </thead>
           <tbody>
             <tr className="bg-slate-50 font-bold text-slate-900">
-              <td className="px-3 py-3">Aggregate</td><td className="px-3 py-3">{CLASSIFICATION_ROWS.length}</td><td className="px-3 py-3">{pct(aggregate.precision)}</td><td className="px-3 py-3">{pct(aggregate.recall)}</td><td className="px-3 py-3">{pct(aggregate.specificity)}</td><td className="px-3 py-3">{pct(aggregate.f1)}</td>
+              <td className="px-3 py-3">Aggregate</td>
+              <td className="px-3 py-3">{CLASSIFICATION_ROWS.length}</td>
+              <td className="px-3 py-3">{aggregateClasses.positives} / {aggregateClasses.negatives}</td>
+              <td className="px-3 py-3">{pct(aggregate.precision)}</td>
+              <td className="px-3 py-3">{pct(aggregate.recall)}</td>
+              <td className="px-3 py-3">{pct(aggregate.specificity)}</td>
+              <td className="px-3 py-3">{pct(aggregate.f1)}</td>
             </tr>
-            {groups.map((group) => (
-              <tr key={group.group} className={group.metrics.recall < aggregate.recall ? 'bg-rose-50 text-rose-950' : 'bg-white text-slate-700'}>
-                <td className="px-3 py-3 font-black">{group.group}</td><td className="px-3 py-3">{group.size}</td><td className="px-3 py-3">{pct(group.metrics.precision)}</td><td className="px-3 py-3 font-black">{pct(group.metrics.recall)}</td><td className="px-3 py-3">{pct(group.metrics.specificity)}</td><td className="px-3 py-3">{pct(group.metrics.f1)}</td>
-              </tr>
-            ))}
+            {groups.map((group) => {
+              const classCounts = actualClassCounts(group.counts);
+              return (
+                <tr key={group.group} className={group.metrics.recall < aggregate.recall ? 'bg-rose-50 text-rose-950' : 'bg-white text-slate-700'}>
+                  <td className="px-3 py-3 font-black">{group.group}</td>
+                  <td className="px-3 py-3">{group.size}</td>
+                  <td className="px-3 py-3">{classCounts.positives} / {classCounts.negatives}</td>
+                  <td className="px-3 py-3">{pct(group.metrics.precision)}</td>
+                  <td className="px-3 py-3 font-black">{pct(group.metrics.recall)}</td>
+                  <td className="px-3 py-3">{pct(group.metrics.specificity)}</td>
+                  <td className="px-3 py-3">{pct(group.metrics.f1)}</td>
+                </tr>
+              );
+            })}
           </tbody>
         </table>
       </div>
+
+      <p className="mt-2 text-xs font-semibold leading-5 text-slate-500">
+        Recall divides by actual positives; specificity divides by actual negatives. Small denominators make subgroup percentages less stable, even before formal uncertainty intervals are added.
+      </p>
 
       <div className="mt-4 grid gap-4 lg:grid-cols-2">
         <div className={`rounded-lg border p-4 ${recallGap >= 0.2 ? 'border-rose-200 bg-rose-50' : 'border-emerald-200 bg-emerald-50'}`}>
