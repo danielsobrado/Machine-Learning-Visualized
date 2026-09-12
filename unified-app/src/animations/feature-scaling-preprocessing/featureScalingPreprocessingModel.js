@@ -11,32 +11,44 @@ export const OUTLIER = Object.freeze({
   id: 'G',
   age: 64,
   income: 235000,
-  split: 'validation',
   label: 'outlier',
 });
+
+export const OUTLIER_SPLITS = Object.freeze(['train', 'validation']);
 
 export const METHODS = Object.freeze({
   raw: {
     label: 'Raw',
     formula: 'x',
-    detail: 'No scaling: income units dominate distance and gradient magnitudes.',
+    detail: 'No fitted transform: raw dollars dominate Euclidean distance beside age measured in years.',
   },
   standard: {
     label: 'Standardize',
     formula: '(x - mean) / std',
-    detail: 'Centers each feature and measures values in standard deviations.',
+    detail: 'Centers each feature and expresses values in training-standard-deviation units.',
   },
   minmax: {
     label: 'Min-max',
     formula: '(x - min) / (max - min)',
-    detail: 'Compresses features into a 0-to-1 range using fitted endpoints.',
+    detail: 'Maps the fitted training range to 0–1; held-out values can fall outside that interval.',
   },
   robust: {
     label: 'Robust',
     formula: '(x - median) / IQR',
-    detail: 'Uses median and interquartile range, so one outlier has less leverage.',
+    detail: 'Uses the training median and interquartile range, so extreme fitted values have less leverage.',
   },
 });
+
+const PLOT_VIEWPORT = Object.freeze({ width: 360, height: 260, pad: 34 });
+
+export function buildPoints(includeOutlier, outlierSplit = 'train') {
+  if (!OUTLIER_SPLITS.includes(outlierSplit)) {
+    throw new Error(`Unsupported outlier split: ${outlierSplit}`);
+  }
+
+  if (!includeOutlier) return [...BASE_POINTS];
+  return [...BASE_POINTS, { ...OUTLIER, split: outlierSplit }];
+}
 
 export function median(values) {
   const sorted = [...values].sort((a, b) => a - b);
@@ -54,6 +66,8 @@ export function percentile(values, p) {
 }
 
 export function stats(values) {
+  if (!values.length) throw new Error('Cannot compute feature statistics from an empty sample.');
+
   const mean = values.reduce((sum, value) => sum + value, 0) / values.length;
   const variance = values.reduce((sum, value) => sum + (value - mean) ** 2, 0) / values.length;
   const q1 = percentile(values, 0.25);
@@ -68,7 +82,7 @@ export function stats(values) {
   };
 }
 
-export function fitScaler(points, fitOnAllData) {
+export function fitScaler(points, fitOnAllData = false) {
   const fitPoints = fitOnAllData ? points : points.filter((point) => point.split === 'train');
   return {
     age: stats(fitPoints.map((point) => point.age)),
@@ -91,8 +105,20 @@ export function transformPoint(point, scaler, method) {
   };
 }
 
-export function distance(a, b) {
-  return Math.sqrt((a.x - b.x) ** 2 + (a.y - b.y) ** 2);
+export function distanceBreakdown(a, b) {
+  const dx = a.x - b.x;
+  const dy = a.y - b.y;
+  const xSquared = dx ** 2;
+  const ySquared = dy ** 2;
+  const totalSquared = xSquared + ySquared;
+
+  return {
+    dx,
+    dy,
+    distance: Math.sqrt(totalSquared),
+    xShare: totalSquared ? xSquared / totalSquared : 0,
+    yShare: totalSquared ? ySquared / totalSquared : 0,
+  };
 }
 
 export function bounds(points) {
@@ -106,12 +132,27 @@ export function bounds(points) {
   };
 }
 
-export function project(point, box) {
-  const pad = 34;
+export function projectIsotropic(point, box, viewport = PLOT_VIEWPORT) {
+  const { width, height, pad } = viewport;
+  const drawableWidth = width - pad * 2;
+  const drawableHeight = height - pad * 2;
   const xRange = box.maxX - box.minX || 1;
   const yRange = box.maxY - box.minY || 1;
+  const pixelsPerUnit = Math.min(drawableWidth / xRange, drawableHeight / yRange);
+  const usedWidth = xRange * pixelsPerUnit;
+  const usedHeight = yRange * pixelsPerUnit;
+  const left = pad + (drawableWidth - usedWidth) / 2;
+  const top = pad + (drawableHeight - usedHeight) / 2;
+
   return {
-    cx: pad + ((point.x - box.minX) / xRange) * (360 - pad * 2),
-    cy: 260 - pad - ((point.y - box.minY) / yRange) * (260 - pad * 2),
+    cx: left + (point.x - box.minX) * pixelsPerUnit,
+    cy: top + usedHeight - (point.y - box.minY) * pixelsPerUnit,
   };
+}
+
+export function scaleMagnitude(featureStats, method) {
+  if (method === 'standard') return featureStats.std;
+  if (method === 'minmax') return featureStats.max - featureStats.min || 1;
+  if (method === 'robust') return featureStats.iqr;
+  return null;
 }
