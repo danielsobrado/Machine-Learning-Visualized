@@ -36,6 +36,12 @@ export const CROSS_ENTROPY_SCENARIOS = [
   },
 ];
 
+export const CROSS_ENTROPY_BATCH_EXAMPLES = Object.freeze([
+  Object.freeze({ id: 'easy', targetIndex: 0, logits: Object.freeze([2.4, 0.2, -1]) }),
+  Object.freeze({ id: 'hard', targetIndex: 1, logits: Object.freeze([1.1, 0.9, -0.3]) }),
+  Object.freeze({ id: 'wrong', targetIndex: 2, logits: Object.freeze([2.2, 0.3, 0]) }),
+]);
+
 export const CROSS_ENTROPY_DEFAULTS = {
   scenarioId: 'correct-cautious',
   logitScale: 1,
