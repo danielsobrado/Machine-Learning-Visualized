@@ -25,6 +25,19 @@ export function assign(points, centroids) {
   });
 }
 
+export function clusterSizes(assignments, clusterCount) {
+  return Array.from(
+    { length: clusterCount },
+    (_, cluster) => assignments.filter((assignment) => assignment === cluster).length,
+  );
+}
+
+export function emptyClusterIds(assignments, clusterCount) {
+  return clusterSizes(assignments, clusterCount)
+    .map((size, cluster) => (size === 0 ? cluster : null))
+    .filter((cluster) => cluster !== null);
+}
+
 export function updateCentroids(points, assignments, centroids) {
   return centroids.map((centroid, cluster) => {
     const members = points.filter((_, index) => assignments[index] === cluster);
@@ -40,19 +53,69 @@ export function inertia(points, assignments, centroids) {
   return points.reduce((sum, point, index) => sum + distance(point, centroids[assignments[index]]) ** 2, 0);
 }
 
+export function assignmentChanges(previousAssignments, assignments) {
+  return assignments.reduce(
+    (count, assignment, index) => count + (assignment !== previousAssignments[index] ? 1 : 0),
+    0,
+  );
+}
+
+export function maxCentroidShift(previousCentroids, centroids) {
+  return Math.max(
+    0,
+    ...centroids.map((centroid, index) => distance(previousCentroids[index], centroid)),
+  );
+}
+
 export function runKMeansForData(points, initialCentroids, iterations) {
+  if (!Number.isInteger(iterations) || iterations < 0) {
+    throw new RangeError('iterations must be a non-negative integer');
+  }
+  if (!initialCentroids.length) {
+    throw new RangeError('at least one centroid is required');
+  }
+
   let centroids = initialCentroids.map((centroid) => [...centroid]);
   let assignments = assign(points, centroids);
+  const trace = [{
+    iteration: 0,
+    inertia: inertia(points, assignments, centroids),
+    assignmentChanges: null,
+    maxCentroidShift: null,
+    emptyClusters: emptyClusterIds(assignments, centroids.length),
+  }];
+  let convergedAt = null;
 
-  for (let step = 0; step < iterations; step += 1) {
+  for (let step = 1; step <= iterations; step += 1) {
+    const previousCentroids = centroids;
+    const previousAssignments = assignments;
     centroids = updateCentroids(points, assignments, centroids);
     assignments = assign(points, centroids);
+    const changedAssignments = assignmentChanges(previousAssignments, assignments);
+    const centroidShift = maxCentroidShift(previousCentroids, centroids);
+    const emptyClusters = emptyClusterIds(assignments, centroids.length);
+
+    trace.push({
+      iteration: step,
+      inertia: inertia(points, assignments, centroids),
+      assignmentChanges: changedAssignments,
+      maxCentroidShift: centroidShift,
+      emptyClusters,
+    });
+
+    if (convergedAt === null && changedAssignments === 0) {
+      convergedAt = step;
+    }
   }
 
   return {
     centroids,
     assignments,
     inertia: inertia(points, assignments, centroids),
+    trace,
+    converged: convergedAt !== null,
+    convergedAt,
+    emptyClusters: emptyClusterIds(assignments, centroids.length),
   };
 }
 
@@ -106,6 +169,8 @@ export function evaluateKChoices(points, kValues, iterations = 12) {
       k,
       inertia: result.inertia,
       silhouette: silhouetteScore(points, result.assignments),
+      converged: result.converged,
+      emptyClusters: result.emptyClusters,
     };
   });
 }
