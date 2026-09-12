@@ -10,6 +10,8 @@ import {
   RESAMPLING_CURVE_STEPS,
   RESAMPLING_PROBE_X,
   RESAMPLING_SEEDS,
+  TRAIN_X_MAX,
+  TRAIN_X_MIN,
 } from './biasVarianceResamplingConstants.js';
 
 export const SAMPLE_LEVELS = Object.freeze({
@@ -39,7 +41,7 @@ export function makePoints(sampleLevel, noise, seed = 0) {
   if (!Number.isFinite(noise) || noise < 0) throw new RangeError('Noise must be a non-negative finite number.');
 
   return Array.from({ length: sample.count }, (_, index) => {
-    const x = 4 + (index / Math.max(1, sample.count - 1)) * 92;
+    const x = TRAIN_X_MIN + (index / Math.max(1, sample.count - 1)) * (TRAIN_X_MAX - TRAIN_X_MIN);
     const centeredNoise = pseudoNoise(index + sample.count * 3, seed) - 0.5;
     return {
       id: index,
@@ -101,7 +103,7 @@ export function decompositionProfile(
 
   const fits = seeds.map((seed) => fitModel(makePoints(sampleLevel, noise, seed), model));
   const grid = Array.from({ length: DECOMPOSITION_GRID_STEPS }, (_, index) => (
-    4 + (index / (DECOMPOSITION_GRID_STEPS - 1)) * 92
+    TRAIN_X_MIN + (index / (DECOMPOSITION_GRID_STEPS - 1)) * (TRAIN_X_MAX - TRAIN_X_MIN)
   ));
 
   let biasSquared = 0;
@@ -247,7 +249,7 @@ function solveLinearSystem(matrix, vector) {
 
 function predictionPath(source, steps) {
   return Array.from({ length: steps }, (_, index) => {
-    const x = (index / (steps - 1)) * 100;
+    const x = TRAIN_X_MIN + (index / (steps - 1)) * (TRAIN_X_MAX - TRAIN_X_MIN);
     const { cx, cy } = project({ x, y: source(x) });
     return `${index === 0 ? 'M' : 'L'} ${cx.toFixed(1)} ${cy.toFixed(1)}`;
   }).join(' ');
