@@ -1,13 +1,15 @@
 export const LEAKAGE_MODES = Object.freeze({
   duplicates: {
-    label: 'Duplicate / entity overlap',
-    leak: 'Rows from the same user appear on both sides of an evaluation boundary, so identity-specific signal can be memorized.',
-    fix: 'Group by user before splitting so every row for one user stays in a single partition.',
-    repairLabel: 'Group by user',
-    crossedInformation: 'user identity',
-    violationUnit: 'cross-boundary entities',
-    unsafeFlow: 'same user → training + validation',
+    label: 'Entity overlap',
+    leak: 'Under an unseen-user evaluation contract, rows from the same user appear on both sides of the boundary, so identity-specific signal can be memorized.',
+    fix: 'When deployment must generalize to unseen users, group by user before splitting. If deployment predicts later events for known users, use a time-aware contract instead of grouping by habit.',
+    repairLabel: 'Honor unseen-user boundary',
+    crossedInformation: 'evaluation-user identity',
+    violationUnit: 'users crossing unseen-user boundary',
+    unsafeFlow: 'same user → training + unseen-user evaluation',
     safeFlow: 'whole user → one partition only',
+    contract: 'Generalize to entirely unseen users',
+    contractNote: 'Entity overlap is not universally leakage. It is invalid here because the deployment question requires performance on users absent from fitting.',
   },
   preprocessing: {
     label: 'Preprocessing leakage',
@@ -18,6 +20,8 @@ export const LEAKAGE_MODES = Object.freeze({
     violationUnit: 'holdout rows used by preprocessing',
     unsafeFlow: 'validation/test rows → fitted transform → model',
     safeFlow: 'training rows → fitted transform → frozen holdout transform',
+    contract: 'Holdout rows must not influence fitted preprocessing state',
+    contractNote: 'The problem is contamination of learned state. Leakage does not guarantee that the contaminated score will be higher on every dataset.',
   },
   target: {
     label: 'Target / post-outcome leakage',
@@ -28,6 +32,8 @@ export const LEAKAGE_MODES = Object.freeze({
     violationUnit: 'forbidden feature paths',
     unsafeFlow: 'future outcome → post_outcome_code → model',
     safeFlow: 'prediction-time features → model',
+    contract: 'Predict before post_outcome_code exists',
+    contractNote: 'Feature availability is defined at the prediction timestamp, not by whether a column exists later in the warehouse.',
   },
   time: {
     label: 'Temporal leakage',
@@ -38,6 +44,8 @@ export const LEAKAGE_MODES = Object.freeze({
     violationUnit: 'future rows used in fitting',
     unsafeFlow: 'May training row → model → April validation row',
     safeFlow: 'Jan–Mar training → Apr–May validation → Jun test',
+    contract: 'Estimate future performance from past-only information',
+    contractNote: 'Chronology matters because deployment predicts events that occur after the data used for fitting.',
   },
   testTuning: {
     label: 'Repeated test tuning',
@@ -48,25 +56,36 @@ export const LEAKAGE_MODES = Object.freeze({
     violationUnit: 'forbidden feedback paths',
     unsafeFlow: 'test result → recipe choice → next experiment',
     safeFlow: 'validation → recipe choice; final test → report only',
+    contract: 'The final test is report-only evidence',
+    contractNote: 'Looking once is not the issue. Adapting recipes to the result makes the same test sample part of development.',
   },
 });
 
 export const LEAKAGE_ROWS = Object.freeze([
-  { id: 'A', user: 'user_101', time: 'Jan', timeIndex: 1, split: 'train', target: 0, postOutcomeCode: 'resolved_negative' },
-  { id: 'B', user: 'user_104', time: 'Feb', timeIndex: 2, split: 'train', target: 1, postOutcomeCode: 'resolved_positive' },
-  { id: 'C', user: 'user_118', time: 'Mar', timeIndex: 3, split: 'train', target: 0, postOutcomeCode: 'resolved_negative' },
-  { id: 'D', user: 'user_104', time: 'Apr', timeIndex: 4, split: 'validation', target: 1, postOutcomeCode: 'resolved_positive' },
-  { id: 'E', user: 'user_132', time: 'May', timeIndex: 5, split: 'validation', target: 0, postOutcomeCode: 'resolved_negative' },
-  { id: 'F', user: 'user_150', time: 'Jun', timeIndex: 6, split: 'test', target: 1, postOutcomeCode: 'resolved_positive' },
+  { id: 'A', user: 'user_101', time: 'Jan', timeIndex: 1, split: 'train', target: 0, measurement: 10, postOutcomeCode: 'resolved_negative' },
+  { id: 'B', user: 'user_104', time: 'Feb', timeIndex: 2, split: 'train', target: 1, measurement: 12, postOutcomeCode: 'resolved_positive' },
+  { id: 'C', user: 'user_118', time: 'Mar', timeIndex: 3, split: 'train', target: 0, measurement: 14, postOutcomeCode: 'resolved_negative' },
+  { id: 'D', user: 'user_104', time: 'Apr', timeIndex: 4, split: 'validation', target: 1, measurement: 18, postOutcomeCode: 'resolved_positive' },
+  { id: 'E', user: 'user_132', time: 'May', timeIndex: 5, split: 'validation', target: 0, measurement: 20, postOutcomeCode: 'resolved_negative' },
+  { id: 'F', user: 'user_150', time: 'Jun', timeIndex: 6, split: 'test', target: 1, measurement: 22, postOutcomeCode: 'resolved_positive' },
 ]);
 
+const TEST_TUNING_CANDIDATE_COUNT = 12;
+const TEST_TUNING_TRUE_ACCURACY = 0.76;
+const TEST_TUNING_SAMPLE_SIZE = 50;
+const TEST_TUNING_FRESH_SAMPLE_SIZE = 400;
+const FINAL_TEST_SEED = 1000;
+const VALIDATION_SEED = 22192;
+const FRESH_AUDIT_SEED = 71000;
+
 export function getLeakageState(modeId, repairApplied = false, rows = LEAKAGE_ROWS) {
-  const mode = LEAKAGE_MODES[modeId] ?? LEAKAGE_MODES.target;
+  const mode = getMode(modeId);
+  validateRows(rows);
+
   const scenarioSplits = Object.fromEntries(rows.map((row) => [
     row.id,
     scenarioSplitForRow(row, modeId, repairApplied),
   ]));
-
   const diagnosis = diagnose(modeId, repairApplied, rows, scenarioSplits);
 
   return {
@@ -79,13 +98,35 @@ export function getLeakageState(modeId, repairApplied = false, rows = LEAKAGE_RO
     rowRoles: diagnosis.rowRoles,
     crossedInformation: mode.crossedInformation,
     flow: repairApplied ? mode.safeFlow : mode.unsafeFlow,
+    experiment: buildExperiment(modeId, repairApplied, rows, scenarioSplits),
   };
 }
 
 export function scenarioSplitForRow(row, modeId, repairApplied = false) {
+  getMode(modeId);
   if (modeId === 'duplicates' && repairApplied && row.id === 'D') return 'train';
   if (modeId === 'time' && !repairApplied && row.id === 'E') return 'train';
   return row.split;
+}
+
+function getMode(modeId) {
+  const mode = LEAKAGE_MODES[modeId];
+  if (!mode) throw new RangeError(`Unknown leakage mode: ${modeId}`);
+  return mode;
+}
+
+function validateRows(rows) {
+  if (!Array.isArray(rows) || rows.length === 0) {
+    throw new TypeError('Leakage rows must be a non-empty array.');
+  }
+
+  const ids = new Set();
+  for (const row of rows) {
+    if (!row?.id || ids.has(row.id)) throw new TypeError('Leakage rows must have unique non-empty ids.');
+    if (!Number.isFinite(row.timeIndex)) throw new TypeError(`Row ${row.id} must have a finite timeIndex.`);
+    if (!Number.isFinite(row.measurement)) throw new TypeError(`Row ${row.id} must have a finite measurement.`);
+    ids.add(row.id);
+  }
 }
 
 function diagnose(modeId, repairApplied, rows, scenarioSplits) {
@@ -110,14 +151,14 @@ function diagnoseDuplicateOverlap(rows, scenarioSplits) {
   const rowRoles = Object.fromEntries(
     rows
       .filter((row) => crossingSet.has(row.user))
-      .map((row) => [row.id, { kind: 'source', label: 'same entity crosses boundary' }]),
+      .map((row) => [row.id, { kind: 'source', label: 'same entity crosses unseen-user boundary' }]),
   );
 
   return {
     violationCount: crossingUsers.length,
     evidence: crossingUsers.length
-      ? `${crossingUsers.length} user (${crossingUsers.join(', ')}) appears in training and evaluation.`
-      : 'Every user is contained within one partition.',
+      ? `Under the unseen-user contract, ${crossingUsers.length} user (${crossingUsers.join(', ')}) appears in both fitting and evaluation.`
+      : 'No user crosses the unseen-user evaluation boundary.',
     rowRoles,
   };
 }
@@ -173,7 +214,7 @@ function diagnosePreprocessing(repairApplied, rows, scenarioSplits) {
   return {
     violationCount: holdoutContributors.length,
     evidence: holdoutContributors.length
-      ? `${holdoutContributors.length} holdout rows (${holdoutContributors.map((row) => row.id).join(', ')}) contribute to learned preprocessing statistics.`
+      ? `${holdoutContributors.length} holdout rows (${holdoutContributors.map((row) => row.id).join(', ')}) change the learned preprocessing statistics.`
       : 'Learned preprocessing parameters come from training rows only.',
     rowRoles: Object.fromEntries(
       holdoutContributors.map((row) => [row.id, { kind: 'source', label: 'holdout affects transform' }]),
@@ -185,7 +226,7 @@ function diagnoseTestTuning(repairApplied, rows) {
   if (repairApplied) {
     return {
       violationCount: 0,
-      evidence: 'Model-selection decisions use validation feedback; the final test result is report-only.',
+      evidence: 'Recipe selection uses validation feedback; the final test result is opened only after the recipe is frozen.',
       rowRoles: {},
     };
   }
@@ -193,9 +234,131 @@ function diagnoseTestTuning(repairApplied, rows) {
   const testRows = rows.filter((row) => row.split === 'test');
   return {
     violationCount: 1,
-    evidence: 'The final test result is reused to choose the next recipe, so it is no longer untouched evidence.',
+    evidence: 'The final test result is reused to choose the next recipe, so the reported winner is selected partly for favorable test-sample noise.',
     rowRoles: Object.fromEntries(
       testRows.map((row) => [row.id, { kind: 'source', label: 'test feedback reused' }]),
     ),
   };
+}
+
+function buildExperiment(modeId, repairApplied, rows, scenarioSplits) {
+  if (modeId === 'preprocessing') {
+    return buildPreprocessingExperiment(rows, scenarioSplits, repairApplied);
+  }
+  if (modeId === 'testTuning') {
+    return buildTestTuningExperiment(repairApplied);
+  }
+  return null;
+}
+
+function buildPreprocessingExperiment(rows, scenarioSplits, repairApplied) {
+  const trainingRows = rows.filter((row) => scenarioSplits[row.id] === 'train');
+  const holdoutRows = rows.filter((row) => scenarioSplits[row.id] !== 'train');
+  if (!trainingRows.length || !holdoutRows.length) {
+    throw new RangeError('Preprocessing experiment requires training and holdout rows.');
+  }
+
+  const trainOnlyFit = fitStandardizer(trainingRows.map((row) => row.measurement));
+  const leakedFit = fitStandardizer(rows.map((row) => row.measurement));
+  const example = holdoutRows[0];
+  const safeTransformed = standardize(example.measurement, trainOnlyFit);
+  const leakedTransformed = standardize(example.measurement, leakedFit);
+
+  return {
+    type: 'preprocessing',
+    trainOnlyFit,
+    leakedFit,
+    activeFit: repairApplied ? trainOnlyFit : leakedFit,
+    activeFitSource: repairApplied ? 'training rows only' : 'all rows',
+    meanShift: leakedFit.mean - trainOnlyFit.mean,
+    scaleShift: leakedFit.std - trainOnlyFit.std,
+    example: {
+      id: example.id,
+      raw: example.measurement,
+      safeTransformed,
+      leakedTransformed,
+      activeTransformed: repairApplied ? safeTransformed : leakedTransformed,
+    },
+  };
+}
+
+function fitStandardizer(values) {
+  const mean = average(values);
+  const variance = average(values.map((value) => (value - mean) ** 2));
+  const std = Math.sqrt(variance);
+  if (std === 0) throw new RangeError('Standardizer requires non-zero training variance.');
+  return { mean, std };
+}
+
+function standardize(value, fit) {
+  return (value - fit.mean) / fit.std;
+}
+
+function buildTestTuningExperiment(repairApplied) {
+  const selectionSeed = repairApplied ? VALIDATION_SEED : FINAL_TEST_SEED;
+  const candidateScores = Array.from({ length: TEST_TUNING_CANDIDATE_COUNT }, (_, index) => ({
+    index: index + 1,
+    trueAccuracy: TEST_TUNING_TRUE_ACCURACY,
+    selectionScore: sampleAccuracy(index, TEST_TUNING_SAMPLE_SIZE, selectionSeed),
+  }));
+  const selected = candidateScores.reduce((best, candidate) => (
+    candidate.selectionScore > best.selectionScore ? candidate : best
+  ));
+  const selectedIndex = selected.index - 1;
+
+  if (repairApplied) {
+    const finalTestScore = sampleAccuracy(selectedIndex, TEST_TUNING_SAMPLE_SIZE, FINAL_TEST_SEED);
+    return {
+      type: 'testTuning',
+      candidateCount: TEST_TUNING_CANDIDATE_COUNT,
+      trueAccuracy: TEST_TUNING_TRUE_ACCURACY,
+      sampleSize: TEST_TUNING_SAMPLE_SIZE,
+      selectionSource: 'validation',
+      reportSource: 'untouched final test',
+      selectedCandidate: selected.index,
+      selectionScore: selected.selectionScore,
+      reportScore: finalTestScore,
+      referenceScore: TEST_TUNING_TRUE_ACCURACY,
+      optimism: finalTestScore - TEST_TUNING_TRUE_ACCURACY,
+      candidateScores,
+    };
+  }
+
+  const freshAuditScore = sampleAccuracy(selectedIndex, TEST_TUNING_FRESH_SAMPLE_SIZE, FRESH_AUDIT_SEED);
+  return {
+    type: 'testTuning',
+    candidateCount: TEST_TUNING_CANDIDATE_COUNT,
+    trueAccuracy: TEST_TUNING_TRUE_ACCURACY,
+    sampleSize: TEST_TUNING_SAMPLE_SIZE,
+    selectionSource: 'final test',
+    reportSource: 'same reused final test',
+    selectedCandidate: selected.index,
+    selectionScore: selected.selectionScore,
+    reportScore: selected.selectionScore,
+    referenceScore: freshAuditScore,
+    optimism: selected.selectionScore - freshAuditScore,
+    candidateScores,
+  };
+}
+
+function sampleAccuracy(candidateIndex, sampleSize, sampleSeed) {
+  let correct = 0;
+  for (let index = 0; index < sampleSize; index += 1) {
+    const seed = sampleSeed + candidateIndex * 1009 + index * 9176;
+    if (pseudoRandom01(seed) < TEST_TUNING_TRUE_ACCURACY) correct += 1;
+  }
+  return correct / sampleSize;
+}
+
+function pseudoRandom01(seed) {
+  let value = (seed ^ 0x9e3779b9) >>> 0;
+  value = Math.imul(value, 0x85ebca6b) >>> 0;
+  value ^= value >>> 13;
+  value = Math.imul(value, 0xc2b2ae35) >>> 0;
+  value ^= value >>> 16;
+  return (value >>> 0) / 4294967296;
+}
+
+function average(values) {
+  return values.reduce((sum, value) => sum + value, 0) / values.length;
 }

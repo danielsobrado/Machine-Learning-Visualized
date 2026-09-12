@@ -17,6 +17,14 @@ function Stat({ label, value, detail }) {
   );
 }
 
+function percent(value) {
+  return `${(value * 100).toFixed(1)}%`;
+}
+
+function points(value) {
+  return `${value >= 0 ? '+' : ''}${(value * 100).toFixed(1)} pts`;
+}
+
 function auditStyle(role) {
   if (role?.kind === 'source') return 'bg-rose-50 text-rose-950';
   if (role?.kind === 'affected') return 'bg-amber-50 text-amber-950';
@@ -28,12 +36,113 @@ function auditLabel(role, repairApplied) {
   return role.label;
 }
 
+function PreprocessingExperiment({ experiment, repairApplied }) {
+  return (
+    <section className="rounded-lg border border-violet-200 bg-violet-50 p-5">
+      <p className="text-xs font-black uppercase tracking-wide text-violet-700">Measured transform contamination</p>
+      <h3 className="mt-1 text-lg font-black text-violet-950">The same holdout row gets a different representation</h3>
+      <p className="mt-2 max-w-4xl text-sm leading-6 text-violet-900">
+        The scaler is the experiment. No accuracy bonus is invented: allowing holdout rows into fitting changes the parameters themselves.
+      </p>
+      <div className="mt-4 grid gap-3 md:grid-cols-2 xl:grid-cols-4">
+        <Stat
+          label="Train-only fit"
+          value={`μ ${experiment.trainOnlyFit.mean.toFixed(1)}`}
+          detail={`σ ${experiment.trainOnlyFit.std.toFixed(2)} from training rows only`}
+        />
+        <Stat
+          label="All-row fit"
+          value={`μ ${experiment.leakedFit.mean.toFixed(1)}`}
+          detail={`σ ${experiment.leakedFit.std.toFixed(2)} after holdout contamination`}
+        />
+        <Stat
+          label={`Row ${experiment.example.id}: safe z`}
+          value={experiment.example.safeTransformed.toFixed(2)}
+          detail={`raw value ${experiment.example.raw}, transformed with train-only statistics`}
+        />
+        <Stat
+          label={`Row ${experiment.example.id}: leaked z`}
+          value={experiment.example.leakedTransformed.toFixed(2)}
+          detail="same raw value, transformed after fitting on all rows"
+        />
+      </div>
+      <p className={`mt-4 rounded-lg border p-4 text-sm font-semibold leading-6 ${
+        repairApplied
+          ? 'border-emerald-200 bg-emerald-50 text-emerald-950'
+          : 'border-rose-200 bg-rose-50 text-rose-950'
+      }`}>
+        Active scaler: <strong>{experiment.activeFitSource}</strong>. Fitting on all rows shifts the center by {experiment.meanShift.toFixed(1)} and the scale by {experiment.scaleShift.toFixed(2)} before the model sees validation or test data.
+      </p>
+    </section>
+  );
+}
+
+function TestTuningExperiment({ experiment, repairApplied }) {
+  return (
+    <section className="rounded-lg border border-violet-200 bg-violet-50 p-5">
+      <p className="text-xs font-black uppercase tracking-wide text-violet-700">Finite-sample selection experiment</p>
+      <h3 className="mt-1 text-lg font-black text-violet-950">Twelve equally good recipes can still produce a lucky winner</h3>
+      <p className="mt-2 max-w-4xl text-sm leading-6 text-violet-900">
+        Every simulated recipe has the same 76% true accuracy. The only difference is finite-sample evaluation noise. Selection uses {experiment.selectionSource}; the reported estimate uses {experiment.reportSource}.
+      </p>
+      <div className="mt-4 grid gap-3 md:grid-cols-2 xl:grid-cols-4">
+        <Stat label="Recipes" value={experiment.candidateCount} detail="all have identical true accuracy" />
+        <Stat label="True accuracy" value={percent(experiment.trueAccuracy)} detail="known because this is a controlled simulation" />
+        <Stat label={`Selected R${experiment.selectedCandidate}`} value={percent(experiment.selectionScore)} detail={`best score on ${experiment.selectionSource}`} />
+        <Stat label="Reported estimate" value={percent(experiment.reportScore)} detail={experiment.reportSource} />
+      </div>
+
+      <div className="mt-5 grid gap-2 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6">
+        {experiment.candidateScores.map((candidate) => (
+          <div
+            key={candidate.index}
+            className={`rounded-lg border p-3 ${
+              candidate.index === experiment.selectedCandidate
+                ? 'border-violet-400 bg-white'
+                : 'border-violet-100 bg-violet-100/40'
+            }`}
+          >
+            <div className="flex items-center justify-between gap-2 text-xs font-black text-violet-900">
+              <span>R{candidate.index}</span>
+              <span className="font-mono">{percent(candidate.selectionScore)}</span>
+            </div>
+            <div className="mt-2 h-2 overflow-hidden rounded-full bg-violet-100">
+              <div className="h-full rounded-full bg-violet-500" style={{ width: `${candidate.selectionScore * 100}%` }} />
+            </div>
+          </div>
+        ))}
+      </div>
+
+      <p className={`mt-4 rounded-lg border p-4 text-sm font-semibold leading-6 ${
+        repairApplied
+          ? 'border-emerald-200 bg-emerald-50 text-emerald-950'
+          : 'border-rose-200 bg-rose-50 text-rose-950'
+      }`}>
+        {repairApplied
+          ? `The 90% validation winner is frozen before the final test is opened. Its untouched final-test estimate is ${percent(experiment.reportScore)}, ${points(experiment.optimism)} from the known truth in this simulation.`
+          : `Selecting and reporting the best final-test result gives ${percent(experiment.reportScore)}. A fresh independent sample gives ${percent(experiment.referenceScore)}, exposing ${points(experiment.optimism)} of winner optimism.`}
+      </p>
+    </section>
+  );
+}
+
+function ExperimentEvidence({ experiment, repairApplied }) {
+  if (experiment?.type === 'preprocessing') {
+    return <PreprocessingExperiment experiment={experiment} repairApplied={repairApplied} />;
+  }
+  if (experiment?.type === 'testTuning') {
+    return <TestTuningExperiment experiment={experiment} repairApplied={repairApplied} />;
+  }
+  return null;
+}
+
 export default function DataLeakageDeepDiveAnimation() {
   const [mode, setMode] = useState('target');
   const [repairApplied, setRepairApplied] = useState(false);
   const state = useMemo(() => getLeakageState(mode, repairApplied), [mode, repairApplied]);
   const config = state.mode;
   const showPostOutcome = mode === 'target';
+  const showMeasurement = mode === 'preprocessing';
 
   const reset = () => {
     setMode('target');
@@ -113,7 +222,7 @@ export default function DataLeakageDeepDiveAnimation() {
         <Stat
           label="Boundary status"
           value={state.unsafe ? 'Unsafe' : 'Contained'}
-          detail={state.unsafe ? 'forbidden information crosses the boundary' : 'selected leakage path is blocked'}
+          detail={state.unsafe ? 'forbidden information crosses the active contract' : 'selected leakage path is blocked'}
         />
         <Stat
           label="Detected violations"
@@ -131,6 +240,8 @@ export default function DataLeakageDeepDiveAnimation() {
           detail={config.repairLabel}
         />
       </div>
+
+      <ExperimentEvidence experiment={state.experiment} repairApplied={repairApplied} />
 
       <div className="grid gap-4 xl:grid-cols-[1.25fr_0.75fr]">
         <section className="rounded-lg border border-slate-200 bg-white p-5">
@@ -151,6 +262,7 @@ export default function DataLeakageDeepDiveAnimation() {
                   <th className="px-3 py-2">Time</th>
                   <th className="px-3 py-2">Scenario split</th>
                   <th className="px-3 py-2">Target</th>
+                  {showMeasurement && <th className="px-3 py-2">signal_value</th>}
                   {showPostOutcome && <th className="px-3 py-2">post_outcome_code</th>}
                   <th className="px-3 py-2">Audit</th>
                 </tr>
@@ -165,6 +277,7 @@ export default function DataLeakageDeepDiveAnimation() {
                       <td className="px-3 py-2">{row.time}</td>
                       <td className="px-3 py-2 font-semibold">{state.scenarioSplits[row.id]}</td>
                       <td className="px-3 py-2 font-mono font-bold">{row.target}</td>
+                      {showMeasurement && <td className="px-3 py-2 font-mono">{row.measurement}</td>}
                       {showPostOutcome && (
                         <td className="px-3 py-2 font-mono text-xs">{repairApplied ? 'excluded' : row.postOutcomeCode}</td>
                       )}
@@ -183,6 +296,11 @@ export default function DataLeakageDeepDiveAnimation() {
             Diagnosis
           </h3>
           <div className="mt-4 space-y-4">
+            <div className="rounded-lg border border-cyan-200 bg-cyan-50 p-4">
+              <h4 className="text-sm font-black uppercase tracking-wide text-cyan-700">Active evaluation contract</h4>
+              <p className="mt-2 text-sm font-black text-cyan-950">{config.contract}</p>
+              <p className="mt-2 text-sm leading-6 text-cyan-900">{config.contractNote}</p>
+            </div>
             <div className={`rounded-lg border p-4 ${
               state.unsafe ? 'border-rose-200 bg-rose-50' : 'border-emerald-200 bg-emerald-50'
             }`}>
@@ -215,7 +333,7 @@ export default function DataLeakageDeepDiveAnimation() {
         <div className="rounded-lg border border-amber-200 bg-amber-50 p-5">
           <h3 className="text-sm font-black uppercase tracking-wide text-amber-700">Fitting boundary</h3>
           <p className="mt-3 text-sm leading-6 text-amber-950">
-            Split by the required independence unit first. Fit scalers, imputers, selectors, encoders, and other learned transforms inside the training boundary or fold.
+            Define what must generalize first, then choose the split unit. Fit scalers, imputers, selectors, encoders, and other learned transforms inside the resulting training boundary or fold.
           </p>
         </div>
         <div className="rounded-lg border border-emerald-200 bg-emerald-50 p-5">
