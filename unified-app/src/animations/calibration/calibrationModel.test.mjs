@@ -1,18 +1,20 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import {
-  REFERENCE_BINS,
-  SHIFT_SCENARIOS,
-} from './calibrationConstants.js';
+import { ECE_BINNING_ROWS } from './calibrationBinningConstants.js';
+import { REFERENCE_BINS, SHIFT_SCENARIOS } from './calibrationConstants.js';
 import { CALIBRATION_SLICE_EXAMPLE } from './calibrationSliceConstants.js';
 import {
   aggregateCalibrationSlices,
   baseRate,
+  brierDecomposition,
   brierScore,
+  calibrationBinsFromRows,
   diagnoseShift,
   expectedCalibrationError,
   groupedAuc,
   logLoss,
+  rowBrierScore,
+  rowLogLoss,
   thresholdStats,
   totalCount,
 } from './calibrationModel.js';
@@ -41,6 +43,33 @@ test('reference population is well calibrated and has useful discrimination', ()
   assert.ok(logLoss(REFERENCE_BINS) < 0.6);
 });
 
+test('Brier decomposition reconstructs the grouped Brier score', () => {
+  const parts = brierDecomposition(REFERENCE_BINS);
+  closeTo(parts.reconstructed, brierScore(REFERENCE_BINS));
+  assert.ok(parts.reliability < 0.001);
+  assert.ok(parts.resolution > 0.05);
+  assert.ok(parts.uncertainty > 0.24);
+});
+
+test('the same raw predictions can look perfect or poor under different ECE binning', () => {
+  const coarse = calibrationBinsFromRows(ECE_BINNING_ROWS, 2);
+  const fine = calibrationBinsFromRows(ECE_BINNING_ROWS, 4);
+
+  closeTo(expectedCalibrationError(coarse), 0);
+  closeTo(expectedCalibrationError(fine), 0.2);
+  assert.equal(ECE_BINNING_ROWS.length, 40);
+});
+
+test('row-wise proper scores do not depend on reliability-diagram bin count', () => {
+  closeTo(rowBrierScore(ECE_BINNING_ROWS), 0.24);
+  closeTo(rowLogLoss(ECE_BINNING_ROWS), 0.6847899705748948);
+
+  const twoBins = calibrationBinsFromRows(ECE_BINNING_ROWS, 2);
+  const eightBins = calibrationBinsFromRows(ECE_BINNING_ROWS, 8);
+  assert.notEqual(expectedCalibrationError(twoBins), expectedCalibrationError(eightBins));
+  closeTo(rowBrierScore(ECE_BINNING_ROWS), 0.24);
+});
+
 test('base-rate shift preserves ranking while breaking probability levels', () => {
   const shifted = SHIFT_SCENARIOS.priorShift.evaluationBins;
   assert.ok(Math.abs(groupedAuc(REFERENCE_BINS) - groupedAuc(shifted)) < 0.03);
@@ -55,6 +84,9 @@ test('intercept correction fixes most base-rate calibration error on untouched e
   assert.ok(result.calibratedMetrics.brier < result.rawMetrics.brier);
   assert.ok(result.calibratedMetrics.logLoss < result.rawMetrics.logLoss);
   closeTo(result.calibratedMetrics.auc, result.rawMetrics.auc);
+  closeTo(result.calibratedMetrics.brierComponents.resolution, result.rawMetrics.brierComponents.resolution);
+  closeTo(result.calibratedMetrics.brierComponents.uncertainty, result.rawMetrics.brierComponents.uncertainty);
+  assert.ok(result.calibratedMetrics.brierComponents.reliability < result.rawMetrics.brierComponents.reliability);
 });
 
 test('temperature scaling repairs confidence sharpness without changing ranking', () => {
@@ -102,6 +134,13 @@ test('recalibrator is fitted on calibration bins and can change fixed-threshold 
   assert.ok(calibratedDecision.predictedPositive < rawDecision.predictedPositive);
 });
 
+test('threshold metrics report undefined precision when no cases are predicted positive', () => {
+  const summary = thresholdStats(REFERENCE_BINS, 1);
+  assert.equal(summary.predictedPositive, 0);
+  assert.equal(summary.precision, null);
+  assert.ok(summary.recall === 0);
+});
+
 test('aggregate calibration can hide large opposing slice errors', () => {
   const slices = CALIBRATION_SLICE_EXAMPLE.slices;
   const aggregate = aggregateCalibrationSlices(slices);
@@ -109,4 +148,12 @@ test('aggregate calibration can hide large opposing slice errors', () => {
   assert.ok(expectedCalibrationError(aggregate) < 1e-8);
   assert.ok(slices.every((slice) => expectedCalibrationError(slice.bins) > 0.13));
   assert.equal(totalCount(aggregate), slices.reduce((sum, slice) => sum + totalCount(slice.bins), 0));
+});
+
+test('degenerate AUC and malformed calibration inputs fail honestly', () => {
+  assert.equal(groupedAuc([{ confidence: 0.5, observed: 1, count: 10 }]), null);
+  assert.throws(() => calibrationBinsFromRows(ECE_BINNING_ROWS, 1), RangeError);
+  assert.throws(() => calibrationBinsFromRows([{ probability: 1.2, label: 1 }], 4), RangeError);
+  assert.throws(() => thresholdStats(REFERENCE_BINS, 1.1), RangeError);
+  assert.throws(() => expectedCalibrationError([{ confidence: 0.5, observed: 1.2, count: 10 }]), RangeError);
 });
