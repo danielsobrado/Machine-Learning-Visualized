@@ -14,6 +14,13 @@ export const OUTLIER = Object.freeze({
   label: 'outlier',
 });
 
+export const DECISION_QUERY = Object.freeze({
+  id: 'Q',
+  age: 40,
+  income: 60000,
+  label: 'new applicant',
+});
+
 export const OUTLIER_SPLITS = Object.freeze(['train', 'validation']);
 
 export const METHODS = Object.freeze({
@@ -35,7 +42,7 @@ export const METHODS = Object.freeze({
   robust: {
     label: 'Robust',
     formula: '(x - median) / IQR',
-    detail: 'Uses the training median and interquartile range, so extreme fitted values have less leverage.',
+    detail: 'Uses the training median and IQR to protect the fitted center and scale from extremes; it does not clip or remove the outliers themselves.',
   },
 });
 
@@ -91,6 +98,7 @@ export function fitScaler(points, fitOnAllData = false) {
 }
 
 export function transformValue(value, featureStats, method) {
+  assertMethod(method);
   if (method === 'standard') return (value - featureStats.mean) / featureStats.std;
   if (method === 'minmax') return (value - featureStats.min) / (featureStats.max - featureStats.min || 1);
   if (method === 'robust') return (value - featureStats.median) / featureStats.iqr;
@@ -118,6 +126,63 @@ export function distanceBreakdown(a, b) {
     distance: Math.sqrt(totalSquared),
     xShare: totalSquared ? xSquared / totalSquared : 0,
     yShare: totalSquared ? ySquared / totalSquared : 0,
+  };
+}
+
+export function nearestTrainingNeighbor(points, scaler, method, query = DECISION_QUERY) {
+  assertMethod(method);
+  const trainingPoints = points.filter((point) => point.split === 'train');
+  if (!trainingPoints.length) throw new Error('Nearest-neighbor experiment requires at least one training point.');
+
+  const transformedQuery = transformPoint({ ...query, split: 'query' }, scaler, method);
+  const ranking = trainingPoints
+    .map((point) => {
+      const transformed = transformPoint(point, scaler, method);
+      return {
+        id: point.id,
+        label: point.label,
+        distance: distanceBreakdown(transformedQuery, transformed).distance,
+      };
+    })
+    .sort((a, b) => a.distance - b.distance);
+
+  return {
+    query: transformedQuery,
+    nearest: ranking[0],
+    ranking,
+  };
+}
+
+export function outlierImpact(method) {
+  if (method === 'raw') return null;
+  assertMethod(method);
+
+  const baselinePoints = buildPoints(false);
+  const contaminatedPoints = buildPoints(true, 'train');
+  const baselineScaler = fitScaler(baselinePoints, false);
+  const contaminatedScaler = fitScaler(contaminatedPoints, false);
+  const ordinaryTraining = BASE_POINTS.filter((point) => point.split === 'train');
+
+  const coreBefore = ordinaryTraining.map((point) => (
+    transformValue(point.income, baselineScaler.income, method)
+  ));
+  const coreAfter = ordinaryTraining.map((point) => (
+    transformValue(point.income, contaminatedScaler.income, method)
+  ));
+  const coreSpanBefore = Math.max(...coreBefore) - Math.min(...coreBefore);
+  const coreSpanAfter = Math.max(...coreAfter) - Math.min(...coreAfter);
+  const scaleBefore = scaleMagnitude(baselineScaler.income, method);
+  const scaleAfter = scaleMagnitude(contaminatedScaler.income, method);
+
+  return {
+    method,
+    scaleBefore,
+    scaleAfter,
+    scaleChangeRatio: scaleAfter / scaleBefore,
+    coreSpanBefore,
+    coreSpanAfter,
+    coreSpanRetention: coreSpanAfter / coreSpanBefore,
+    outlierTransformed: transformValue(OUTLIER.income, contaminatedScaler.income, method),
   };
 }
 
@@ -151,8 +216,15 @@ export function projectIsotropic(point, box, viewport = PLOT_VIEWPORT) {
 }
 
 export function scaleMagnitude(featureStats, method) {
+  assertMethod(method);
   if (method === 'standard') return featureStats.std;
   if (method === 'minmax') return featureStats.max - featureStats.min || 1;
   if (method === 'robust') return featureStats.iqr;
   return null;
+}
+
+function assertMethod(method) {
+  if (!Object.hasOwn(METHODS, method)) {
+    throw new Error(`Unsupported scaling method: ${method}`);
+  }
 }

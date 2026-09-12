@@ -3,11 +3,14 @@ import assert from 'node:assert/strict';
 
 import {
   BASE_POINTS,
+  DECISION_QUERY,
   OUTLIER,
   bounds,
   buildPoints,
   distanceBreakdown,
   fitScaler,
+  nearestTrainingNeighbor,
+  outlierImpact,
   projectIsotropic,
   scaleMagnitude,
   transformPoint,
@@ -98,6 +101,38 @@ test('standardization changes which feature dominates Euclidean distance', () =>
   assert.ok(raw.yShare > 0.99999);
   assert.ok(standardized.yShare < 0.5);
   assert.ok(standardized.xShare > 0.5);
+});
+
+test('scaling can flip the downstream 1-NN decision rather than only redraw axes', () => {
+  const points = buildPoints(false);
+  const scaler = fitScaler(points, false);
+  const raw = nearestTrainingNeighbor(points, scaler, 'raw', DECISION_QUERY);
+  const standardized = nearestTrainingNeighbor(points, scaler, 'standard', DECISION_QUERY);
+
+  assert.equal(raw.nearest.id, 'B');
+  assert.equal(standardized.nearest.id, 'C');
+  assert.ok(raw.ranking[0].distance < raw.ranking[1].distance);
+  assert.ok(standardized.ranking[0].distance < standardized.ranking[1].distance);
+});
+
+test('robust scaling preserves more ordinary spread without clipping the outlier itself', () => {
+  const standard = outlierImpact('standard');
+  const minmax = outlierImpact('minmax');
+  const robust = outlierImpact('robust');
+
+  assert.ok(robust.coreSpanRetention > standard.coreSpanRetention);
+  assert.ok(robust.coreSpanRetention > minmax.coreSpanRetention);
+  assert.ok(robust.coreSpanRetention > 0.7);
+  assert.ok(robust.outlierTransformed > standard.outlierTransformed);
+  assert.ok(robust.outlierTransformed > 3);
+  assert.equal(outlierImpact('raw'), null);
+});
+
+test('unsupported scaling methods fail instead of silently behaving like raw features', () => {
+  const scaler = fitScaler(buildPoints(false), false);
+
+  assert.throws(() => transformValue(5, scaler.age, 'mystery'), /Unsupported scaling method/);
+  assert.throws(() => scaleMagnitude(scaler.age, 'mystery'), /Unsupported scaling method/);
 });
 
 test('isotropic projection preserves equal metric units on both axes', () => {

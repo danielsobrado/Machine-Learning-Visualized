@@ -2,12 +2,15 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { RotateCcw, Scale, SlidersHorizontal } from 'lucide-react';
 import AssessmentPanel from '../../components/animation-shell/AssessmentPanel';
 import {
+  DECISION_QUERY,
   METHODS,
   OUTLIER,
   bounds,
   buildPoints,
   distanceBreakdown,
   fitScaler,
+  nearestTrainingNeighbor,
+  outlierImpact,
   projectIsotropic,
   scaleMagnitude,
   transformPoint,
@@ -25,6 +28,8 @@ const METHOD_SCALE_LABELS = Object.freeze({
   minmax: 'fitted range',
   robust: 'IQR',
 });
+
+const OUTLIER_COMPARISON_METHODS = Object.freeze(['standard', 'minmax', 'robust']);
 
 const PARAMETER_COLUMNS = Object.freeze([
   ['mean', 'Mean'],
@@ -60,6 +65,41 @@ function ContributionBar({ label, value }) {
   );
 }
 
+function NeighborRanking({ title, decision, method }) {
+  const visible = decision.ranking.slice(0, 4);
+
+  return (
+    <div className="rounded-lg border border-slate-200 bg-white p-4">
+      <div className="flex items-start justify-between gap-3">
+        <div>
+          <p className="text-xs font-black uppercase tracking-wide text-slate-500">{title}</p>
+          <strong className="mt-1 block text-lg font-black text-slate-950">
+            Nearest: {decision.nearest.id} · {decision.nearest.label}
+          </strong>
+        </div>
+        <span className="rounded-full bg-cyan-50 px-3 py-1 text-xs font-black text-cyan-800">
+          {METHODS[method].label}
+        </span>
+      </div>
+      <ol className="mt-4 space-y-2">
+        {visible.map((neighbor, index) => (
+          <li
+            key={neighbor.id}
+            className={`flex items-center justify-between gap-3 rounded-lg border px-3 py-2 text-sm ${
+              index === 0
+                ? 'border-cyan-300 bg-cyan-50 text-cyan-950'
+                : 'border-slate-200 bg-slate-50 text-slate-700'
+            }`}
+          >
+            <span className="font-black">#{index + 1} {neighbor.id}</span>
+            <span className="font-mono text-xs">{formatDistance(neighbor.distance, method)}</span>
+          </li>
+        ))}
+      </ol>
+    </div>
+  );
+}
+
 function formatFeatureStat(feature, value) {
   if (feature === 'income') return `$${Math.round(value / 1000)}k`;
   return Number.isInteger(value) ? value : value.toFixed(1);
@@ -67,6 +107,11 @@ function formatFeatureStat(feature, value) {
 
 function formatDistance(value, method) {
   return method === 'raw' ? value.toFixed(0) : value.toFixed(2);
+}
+
+function formatSignedPercent(ratio) {
+  const percent = (ratio - 1) * 100;
+  return `${percent >= 0 ? '+' : ''}${percent.toFixed(0)}%`;
 }
 
 function axisLabels(method) {
@@ -110,6 +155,19 @@ export default function FeatureScalingPreprocessingAnimation() {
     () => points.map((point) => ({ ...point, x: point.age, y: point.income })),
     [points],
   );
+  const rawDecision = useMemo(
+    () => nearestTrainingNeighbor(points, scaler, 'raw'),
+    [points, scaler],
+  );
+  const currentDecision = useMemo(
+    () => nearestTrainingNeighbor(points, scaler, method),
+    [points, scaler, method],
+  );
+  const outlierComparisons = useMemo(
+    () => OUTLIER_COMPARISON_METHODS.map((id) => outlierImpact(id)),
+    [],
+  );
+  const robustComparison = outlierComparisons.find((comparison) => comparison.method === 'robust');
 
   const selected = transformed.find((point) => point.id === selectedPoint) || transformed[0];
   const anchor = transformed.find((point) => point.id === 'B');
@@ -136,6 +194,8 @@ export default function FeatureScalingPreprocessingAnimation() {
   const outlierScaleValue = outlierScaleChange === null
     ? '—'
     : `${outlierScaleChange >= 0 ? '+' : ''}${outlierScaleChange.toFixed(0)}%`;
+
+  const decisionChanged = rawDecision.nearest.id !== currentDecision.nearest.id;
 
   const reset = () => {
     setMethod('standard');
@@ -270,6 +330,33 @@ export default function FeatureScalingPreprocessingAnimation() {
         />
       </div>
 
+      <section className="rounded-lg border border-cyan-200 bg-cyan-50 p-5">
+        <div className="flex flex-wrap items-start justify-between gap-4">
+          <div>
+            <p className="text-xs font-black uppercase tracking-wide text-cyan-700">Downstream decision experiment</p>
+            <h3 className="mt-1 text-lg font-black text-cyan-950">Scaling can change who 1-NN considers most similar</h3>
+            <p className="mt-2 max-w-4xl text-sm leading-6 text-cyan-900">
+              Query Q is age {DECISION_QUERY.age} with income ${Math.round(DECISION_QUERY.income / 1000)}k.
+              A one-nearest-neighbor model inherits the label of the closest training row, so changed geometry can become a changed prediction.
+            </p>
+          </div>
+          <span className={`rounded-full px-3 py-1 text-xs font-black ${
+            decisionChanged ? 'bg-rose-100 text-rose-800' : 'bg-white text-cyan-800'
+          }`}>
+            {decisionChanged ? 'Decision changed' : 'Same nearest row'}
+          </span>
+        </div>
+        <div className="mt-4 grid gap-4 lg:grid-cols-2">
+          <NeighborRanking title="Original units" decision={rawDecision} method="raw" />
+          <NeighborRanking title="Active representation" decision={currentDecision} method={method} />
+        </div>
+        <p className="mt-4 text-sm leading-6 text-cyan-950">
+          {decisionChanged
+            ? `Raw units choose ${rawDecision.nearest.id}, while ${METHODS[method].label.toLowerCase()} units choose ${currentDecision.nearest.id}. The model did not change; only the feature representation did.`
+            : `Both views currently choose ${currentDecision.nearest.id}, but the distances and feature contributions can still change. Scaling matters when those geometric changes cross a model decision boundary.`}
+        </p>
+      </section>
+
       <div className="grid gap-4 xl:grid-cols-[1fr_1fr]">
         <section className="rounded-lg border border-slate-200 bg-white p-5">
           <h3 className="flex items-center gap-2 text-sm font-black uppercase tracking-wide text-slate-600">
@@ -402,6 +489,44 @@ export default function FeatureScalingPreprocessingAnimation() {
           )}
         </section>
       </div>
+
+      <section className="rounded-lg border border-violet-200 bg-violet-50 p-5">
+        <p className="text-xs font-black uppercase tracking-wide text-violet-700">Controlled outlier experiment</p>
+        <h3 className="mt-1 text-lg font-black text-violet-950">Robust scaling protects ordinary geometry; it does not remove G</h3>
+        <p className="mt-2 max-w-4xl text-sm leading-6 text-violet-900">
+          G is added to training in every row below. “Ordinary span retained” measures how much of the original A–D
+          income separation survives after G changes the fitted scale. Higher retention means the ordinary points are squeezed less.
+        </p>
+
+        <div className="mt-4 overflow-x-auto rounded-lg border border-violet-200 bg-white">
+          <table className="w-full min-w-[680px] text-left text-sm">
+            <thead className="bg-violet-100 text-xs font-black uppercase tracking-wide text-violet-700">
+              <tr>
+                <th className="px-3 py-2">Scaler</th>
+                <th className="px-3 py-2">Scale inflation</th>
+                <th className="px-3 py-2">Ordinary span retained</th>
+                <th className="px-3 py-2">G transformed income</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-violet-100">
+              {outlierComparisons.map((comparison) => (
+                <tr key={comparison.method}>
+                  <td className="px-3 py-3 font-black text-violet-950">{METHODS[comparison.method].label}</td>
+                  <td className="px-3 py-3 font-mono">{formatSignedPercent(comparison.scaleChangeRatio)}</td>
+                  <td className="px-3 py-3 font-mono">{Math.round(comparison.coreSpanRetention * 100)}%</td>
+                  <td className="px-3 py-3 font-mono">{comparison.outlierTransformed.toFixed(2)}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+
+        <p className="mt-4 rounded-lg border border-violet-200 bg-white p-4 text-sm leading-6 text-violet-950">
+          Here robust scaling retains <strong>{Math.round(robustComparison.coreSpanRetention * 100)}%</strong> of the ordinary A–D income span,
+          yet G still sits <strong>{robustComparison.outlierTransformed.toFixed(2)} IQR units</strong> above the fitted median.
+          Robust scaling changes which statistics define the coordinate system; clipping, winsorizing, removing, or separately modeling an outlier are different decisions.
+        </p>
+      </section>
 
       <section className="grid gap-4 lg:grid-cols-3">
         <div className="rounded-lg border border-cyan-200 bg-cyan-50 p-5">
