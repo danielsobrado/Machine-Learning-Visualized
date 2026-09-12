@@ -8,6 +8,7 @@ import {
 } from './classificationMetricsConstants.js';
 import {
   bestThresholdBy,
+  bestThresholdsBy,
   confusionMatrix,
   metricsFromCounts,
   projectFromRates,
@@ -15,7 +16,12 @@ import {
 } from './classificationMetricsModel.js';
 
 function pct(value, digits = 0) {
-  return `${(value * 100).toFixed(digits)}%`;
+  return Number.isFinite(value) ? `${(value * 100).toFixed(digits)}%` : '—';
+}
+
+function thresholdList(items) {
+  if (!items.length) return 'undefined';
+  return items.map((item) => item.threshold.toFixed(2)).join(', ');
 }
 
 function Stat({ label, value, detail }) {
@@ -66,16 +72,20 @@ export default function MetricPolicyLab({
   );
   const f1Best = useMemo(() => bestThresholdBy(sweep, 'f1'), [sweep]);
   const costBest = useMemo(() => bestThresholdBy(sweep, 'cost'), [sweep]);
+  const f1Ties = useMemo(() => bestThresholdsBy(sweep, 'f1'), [sweep]);
+  const costTies = useMemo(() => bestThresholdsBy(sweep, 'cost'), [sweep]);
   const selectedPreset = PREVALENCE_PRESETS.find((preset) => preset.id === prevalencePreset) || PREVALENCE_PRESETS[0];
   const measuredTpr = metrics.recall;
-  const measuredFpr = 1 - metrics.specificity;
+  const measuredFpr = Number.isFinite(metrics.specificity) ? 1 - metrics.specificity : null;
   const projected = useMemo(
-    () => projectFromRates({
-      tpr: measuredTpr,
-      fpr: measuredFpr,
-      prevalence: selectedPreset.prevalence,
-      population: PROJECTION_POPULATION,
-    }),
+    () => Number.isFinite(measuredTpr) && Number.isFinite(measuredFpr)
+      ? projectFromRates({
+        tpr: measuredTpr,
+        fpr: measuredFpr,
+        prevalence: selectedPreset.prevalence,
+        population: PROJECTION_POPULATION,
+      })
+      : null,
     [measuredTpr, measuredFpr, selectedPreset],
   );
 
@@ -85,8 +95,7 @@ export default function MetricPolicyLab({
         <p className="text-xs font-black uppercase tracking-wide text-cyan-700">Metric policy lab</p>
         <h3 className="mt-1 text-xl font-black text-slate-950">There is no universally best threshold or metric.</h3>
         <p className="mt-2 max-w-4xl text-sm leading-6 text-slate-700">
-          Move the decision threshold, then change the cost of false positives and false negatives. F1 summarizes a
-          precision/recall compromise; it does not know what your mistakes cost.
+          Move the decision threshold, then change the cost of false positives and false negatives. F1 summarizes a precision/recall compromise; it does not know what your mistakes cost. When several thresholds tie, the lesson reports the whole optimum set instead of pretending one cutoff is uniquely correct.
         </p>
 
         <div className="mt-5 grid gap-5 lg:grid-cols-3">
@@ -109,12 +118,12 @@ export default function MetricPolicyLab({
         <ConfusionMatrix counts={counts} />
         <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
           <Stat label="Accuracy" value={pct(metrics.accuracy)} detail="all decisions weighted equally" />
-          <Stat label="Precision" value={pct(metrics.precision)} detail="purity of positive actions" />
-          <Stat label="Recall" value={pct(metrics.recall)} detail="fraction of positives recovered" />
+          <Stat label="Precision" value={pct(metrics.precision)} detail="purity of positive actions; undefined if no positives are predicted" />
+          <Stat label="Recall" value={pct(metrics.recall)} detail="fraction of positives recovered; undefined if the slice has no positives" />
           <Stat label="Specificity" value={pct(metrics.specificity)} detail="fraction of negatives rejected" />
           <Stat label="F1" value={pct(metrics.f1)} detail="harmonic precision/recall balance" />
-          <Stat label="Balanced accuracy" value={pct(metrics.balancedAccuracy)} detail="mean recall and specificity" />
-          <Stat label="MCC" value={metrics.mcc.toFixed(2)} detail="correlation-style confusion summary" />
+          <Stat label="Balanced accuracy" value={pct(metrics.balancedAccuracy)} detail="mean recall and specificity when both are defined" />
+          <Stat label="MCC" value={Number.isFinite(metrics.mcc) ? metrics.mcc.toFixed(2) : '—'} detail="undefined when a confusion-matrix margin is empty" />
           <Stat label="Predicted positive" value={pct(metrics.predictedPositiveRate)} detail="operational action rate" />
         </div>
       </div>
@@ -123,15 +132,17 @@ export default function MetricPolicyLab({
         <div className="rounded-lg border border-violet-200 bg-violet-50 p-5">
           <p className="flex items-center gap-2 text-xs font-black uppercase tracking-wide text-violet-800"><Scale size={15} /> Objective disagreement</p>
           <p className="mt-2 text-sm leading-6 text-violet-950">
-            Best F1 on this sweep is threshold <strong>{f1Best.threshold.toFixed(2)}</strong>. Lowest business cost is
-            threshold <strong>{costBest.threshold.toFixed(2)}</strong> with the current FP/FN costs.
-            {f1Best.threshold !== costBest.threshold
-              ? ' The objectives disagree, so “maximize F1” is not the deployment policy.'
-              : ' They happen to agree under these costs, but that is contingent rather than guaranteed.'}
+            Best F1 threshold set on this sweep: <strong>{thresholdList(f1Ties)}</strong>. Lowest-cost threshold set under the current FP/FN costs:{' '}
+            <strong>{thresholdList(costTies)}</strong>. The representative buttons choose the tied optimum closest to 0.50 rather than silently choosing the first grid value.
+          </p>
+          <p className="mt-2 text-sm leading-6 text-violet-950">
+            {f1Best && costBest && f1Best.threshold !== costBest.threshold
+              ? 'The representative objectives disagree, so “maximize F1” is not the deployment policy.'
+              : 'The representative thresholds happen to agree here, but that is contingent rather than guaranteed.'}
           </p>
           <div className="mt-3 flex flex-wrap gap-2">
-            <button type="button" onClick={() => onThresholdChange(f1Best.threshold)} className="rounded-lg border border-violet-300 bg-white px-3 py-2 text-sm font-black text-violet-900">Apply F1 best</button>
-            <button type="button" onClick={() => onThresholdChange(costBest.threshold)} className="rounded-lg bg-violet-900 px-3 py-2 text-sm font-black text-white">Apply cost best</button>
+            <button type="button" disabled={!f1Best} onClick={() => f1Best && onThresholdChange(f1Best.threshold)} className="rounded-lg border border-violet-300 bg-white px-3 py-2 text-sm font-black text-violet-900 disabled:opacity-40">Apply F1 representative</button>
+            <button type="button" disabled={!costBest} onClick={() => costBest && onThresholdChange(costBest.threshold)} className="rounded-lg bg-violet-900 px-3 py-2 text-sm font-black text-white disabled:opacity-40">Apply cost representative</button>
           </div>
         </div>
 
@@ -144,15 +155,21 @@ export default function MetricPolicyLab({
               </button>
             ))}
           </div>
-          <p className="mt-3 text-sm leading-6 text-amber-950">
-            At threshold <strong>{threshold.toFixed(2)}</strong>, this toy set measures TPR <strong>{pct(measuredTpr, 1)}</strong> and FPR <strong>{pct(measuredFpr, 1)}</strong>.
-            Hold those operating rates fixed and change only prevalence to {pct(selectedPreset.prevalence, 1)}: that projects about{' '}
-            <strong>{Math.round(projected.counts.tp).toLocaleString()} TP</strong> and <strong>{Math.round(projected.counts.fp).toLocaleString()} FP</strong> per {PROJECTION_POPULATION.toLocaleString()} decisions.
-            Precision becomes <strong>{pct(projected.metrics.precision, 1)}</strong>, while balanced accuracy stays <strong>{pct(projected.metrics.balancedAccuracy, 1)}</strong>.
-          </p>
-          <p className="mt-2 text-xs font-semibold leading-5 text-amber-800">
-            This is a base-rate projection of the measured operating point, not a claim that TPR/FPR will remain stable after real deployment shift.
-          </p>
+          {projected ? (
+            <>
+              <p className="mt-3 text-sm leading-6 text-amber-950">
+                At threshold <strong>{threshold.toFixed(2)}</strong>, this toy set measures TPR <strong>{pct(measuredTpr, 1)}</strong> and FPR <strong>{pct(measuredFpr, 1)}</strong>.
+                Hold those operating rates fixed and change only prevalence to {pct(selectedPreset.prevalence, 1)}: that projects about{' '}
+                <strong>{Math.round(projected.counts.tp).toLocaleString()} TP</strong> and <strong>{Math.round(projected.counts.fp).toLocaleString()} FP</strong> per {PROJECTION_POPULATION.toLocaleString()} decisions.
+                Precision becomes <strong>{pct(projected.metrics.precision, 1)}</strong>, while balanced accuracy stays <strong>{pct(projected.metrics.balancedAccuracy, 1)}</strong>.
+              </p>
+              <p className="mt-2 text-xs font-semibold leading-5 text-amber-800">
+                This is a base-rate projection of the measured operating point, not a claim that TPR/FPR will remain stable after real deployment shift.
+              </p>
+            </>
+          ) : (
+            <p className="mt-3 text-sm leading-6 text-amber-950">This operating point cannot be projected because one of its class-conditional rates is undefined.</p>
+          )}
         </div>
       </div>
     </section>

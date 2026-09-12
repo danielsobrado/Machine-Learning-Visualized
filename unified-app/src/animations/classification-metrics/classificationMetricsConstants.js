@@ -57,3 +57,12 @@ export const PREVALENCE_PRESETS = Object.freeze([
   { id: 'moderate', label: 'Moderate', prevalence: 0.15 },
   { id: 'balanced', label: 'Balanced', prevalence: 0.5 },
 ]);
+
+export const MULTICLASS_LABELS = Object.freeze(['Routine', 'Review', 'Critical']);
+
+// Rows are actual classes and columns are predicted classes.
+export const MULTICLASS_CONFUSION = Object.freeze([
+  Object.freeze([10, 1, 1]),
+  Object.freeze([2, 2, 1]),
+  Object.freeze([2, 0, 1]),
+]);

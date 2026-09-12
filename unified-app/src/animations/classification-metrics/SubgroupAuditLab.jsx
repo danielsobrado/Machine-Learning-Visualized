@@ -6,10 +6,11 @@ import {
   maxMetricGap,
   metricsByGroup,
   metricsFromCounts,
+  wilsonInterval,
 } from './classificationMetricsModel.js';
 
 function pct(value, digits = 0) {
-  return `${(value * 100).toFixed(digits)}%`;
+  return Number.isFinite(value) ? `${(value * 100).toFixed(digits)}%` : '—';
 }
 
 function actualClassCounts(counts) {
@@ -19,10 +20,15 @@ function actualClassCounts(counts) {
   };
 }
 
+function intervalLabel(interval) {
+  return interval ? `${pct(interval.lower, 1)}–${pct(interval.upper, 1)}` : 'undefined';
+}
+
 export default function SubgroupAuditLab({ threshold }) {
   const aggregateCounts = useMemo(() => confusionMatrix(CLASSIFICATION_ROWS, threshold), [threshold]);
   const aggregate = useMemo(() => metricsFromCounts(aggregateCounts), [aggregateCounts]);
   const aggregateClasses = actualClassCounts(aggregateCounts);
+  const aggregateRecallInterval = wilsonInterval(aggregateCounts.tp, aggregateClasses.positives);
   const groups = useMemo(() => metricsByGroup(CLASSIFICATION_ROWS, threshold), [threshold]);
   const recallGap = maxMetricGap(groups, 'recall');
   const precisionGap = maxMetricGap(groups, 'precision');
@@ -36,7 +42,7 @@ export default function SubgroupAuditLab({ threshold }) {
       </p>
 
       <div className="mt-5 overflow-x-auto rounded-lg border border-slate-200">
-        <table className="min-w-[760px] w-full text-left text-sm">
+        <table className="min-w-[900px] w-full text-left text-sm">
           <thead className="bg-slate-100 text-xs font-black uppercase tracking-wide text-slate-500">
             <tr>
               <th className="px-3 py-2">Slice</th>
@@ -44,6 +50,7 @@ export default function SubgroupAuditLab({ threshold }) {
               <th className="px-3 py-2">Actual + / −</th>
               <th className="px-3 py-2">Precision</th>
               <th className="px-3 py-2">Recall / TPR</th>
+              <th className="px-3 py-2">Recall 95% Wilson</th>
               <th className="px-3 py-2">Specificity</th>
               <th className="px-3 py-2">F1</th>
             </tr>
@@ -55,11 +62,13 @@ export default function SubgroupAuditLab({ threshold }) {
               <td className="px-3 py-3">{aggregateClasses.positives} / {aggregateClasses.negatives}</td>
               <td className="px-3 py-3">{pct(aggregate.precision)}</td>
               <td className="px-3 py-3">{pct(aggregate.recall)}</td>
+              <td className="px-3 py-3 font-mono text-xs">{intervalLabel(aggregateRecallInterval)}</td>
               <td className="px-3 py-3">{pct(aggregate.specificity)}</td>
               <td className="px-3 py-3">{pct(aggregate.f1)}</td>
             </tr>
             {groups.map((group) => {
               const classCounts = actualClassCounts(group.counts);
+              const recallInterval = wilsonInterval(group.counts.tp, classCounts.positives);
               return (
                 <tr key={group.group} className={group.metrics.recall < aggregate.recall ? 'bg-rose-50 text-rose-950' : 'bg-white text-slate-700'}>
                   <td className="px-3 py-3 font-black">{group.group}</td>
@@ -67,6 +76,7 @@ export default function SubgroupAuditLab({ threshold }) {
                   <td className="px-3 py-3">{classCounts.positives} / {classCounts.negatives}</td>
                   <td className="px-3 py-3">{pct(group.metrics.precision)}</td>
                   <td className="px-3 py-3 font-black">{pct(group.metrics.recall)}</td>
+                  <td className="px-3 py-3 font-mono text-xs">{intervalLabel(recallInterval)}</td>
                   <td className="px-3 py-3">{pct(group.metrics.specificity)}</td>
                   <td className="px-3 py-3">{pct(group.metrics.f1)}</td>
                 </tr>
@@ -77,14 +87,14 @@ export default function SubgroupAuditLab({ threshold }) {
       </div>
 
       <p className="mt-2 text-xs font-semibold leading-5 text-slate-500">
-        Recall divides by actual positives; specificity divides by actual negatives. Small denominators make subgroup percentages less stable, even before formal uncertainty intervals are added.
+        Point estimates are not certainty. Each subgroup has only six actual positives here: Core recall 100% still has a wide Wilson interval, and Edge recall 50% is even less precise. The intervals describe sampling uncertainty in the observed rate, not fairness or future distribution shift.
       </p>
 
       <div className="mt-4 grid gap-4 lg:grid-cols-2">
         <div className={`rounded-lg border p-4 ${recallGap >= 0.2 ? 'border-rose-200 bg-rose-50' : 'border-emerald-200 bg-emerald-50'}`}>
-          <p className={`flex items-center gap-2 text-xs font-black uppercase tracking-wide ${recallGap >= 0.2 ? 'text-rose-800' : 'text-emerald-800'}`}><AlertTriangle size={15} /> Worst-slice gap</p>
+          <p className={`flex items-center gap-2 text-xs font-black uppercase tracking-wide ${recallGap >= 0.2 ? 'text-rose-800' : 'text-emerald-800'}`}><AlertTriangle size={15} /> Worst-slice point-estimate gap</p>
           <p className={`mt-2 text-sm leading-6 ${recallGap >= 0.2 ? 'text-rose-950' : 'text-emerald-950'}`}>
-            Recall differs by <strong>{pct(recallGap, 1)}</strong> across groups; precision differs by <strong>{pct(precisionGap, 1)}</strong>. A strong aggregate can coexist with materially different error rates.
+            Recall point estimates differ by <strong>{pct(recallGap, 1)}</strong> across groups; precision differs by <strong>{pct(precisionGap, 1)}</strong>. A strong aggregate can coexist with materially different observed error rates, but small denominators mean the size of that gap is uncertain.
           </p>
         </div>
         <div className="rounded-lg border border-cyan-200 bg-cyan-50 p-4">
