@@ -45,8 +45,8 @@ export default function DataEngineeringForMlTrackAnimation() {
           <Note label="Time" title="Availability beats hindsight">
             <p>Point-in-time correctness requires both event time and availability time to be no later than the prediction timestamp.</p>
           </Note>
-          <Note label="Contract" title="Bad rows fail early">
-            <p>Deduplication and schema contracts should reject pipeline regressions before they silently change features.</p>
+          <Note label="Contract" title="Evolve schemas deliberately">
+            <p>Additive compatible changes can pass a versioned contract; incompatible meaning or type changes should be blocked before feature construction.</p>
           </Note>
           <Note label="Parity" title="Train = serve">
             <p>The exact feature transform used during training must be versioned and reused at serving time.</p>
@@ -60,7 +60,7 @@ export default function DataEngineeringForMlTrackAnimation() {
       >
         <Slider label="Late arrivals" value={scenario.lateArrivalRate} {...CONTROL_LIMITS.lateArrivalRate} format={(value) => `${value}%`} help="Events that existed in the source but reached the feature pipeline later." onChange={(value) => update('lateArrivalRate', value)} />
         <Slider label="Duplicate events" value={scenario.duplicateRate} {...CONTROL_LIMITS.duplicateRate} format={(value) => `${value}%`} help="Repeated event IDs that must not be counted twice." onChange={(value) => update('duplicateRate', value)} />
-        <Slider label="Schema drift" value={scenario.schemaDriftRate} {...CONTROL_LIMITS.schemaDriftRate} format={(value) => `${value}%`} help="Rows arriving with an unexpected schema version." onChange={(value) => update('schemaDriftRate', value)} />
+        <Slider label="Schema evolution" value={scenario.schemaDriftRate} {...CONTROL_LIMITS.schemaDriftRate} format={(value) => `${value}%`} help="A mix of compatible additive versions and incompatible schema changes." onChange={(value) => update('schemaDriftRate', value)} />
         <Slider label="Freshness SLA" value={scenario.freshnessSla} {...CONTROL_LIMITS.freshnessSla} format={(value) => `${value}h`} help="Maximum acceptable feature age at prediction time." onChange={(value) => update('freshnessSla', value)} />
       </ControlBench>
 
@@ -70,12 +70,13 @@ export default function DataEngineeringForMlTrackAnimation() {
         ))}
       </div>
 
-      <Plate label="1 · Ingestion contract" title="Make bad data visible before features are built">
-        <Readouts columns={4} items={[
+      <Plate label="1 · Ingestion contract" title="Accept compatible evolution; reject incompatible changes">
+        <Readouts columns={5} items={[
           { label: 'Raw records', value: count(lab.metrics.rawCount), detail: 'Includes duplicate deliveries' },
           { label: 'Accepted', value: count(lab.metrics.acceptedCount), detail: `${pct(acceptedRate)} survive contracts` },
+          { label: 'Compatible upgrades', value: count(lab.metrics.compatibleSchemaAccepts), detail: 'Additive schema versions accepted' },
           { label: 'Duplicates removed', value: count(lab.metrics.duplicates), detail: 'Same event ID, one logical fact' },
-          { label: 'Schema rejects', value: count(lab.metrics.schemaRejects), detail: 'Unexpected contract version' },
+          { label: 'Schema rejects', value: count(lab.metrics.schemaRejects), detail: 'Incompatible or invalid rows' },
         ]} />
       </Plate>
 
@@ -100,8 +101,8 @@ export default function DataEngineeringForMlTrackAnimation() {
             ))}
           </div>
           <Readouts columns={2} items={[
-            { label: 'Training transform', value: 'v1', detail: 'raw / 10' },
-            { label: 'Serve skew MAE', value: oneDecimal(lab.metrics.skewMae), detail: scenario.serveTransform === 'v1' ? 'Exact transform parity' : 'Same raw data, different feature values' },
+            { label: 'Training transform', value: lab.manifest.trainingTransform, detail: 'Version stored with the dataset contract' },
+            { label: 'Serve skew MAE', value: oneDecimal(lab.metrics.skewMae), detail: scenario.serveTransform === lab.manifest.trainingTransform ? 'Exact transform parity' : 'Same raw data, different feature values' },
           ]} />
           <Steps items={[
             { title: 'Deduplicate logical events', pass: lab.metrics.duplicates === 0, body: lab.metrics.duplicates === 0 ? 'No duplicate deliveries in this scenario.' : `${lab.metrics.duplicates} duplicate deliveries were caught by event ID.` },
@@ -128,8 +129,20 @@ export default function DataEngineeringForMlTrackAnimation() {
         </div>
       </Plate>
 
-      <Note tone="accent" label="Takeaway" title="Reproducibility is a timestamped contract">
-        <p>A training dataset is not reproducible because today’s warehouse query returns the same columns. It is reproducible only when every feature can be rebuilt from data that was actually available at the original prediction time, under the same schema and transform version.</p>
+      <Plate label="5 · Reproducible backfills" title="A historical dataset needs cutoff rules, not today’s final tables">
+        <Readouts columns={4} items={[
+          { label: 'Rows changed by hindsight', value: count(lab.backfillAudit.changedRows), detail: lab.backfillAudit.stable ? 'PIT and hindsight rebuilds match' : 'Historical feature identity changes' },
+          { label: 'PIT checksum', value: lab.backfillAudit.pointInTimeChecksum, detail: 'Time-correct historical dataset' },
+          { label: 'Hindsight checksum', value: lab.backfillAudit.hindsightChecksum, detail: 'Naive rebuild from final tables' },
+          { label: 'Schema contract', value: lab.manifest.schemaContract, detail: 'Stored with transform + cutoff rule' },
+        ]} />
+        <p className="nb-plate-note mt-4">{lab.backfillAudit.stable
+          ? 'No late arrivals alter these historical rows, so both rebuilds happen to agree.'
+          : `${lab.backfillAudit.changedRows} historical rows change if availability time is ignored. A backfill that silently rewrites those rows is not reproducing the original training information set.`}</p>
+      </Plate>
+
+      <Note tone="accent" label="Takeaway" title="Reproducibility is a versioned, timestamped contract">
+        <p>A training dataset is reproducible only when source facts, cutoff rules, schema compatibility, feature transforms, and the resulting dataset checksum can be reconstructed together. “Run today’s query again” is not a reproducibility strategy.</p>
       </Note>
 
       <AssessmentPanel lessonId="data-engineering-for-ml-track" title="ML data engineering check" />
