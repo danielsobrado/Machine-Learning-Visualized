@@ -43,6 +43,7 @@ export default function DeploymentStressLab({
   const summary = useMemo(() => metrics(counts), [counts]);
   const projectedPoints = useMemo(() => curvePoints(projectedBands), [projectedBands]);
   const referencePoints = useMemo(() => curvePoints(REFERENCE_BANDS), []);
+  const referencePrevalence = useMemo(() => prevalenceOf(REFERENCE_BANDS), []);
   const capacityChoice = useMemo(
     () => findCapacityThreshold(projectedBands, reviewCapacity),
     [projectedBands, reviewCapacity],
@@ -62,7 +63,7 @@ export default function DeploymentStressLab({
           <label className="grid gap-2 text-sm font-bold text-slate-700">
             <span className="inline-flex items-center gap-2"><Users size={16} /> Production prevalence: {metricPercent(prevalence, 1)}</span>
             <input min="0.002" max="0.5" step="0.002" type="range" value={prevalence} onChange={(event) => onPrevalenceChange(Number(event.target.value))} />
-            <span className="text-xs font-semibold text-slate-500">Reference sample prevalence: {metricPercent(prevalenceOf(REFERENCE_BANDS), 1)}</span>
+            <span className="text-xs font-semibold text-slate-500">Reference sample prevalence: {metricPercent(referencePrevalence, 1)}</span>
           </label>
 
           <label className="grid gap-2 text-sm font-bold text-slate-700">
@@ -105,6 +106,7 @@ export default function DeploymentStressLab({
           yKey="precisionPlot"
           threshold={threshold}
           baseline={prevalence}
+          comparisonBaseline={referencePrevalence}
           primary={{ label: `Production at ${metricPercent(prevalence, 1)} prevalence`, points: projectedPoints }}
           comparison={{ label: 'Reference cohort', points: referencePoints }}
         />
