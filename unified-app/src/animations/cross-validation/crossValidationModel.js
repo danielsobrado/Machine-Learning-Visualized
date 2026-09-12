@@ -48,15 +48,40 @@ export function summarizeFolds(folds, preprocessingInsideFold = true) {
   const scores = evaluated.map((fold) => fold.score);
   const mean = average(scores, 0);
   const variance = average(scores.map((score) => (score - mean) ** 2), 0);
+  const validationCounts = new Map();
+  const rowsById = new Map();
+  let validationRowCount = 0;
+  let weightedScoreSum = 0;
+
+  for (const fold of evaluated) {
+    for (const row of [...fold.train, ...fold.validation]) rowsById.set(row.id, row);
+    for (const row of fold.validation) {
+      validationCounts.set(row.id, (validationCounts.get(row.id) ?? 0) + 1);
+    }
+    validationRowCount += fold.validation.length;
+    weightedScoreSum += fold.score * fold.validation.length;
+  }
+
+  const neverValidated = [...rowsById.keys()].filter((id) => !validationCounts.has(id));
+  const multiplyValidated = [...validationCounts.entries()]
+    .filter(([, count]) => count > 1)
+    .map(([id, count]) => ({ id, count }));
 
   return {
     folds: evaluated,
     mean,
+    weightedMean: validationRowCount ? weightedScoreSum / validationRowCount : 0,
     std: Math.sqrt(variance),
-    min: Math.min(...scores),
-    max: Math.max(...scores),
+    min: scores.length ? Math.min(...scores) : 0,
+    max: scores.length ? Math.max(...scores) : 0,
     entityLeakFolds: evaluated.filter((fold) => fold.audit.entityOverlap.length > 0).length,
     timeViolationFolds: evaluated.filter((fold) => !fold.audit.chronological).length,
+    coverage: {
+      totalRows: rowsById.size,
+      validatedRows: validationCounts.size,
+      neverValidated,
+      multiplyValidated,
+    },
   };
 }
 
@@ -122,7 +147,7 @@ function assignSymmetricFolds(rows, k, strategy) {
   if (strategy === 'stratified') {
     const counters = new Map();
     return [...rows]
-      .sort((a, b) => a.target - b.target || a.time - b.time)
+      .sort((a, b) => a.target - b.target || stableHash(a.id) - stableHash(b.id))
       .map((row) => {
         const count = counters.get(row.target) ?? 0;
         counters.set(row.target, count + 1);
@@ -130,7 +155,9 @@ function assignSymmetricFolds(rows, k, strategy) {
       });
   }
 
-  return rows.map((row, index) => ({ ...row, fold: (index * 5 + row.time * 3) % k }));
+  return [...rows]
+    .sort((a, b) => stableHash(a.id) - stableHash(b.id) || String(a.id).localeCompare(String(b.id)))
+    .map((row, index) => ({ ...row, fold: index % k }));
 }
 
 function expandingTimeFolds(rows, k) {
@@ -183,6 +210,16 @@ function deterministicNoise(seed, amplitude) {
   const raw = Math.sin(seed * 12.9898) * 43758.5453;
   const fraction = raw - Math.floor(raw);
   return (fraction * 2 - 1) * amplitude;
+}
+
+function stableHash(value) {
+  let hash = 2166136261;
+  const text = String(value);
+  for (let index = 0; index < text.length; index += 1) {
+    hash ^= text.charCodeAt(index);
+    hash = Math.imul(hash, 16777619);
+  }
+  return hash >>> 0;
 }
 
 function userNumber(user) {
