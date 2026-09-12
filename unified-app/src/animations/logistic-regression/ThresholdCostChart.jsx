@@ -2,6 +2,7 @@ import React from 'react';
 import { THRESHOLD_RANGE } from './logisticRegressionConstants.js';
 
 const CHART = Object.freeze({ width: 720, height: 230, left: 54, right: 18, top: 20, bottom: 42 });
+const OPTIMAL_BAND_MIN_WIDTH = 4;
 
 function nearestPoint(sweep, threshold) {
   return sweep.reduce((nearest, point) => (
@@ -9,7 +10,7 @@ function nearestPoint(sweep, threshold) {
   ), null);
 }
 
-export default function ThresholdCostChart({ sweep, currentThreshold, optimalThreshold }) {
+export default function ThresholdCostChart({ sweep, currentThreshold, optimalThreshold, optimalRanges = [] }) {
   const plotWidth = CHART.width - CHART.left - CHART.right;
   const plotHeight = CHART.height - CHART.top - CHART.bottom;
   const minCost = Math.min(...sweep.map((point) => point.cost));
@@ -30,6 +31,22 @@ export default function ThresholdCostChart({ sweep, currentThreshold, optimalThr
       className="h-auto w-full"
     >
       <rect x={CHART.left} y={CHART.top} width={plotWidth} height={plotHeight} rx="10" fill="#f8fafc" />
+      {optimalRanges.map((range) => {
+        const startX = x(range.min);
+        const endX = x(range.max);
+        const width = Math.max(OPTIMAL_BAND_MIN_WIDTH, endX - startX);
+        return (
+          <rect
+            key={`${range.min}-${range.max}`}
+            x={startX - (width - (endX - startX)) / 2}
+            y={CHART.top}
+            width={width}
+            height={plotHeight}
+            fill="#d1fae5"
+            opacity="0.8"
+          />
+        );
+      })}
       {[0.25, 0.5, 0.75].map((threshold) => (
         <g key={threshold}>
           <line
@@ -64,7 +81,7 @@ export default function ThresholdCostChart({ sweep, currentThreshold, optimalThr
         decision threshold
       </text>
       <text x={x(optimal.threshold)} y={Math.max(14, y(optimal.cost) - 12)} textAnchor="middle" fontSize="11" fontWeight="900" fill="#047857">
-        best {optimal.threshold.toFixed(2)}
+        representative {optimal.threshold.toFixed(2)}
       </text>
     </svg>
   );
