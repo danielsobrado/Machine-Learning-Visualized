@@ -36,6 +36,7 @@ import { P1_MULTI_HEAD_POSITIONAL_SCENARIOS_BY_LESSON } from './p1MultiHeadPosit
 import { P1_NEURAL_APPLIED_ARCHITECTURE_SCENARIOS_BY_LESSON } from './p1NeuralAppliedArchitectureScenarioQuestions.js';
 import { P1_NEURAL_APPLIED_TRAINING_SCENARIOS_BY_LESSON } from './p1NeuralAppliedTrainingScenarioQuestions.js';
 import { P1_NEURAL_SCENARIOS_BY_LESSON } from './p1NeuralScenarioQuestions.js';
+import { P1_NEXT_PRIORITY_GAP_SCENARIOS_BY_LESSON } from './p1NextPriorityGapScenarioQuestions.js';
 import { P1_NLP_TRANSFORMER_APPLIED_REPRESENTATION_SCENARIOS_BY_LESSON } from './p1NlpTransformerAppliedRepresentationScenarioQuestions.js';
 import { P1_NLP_TRANSFORMER_APPLIED_SYSTEMS_SCENARIOS_BY_LESSON } from './p1NlpTransformerAppliedSystemsScenarioQuestions.js';
 import { P1_NLP_TRANSFORMER_SCENARIOS_BY_LESSON } from './p1NlpTransformerScenarioQuestions.js';
@@ -74,6 +75,7 @@ export const ASSESSMENT_SCENARIO_EXTENSION_SOURCES = Object.freeze([
   Object.freeze({ id: 'p0-transformer-architecture', priority: 'P0', questionsByLesson: P0_TRANSFORMER_ARCHITECTURE_SCENARIOS_BY_LESSON }),
   Object.freeze({ id: 'p1-core', priority: 'P1', questionsByLesson: P1_SCENARIO_QUESTIONS_BY_LESSON }),
   Object.freeze({ id: 'p1-high-priority-gaps', priority: 'P1', questionsByLesson: P1_HIGH_PRIORITY_GAP_SCENARIOS_BY_LESSON }),
+  Object.freeze({ id: 'p1-next-priority-gaps', priority: 'P1', questionsByLesson: P1_NEXT_PRIORITY_GAP_SCENARIOS_BY_LESSON }),
   Object.freeze({ id: 'p1-cnn', priority: 'P1', questionsByLesson: P1_CNN_SCENARIOS_BY_LESSON }),
   Object.freeze({ id: 'p1-cnn-failure-modes', priority: 'P1', questionsByLesson: P1_CNN_FAILURE_MODE_SCENARIOS_BY_LESSON }),
   Object.freeze({ id: 'p1-diffusion-basics-sampling', priority: 'P1', questionsByLesson: P1_DIFFUSION_BASICS_SAMPLING_SCENARIOS_BY_LESSON }),
