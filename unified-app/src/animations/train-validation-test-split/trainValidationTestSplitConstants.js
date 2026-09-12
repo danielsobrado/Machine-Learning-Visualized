@@ -28,7 +28,7 @@ export const EVALUATION_TARGETS = Object.freeze({
 export const SPLIT_MODES = Object.freeze({
   random: {
     label: 'Random',
-    detail: 'Shuffles rows. Valid only when rows are exchangeable and repeated entities do not leak identity.',
+    detail: 'Shuffles rows. Valid when rows are exchangeable; label proportions can still vary by chance.',
   },
   stratified: {
     label: 'Stratified',
@@ -44,7 +44,7 @@ export const SPLIT_MODES = Object.freeze({
   },
   groupTime: {
     label: 'Grouped + time',
-    detail: 'Assigns whole entities by their first-seen time, preserving both entity isolation and chronology.',
+    detail: 'Keeps entities whole and orders them by first-seen time; the audit verifies that the resulting partitions are also strictly chronological.',
   },
 });
 
