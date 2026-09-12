@@ -16,6 +16,10 @@ function nearest(points, threshold) {
   ), null);
 }
 
+function baselineLabel(label, baseline) {
+  return `${label} no-skill baseline ${(baseline * 100).toFixed(1)}%`;
+}
+
 export default function RocPrCurvePanel({
   title,
   xLabel,
@@ -26,11 +30,14 @@ export default function RocPrCurvePanel({
   comparison,
   threshold,
   baseline = null,
+  comparisonBaseline = null,
 }) {
   const span = CHART.size - CHART.left - CHART.right;
   const active = nearest(primary.points, threshold);
   const x = (value) => CHART.left + value * span;
   const y = (value) => CHART.size - CHART.bottom - value * span;
+  const showComparisonBaseline = comparisonBaseline !== null
+    && (baseline === null || Math.abs(comparisonBaseline - baseline) > 1e-9);
 
   return (
     <section className="rounded-lg border border-slate-200 bg-white p-5">
@@ -55,6 +62,17 @@ export default function RocPrCurvePanel({
             <line x1="31" y1={y(tick)} x2="36" y2={y(tick)} stroke="#94a3b8" />
           </g>
         ))}
+        {showComparisonBaseline && (
+          <line
+            x1="36"
+            y1={y(comparisonBaseline)}
+            x2="324"
+            y2={y(comparisonBaseline)}
+            stroke="#94a3b8"
+            strokeWidth="2"
+            strokeDasharray="2 5"
+          />
+        )}
         {baseline !== null && (
           <line x1="36" y1={y(baseline)} x2="324" y2={y(baseline)} stroke="#f59e0b" strokeWidth="2" strokeDasharray="6 5" />
         )}
@@ -83,6 +101,21 @@ export default function RocPrCurvePanel({
         <text x="180" y="350" textAnchor="middle" className="fill-slate-600 text-xs font-bold">{xLabel}</text>
         <text x="16" y="184" textAnchor="middle" transform="rotate(-90 16 184)" className="fill-slate-600 text-xs font-bold">{yLabel}</text>
       </svg>
+
+      {baseline !== null && (
+        <div className="mt-3 flex flex-wrap gap-x-4 gap-y-1 text-xs font-semibold text-slate-600">
+          <span className="inline-flex items-center gap-2">
+            <i className="inline-block w-5 border-t-2 border-dashed border-amber-500" />
+            {baselineLabel(primary.label, baseline)}
+          </span>
+          {showComparisonBaseline && comparison && (
+            <span className="inline-flex items-center gap-2">
+              <i className="inline-block w-5 border-t-2 border-dotted border-slate-400" />
+              {baselineLabel(comparison.label, comparisonBaseline)}
+            </span>
+          )}
+        </div>
+      )}
     </section>
   );
 }
