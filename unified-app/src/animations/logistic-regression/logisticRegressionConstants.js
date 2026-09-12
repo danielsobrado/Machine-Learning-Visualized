@@ -75,3 +75,11 @@ export const THRESHOLD_RANGE = Object.freeze({
   max: 0.95,
   step: 0.01,
 });
+
+export const DECISION_SURFACE = Object.freeze({
+  featureMin: 0,
+  featureMax: 100,
+  svgMin: 24,
+  svgMax: 336,
+  gridSize: 16,
+});
