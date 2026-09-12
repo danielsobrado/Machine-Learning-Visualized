@@ -1,16 +1,26 @@
 import {
+  CORRELATED_STABILITY_DEMO,
   FEATURES,
   PENALTIES,
+  REGULARIZATION_EXPERIMENT,
   SCALE_SENSITIVITY_DEMO,
-  SHRINKAGE,
 } from './regularizationConstants.js';
+import { createRegularizationDataset } from './regularizationDataset.js';
+import { fitRegularizedLinearModel, meanSquaredError, predictDataset } from './regularizationSolver.js';
 
 export { FEATURES, PENALTIES } from './regularizationConstants.js';
 
+const DEFAULT_TRAIN = createRegularizationDataset({
+  seed: REGULARIZATION_EXPERIMENT.trainSeed,
+  size: REGULARIZATION_EXPERIMENT.trainSize,
+});
+const DEFAULT_VALIDATION = createRegularizationDataset({
+  seed: REGULARIZATION_EXPERIMENT.validationSeed,
+  size: REGULARIZATION_EXPERIMENT.validationSize,
+});
+
 function validateLambda(lambda) {
-  if (!Number.isFinite(lambda) || lambda < 0) {
-    throw new RangeError('lambda must be a finite non-negative number');
-  }
+  if (!Number.isFinite(lambda) || lambda < 0) throw new RangeError('lambda must be a finite non-negative number');
 }
 
 function penaltyFor(penaltyId) {
@@ -19,125 +29,129 @@ function penaltyFor(penaltyId) {
   return penalty;
 }
 
-function effectiveLambda(penaltyId, lambda) {
+function createSnapshotFromDatasets(penaltyId, lambda, trainDataset, validationDataset) {
   validateLambda(lambda);
   penaltyFor(penaltyId);
-  return penaltyId === 'none' ? 0 : lambda;
-}
-
-export function shrinkFeature(feature, penaltyId, lambda) {
-  if (!feature || !Number.isFinite(feature.base)) {
-    throw new TypeError('feature must include a finite base coefficient');
-  }
-
-  const penalty = penaltyFor(penaltyId);
-  const appliedLambda = effectiveLambda(penaltyId, lambda);
-  if (appliedLambda === 0) return { ...feature, weight: feature.base, removed: false };
-
-  const l2Shrink = 1 / (1 + appliedLambda * penalty.l2 * SHRINKAGE.l2ShrinkScale);
-  const afterL2 = feature.base * l2Shrink;
-  const l1Cut = appliedLambda * penalty.l1 * SHRINKAGE.l1CutScale;
-  const magnitude = Math.max(0, Math.abs(afterL2) - l1Cut);
-  const weight = Math.sign(afterL2) * magnitude;
-
-  return {
+  const appliedLambda = penaltyId === 'none' ? 0 : lambda;
+  const fitted = fitRegularizedLinearModel(trainDataset, penaltyId, appliedLambda);
+  const validationPredictions = predictDataset(fitted.model, validationDataset);
+  const validationMse = meanSquaredError(validationDataset.targets, validationPredictions);
+  const weights = FEATURES.map((feature, index) => ({
     ...feature,
-    weight,
-    removed: Math.abs(weight) < SHRINKAGE.removalThreshold,
-  };
+    weight: fitted.model.coefficients[index],
+    removed: Math.abs(fitted.model.coefficients[index]) < REGULARIZATION_EXPERIMENT.zeroThreshold,
+  }));
+
+  return Object.freeze({
+    penaltyId,
+    lambda: appliedLambda,
+    weights: Object.freeze(weights),
+    losses: Object.freeze({
+      dataLoss: fitted.dataLoss,
+      penaltyLoss: fitted.penaltyLoss,
+      total: fitted.objective,
+      train: fitted.trainMse,
+      validation: validationMse,
+    }),
+    fit: fitted.model,
+  });
 }
 
-export function lossProfile(weights, lambda, penaltyId) {
-  const penalty = penaltyFor(penaltyId);
-  const appliedLambda = effectiveLambda(penaltyId, lambda);
-  const signalLoss = weights.reduce((sum, feature) => {
-    const lostUsefulSignal = feature.useful
-      ? Math.abs(feature.base - feature.weight) * feature.importance * 5.5
-      : 0;
-    const noisyVariance = feature.useful ? 0 : Math.abs(feature.weight) * 6.5;
-    return sum + lostUsefulSignal + noisyVariance;
-  }, 15);
-  const l1Penalty = weights.reduce((sum, feature) => sum + Math.abs(feature.weight), 0)
-    * appliedLambda * penalty.l1 * 2.5;
-  const l2Penalty = weights.reduce((sum, feature) => sum + feature.weight ** 2, 0)
-    * appliedLambda * penalty.l2 * 1.25;
-  const train = signalLoss + l1Penalty * 0.2 + l2Penalty * 0.2;
-  const validation = signalLoss
-    + weights.filter((feature) => !feature.useful && !feature.removed).length * 3.5
-    + Math.max(0, appliedLambda - 0.55) * 18;
-
-  return {
-    dataLoss: signalLoss,
-    penaltyLoss: l1Penalty + l2Penalty,
-    train,
-    validation,
-    total: signalLoss + l1Penalty + l2Penalty,
-  };
+export function createRegularizationSnapshot(penaltyId, lambda) {
+  return createSnapshotFromDatasets(penaltyId, lambda, DEFAULT_TRAIN, DEFAULT_VALIDATION);
 }
 
-export function sweepProfile(penaltyId) {
+export function sweepProfile(penaltyId, steps = REGULARIZATION_EXPERIMENT.sweepPoints) {
   penaltyFor(penaltyId);
-  return Array.from({ length: 11 }, (_, index) => {
-    const lambda = index / 10;
-    const weights = FEATURES.map((feature) => shrinkFeature(feature, penaltyId, lambda));
-    const losses = lossProfile(weights, lambda, penaltyId);
-    return { lambda, ...losses };
+  if (!Number.isInteger(steps) || steps < 2) throw new RangeError('steps must be an integer of at least 2');
+  return Array.from({ length: steps }, (_, index) => {
+    const lambda = (REGULARIZATION_EXPERIMENT.maxLambda * index) / (steps - 1);
+    const snapshot = createRegularizationSnapshot(penaltyId, lambda);
+    return { lambda, ...snapshot.losses };
   });
 }
 
 export function bestLambda(points) {
-  if (!Array.isArray(points) || points.length === 0) {
-    throw new RangeError('points must contain at least one sweep result');
-  }
+  if (!Array.isArray(points) || points.length === 0) throw new RangeError('points must contain at least one sweep result');
   return points.reduce((best, point) => (point.validation < best.validation ? point : best), points[0]);
 }
 
 export function linePath(points, key) {
-  const max = Math.max(...points.flatMap((point) => [point.train, point.validation, point.total]), 1);
+  if (!Array.isArray(points) || points.length < 2) throw new RangeError('points must contain at least two sweep results');
+  const values = points.map((point) => point[key]);
+  if (values.some((value) => !Number.isFinite(value))) throw new TypeError(`points must contain finite ${key} values`);
+  const max = Math.max(...points.flatMap((point) => [point.train, point.validation]), 1);
   return points.map((point, index) => {
-    const x = 28 + index * 30;
+    const x = 28 + (index / (points.length - 1)) * 300;
     const y = 168 - (point[key] / max) * 130;
     return `${index === 0 ? 'M' : 'L'} ${x.toFixed(1)} ${y.toFixed(1)}`;
   }).join(' ');
 }
 
-export function regularizationSummary(weights) {
-  const removedCount = weights.filter((feature) => feature.removed).length;
-  const noisyActive = weights.filter((feature) => !feature.useful && !feature.removed).length;
-  const usefulMass = weights
-    .filter((feature) => feature.useful)
-    .reduce((sum, feature) => sum + Math.abs(feature.weight), 0);
-  const baseUsefulMass = FEATURES
-    .filter((feature) => feature.useful)
-    .reduce((sum, feature) => sum + Math.abs(feature.base), 0);
-
+export function regularizationSummary(snapshot) {
+  const active = snapshot.weights.filter((feature) => !feature.removed);
   return {
-    removedCount,
-    noisyActive,
-    usefulRetention: usefulMass / baseUsefulMass,
+    activeCount: active.length,
+    removedCount: snapshot.weights.length - active.length,
+    noisyActive: active.filter((feature) => !feature.useful).length,
+    coefficientNorm: Math.sqrt(snapshot.weights.reduce((sum, feature) => sum + feature.weight ** 2, 0)),
   };
 }
 
-export function diagnosisForState({ penaltyId, lambda, noisyActive, usefulRetention }) {
-  if (penaltyId === 'none') {
-    return 'No penalty: noisy weights remain active; compare a regularized setting on validation.';
+export function diagnosisForState({ snapshot, best, unregularized }) {
+  if (snapshot.penaltyId === 'none') {
+    return 'No penalty: this is the fitted baseline; compare validation MSE against tuned regularized fits.';
   }
-  if (lambda < 0.15) {
-    return 'Too weak: noisy weights remain active and validation can suffer.';
+  if (Math.abs(snapshot.lambda - best.lambda) <= REGULARIZATION_EXPERIMENT.maxLambda / (REGULARIZATION_EXPERIMENT.sweepPoints - 1)) {
+    return 'Near the measured validation optimum for this deterministic train/validation split.';
   }
-  if (lambda > 0.75) {
-    return 'Too strong: useful signal is being shrunk enough to underfit.';
+  if (snapshot.losses.validation > unregularized.losses.validation && snapshot.losses.train > unregularized.losses.train) {
+    return 'Over-shrunk on this split: training fit worsened and validation MSE is above the unregularized baseline.';
   }
-  if (noisyActive <= 1 && usefulRetention > 0.55) {
-    return 'Balanced on this toy validation set: complexity falls while useful signal remains.';
+  if (snapshot.lambda < best.lambda) {
+    return 'Weaker than the measured optimum: more coefficient freedom remains than validation currently rewards.';
   }
-  return 'Tradeoff zone: compare validation loss before increasing lambda.';
+  return 'Stronger than the measured optimum: extra shrinkage is trading variance control for more bias.';
+}
+
+export function correlatedFeatureStability(penaltyId, lambda = CORRELATED_STABILITY_DEMO.lambda) {
+  validateLambda(lambda);
+  penaltyFor(penaltyId);
+  const runs = CORRELATED_STABILITY_DEMO.seeds.map((seed) => {
+    const trainDataset = createRegularizationDataset({ seed, size: REGULARIZATION_EXPERIMENT.trainSize });
+    const fitted = fitRegularizedLinearModel(trainDataset, penaltyId, lambda);
+    const signalA = fitted.model.coefficients[0];
+    const signalB = fitted.model.coefficients[1];
+    const totalMagnitude = Math.abs(signalA) + Math.abs(signalB);
+    return Object.freeze({
+      seed,
+      signalA,
+      signalB,
+      dominant: Math.abs(signalA) >= Math.abs(signalB) ? 'A' : 'B',
+      pairImbalance: totalMagnitude === 0 ? 0 : Math.abs(Math.abs(signalA) - Math.abs(signalB)) / totalMagnitude,
+      zeroedPairMember: Math.abs(signalA) < REGULARIZATION_EXPERIMENT.zeroThreshold
+        || Math.abs(signalB) < REGULARIZATION_EXPERIMENT.zeroThreshold,
+    });
+  });
+  const dominantA = runs.filter((run) => run.dominant === 'A').length;
+  const zeroedPairMemberCount = runs.filter((run) => run.zeroedPairMember).length;
+  const meanPairImbalance = runs.reduce((sum, run) => sum + run.pairImbalance, 0) / runs.length;
+
+  return Object.freeze({
+    penaltyId,
+    lambda,
+    runs: Object.freeze(runs),
+    dominantA,
+    dominantB: runs.length - dominantA,
+    zeroedPairMemberCount,
+    meanPairImbalance,
+  });
 }
 
 function coefficientPenalty(coefficient, penaltyId, lambda) {
   validateLambda(lambda);
   if (penaltyId === 'l1') return lambda * Math.abs(coefficient);
-  if (penaltyId === 'l2') return lambda * coefficient ** 2;
+  if (penaltyId === 'l2') return 0.5 * lambda * coefficient ** 2;
   throw new RangeError('scale sensitivity demo supports only l1 or l2');
 }
 
@@ -147,16 +161,10 @@ export function unitScalePenalty({
   lambda = SCALE_SENSITIVITY_DEMO.lambda,
   physicalEffect = SCALE_SENSITIVITY_DEMO.physicalEffect,
 } = {}) {
-  if (!Number.isFinite(scale) || scale <= 0) {
-    throw new RangeError('scale must be a finite positive number');
-  }
-  if (!Number.isFinite(physicalEffect)) {
-    throw new TypeError('physicalEffect must be finite');
-  }
-
+  if (!Number.isFinite(scale) || scale <= 0) throw new RangeError('scale must be a finite positive number');
+  if (!Number.isFinite(physicalEffect)) throw new TypeError('physicalEffect must be finite');
   const rawCoefficient = physicalEffect / scale;
   const standardizedCoefficient = physicalEffect;
-
   return {
     scale,
     penaltyId,
@@ -167,6 +175,6 @@ export function unitScalePenalty({
   };
 }
 
-export function percent(value) {
-  return `${Math.round(value * 100)}%`;
+export function percent(value, digits = 0) {
+  return `${(value * 100).toFixed(digits)}%`;
 }
