@@ -73,3 +73,17 @@ export const LINEAR_REGRESSION_CHART_LIMITS = Object.freeze({
   diagnostics: Object.freeze({ x: Object.freeze([0, 13]), y: Object.freeze([0, 25]) }),
   influence: Object.freeze({ x: Object.freeze([0, 16]), y: Object.freeze([0, 26]) }),
 });
+
+export const LINEAR_REGRESSION_INTERACTIVE_PLOT = Object.freeze({
+  domain: Object.freeze({ x: Object.freeze([0, 10]), y: Object.freeze([0, 10]) }),
+  viewBox: Object.freeze({ width: 1000, height: 560 }),
+  margin: Object.freeze({ top: 28, right: 28, bottom: 62, left: 72 }),
+  ticks: Object.freeze([0, 2, 4, 6, 8, 10]),
+});
+
+export const LINEAR_REGRESSION_COST_LANDSCAPE = Object.freeze({
+  slope: Object.freeze({ min: -1, max: 3, step: 0.1 }),
+  intercept: Object.freeze({ min: -1, max: 3, step: 0.1 }),
+  surface: Object.freeze({ size: 6, segments: 50, heightScale: 5 }),
+  camera: Object.freeze({ fov: 60, near: 0.1, far: 1000, position: Object.freeze([5, 5, 5]) }),
+});
