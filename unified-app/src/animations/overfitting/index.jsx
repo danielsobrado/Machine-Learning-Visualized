@@ -3,11 +3,12 @@ import { AlertTriangle, BrainCircuit, LineChart, RotateCcw, ShieldCheck, Sliders
 import AssessmentPanel from '../../components/animation-shell/AssessmentPanel';
 import {
   DATASETS,
+  PROFILE_EPOCHS,
   REGULARIZATION,
-  bestEpoch,
   curvePath,
   epochProfile,
   errorPath,
+  generalizationDiagnostics,
   makePoints,
   project,
 } from './overfittingModel';
@@ -46,15 +47,19 @@ export default function OverfittingAnimation() {
   const [showValidationChoice, setShowValidationChoice] = useState(true);
 
   const points = useMemo(() => makePoints(datasetId), [datasetId]);
-  const profile = useMemo(() => epochProfile(datasetId, regularizationId, maxEpochs), [datasetId, regularizationId, maxEpochs]);
-  const current = profile[maxEpochs - 1];
-  const best = bestEpoch(profile);
-  const gap = current.validation - current.train;
-  const diagnosis = gap > 12
-    ? 'Overfitting: training keeps improving while validation is worse.'
-    : current.validation > 32 && current.train > 24
-      ? 'Underfitting: both training and validation errors remain high.'
-      : 'Reasonable fit: validation is near the best observed point.';
+  const profile = useMemo(() => epochProfile(datasetId, regularizationId), [datasetId, regularizationId]);
+  const diagnostics = useMemo(
+    () => generalizationDiagnostics(profile, maxEpochs),
+    [profile, maxEpochs],
+  );
+  const {
+    observed,
+    current,
+    best,
+    gap,
+    validationExcess,
+    trainingImprovementSinceBest,
+  } = diagnostics;
 
   const reset = () => {
     setDatasetId('noisy');
@@ -71,8 +76,8 @@ export default function OverfittingAnimation() {
             <p className="text-xs font-black uppercase tracking-wide text-slate-500">Generalization diagnosis</p>
             <h2 className="mt-1 text-2xl font-black text-slate-950">Overfitting</h2>
             <p className="mt-2 max-w-3xl text-sm leading-6 text-slate-700">
-              Overfitting is not just a complex model. It is the pattern where training performance keeps improving while
-              validation performance gets worse because the model has started learning sample-specific noise.
+              Overfitting is not just a complex model or a large train-validation gap. The defining evidence is a divergence:
+              training performance keeps improving after held-out performance has started getting worse.
             </p>
           </div>
           <button
@@ -133,10 +138,10 @@ export default function OverfittingAnimation() {
             </div>
           </div>
           <label className="grid gap-2 text-sm font-bold text-slate-700">
-            Epochs / complexity: {maxEpochs}
-            <input min="1" max="12" step="1" type="range" value={maxEpochs} onChange={(event) => setMaxEpochs(Number(event.target.value))} />
-            <span className="text-xs font-semibold text-slate-500">
-              Later epochs represent a more flexible fit to the same training rows.
+            Observed epochs: {maxEpochs}
+            <input min="1" max={PROFILE_EPOCHS} step="1" type="range" value={maxEpochs} onChange={(event) => setMaxEpochs(Number(event.target.value))} />
+            <span className="text-xs font-semibold leading-5 text-slate-500">
+              This toy uses later epochs as a proxy for a fit becoming more flexible. Training duration and model capacity are separate controls in real systems.
             </span>
           </label>
           <label className="flex items-start gap-3 rounded-lg border border-slate-200 bg-slate-50 p-3 text-sm font-bold text-slate-700">
@@ -147,9 +152,9 @@ export default function OverfittingAnimation() {
               className="mt-1"
             />
             <span>
-              Tune stopping point on validation
+              Show validation-guided stopping
               <small className="mt-1 block font-semibold leading-5 text-slate-500">
-                Good for model development, but repeated tuning means the test set must stay untouched.
+                Validation can guide development, but every choice spends validation feedback. Final test evidence must remain outside that loop.
               </small>
             </span>
           </label>
@@ -160,9 +165,9 @@ export default function OverfittingAnimation() {
         <div className="rounded-lg border border-slate-200 bg-white p-5">
           <div className="mb-4 flex items-center gap-2 text-sm font-black uppercase tracking-wide text-slate-600">
             <BrainCircuit size={16} />
-            Fitted curve
+            Illustrative fitted curve
           </div>
-          <svg viewBox="0 0 400 300" role="img" aria-label="Model fit over training points" className="h-auto w-full rounded-lg bg-slate-50">
+          <svg viewBox="0 0 400 300" role="img" aria-label="Illustrative model fit over training points" className="h-auto w-full rounded-lg bg-slate-50">
             <rect x="34" y="36" width="332" height="226" rx="10" fill="#f8fafc" stroke="#cbd5e1" />
             {[25, 50, 75].map((value) => (
               <g key={value}>
@@ -192,54 +197,71 @@ export default function OverfittingAnimation() {
           </svg>
           <div className="mt-3 flex flex-wrap gap-3 text-xs font-bold text-slate-600">
             <span className="inline-flex items-center gap-2"><i className="h-3 w-3 rounded-full bg-sky-500" />training row</span>
-            <span className="inline-flex items-center gap-2"><i className="h-3 w-3 rounded-full bg-amber-500" />noisy row</span>
-            <span className="inline-flex items-center gap-2"><i className="h-1 w-6 rounded bg-slate-900" />current fit</span>
+            <span className="inline-flex items-center gap-2"><i className="h-3 w-3 rounded-full bg-amber-500" />injected noisy row</span>
+            <span className="inline-flex items-center gap-2"><i className="h-1 w-6 rounded bg-slate-900" />current illustrative fit</span>
           </div>
+          <p className="mt-3 text-xs font-semibold leading-5 text-slate-500">
+            The fitted curve is an educational proxy for increasing effective flexibility; the error curves carry the generalization diagnosis.
+          </p>
         </div>
 
         <div className="rounded-lg border border-slate-200 bg-white p-5">
           <div className="mb-4 flex items-center gap-2 text-sm font-black uppercase tracking-wide text-slate-600">
             <LineChart size={16} />
-            Error curves
+            Observed error curves
           </div>
-          <svg viewBox="0 0 380 210" role="img" aria-label="Training and validation error over epochs" className="h-auto w-full rounded-lg bg-slate-50">
+          <svg viewBox="0 0 380 210" role="img" aria-label={`Training and validation error observed through epoch ${maxEpochs}`} className="h-auto w-full rounded-lg bg-slate-50">
             <rect x="34" y="30" width="308" height="140" rx="8" fill="#ffffff" stroke="#cbd5e1" />
             {[1, 4, 8, 12].map((epoch) => (
               <line key={epoch} x1={34 + (epoch - 1) * 28} x2={34 + (epoch - 1) * 28} y1="30" y2="170" stroke="#e2e8f0" />
             ))}
-            <path d={errorPath(profile, 'train')} fill="none" stroke="#0284c7" strokeWidth="4" strokeLinecap="round" />
-            <path d={errorPath(profile, 'validation')} fill="none" stroke="#e11d48" strokeWidth="4" strokeLinecap="round" />
+            <path d={errorPath(observed, 'train')} fill="none" stroke="#0284c7" strokeWidth="4" strokeLinecap="round" />
+            <path d={errorPath(observed, 'validation')} fill="none" stroke="#e11d48" strokeWidth="4" strokeLinecap="round" />
             <line x1={34 + (maxEpochs - 1) * 28} x2={34 + (maxEpochs - 1) * 28} y1="26" y2="174" stroke="#0f172a" strokeWidth="3" />
             {showValidationChoice && (
               <circle cx={34 + (best.epoch - 1) * 28} cy={170 - (best.validation / 58) * 128} r="7" fill="#10b981" stroke="#ffffff" strokeWidth="3" />
             )}
             <text x="188" y="198" textAnchor="middle" fontSize="12" fontWeight="800" fill="#475569">
-              epoch / complexity
+              epoch
             </text>
           </svg>
           <div className="mt-4 grid gap-2 text-sm font-bold text-slate-700">
             <span className="inline-flex items-center gap-2"><i className="h-1 w-8 rounded bg-sky-600" />training error: {current.train.toFixed(1)}</span>
             <span className="inline-flex items-center gap-2"><i className="h-1 w-8 rounded bg-rose-600" />validation error: {current.validation.toFixed(1)}</span>
-            <span className="inline-flex items-center gap-2"><i className="h-3 w-3 rounded-full bg-emerald-500" />best validation epoch: {best.epoch}</span>
+            {showValidationChoice && (
+              <span className="inline-flex items-center gap-2"><i className="h-3 w-3 rounded-full bg-emerald-500" />best observed validation epoch: {best.epoch}</span>
+            )}
           </div>
+          <p className="mt-3 rounded-lg bg-slate-50 p-3 text-xs font-semibold leading-5 text-slate-600">
+            Only epochs 1–{maxEpochs} are visible. Later validation outcomes are unknown until training reaches them.
+          </p>
         </div>
       </section>
 
-      <section className="grid gap-4 md:grid-cols-3">
-        <Stat label="Generalization gap" value={gap.toFixed(1)} detail="Validation error minus training error." />
-        <Stat label="Best stop" value={`Epoch ${best.epoch}`} detail="Lowest validation error in this run." />
-        <Stat label="Diagnosis" value={gap > 12 ? 'Overfit' : current.validation > 32 && current.train > 24 ? 'Underfit' : 'Balanced'} detail={diagnosis} />
+      <section className="grid gap-4 md:grid-cols-4">
+        <Stat label="Generalization gap" value={gap.toFixed(1)} detail="Current validation error minus current training error; useful context, not proof by itself." />
+        <Stat
+          label="Best observed stop"
+          value={showValidationChoice ? `Epoch ${best.epoch}` : 'Hidden'}
+          detail={showValidationChoice ? 'Lowest validation error seen so far.' : 'No validation-guided stopping signal shown.'}
+        />
+        <Stat
+          label="Since best"
+          value={diagnostics.pastBest ? `+${validationExcess.toFixed(1)} val` : 'No decline yet'}
+          detail={diagnostics.pastBest ? `Training improved ${trainingImprovementSinceBest.toFixed(1)} over the same interval.` : 'Current epoch is still the best observed validation point.'}
+        />
+        <Stat label="Diagnosis" value={diagnostics.label} detail={diagnostics.explanation} />
       </section>
 
       <section className="grid gap-4 lg:grid-cols-3">
-        <SignalCard title="Predict before running" tone="cyan" icon={<LineChart size={14} />}>
-          Increase epochs past the best validation point and predict whether the blue training line or red validation line moves first.
+        <SignalCard title="Predict before revealing" tone="cyan" icon={<LineChart size={14} />}>
+          Move one epoch at a time. Predict whether training and validation error will both improve before exposing the next held-out result.
         </SignalCard>
         <SignalCard title="Failure mode" tone="amber" icon={<AlertTriangle size={14} />}>
-          Lowest training error is not the deployment target. A widening validation gap means the model is fitting training quirks.
+          A large gap alone is not enough. Strong overfitting evidence is temporal divergence: training improves while validation degrades after its best observed point.
         </SignalCard>
         <SignalCard title="Practical fix" tone="emerald" icon={<ShieldCheck size={14} />}>
-          Use validation for early stopping and model selection, then report the untouched test set once at the end.
+          Use validation for early stopping and model selection with discipline, then evaluate the untouched test set only after choices are frozen.
         </SignalCard>
       </section>
 
