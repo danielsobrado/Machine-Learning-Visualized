@@ -1,19 +1,39 @@
-import { THRESHOLD_RANGE } from './logisticRegressionConstants.js';
+import { DECISION_SURFACE, THRESHOLD_RANGE } from './logisticRegressionConstants.js';
 
 export { POINTS, PRESETS } from './logisticRegressionConstants.js';
 
+const FEATURE_CENTER = 50;
+const FEATURE_SCALE = 18;
+const BOUNDARY_EPSILON = 1e-9;
+
 export function sigmoid(value) {
-  return 1 / (1 + Math.exp(-value));
+  if (value >= 0) {
+    const exponential = Math.exp(-value);
+    return 1 / (1 + exponential);
+  }
+  const exponential = Math.exp(value);
+  return exponential / (1 + exponential);
 }
 
 export function logit(probability) {
+  if (!(probability > 0 && probability < 1)) {
+    throw new RangeError('probability must be strictly between 0 and 1');
+  }
   return Math.log(probability / (1 - probability));
 }
 
+export function modelLogit(risk, engagement, weightRisk, weightEngagement, bias) {
+  const centeredRisk = (risk - FEATURE_CENTER) / FEATURE_SCALE;
+  const centeredEngagement = (engagement - FEATURE_CENTER) / FEATURE_SCALE;
+  return weightRisk * centeredRisk + weightEngagement * centeredEngagement + bias;
+}
+
+export function modelProbability(risk, engagement, weightRisk, weightEngagement, bias) {
+  return sigmoid(modelLogit(risk, engagement, weightRisk, weightEngagement, bias));
+}
+
 export function scorePoint(point, weightRisk, weightEngagement, bias) {
-  const centeredRisk = (point.risk - 50) / 18;
-  const centeredEngagement = (point.engagement - 50) / 18;
-  const z = weightRisk * centeredRisk + weightEngagement * centeredEngagement + bias;
+  const z = modelLogit(point.risk, point.engagement, weightRisk, weightEngagement, bias);
   const probability = sigmoid(z);
   return { ...point, z, probability, predicted: probability >= 0.5 ? 1 : 0 };
 }
@@ -127,34 +147,114 @@ export function findCostOptimalThreshold(
   }, null);
 }
 
+export function findCostOptimalThresholdRanges(sweep, tolerance = 1e-9) {
+  if (!sweep.length) return [];
+  const minimumCost = Math.min(...sweep.map((point) => point.cost));
+  const ranges = [];
+  let currentRange = null;
+
+  sweep.forEach((point) => {
+    if (Math.abs(point.cost - minimumCost) <= tolerance) {
+      if (!currentRange) {
+        currentRange = { min: point.threshold, max: point.threshold };
+      } else {
+        currentRange.max = point.threshold;
+      }
+      return;
+    }
+
+    if (currentRange) {
+      ranges.push(Object.freeze(currentRange));
+      currentRange = null;
+    }
+  });
+
+  if (currentRange) ranges.push(Object.freeze(currentRange));
+  return ranges;
+}
+
 export function calibratedCostThreshold(falsePositiveCost, falseNegativeCost) {
   const totalCost = falsePositiveCost + falseNegativeCost;
   return totalCost === 0 ? 0.5 : falsePositiveCost / totalCost;
 }
 
+export function decisionSurfacePointToSvg({ risk, engagement }) {
+  const featureSpan = DECISION_SURFACE.featureMax - DECISION_SURFACE.featureMin;
+  const svgSpan = DECISION_SURFACE.svgMax - DECISION_SURFACE.svgMin;
+  return {
+    x: DECISION_SURFACE.svgMin + ((risk - DECISION_SURFACE.featureMin) / featureSpan) * svgSpan,
+    y: DECISION_SURFACE.svgMax - ((engagement - DECISION_SURFACE.featureMin) / featureSpan) * svgSpan,
+  };
+}
+
+function inFeatureRange(value) {
+  return value >= DECISION_SURFACE.featureMin - BOUNDARY_EPSILON
+    && value <= DECISION_SURFACE.featureMax + BOUNDARY_EPSILON;
+}
+
+function clampFeature(value) {
+  return Math.max(DECISION_SURFACE.featureMin, Math.min(DECISION_SURFACE.featureMax, value));
+}
+
+function pushUniquePoint(points, risk, engagement) {
+  if (!inFeatureRange(risk) || !inFeatureRange(engagement)) return;
+  const point = { risk: clampFeature(risk), engagement: clampFeature(engagement) };
+  const duplicate = points.some((candidate) => (
+    Math.abs(candidate.risk - point.risk) <= BOUNDARY_EPSILON
+    && Math.abs(candidate.engagement - point.engagement) <= BOUNDARY_EPSILON
+  ));
+  if (!duplicate) points.push(point);
+}
+
 export function boundaryLine(weightRisk, weightEngagement, bias, threshold) {
   const target = logit(threshold);
-  const toSvgX = (risk) => 24 + risk * 3.12;
-  const toSvgY = (engagement) => 336 - engagement * 3.12;
-
-  if (Math.abs(weightRisk) < 0.05 && Math.abs(weightEngagement) < 0.05) {
-    const x = toSvgX(50);
-    return { x1: x, y1: 24, x2: x, y2: 336 };
+  if (Math.abs(weightRisk) <= BOUNDARY_EPSILON && Math.abs(weightEngagement) <= BOUNDARY_EPSILON) {
+    return null;
   }
 
-  if (Math.abs(weightEngagement) < 0.05) {
-    const risk = 50 + ((target - bias) * 18) / weightRisk;
-    const x = toSvgX(Math.max(0, Math.min(100, risk)));
-    return { x1: x, y1: 24, x2: x, y2: 336 };
+  const points = [];
+  const { featureMin, featureMax } = DECISION_SURFACE;
+
+  if (Math.abs(weightEngagement) > BOUNDARY_EPSILON) {
+    for (const risk of [featureMin, featureMax]) {
+      const centeredRisk = (risk - FEATURE_CENTER) / FEATURE_SCALE;
+      const centeredEngagement = (target - bias - weightRisk * centeredRisk) / weightEngagement;
+      pushUniquePoint(points, risk, FEATURE_CENTER + centeredEngagement * FEATURE_SCALE);
+    }
   }
 
-  const yAt = (risk) => {
-    const centeredRisk = (risk - 50) / 18;
-    const centeredEngagement = (target - bias - weightRisk * centeredRisk) / weightEngagement;
-    return 50 + centeredEngagement * 18;
+  if (Math.abs(weightRisk) > BOUNDARY_EPSILON) {
+    for (const engagement of [featureMin, featureMax]) {
+      const centeredEngagement = (engagement - FEATURE_CENTER) / FEATURE_SCALE;
+      const centeredRisk = (target - bias - weightEngagement * centeredEngagement) / weightRisk;
+      pushUniquePoint(points, FEATURE_CENTER + centeredRisk * FEATURE_SCALE, engagement);
+    }
+  }
+
+  if (points.length < 2) return null;
+
+  let endpoints = [points[0], points[1]];
+  let maximumDistanceSquared = -1;
+  for (let left = 0; left < points.length; left += 1) {
+    for (let right = left + 1; right < points.length; right += 1) {
+      const riskDelta = points[left].risk - points[right].risk;
+      const engagementDelta = points[left].engagement - points[right].engagement;
+      const distanceSquared = riskDelta ** 2 + engagementDelta ** 2;
+      if (distanceSquared > maximumDistanceSquared) {
+        maximumDistanceSquared = distanceSquared;
+        endpoints = [points[left], points[right]];
+      }
+    }
+  }
+
+  const start = decisionSurfacePointToSvg(endpoints[0]);
+  const end = decisionSurfacePointToSvg(endpoints[1]);
+  return {
+    x1: start.x,
+    y1: start.y,
+    x2: end.x,
+    y2: end.y,
+    featureStart: Object.freeze({ ...endpoints[0] }),
+    featureEnd: Object.freeze({ ...endpoints[1] }),
   };
-
-  const y0 = Math.max(-20, Math.min(120, yAt(0)));
-  const y100 = Math.max(-20, Math.min(120, yAt(100)));
-  return { x1: toSvgX(0), y1: toSvgY(y0), x2: toSvgX(100), y2: toSvgY(y100) };
 }
