@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 
 import {
   DIAGNOSTIC_ITERATIONS,
+  EMPTY_CLUSTER_CASE,
   INITIALIZATION_CASES,
   K_DIAGNOSTIC_VALUES,
 } from './kMeansDiagnosticsConstants.js';
@@ -10,9 +11,13 @@ import {
   INITIAL_CENTROIDS,
   POINTS,
   assign,
+  assignmentChanges,
+  clusterSizes,
+  emptyClusterIds,
   evaluateKChoices,
   farthestFirstCentroids,
   inertia,
+  maxCentroidShift,
   runKMeans,
   runKMeansForData,
   silhouetteScore,
@@ -27,7 +32,7 @@ test('assignment sends points to the nearest centroid with deterministic tie han
   assert.deepEqual(assign([[0, 0], [10, 0], [5, 0]], [[0, 0], [10, 0]]), [0, 1, 0]);
 });
 
-test('centroid update computes means and preserves empty clusters', () => {
+test('centroid update computes means and preserves empty clusters under the lesson policy', () => {
   const updated = updateCentroids(
     [[0, 0], [2, 2], [10, 10]],
     [0, 0, 2],
@@ -39,24 +44,45 @@ test('centroid update computes means and preserves empty clusters', () => {
   assert.deepEqual(updated[2], [10, 10]);
 });
 
+test('cluster-size helpers expose unused centroids explicitly', () => {
+  assert.deepEqual(clusterSizes([0, 0, 2], 3), [2, 0, 1]);
+  assert.deepEqual(emptyClusterIds([0, 0, 2], 3), [1]);
+});
+
+test('assignment and centroid movement diagnostics are exact', () => {
+  assert.equal(assignmentChanges([0, 0, 1], [0, 1, 1]), 1);
+  closeTo(maxCentroidShift([[0, 0], [2, 2]], [[0, 0], [5, 6]]), 5);
+});
+
 test('displayed k-means iterations monotonically reduce inertia after full update cycles', () => {
   let previous = Infinity;
 
   for (let iterations = 0; iterations <= 6; iterations += 1) {
     const result = runKMeans(3, iterations);
-    assert.ok(result.inertia <= previous, `iteration ${iterations} should not increase inertia`);
+    assert.ok(result.inertia <= previous + 1e-12, `iteration ${iterations} should not increase inertia`);
     previous = result.inertia;
   }
 });
 
-test('runKMeans returns one assignment per point and stable centroid dimensions', () => {
+test('runKMeans records one trace entry per requested state and exposes convergence', () => {
   const result = runKMeans(4, 6);
-  const clusterSizes = result.centroids.map((_, cluster) => result.assignments.filter((value) => value === cluster).length);
+  const clusterCounts = clusterSizes(result.assignments, result.centroids.length);
 
   assert.equal(result.assignments.length, POINTS.length);
   assert.equal(result.centroids.length, 4);
-  assert.equal(clusterSizes.reduce((sum, size) => sum + size, 0), POINTS.length);
-  assert.ok(clusterSizes.every((size) => size > 0));
+  assert.equal(result.trace.length, 7);
+  assert.equal(clusterCounts.reduce((sum, size) => sum + size, 0), POINTS.length);
+  assert.ok(clusterCounts.every((size) => size > 0));
+  assert.equal(result.emptyClusters.length, 0);
+  assert.equal(result.converged, true);
+  assert.ok(result.convergedAt >= 1 && result.convergedAt <= 6);
+  assert.equal(result.trace[result.convergedAt].assignmentChanges, 0);
+});
+
+test('runKMeansForData rejects invalid iteration budgets', () => {
+  assert.throws(() => runKMeansForData(POINTS, INITIAL_CENTROIDS, -1), RangeError);
+  assert.throws(() => runKMeansForData(POINTS, INITIAL_CENTROIDS, 1.5), RangeError);
+  assert.throws(() => runKMeansForData(POINTS, [], 1), RangeError);
 });
 
 test('computed inertia matches assigned squared distances', () => {
@@ -77,12 +103,14 @@ test('farthest-first initialization returns distinct spread-out seeds', () => {
   assert.throws(() => farthestFirstCentroids(POINTS, 0), RangeError);
 });
 
-test('inertia keeps falling after the dataset silhouette has already peaked', () => {
+test('the diagnostic finite runs show decreasing inertia after silhouette peaks on this dataset', () => {
   const choices = evaluateKChoices(POINTS, K_DIAGNOSTIC_VALUES, DIAGNOSTIC_ITERATIONS);
   const bestSilhouette = choices.reduce((best, choice) => (choice.silhouette > best.silhouette ? choice : best));
 
   assert.equal(bestSilhouette.k, 4);
   assert.ok(choices.every((choice) => choice.silhouette >= -1 && choice.silhouette <= 1));
+  assert.ok(choices.every((choice) => choice.converged));
+  assert.ok(choices.every((choice) => choice.emptyClusters.length === 0));
   for (let index = 1; index < choices.length; index += 1) {
     assert.ok(choices[index].inertia < choices[index - 1].inertia);
   }
@@ -94,4 +122,12 @@ test('different initializations can converge to different local optima for the s
 
   assert.ok(crowded.inertia > spread.inertia + 10);
   assert.ok(silhouetteScore(POINTS, spread.assignments) > silhouetteScore(POINTS, crowded.assignments));
+});
+
+test('duplicate initial seeds expose the preserve-centroid empty-cluster policy', () => {
+  const result = runKMeansForData(POINTS, EMPTY_CLUSTER_CASE.centroids, 4);
+
+  assert.ok(result.trace[0].emptyClusters.includes(1));
+  assert.ok(result.emptyClusters.includes(1));
+  assert.equal(result.converged, true);
 });
