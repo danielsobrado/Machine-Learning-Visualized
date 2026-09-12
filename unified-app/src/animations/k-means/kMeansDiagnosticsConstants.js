@@ -21,3 +21,12 @@ export const INITIALIZATION_CASES = Object.freeze({
     ]),
   },
 });
+
+export const EMPTY_CLUSTER_CASE = Object.freeze({
+  label: 'Duplicate-seed empty cluster',
+  centroids: Object.freeze([
+    [0.8, 1.0],
+    [0.8, 1.0],
+    [5.7, 5.1],
+  ]),
+});
