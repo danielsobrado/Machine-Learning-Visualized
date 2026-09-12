@@ -28,7 +28,7 @@ export const SPLIT_STRATEGIES = Object.freeze({
   groupedTime: {
     label: 'Grouped + time',
     short: 'Future unseen entities',
-    detail: 'Moves whole entities forward through time so validation is both chronologically later and entity-disjoint.',
+    detail: 'Keeps entities whole and advances entity groups through time; each fold is audited to verify that validation is also strictly later than training.',
   },
 });
 
