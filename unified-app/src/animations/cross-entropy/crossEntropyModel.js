@@ -11,6 +11,18 @@ function validateDistribution(probabilities, name) {
   if (Math.abs(total - 1) > 1e-9) throw new RangeError(`${name} must sum to one`);
 }
 
+function validateBatchExamples(examples) {
+  if (!Array.isArray(examples) || examples.length === 0) throw new TypeError('examples must be a non-empty array');
+  examples.forEach((example, index) => {
+    if (!example || !Number.isInteger(example.targetIndex)) throw new TypeError(`examples[${index}] must define targetIndex`);
+    validateVector(example.logits, `examples[${index}].logits`);
+    if (example.logits.length < 2) throw new RangeError(`examples[${index}] must contain at least two logits`);
+    if (example.targetIndex < 0 || example.targetIndex >= example.logits.length) {
+      throw new RangeError(`examples[${index}].targetIndex is out of range`);
+    }
+  });
+}
+
 export function logSumExp(logits) {
   validateVector(logits, 'logits');
   const max = Math.max(...logits);
@@ -24,6 +36,13 @@ export function logSoftmax(logits) {
 
 export function softmax(logits) {
   return logSoftmax(logits).map((value) => Math.exp(value));
+}
+
+export function naiveSoftmax(logits) {
+  validateVector(logits, 'logits');
+  const exponentials = logits.map((value) => Math.exp(value));
+  const total = exponentials.reduce((sum, value) => sum + value, 0);
+  return exponentials.map((value) => value / total);
 }
 
 export function oneHot(classCount, targetIndex) {
@@ -87,11 +106,74 @@ export function binaryCrossEntropy(target, probability) {
   return -Math.log(1 - probability);
 }
 
+export function batchCrossEntropy(examples, reduction = 'mean', sampleWeights = null) {
+  validateBatchExamples(examples);
+  if (!['none', 'sum', 'mean'].includes(reduction)) throw new RangeError(`Unknown reduction: ${reduction}`);
+  const weights = sampleWeights ?? Array(examples.length).fill(1);
+  if (!Array.isArray(weights) || weights.length !== examples.length || weights.some((value) => !Number.isFinite(value) || value < 0)) {
+    throw new RangeError('sampleWeights must be non-negative finite values matching examples');
+  }
+  const weightSum = weights.reduce((sum, value) => sum + value, 0);
+  if (reduction === 'mean' && weightSum <= 0) throw new RangeError('mean reduction requires positive total sample weight');
+
+  const losses = examples.map((example) => crossEntropyFromLogits(oneHot(example.logits.length, example.targetIndex), example.logits));
+  const weightedLosses = losses.map((loss, index) => loss * weights[index]);
+  if (reduction === 'none') return weightedLosses;
+  const total = weightedLosses.reduce((sum, value) => sum + value, 0);
+  return reduction === 'sum' ? total : total / weightSum;
+}
+
+function sharedLogitScaleGradient(examples, reduction) {
+  validateBatchExamples(examples);
+  const contributions = examples.map((example) => {
+    const target = oneHot(example.logits.length, example.targetIndex);
+    const prediction = softmax(example.logits);
+    const gradient = softmaxCrossEntropyGradient(target, prediction);
+    return gradient.reduce((sum, value, index) => sum + value * example.logits[index], 0);
+  });
+  const total = contributions.reduce((sum, value) => sum + value, 0);
+  if (reduction === 'sum') return total;
+  if (reduction === 'mean') return total / examples.length;
+  throw new RangeError(`Unknown reduction: ${reduction}`);
+}
+
+export function buildBatchReductionLab(examples) {
+  validateBatchExamples(examples);
+  const duplicated = [...examples, ...examples];
+  const sumLoss = batchCrossEntropy(examples, 'sum');
+  const meanLoss = batchCrossEntropy(examples, 'mean');
+  const duplicatedSumLoss = batchCrossEntropy(duplicated, 'sum');
+  const duplicatedMeanLoss = batchCrossEntropy(duplicated, 'mean');
+  const sumGradient = sharedLogitScaleGradient(examples, 'sum');
+  const meanGradient = sharedLogitScaleGradient(examples, 'mean');
+  const duplicatedSumGradient = sharedLogitScaleGradient(duplicated, 'sum');
+  const duplicatedMeanGradient = sharedLogitScaleGradient(duplicated, 'mean');
+
+  return {
+    exampleCount: examples.length,
+    perExampleLosses: batchCrossEntropy(examples, 'none'),
+    sumLoss,
+    meanLoss,
+    duplicatedSumLoss,
+    duplicatedMeanLoss,
+    sumLossRatio: duplicatedSumLoss / sumLoss,
+    meanLossRatio: duplicatedMeanLoss / meanLoss,
+    sumGradient,
+    meanGradient,
+    duplicatedSumGradient,
+    duplicatedMeanGradient,
+    sumGradientRatio: duplicatedSumGradient / sumGradient,
+    meanGradientRatio: duplicatedMeanGradient / meanGradient,
+  };
+}
+
 export function buildCrossEntropyLab({ scenario, logitScale, labelSmoothing }) {
   if (!scenario) throw new TypeError('scenario is required');
   if (!Number.isFinite(logitScale) || logitScale <= 0) throw new RangeError('logitScale must be positive');
   const logits = scenario.logits.map((value) => value * logitScale);
   const prediction = softmax(logits);
+  const naivePrediction = naiveSoftmax(logits);
+  const naiveSoftmaxFinite = naivePrediction.every(Number.isFinite);
   const hardTarget = oneHot(logits.length, scenario.targetIndex);
   const target = smoothTarget(hardTarget, labelSmoothing);
   const loss = crossEntropyFromLogits(target, logits);
@@ -104,6 +186,8 @@ export function buildCrossEntropyLab({ scenario, logitScale, labelSmoothing }) {
   return {
     logits,
     prediction,
+    naivePrediction,
+    naiveSoftmaxFinite,
     hardTarget,
     target,
     loss,
