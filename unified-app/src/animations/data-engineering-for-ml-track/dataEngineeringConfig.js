@@ -2,6 +2,14 @@ export const ENTITY_COUNT = 6;
 export const BASE_EVENT_COUNT = 72;
 export const PREDICTION_TIMES = [24, 32, 40, 48, 56, 64];
 export const EXPECTED_SCHEMA_VERSION = 1;
+export const TRAIN_TRANSFORM = 'v1';
+export const SCHEMA_CONTRACT_VERSION = 'v2';
+
+export const SCHEMA_COMPATIBILITY = Object.freeze({
+  1: 'native',
+  2: 'compatible',
+  3: 'incompatible',
+});
 
 export const DEFAULT_SCENARIO = {
   lateArrivalRate: 25,
@@ -26,6 +34,6 @@ export const TRANSFORMS = [
 export const SCENARIO_PRESETS = [
   { id: 'clean', label: 'Clean pipeline', values: { lateArrivalRate: 0, duplicateRate: 0, schemaDriftRate: 0, freshnessSla: 8, serveTransform: 'v1' } },
   { id: 'backfill', label: 'Late backfill', values: { lateArrivalRate: 55, duplicateRate: 5, schemaDriftRate: 0, freshnessSla: 6, serveTransform: 'v1' } },
-  { id: 'contract-break', label: 'Contract break', values: { lateArrivalRate: 15, duplicateRate: 20, schemaDriftRate: 30, freshnessSla: 8, serveTransform: 'v1' } },
+  { id: 'contract-break', label: 'Schema evolution', values: { lateArrivalRate: 15, duplicateRate: 20, schemaDriftRate: 30, freshnessSla: 8, serveTransform: 'v1' } },
   { id: 'skew', label: 'Train/serve skew', values: { lateArrivalRate: 10, duplicateRate: 5, schemaDriftRate: 0, freshnessSla: 8, serveTransform: 'v2' } },
 ];
