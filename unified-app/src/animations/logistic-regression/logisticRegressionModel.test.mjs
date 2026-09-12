@@ -9,8 +9,11 @@ import {
   classifyPoint,
   evaluateThreshold,
   findCostOptimalThreshold,
+  findCostOptimalThresholdRanges,
   logit,
   metricPercent,
+  modelLogit,
+  modelProbability,
   safeRatio,
   scorePoint,
   sigmoid,
@@ -31,6 +34,19 @@ test('sigmoid and logit are inverse transforms around valid probabilities', () =
   for (const probability of [0.1, 0.25, 0.5, 0.75, 0.9]) {
     closeTo(sigmoid(logit(probability)), probability);
   }
+  assert.equal(sigmoid(1000), 1);
+  assert.equal(sigmoid(-1000), 0);
+  assert.throws(() => logit(0), RangeError);
+  assert.throws(() => logit(1), RangeError);
+});
+
+test('point scoring and surface probabilities share one logit definition', () => {
+  const preset = PRESETS.balanced;
+  const point = POINTS.find((candidate) => candidate.id === 'J');
+  const scored = scorePoint(point, preset.weightRisk, preset.weightEngagement, preset.bias);
+
+  closeTo(scored.z, modelLogit(point.risk, point.engagement, preset.weightRisk, preset.weightEngagement, preset.bias));
+  closeTo(scored.probability, modelProbability(point.risk, point.engagement, preset.weightRisk, preset.weightEngagement, preset.bias));
 });
 
 test('balanced preset includes deliberate overlap instead of a perfect false-positive story', () => {
@@ -60,12 +76,14 @@ test('deployment prevalence changes projected precision without changing measure
   assert.ok(lowPrevalence.precision < highPrevalence.precision);
 });
 
-test('asymmetric costs can move the empirical optimum far below the default threshold', () => {
+test('asymmetric costs move the empirical optimum below the default threshold without pretending it is unique', () => {
   const scored = balancedScores();
   const sweep = thresholdSweep(scored, 0.05, 1000, 1, 200);
   const optimal = findCostOptimalThreshold(sweep, 0.5);
+  const ranges = findCostOptimalThresholdRanges(sweep);
 
   assert.equal(optimal.threshold, 0.19);
+  assert.deepEqual(ranges, [{ min: 0.17, max: 0.19 }]);
   assert.ok(optimal.cost < evaluateThreshold(scored, 0.5, 0.05, 1000, 1, 200).cost);
 });
 
@@ -79,16 +97,31 @@ test('safe ratios and percent formatting handle empty denominators', () => {
   assert.equal(metricPercent(0.625), '63%');
 });
 
-test('decision boundary remains finite for regular, vertical, and near-constant models', () => {
-  const lines = [
-    boundaryLine(1.35, -0.45, 0.1, 0.5),
-    boundaryLine(1.35, 0, 0.1, 0.5),
-    boundaryLine(0, 0, 0, 0.5),
-  ];
+test('decision boundary is the visible threshold crossing, not a clamped fake line', () => {
+  const preset = PRESETS.balanced;
+  const boundary = boundaryLine(preset.weightRisk, preset.weightEngagement, preset.bias, preset.threshold);
+  assert.ok(boundary);
 
-  for (const line of lines) {
-    for (const value of Object.values(line)) {
-      assert.ok(Number.isFinite(value), `boundary coordinate should be finite, got ${value}`);
-    }
+  for (const endpoint of [boundary.featureStart, boundary.featureEnd]) {
+    const probability = modelProbability(
+      endpoint.risk,
+      endpoint.engagement,
+      preset.weightRisk,
+      preset.weightEngagement,
+      preset.bias,
+    );
+    closeTo(probability, preset.threshold, 1e-10);
+    assert.ok(endpoint.risk >= 0 && endpoint.risk <= 100);
+    assert.ok(endpoint.engagement >= 0 && endpoint.engagement <= 100);
   }
+
+  assert.equal(boundaryLine(0, 0, 0, 0.5), null);
+  assert.equal(boundaryLine(0.001, 0, 10, 0.5), null);
+});
+
+test('vertical decision boundaries remain exact when engagement weight is zero', () => {
+  const boundary = boundaryLine(1.35, 0, 0.1, 0.5);
+  assert.ok(boundary);
+  closeTo(boundary.featureStart.risk, boundary.featureEnd.risk);
+  closeTo(modelProbability(boundary.featureStart.risk, 25, 1.35, 0, 0.1), 0.5, 1e-10);
 });
