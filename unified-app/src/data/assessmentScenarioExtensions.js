@@ -26,6 +26,7 @@ import { P1_FRONTIER_SYSTEMS_APPLIED_SCENARIOS_BY_LESSON } from './p1FrontierSys
 import { P1_GENERATION_SAMPLING_SCENARIOS_BY_LESSON } from './p1GenerationSamplingScenarioQuestions.js';
 import { P1_GENERATIVE_APPLIED_SCENARIOS_BY_LESSON } from './p1GenerativeAppliedScenarioQuestions.js';
 import { P1_GENERATIVE_RL_SCENARIOS_BY_LESSON } from './p1GenerativeRlScenarioQuestions.js';
+import { P1_HIGH_PRIORITY_GAP_SCENARIOS_BY_LESSON } from './p1HighPriorityGapScenarioQuestions.js';
 import { P1_INFORMATION_THEORY_APPLIED_SCENARIOS_BY_LESSON } from './p1InformationTheoryAppliedScenarioQuestions.js';
 import { P1_LATENT_DIFFUSION_PIPELINE_APPLIED_SCENARIOS_BY_LESSON } from './p1LatentDiffusionPipelineAppliedScenarioQuestions.js';
 import { P1_LINEAR_ALGEBRA_APPLIED_SCENARIOS_BY_LESSON } from './p1LinearAlgebraAppliedScenarioQuestions.js';
@@ -72,6 +73,7 @@ export const ASSESSMENT_SCENARIO_EXTENSION_SOURCES = Object.freeze([
   Object.freeze({ id: 'p0-statistics-gaps', priority: 'P0', questionsByLesson: P0_STATISTICS_GAP_SCENARIOS_BY_LESSON }),
   Object.freeze({ id: 'p0-transformer-architecture', priority: 'P0', questionsByLesson: P0_TRANSFORMER_ARCHITECTURE_SCENARIOS_BY_LESSON }),
   Object.freeze({ id: 'p1-core', priority: 'P1', questionsByLesson: P1_SCENARIO_QUESTIONS_BY_LESSON }),
+  Object.freeze({ id: 'p1-high-priority-gaps', priority: 'P1', questionsByLesson: P1_HIGH_PRIORITY_GAP_SCENARIOS_BY_LESSON }),
   Object.freeze({ id: 'p1-cnn', priority: 'P1', questionsByLesson: P1_CNN_SCENARIOS_BY_LESSON }),
   Object.freeze({ id: 'p1-cnn-failure-modes', priority: 'P1', questionsByLesson: P1_CNN_FAILURE_MODE_SCENARIOS_BY_LESSON }),
   Object.freeze({ id: 'p1-diffusion-basics-sampling', priority: 'P1', questionsByLesson: P1_DIFFUSION_BASICS_SAMPLING_SCENARIOS_BY_LESSON }),
