@@ -7,6 +7,7 @@ import {
 } from './classificationMetricsConstants.js';
 import CalibrationBridgeLab from './CalibrationBridgeLab.jsx';
 import MetricPolicyLab from './MetricPolicyLab.jsx';
+import MulticlassAveragingLab from './MulticlassAveragingLab.jsx';
 import SubgroupAuditLab from './SubgroupAuditLab.jsx';
 
 export default function ClassificationMetricsWorkbench() {
@@ -29,7 +30,7 @@ export default function ClassificationMetricsWorkbench() {
             <h2 className="mt-1 text-2xl font-black text-slate-950">Classification Metrics</h2>
             <p className="mt-2 max-w-4xl text-sm leading-6 text-slate-700">
               A metric is a lens, not a verdict. Thresholds, prevalence, asymmetric error costs, subgroup behavior,
-              and probability quality can all change what “good” means without changing the model family.
+              class averaging, denominator validity, and probability quality can all change what good means without changing the model family.
             </p>
           </div>
           <button
@@ -52,6 +53,7 @@ export default function ClassificationMetricsWorkbench() {
         onFalseNegativeCostChange={setFalseNegativeCost}
       />
       <SubgroupAuditLab threshold={threshold} />
+      <MulticlassAveragingLab />
       <CalibrationBridgeLab />
     </div>
   );
