@@ -28,6 +28,16 @@ test('every split strategy preserves every source row exactly once', () => {
   assert.deepEqual(splitCounts(24, 0.2, 0.2), { train: 14, validation: 5, test: 5 });
 });
 
+test('random splitting is valid for exchangeable rows while stratification remains a variance warning', () => {
+  const splits = assignByMode('random', 0.2, 0.2);
+  const audit = auditSplit('random', 'exchangeable', splits);
+
+  assert.equal(audit.valid, true);
+  assert.deepEqual(audit.failures, []);
+  assert.equal(audit.warnings.length, 1);
+  assert.match(audit.warnings[0], /stratification/);
+});
+
 test('row-level stratification can leak entity identity across partitions', () => {
   const splits = assignByMode('stratified', 0.2, 0.2);
   assert.ok(entityOverlap(splits).length > 0);
