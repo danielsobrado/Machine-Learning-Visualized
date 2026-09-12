@@ -17,6 +17,10 @@ import {
   MODEL_DEFINITIONS,
   SCENARIO_PRESETS,
 } from './forecastingConfig.js';
+import {
+  buildFutureCovariateDemo,
+  buildRecursiveForecastDemo,
+} from './forecastingEmpiricalLabs.js';
 import { buildForecastLab } from './forecastingModel.js';
 
 const formatOneDecimal = (value) => value.toFixed(1);
@@ -37,11 +41,14 @@ function comparisonTone(value, baseline) {
 export default function TimeSeriesForecastingTrackAnimation() {
   const [scenario, setScenario] = useState(DEFAULT_SCENARIO);
   const lab = useMemo(() => buildForecastLab(scenario), [scenario]);
+  const recursiveDemo = useMemo(() => buildRecursiveForecastDemo(), []);
+  const covariateDemo = useMemo(() => buildFutureCovariateDemo(), []);
   const seasonalBaseline = lab.backtestSummary.find((model) => model.id === 'seasonal-naive');
   const foldMaes = lab.backtests.map((fold) => (
     fold.models.find((model) => model.id === lab.selected.id).metrics.mae
   ));
   const maxFoldMae = Math.max(...foldMaes, 1);
+  const maxRecursiveError = Math.max(...recursiveDemo.rows.map((row) => row.recursiveError), 1);
   const stabilityRatio = lab.selectedBacktest.bestMae > 0
     ? lab.selectedBacktest.worstMae / lab.selectedBacktest.bestMae
     : 1;
@@ -194,6 +201,48 @@ export default function TimeSeriesForecastingTrackAnimation() {
         </div>
       </Plate>
 
+      <div className="nb-split">
+        <Plate label="6 · Recursive deployment" title="Teacher forcing can hide multi-step error growth">
+          <Readouts columns={3} items={[
+            { label: 'One-step / teacher-forced MAE', value: metricValue(recursiveDemo.teacherMae), detail: 'Each step receives the real previous observations' },
+            { label: 'Recursive deployment MAE', value: metricValue(recursiveDemo.recursiveMae), detail: 'Predictions feed later predictions' },
+            { label: 'Late-horizon recursive MAE', value: metricValue(recursiveDemo.lateRecursiveMae), detail: `Early half: ${metricValue(recursiveDemo.earlyRecursiveMae)}` },
+          ]} />
+          <div className="nb-bar-stack mt-5">
+            {recursiveDemo.rows.map((row) => (
+              <BarTrack
+                key={row.horizon}
+                label={`t+${row.horizon}`}
+                value={`recursive ${metricValue(row.recursiveError)} · teacher ${metricValue(row.teacherError)}`}
+                width={(row.recursiveError / maxRecursiveError) * 100}
+                tone={row.recursiveError > row.teacherError ? 'warn' : 'good'}
+              />
+            ))}
+          </div>
+          <p className="nb-plate-note mt-4">This fixed AR(2) experiment is deliberately evaluated two ways. Teacher forcing supplies actual lag values after the cutoff; real recursive deployment cannot. If the production path feeds predictions back into later steps, validate that exact path.</p>
+        </Plate>
+
+        <Plate label="7 · Future covariates" title="High accuracy is invalid when the input arrives too late">
+          <Readouts columns={2} items={[
+            { label: 'Known-ahead features MAE', value: metricValue(covariateDemo.safe.mae), detail: 'Calendar + scheduled promotion only' },
+            { label: 'Impossible oracle MAE', value: metricValue(covariateDemo.oracle.mae), detail: 'Also uses realized target-period traffic' },
+          ]} />
+          <div className="overflow-x-auto mt-5">
+            <table className="w-full text-sm border-collapse">
+              <thead><tr className="border-b border-slate-300 text-left text-xs uppercase tracking-wide text-slate-500"><th className="py-2 pr-4">Feature</th><th className="py-2 pr-4">Availability</th><th className="py-2">Deployable?</th></tr></thead>
+              <tbody>{covariateDemo.availability.map((item) => (
+                <tr key={item.feature} className="border-b border-slate-200">
+                  <td className="py-3 pr-4 font-semibold">{item.feature}</td>
+                  <td className="py-3 pr-4">{item.status}</td>
+                  <td className={`py-3 ${item.safe ? 'text-emerald-700' : 'text-rose-700'}`}>{item.safe ? 'yes' : 'no'}</td>
+                </tr>
+              ))}</tbody>
+            </table>
+          </div>
+          <p className="nb-plate-note mt-4">The oracle wins numerically because it sees realized traffic from the period being forecast. That is not a stronger deployable model; it is a point-in-time availability violation.</p>
+        </Plate>
+      </div>
+
       <Note tone="bad" label="Metric traps" title="RMSE, MAPE and pinball can disagree for good reasons">
         <p>RMSE reacts strongly to rare catastrophic misses. MAPE can explode when actual values approach zero and should not be used blindly for intermittent or zero-heavy series. Pinball loss is appropriate when the decision needs a quantile rather than a symmetric point forecast.</p>
       </Note>
@@ -203,7 +252,7 @@ export default function TimeSeriesForecastingTrackAnimation() {
       </Note>
 
       <Note tone="accent" label="Takeaway" title="Forecasting is an evaluation discipline first">
-        <p>Choose the metric from the business loss, preserve chronology, evaluate every deployment horizon separately, and score uncertainty as well as point accuracy. A model that wins on average but fails at the horizon or quantile the decision uses is not the winner.</p>
+        <p>Choose the metric from the business loss, preserve chronology, reproduce the production recursion path, prove every feature is available at prediction time, evaluate every deployment horizon separately, and score uncertainty as well as point accuracy.</p>
       </Note>
 
       <AssessmentPanel lessonId="time-series-forecasting-track" title="Forecasting check" />

@@ -1,6 +1,18 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { DEFAULT_SCENARIO, SEASON_PERIOD, SERIES_LENGTH } from './forecastingConfig.js';
+import {
+  DEFAULT_SCENARIO,
+  RECURSIVE_FORECAST_DEMO,
+  SEASON_PERIOD,
+  SERIES_LENGTH,
+} from './forecastingConfig.js';
+import {
+  buildFutureCovariateDemo,
+  buildRecursiveForecastDemo,
+  fitAutoregression,
+  recursiveForecast,
+  teacherForcedForecast,
+} from './forecastingEmpiricalLabs.js';
 import {
   buildForecastLab,
   forecastAtOrigin,
@@ -51,4 +63,35 @@ test('leakage trap is explicitly separate from deployable model results', () => 
   assert.ok(Number.isFinite(lab.leakage.mae));
   assert.equal(lab.leakage.observations, DEFAULT_SCENARIO.horizon - 1);
   assert.ok(lab.holdout.every((model) => model.id !== 'leaky-centered-window'));
+});
+
+test('recursive deployment never reads future actual values', () => {
+  const config = RECURSIVE_FORECAST_DEMO;
+  const series = generateSeries(config.scenario);
+  const model = fitAutoregression(series, config.origin, config.lags, config.ridge);
+  const history = series.slice(0, config.origin);
+  const baseline = recursiveForecast(history, model, config.horizon);
+  const mutatedFuture = series.map((point, index) => (
+    index < config.origin ? point : { ...point, value: point.value + 1000 }
+  ));
+
+  assert.deepEqual(recursiveForecast(history, model, config.horizon), baseline);
+  assert.notDeepEqual(
+    teacherForcedForecast(mutatedFuture, model, config.horizon),
+    teacherForcedForecast(series, model, config.horizon),
+  );
+});
+
+test('teacher forcing hides recursive multi-step error accumulation', () => {
+  const demo = buildRecursiveForecastDemo();
+  assert.ok(demo.teacherMae < demo.recursiveMae);
+  assert.ok(demo.lateRecursiveMae > demo.earlyRecursiveMae);
+  assert.equal(demo.rows.length, RECURSIVE_FORECAST_DEMO.horizon);
+});
+
+test('future-covariate oracle is better only because it uses unavailable information', () => {
+  const demo = buildFutureCovariateDemo();
+  assert.ok(demo.oracle.mae < demo.safe.mae);
+  assert.ok(demo.availability.some((item) => item.feature === 'realized traffic' && !item.safe));
+  assert.ok(demo.availability.filter((item) => item.safe).every((item) => item.status.includes('ahead')));
 });

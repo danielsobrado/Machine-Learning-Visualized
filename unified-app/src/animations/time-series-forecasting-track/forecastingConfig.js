@@ -36,3 +36,18 @@ export const SCENARIO_PRESETS = [
   { id: 'weak', label: 'Weak signal', values: { seasonality: 2, trend: 0.05, noise: 6, regimeShift: 0 } },
   { id: 'shift', label: 'Regime shift', values: { seasonality: 12, trend: 0.2, noise: 2.5, regimeShift: 16 } },
 ];
+
+export const RECURSIVE_FORECAST_DEMO = Object.freeze({
+  origin: 78,
+  horizon: 12,
+  lags: Object.freeze([1, 2]),
+  ridge: 1e-6,
+  scenario: Object.freeze({ seasonality: 12, trend: 0.25, noise: 2.5, regimeShift: 0 }),
+});
+
+export const FUTURE_COVARIATE_DEMO = Object.freeze({
+  length: 72,
+  origin: 60,
+  seasonalPeriod: 12,
+  ridge: 1e-6,
+});
