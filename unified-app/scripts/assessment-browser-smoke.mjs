@@ -4,8 +4,10 @@ import { setTimeout as sleep } from 'node:timers/promises';
 import { fileURLToPath } from 'node:url';
 import { chromium } from 'playwright';
 
+import { APP_BASE_PATH } from './route-smoke-plan.mjs';
+
 const PORT = Number(process.env.ASSESSMENT_SMOKE_PORT || 4174);
-const BASE_URL = `http://127.0.0.1:${PORT}`;
+const BASE_URL = `http://127.0.0.1:${PORT}${APP_BASE_PATH}`;
 const PACKAGE_DIR = process.cwd();
 const SERVER_TIMEOUT_MS = 45000;
 
@@ -20,7 +22,7 @@ function startPreviewServer() {
 
 async function serverReady() {
   try {
-    return (await fetch(BASE_URL)).ok;
+    return (await fetch(`${BASE_URL}/`)).ok;
   } catch {
     return false;
   }

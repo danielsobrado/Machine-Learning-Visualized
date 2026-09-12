@@ -9,7 +9,7 @@ The default rule remains:
 
 > Add a question or scenario only when a real reasoning, diagnostic, numerical, comparison, or visual-state gap exists. Otherwise protect strong existing evidence with a regression contract.
 
-The current implementation was intentionally completed before aggregate validation. Statuses below describe repository implementation; the final full test/audit/build/browser run is still to be performed together.
+Aggregate validation was run on `1d1ec806`. Statuses below describe repository implementation plus that review. The remaining `STRUCTURE_ONLY` lessons are the non-priority Qwen Flash-Next drill family and are not A3 promotion work.
 
 ## Status values
 
@@ -45,7 +45,7 @@ The current implementation was intentionally completed before aggregate validati
 |---|---|---|---|---|
 | A1 | P0 | Generic semantic competency model | `DONE` | Shared stable competency/evidence schema |
 | A2 | P0 | Repository-wide semantic coverage inventory | `DONE` | Deterministic classification + blocking priority-gap audit in CI |
-| A3 | P0 | Protect strong-but-unprotected lessons | `IN PROGRESS` | Major strong families promoted; final audit candidates still need aggregate review |
+| A3 | P0 | Protect strong-but-unprotected lessons | `DONE` | Major strong families promoted; remaining `STRUCTURE_ONLY` lessons are non-priority Qwen drills |
 | A4 | P0 | Cross-topic synthesis contract | `DONE` | Six required synthesis families have explicit live evidence |
 | A5 | P1 | Canonical visualizer-state reuse | `DONE` | Three representative assessments derive state from real lesson models |
 | A6 | P1 | Competency/coverage contract consolidation | `DONE` | Stable legacy depth contracts use one shared adapter while focused domain tests remain |
@@ -103,7 +103,7 @@ A priority lesson without recognized semantic protection is a blocking audit err
 
 ## A3 — Protect strong-but-unprotected lessons
 
-**Status:** `IN PROGRESS`
+**Status:** `DONE`
 
 Large parts of the original candidate list are now protected through the generic registry without adding assessment noise. Existing quiz/scenario evidence was reused for:
 
@@ -123,11 +123,22 @@ Large parts of the original candidate list are now protected through the generic
 - time-series forecasting;
 - recommender systems.
 
-### Remaining action
+### Aggregate review
 
-Run the aggregate semantic inventory and review only lessons still emitted as promotion candidates or `STRUCTURE_ONLY`.
+`npm run audit:assessment-semantic` on `1d1ec806` reported **0 priority semantic gaps**. Classification counts were 150 `COMPETENCY_PROTECTED`, 1 `TOPIC_TEST_PROTECTED` (`frontier-moe-systems`), 1 `LEGACY_COVERAGE_PROTECTED` (`tokenizer-bpe`), and 6 `STRUCTURE_ONLY`.
 
-Do not create questions merely to make every lesson generic. A focused topic test or legacy semantic contract remains valid protection when it adds a genuinely domain-specific invariant.
+The only remaining promotion candidates are the non-priority Qwen Flash-Next chapters:
+
+- `qwen-gated-residual`
+- `qwen-hybrid-qsa`
+- `qwen-multimodal-moe`
+- `qwen-ngram-embedding`
+- `qwen-reasoning-control`
+- `qwen-training-recipe`
+
+Each has six authored completion questions plus 94 generated numeric drills (`countsForCompletion: false`). They are not priority lessons and are not the same class of strong unprotected families as classic NLP, linear algebra, or production ML. Do not promote them to generic competencies just to empty the `STRUCTURE_ONLY` list.
+
+A focused topic test or legacy semantic contract remains valid protection when it adds a genuinely domain-specific invariant.
 
 ---
 
@@ -209,6 +220,7 @@ Policy:
 - nightly scheduled run;
 - manual `workflow_dispatch`;
 - not part of every normal push/PR quality run.
+- preview URLs must include the Vite GitHub Pages base path (`/Machine-Learning-Visualized`).
 
 The smoke validates:
 
@@ -277,4 +289,4 @@ Expected interpretation:
 - semantic audit failures are blocking and should be fixed;
 - near-duplicate findings are review candidates, not failures;
 - browser smoke is intentionally outside the normal per-commit quality workflow;
-- A3 should be closed only after remaining semantic-promotion candidates are reviewed.
+- A3 is closed: remaining `STRUCTURE_ONLY` candidates were reviewed and left as non-priority Qwen drills.
