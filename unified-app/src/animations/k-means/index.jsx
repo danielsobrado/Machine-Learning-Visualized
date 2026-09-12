@@ -2,7 +2,13 @@ import React, { useMemo, useState } from 'react';
 import { LocateFixed, RotateCcw, SlidersHorizontal } from 'lucide-react';
 import AssessmentPanel from '../../components/animation-shell/AssessmentPanel';
 import KMeansDiagnosticsLab from './KMeansDiagnosticsLab.jsx';
-import { COLORS, POINTS, runKMeans, toScreen } from './kMeansModel';
+import {
+  COLORS,
+  POINTS,
+  clusterSizes,
+  runKMeans,
+  toScreen,
+} from './kMeansModel';
 
 function Stat({ label, value, detail }) {
   return (
@@ -18,7 +24,10 @@ export default function KMeansAnimation() {
   const [k, setK] = useState(4);
   const [iterations, setIterations] = useState(2);
   const result = useMemo(() => runKMeans(k, iterations), [k, iterations]);
-  const clusterSizes = result.centroids.map((_, cluster) => result.assignments.filter((value) => value === cluster).length);
+  const sizes = clusterSizes(result.assignments, result.centroids.length);
+  const currentTrace = result.trace[result.trace.length - 1];
+  const initialInertia = result.trace[0].inertia;
+  const inertiaReduction = initialInertia - result.inertia;
 
   const reset = () => {
     setK(4);
@@ -48,10 +57,19 @@ export default function KMeansAnimation() {
         </div>
       </section>
 
-      <div className="grid gap-3 md:grid-cols-3">
-        <Stat label="Clusters" value={k} detail="chosen centroids" />
-        <Stat label="Iterations" value={iterations} detail="assignment/update cycles" />
-        <Stat label="Inertia" value={result.inertia.toFixed(1)} detail="sum of squared distances" />
+      <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
+        <Stat label="Clusters" value={k} detail={`${sizes.filter((size) => size > 0).length} currently used`} />
+        <Stat label="Inertia" value={result.inertia.toFixed(1)} detail={`${inertiaReduction.toFixed(1)} lower than initialization`} />
+        <Stat
+          label="Assignments changed"
+          value={currentTrace.assignmentChanges === null ? '—' : currentTrace.assignmentChanges}
+          detail={iterations === 0 ? 'initial assignment only' : `during cycle ${iterations}`}
+        />
+        <Stat
+          label="Convergence"
+          value={result.converged ? `cycle ${result.convergedAt}` : 'not yet'}
+          detail={result.emptyClusters.length ? `${result.emptyClusters.length} empty centroid(s)` : 'all requested clusters populated'}
+        />
       </div>
 
       <section className="rounded-lg border border-slate-200 bg-white p-5">
@@ -73,17 +91,29 @@ export default function KMeansAnimation() {
             />
           </label>
           <label className="grid gap-2 text-sm font-bold text-slate-700">
-            Iterations: {iterations}
+            Full assignment/update cycles: {iterations}
             <input
               min="0"
               max="6"
               step="1"
               type="range"
               value={iterations}
-              aria-label={`K-means iterations: ${iterations}`}
+              aria-label={`K-means full update cycles: ${iterations}`}
               onChange={(event) => setIterations(Number(event.target.value))}
             />
           </label>
+        </div>
+        <div className={`mt-4 rounded-lg border p-4 ${result.converged ? 'border-emerald-200 bg-emerald-50 text-emerald-950' : 'border-amber-200 bg-amber-50 text-amber-950'}`}>
+          <strong className="text-sm">
+            {result.converged ? 'Assignments have stabilized' : 'The requested iteration budget has not demonstrated convergence yet'}
+          </strong>
+          <p className="mt-2 text-sm leading-6">
+            {result.converged
+              ? `The first cycle with zero assignment changes is ${result.convergedAt}. Extra cycles after that reproduce the same partition under this deterministic initialization.`
+              : iterations === 0
+                ? 'Cycle 0 only assigns points to the initial seeds. No centroid mean update has happened yet.'
+                : `Cycle ${iterations} changed ${currentTrace.assignmentChanges} assignment(s), with maximum centroid movement ${currentTrace.maxCentroidShift.toFixed(3)}.`}
+          </p>
         </div>
       </section>
 
@@ -93,7 +123,7 @@ export default function KMeansAnimation() {
             <LocateFixed size={16} />
             Assign to nearest centroid, then move centroid to the mean
           </div>
-          <svg viewBox="0 0 360 360" className="h-auto w-full rounded-lg border border-slate-200 bg-slate-50" role="img" aria-label={`K-means clustering with ${k} clusters after ${iterations} iterations`}>
+          <svg viewBox="0 0 360 360" className="h-auto w-full rounded-lg border border-slate-200 bg-slate-50" role="img" aria-label={`K-means clustering with ${k} clusters after ${iterations} full cycles`}>
             {Array.from({ length: 7 }, (_, index) => (
               <g key={index}>
                 <line x1={40 + index * 46} y1="24" x2={40 + index * 46} y2="330" stroke="#e2e8f0" />
@@ -127,7 +157,7 @@ export default function KMeansAnimation() {
           <section className="rounded-lg border border-slate-200 bg-white p-5">
             <h3 className="text-sm font-black uppercase tracking-wide text-slate-600">Cluster sizes</h3>
             <div className="mt-4 space-y-3">
-              {clusterSizes.map((size, index) => (
+              {sizes.map((size, index) => (
                 <div key={index} className="grid grid-cols-[80px_1fr_40px] items-center gap-3 text-sm">
                   <span className="font-bold" style={{ color: COLORS[index] }}>cluster {index + 1}</span>
                   <div className="h-3 rounded bg-slate-100">
@@ -142,8 +172,7 @@ export default function KMeansAnimation() {
           <section className="rounded-lg border border-blue-200 bg-blue-50 p-5">
             <h3 className="text-sm font-black uppercase tracking-wide text-blue-700">What to watch</h3>
             <p className="mt-3 text-sm leading-6 text-blue-950">
-              Increasing iterations lowers inertia until assignments stabilize. Increasing k also lowers inertia by construction,
-              so inertia alone cannot tell you how many clusters are useful.
+              Each valid Lloyd cycle cannot increase inertia for a fixed initialization. More iterations do not guarantee a better global solution once the run reaches a local optimum, and comparing different k values also requires separation, stability, and domain judgment.
             </p>
           </section>
 
@@ -152,7 +181,8 @@ export default function KMeansAnimation() {
             <ol className="mt-4 space-y-3 text-sm leading-6 text-slate-700">
               <li className="flex gap-3"><strong>1</strong><span>Choose k initial centroids.</span></li>
               <li className="flex gap-3"><strong>2</strong><span>Assign every point to its nearest centroid.</span></li>
-              <li className="flex gap-3"><strong>3</strong><span>Replace each centroid with the mean of its assigned points.</span></li>
+              <li className="flex gap-3"><strong>3</strong><span>Replace each non-empty centroid with the mean of its assigned points.</span></li>
+              <li className="flex gap-3"><strong>4</strong><span>Stop when assignments/centroids stabilize or a budget is reached.</span></li>
             </ol>
           </section>
         </aside>
