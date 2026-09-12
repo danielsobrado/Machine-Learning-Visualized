@@ -73,6 +73,13 @@ export default function NestedSelectionLab({ candidateCount, onCandidateCountCha
           </p>
         </div>
       </div>
+
+      <div className="mt-5 rounded-lg border border-amber-200 bg-amber-50 p-4 text-amber-950">
+        <p className="text-xs font-black uppercase tracking-wide">Outer folds are evidence only while they stay outside adaptation</p>
+        <p className="mt-2 text-sm leading-6">
+          Nested CV protects each outer fold from the search run inside it. If you inspect outer results and start another round of feature, architecture, or hyperparameter changes, those outer results have become development feedback too. Keep an untouched final test or fresh data for the final claim after that adaptive process is frozen.
+        </p>
+      </div>
     </section>
   );
 }
