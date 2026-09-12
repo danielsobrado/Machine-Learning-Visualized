@@ -1,18 +1,21 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import {
+  batchCrossEntropy,
   binaryCrossEntropy,
+  buildBatchReductionLab,
   buildCrossEntropyLab,
   categoricalCrossEntropy,
   crossEntropyFromLogits,
   entropy,
   klDivergence,
   logSumExp,
+  naiveSoftmax,
   oneHot,
   softmax,
   softmaxCrossEntropyGradient,
 } from './crossEntropyModel.js';
-import { CROSS_ENTROPY_SCENARIOS } from './crossEntropyConfig.js';
+import { CROSS_ENTROPY_BATCH_EXAMPLES, CROSS_ENTROPY_SCENARIOS } from './crossEntropyConfig.js';
 
 test('one-hot categorical loss reduces to negative log probability of the true class', () => {
   const target = oneHot(3, 1);
@@ -51,9 +54,11 @@ test('adding a constant to every logit does not change softmax or cross entropy'
   assert.ok(Math.abs(crossEntropyFromLogits(target, a) - crossEntropyFromLogits(target, b)) < 1e-12);
 });
 
-test('stable log-sum-exp remains finite for extreme logits', () => {
-  assert.ok(Number.isFinite(logSumExp([1000, 999, -1000])));
-  assert.ok(Number.isFinite(crossEntropyFromLogits([1, 0, 0], [1000, 999, -1000])));
+test('stable log-sum-exp remains finite while raw exponentiation fails on extreme logits', () => {
+  const logits = [1000, 999, -1000];
+  assert.ok(Number.isFinite(logSumExp(logits)));
+  assert.ok(Number.isFinite(crossEntropyFromLogits([1, 0, 0], logits)));
+  assert.ok(naiveSoftmax(logits).some((value) => !Number.isFinite(value)));
 });
 
 test('overconfident wrong prediction is punished more than cautious wrong prediction', () => {
@@ -78,4 +83,31 @@ test('binary cross entropy handles exact correct certainty and impossible truth'
   assert.equal(binaryCrossEntropy(1, 1), 0);
   assert.equal(binaryCrossEntropy(0, 0), 0);
   assert.equal(binaryCrossEntropy(1, 0), Number.POSITIVE_INFINITY);
+});
+
+test('batch sum and mean reductions obey exact duplication semantics', () => {
+  const lab = buildBatchReductionLab(CROSS_ENTROPY_BATCH_EXAMPLES);
+  assert.ok(Math.abs(lab.sumLossRatio - 2) < 1e-12);
+  assert.ok(Math.abs(lab.meanLossRatio - 1) < 1e-12);
+  assert.ok(Math.abs(lab.sumGradientRatio - 2) < 1e-12);
+  assert.ok(Math.abs(lab.meanGradientRatio - 1) < 1e-12);
+});
+
+test('mean reduction is the average of per-example losses for unit weights', () => {
+  const losses = batchCrossEntropy(CROSS_ENTROPY_BATCH_EXAMPLES, 'none');
+  const expected = losses.reduce((sum, value) => sum + value, 0) / losses.length;
+  assert.ok(Math.abs(batchCrossEntropy(CROSS_ENTROPY_BATCH_EXAMPLES, 'mean') - expected) < 1e-12);
+});
+
+test('weighted mean reduction divides by total sample weight rather than raw batch size', () => {
+  const weights = [3, 1, 1];
+  const losses = batchCrossEntropy(CROSS_ENTROPY_BATCH_EXAMPLES, 'none');
+  const expected = (3 * losses[0] + losses[1] + losses[2]) / 5;
+  assert.ok(Math.abs(batchCrossEntropy(CROSS_ENTROPY_BATCH_EXAMPLES, 'mean', weights) - expected) < 1e-12);
+});
+
+test('invalid reductions and malformed weights fail explicitly', () => {
+  assert.throws(() => batchCrossEntropy(CROSS_ENTROPY_BATCH_EXAMPLES, 'median'), RangeError);
+  assert.throws(() => batchCrossEntropy(CROSS_ENTROPY_BATCH_EXAMPLES, 'mean', [1, -1, 1]), RangeError);
+  assert.throws(() => batchCrossEntropy(CROSS_ENTROPY_BATCH_EXAMPLES, 'mean', [0, 0, 0]), RangeError);
 });
