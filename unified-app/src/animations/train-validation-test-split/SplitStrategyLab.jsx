@@ -45,6 +45,12 @@ export default function SplitStrategyLab({ targetId, mode, validationPercent, te
   );
   const audit = useMemo(() => auditSplit(mode, targetId, splits), [mode, targetId, splits]);
   const target = EVALUATION_TARGETS[targetId];
+  const hasWarning = audit.valid && audit.warnings.length > 0;
+  const auditStyle = !audit.valid
+    ? 'border-rose-200 bg-rose-50 text-rose-950'
+    : hasWarning
+      ? 'border-amber-200 bg-amber-50 text-amber-950'
+      : 'border-emerald-200 bg-emerald-50 text-emerald-950';
 
   return (
     <section className="rounded-lg border border-slate-200 bg-white p-5">
@@ -110,15 +116,19 @@ export default function SplitStrategyLab({ targetId, mode, validationPercent, te
         </label>
       </div>
 
-      <div className={`mt-5 rounded-lg border p-4 ${audit.valid ? 'border-emerald-200 bg-emerald-50 text-emerald-950' : 'border-rose-200 bg-rose-50 text-rose-950'}`}>
+      <div className={`mt-5 rounded-lg border p-4 ${auditStyle}`}>
         <p className="flex items-center gap-2 text-xs font-black uppercase tracking-wide">
-          {audit.valid ? <CheckCircle2 size={15} /> : <AlertTriangle size={15} />}
-          {audit.valid ? 'Boundary matches the deployment target' : 'Boundary is optimistic for this deployment target'}
+          {audit.valid && !hasWarning ? <CheckCircle2 size={15} /> : <AlertTriangle size={15} />}
+          {!audit.valid
+            ? 'Boundary is optimistic for this deployment target'
+            : hasWarning
+              ? 'Boundary valid with sampling caveat'
+              : 'Boundary matches the deployment target'}
         </p>
         <p className="mt-2 text-sm leading-6">
-          {audit.valid
-            ? `${SPLIT_MODES[mode].label} respects the required independence for ${target.label.toLowerCase()}.`
-            : audit.failures.join(' · ')}
+          {!audit.valid
+            ? audit.failures.join(' · ')
+            : `${SPLIT_MODES[mode].label} respects the required independence for ${target.label.toLowerCase()}.${hasWarning ? ` ${audit.warnings.join(' · ')}` : ''}`}
         </p>
       </div>
 
@@ -139,7 +149,7 @@ export default function SplitStrategyLab({ targetId, mode, validationPercent, te
         <div className="mt-4 rounded-lg border border-amber-200 bg-amber-50 p-4 text-amber-950">
           <p className="flex items-center gap-2 text-xs font-black uppercase tracking-wide"><Shuffle size={14} /> Entity overlap</p>
           <p className="mt-2 text-sm leading-6">
-            {audit.overlap.map((item) => `${item.entity}: ${item.buckets.join(' → ')}`).join(' · ')}. Row-level balance can look excellent while identity leaks across partitions.
+            {audit.overlap.map((item) => `${item.entity}: ${item.buckets.join(' → ')}`).join(' · ')}. If repeated rows from one entity share signal, row-level balance can look excellent while identity leaks. If rows truly are independent and exchangeable, overlap is not itself a boundary violation.
           </p>
         </div>
       )}
