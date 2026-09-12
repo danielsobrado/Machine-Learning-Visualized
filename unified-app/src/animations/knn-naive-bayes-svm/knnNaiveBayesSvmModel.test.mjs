@@ -59,6 +59,13 @@ test('posterior normalization remains stable for very negative log scores', () =
   assert.ok(Math.abs(posterior.blue + posterior.orange - 1) < 1e-12);
 });
 
+test('one evidence column matches the dependency-aware posterior', () => {
+  const result = naiveBayesDuplicateEvidence({ ...NAIVE_BAYES_DEPENDENCE_DEMO, copies: 1 });
+  assert.ok(Math.abs(result.naivePosterior - result.dependencyAwarePosterior) < 1e-12);
+  assert.ok(Math.abs(result.dependencyAwarePosterior - 0.72) < 1e-12);
+  assert.ok(Math.abs(result.overconfidenceGap) < 1e-12);
+});
+
 test('exact duplicate features add no information but make naive Bayes overconfident', () => {
   const fourCopies = naiveBayesDuplicateEvidence({ ...NAIVE_BAYES_DEPENDENCE_DEMO, copies: 4 });
   const eightCopies = naiveBayesDuplicateEvidence({ ...NAIVE_BAYES_DEPENDENCE_DEMO, copies: 8 });
@@ -73,6 +80,13 @@ test('Naive Bayes false certainty rises monotonically as redundant copies are ad
     assert.ok(series[index].naivePosterior > series[index - 1].naivePosterior);
     assert.equal(series[index].dependencyAwarePosterior, series[0].dependencyAwarePosterior);
   }
+});
+
+test('duplicate evidence inputs are validated', () => {
+  assert.throws(() => naiveBayesDuplicateEvidence({ copies: 0 }), RangeError);
+  assert.throws(() => naiveBayesDuplicateEvidence({ copies: 1.5 }), RangeError);
+  assert.throws(() => naiveBayesDuplicateEvidence({ copies: 2, priorBlue: 1 }), RangeError);
+  assert.throws(() => naiveBayesDuplicateEvidence({ copies: 2, likelihoodGivenBlue: 0 }), RangeError);
 });
 
 test('linear SVM boundary is actually fitted from lesson points', () => {
@@ -105,13 +119,23 @@ test('SVM query output is a signed geometric margin distance, not a probability'
   assert.ok(orange.marginDistance >= 0);
 });
 
-test('SVM boundary segment is derived from the fitted decision equation', () => {
+test('SVM boundary and margin segments are derived from the fitted decision equation', () => {
   const fit = fitLinearSvm(POINTS, 10);
-  const [start, end] = svmBoundarySegment(fit, project);
-  assert.ok([start.cx, start.cy, end.cx, end.cy].every(Number.isFinite));
+  for (const level of [-1, 0, 1]) {
+    const [start, end] = svmBoundarySegment(fit, project, level);
+    assert.ok([start.cx, start.cy, end.cx, end.cy].every(Number.isFinite));
+  }
 });
 
 test('invalid SVM training inputs fail explicitly', () => {
   assert.throws(() => fitLinearSvm(POINTS, 0), RangeError);
   assert.throws(() => fitLinearSvm(POINTS.filter((point) => point.label === 'blue'), 1), RangeError);
+});
+
+test('projection keeps lesson points inside the displayed plot bounds', () => {
+  for (const point of POINTS) {
+    const { cx, cy } = project(point);
+    assert.ok(cx >= 36 && cx <= 364, `${point.id} x should be inside chart`);
+    assert.ok(cy >= 36 && cy <= 276, `${point.id} y should be inside chart`);
+  }
 });
