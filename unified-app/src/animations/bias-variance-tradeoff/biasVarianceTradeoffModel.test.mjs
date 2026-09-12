@@ -2,103 +2,105 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 import { RESAMPLING_SEEDS } from './biasVarianceResamplingConstants.js';
 import {
-  curvePath,
-  errorProfile,
+  decompositionProfile,
+  fitModel,
+  fittedCurvePath,
   makePoints,
   meanResampledCurvePath,
-  predict,
+  meanSquaredError,
+  predictFitted,
   project,
   recommendationForProfile,
   resampledPrediction,
   resamplingProfile,
   truth,
+  truthCurvePath,
 } from './biasVarianceTradeoffModel.js';
 
-test('bias variance sample levels produce deterministic point sets', () => {
-  const small = makePoints('small', 0.45);
-  const medium = makePoints('medium', 0.45);
-  const large = makePoints('large', 0.45);
+function closeTo(actual, expected, tolerance = 1e-8) {
+  assert.ok(Math.abs(actual - expected) <= tolerance, `${actual} should be within ${tolerance} of ${expected}`);
+}
+
+test('sample generation is deterministic per seed and changes across retraining samples', () => {
+  const small = makePoints('small', 0.45, 11);
+  const repeated = makePoints('small', 0.45, 11);
+  const different = makePoints('small', 0.45, 23);
 
   assert.equal(small.length, 10);
-  assert.equal(medium.length, 22);
-  assert.equal(large.length, 42);
-  assert.equal(small[0].id, 0);
-  assert.equal(small[0].x, 4);
-  assert.equal(small.at(-1).x, 96);
-  assert.deepEqual(makePoints('small', 0.45), small);
+  assert.equal(makePoints('medium', 0.45, 11).length, 22);
+  assert.equal(makePoints('large', 0.45, 11).length, 42);
+  assert.deepEqual(small, repeated);
+  assert.notDeepEqual(small.map((point) => point.y), different.map((point) => point.y));
+  assert.throws(() => makePoints('unknown', 0.4), RangeError);
+  assert.throws(() => makePoints('small', -0.1), RangeError);
 });
 
-test('simple model is diagnosed as high-bias underfitting', () => {
-  const profile = errorProfile('simple', 'medium', 0.45);
+test('model choices fit genuinely different polynomial capacities', () => {
+  const points = makePoints('medium', 0.45, 0);
+  const simple = fitModel(points, 'simple');
+  const balanced = fitModel(points, 'balanced');
+  const flexible = fitModel(points, 'flexible');
 
-  assert.ok(profile.bias > profile.variance);
-  assert.equal(profile.bias, 34);
-  assert.equal(recommendationForProfile(profile), 'The model is underfitting: add useful flexibility or better features.');
+  assert.equal(simple.degree, 1);
+  assert.equal(simple.coefficients.length, 2);
+  assert.equal(balanced.degree, 5);
+  assert.equal(balanced.coefficients.length, 6);
+  assert.equal(flexible.degree, 8);
+  assert.equal(flexible.coefficients.length, 9);
+  assert.ok(meanSquaredError(points, flexible) < meanSquaredError(points, simple));
+  assert.throws(() => fitModel(points, 'unknown'), RangeError);
 });
 
-test('flexible model on scarce noisy data is diagnosed as variance-heavy', () => {
-  const profile = errorProfile('flexible', 'small', 0.8);
+test('simple model is stable across retraining but systematically biased', () => {
+  const profile = decompositionProfile('simple', 'medium', 0.45);
 
-  assert.ok(profile.variance > profile.bias + 10);
-  assert.ok(profile.gap > 35);
-  assert.equal(profile.bias, 6);
-  assert.equal(recommendationForProfile(profile), 'The model is variance-heavy: add data, regularize, simplify, or use averaging.');
+  assert.ok(profile.biasSquared > profile.variance * 100);
+  assert.match(recommendationForProfile(profile), /Bias dominates/);
 });
 
-test('larger samples reduce the flexible model variance term', () => {
-  const small = errorProfile('flexible', 'small', 0.6);
-  const large = errorProfile('flexible', 'large', 0.6);
+test('flexible model on scarce noisy data is variance-heavy', () => {
+  const profile = decompositionProfile('flexible', 'small', 0.8);
 
-  assert.ok(large.variance < small.variance);
-  assert.ok(large.validation < small.validation);
+  assert.ok(profile.variance > profile.biasSquared * 4);
+  assert.match(recommendationForProfile(profile), /Variance dominates/);
 });
 
-test('prediction curves keep simple, balanced, and truth behaviors distinct', () => {
-  const x = 30;
-  const simpleMiss = Math.abs(predict(x, 'simple', 0.45) - truth(x));
-  const balancedMiss = Math.abs(predict(x, 'balanced', 0.45) - truth(x));
-  const flexibleMiss = Math.abs(predict(x, 'flexible', 0.45) - truth(x));
+test('larger samples reduce measured flexible-model variance', () => {
+  const small = decompositionProfile('flexible', 'small', 0.7);
+  const large = decompositionProfile('flexible', 'large', 0.7);
 
-  assert.ok(balancedMiss < simpleMiss);
-  assert.ok(flexibleMiss < simpleMiss);
+  assert.ok(small.variance > large.variance * 5);
 });
 
-test('curve and projection helpers return finite chart coordinates', () => {
-  const projected = project({ x: 50, y: truth(50) });
-  const path = curvePath('balanced', 0.45);
-  const commands = path.match(/[ML]/g) || [];
+test('irreducible noise is separate from model bias and variance', () => {
+  const quiet = decompositionProfile('balanced', 'medium', 0);
+  const noisy = decompositionProfile('balanced', 'medium', 0.9);
 
-  assert.ok(Number.isFinite(projected.cx));
-  assert.ok(Number.isFinite(projected.cy));
-  assert.match(path, /^M \d+\.\d -?\d+\.\d/);
-  assert.equal(commands.length, 70);
+  closeTo(quiet.irreducibleVariance, 0);
+  assert.ok(noisy.irreducibleVariance > quiet.irreducibleVariance);
+  assert.equal(
+    noisy.expectedSquaredError,
+    noisy.biasSquared + noisy.variance + noisy.irreducibleVariance,
+  );
 });
 
-test('retraining the same flexible specification on different samples changes its prediction', () => {
+test('zero outcome noise produces essentially identical retraining fits', () => {
+  const profile = resamplingProfile('flexible', 'small', 0);
+
+  assert.ok(profile.variance < 1e-12);
+  assert.ok(profile.predictionStd < 1e-6);
+});
+
+test('retraining the same flexible specification on different noisy samples changes predictions', () => {
   const predictions = RESAMPLING_SEEDS.map((seed) => (
     resampledPrediction(58, 'flexible', 'small', 0.7, seed)
   ));
 
-  assert.ok(Math.max(...predictions) - Math.min(...predictions) > 10);
+  assert.ok(Math.max(...predictions) - Math.min(...predictions) > 5);
   assert.equal(new Set(predictions.map((value) => value.toFixed(8))).size, RESAMPLING_SEEDS.length);
 });
 
-test('measured flexible-model variance falls substantially with more training data', () => {
-  const small = resamplingProfile('flexible', 'small', 0.7);
-  const large = resamplingProfile('flexible', 'large', 0.7);
-
-  assert.ok(small.variance > large.variance * 5);
-  assert.ok(small.predictionStd > large.predictionStd * 2);
-});
-
-test('simple model can be stable across retraining while remaining systematically biased', () => {
-  const profile = resamplingProfile('simple', 'small', 0.7);
-
-  assert.ok(profile.biasSquared > profile.variance * 100);
-  assert.ok(Math.abs(profile.bias) > 10);
-});
-
-test('resampling decomposition adds bias squared variance and irreducible noise exactly', () => {
+test('probe decomposition adds bias squared variance and irreducible noise exactly', () => {
   const profile = resamplingProfile('balanced', 'medium', 0.55);
 
   assert.equal(
@@ -109,11 +111,26 @@ test('resampling decomposition adds bias squared variance and irreducible noise 
   assert.ok(profile.irreducibleVariance > 0);
 });
 
-test('resampling helpers validate invalid configurations and produce chart paths', () => {
-  assert.throws(() => resamplingProfile('balanced', 'medium', 0.4, 58, []), RangeError);
-  assert.throws(() => resampledPrediction(58, 'unknown', 'medium', 0.4, 1), RangeError);
+test('fitted predictions and chart paths remain finite', () => {
+  const fit = fitModel(makePoints('medium', 0.45, 0), 'balanced');
+  const prediction = predictFitted(50, fit);
+  const projected = project({ x: 50, y: prediction });
+  const fittedPath = fittedCurvePath(fit);
+  const truthPath = truthCurvePath();
+  const meanPath = meanResampledCurvePath('balanced', 'medium', 0.4);
 
-  const path = meanResampledCurvePath('balanced', 'medium', 0.4);
-  assert.equal((path.match(/[ML]/g) || []).length, 70);
-  assert.ok(!path.includes('NaN'));
+  assert.ok(Number.isFinite(prediction));
+  assert.ok(Number.isFinite(projected.cx));
+  assert.ok(Number.isFinite(projected.cy));
+  assert.equal((fittedPath.match(/[ML]/g) || []).length, 70);
+  assert.equal((truthPath.match(/[ML]/g) || []).length, 70);
+  assert.equal((meanPath.match(/[ML]/g) || []).length, 70);
+  assert.ok(!meanPath.includes('NaN'));
+  assert.ok(Number.isFinite(truth(50)));
+});
+
+test('resampling helpers reject empty seed sets', () => {
+  assert.throws(() => resamplingProfile('balanced', 'medium', 0.4, 58, []), RangeError);
+  assert.throws(() => decompositionProfile('balanced', 'medium', 0.4, []), RangeError);
+  assert.throws(() => meanResampledCurvePath('balanced', 'medium', 0.4, []), RangeError);
 });
