@@ -1,8 +1,12 @@
 import React, { useMemo, useState } from 'react';
 import { AlertTriangle, Binary, Gauge, Sigma } from 'lucide-react';
 import AssessmentPanel from '../../components/animation-shell/AssessmentPanel';
-import { CROSS_ENTROPY_DEFAULTS, CROSS_ENTROPY_SCENARIOS } from './crossEntropyConfig';
-import { buildCrossEntropyLab } from './crossEntropyModel';
+import {
+  CROSS_ENTROPY_BATCH_EXAMPLES,
+  CROSS_ENTROPY_DEFAULTS,
+  CROSS_ENTROPY_SCENARIOS,
+} from './crossEntropyConfig';
+import { buildBatchReductionLab, buildCrossEntropyLab } from './crossEntropyModel';
 
 const CLASS_NAMES = ['cat', 'dog', 'fox'];
 
@@ -30,6 +34,7 @@ export default function CrossEntropyAnimation() {
   const [labelSmoothing, setLabelSmoothing] = useState(CROSS_ENTROPY_DEFAULTS.labelSmoothing);
   const scenario = CROSS_ENTROPY_SCENARIOS.find((item) => item.id === scenarioId);
   const lab = useMemo(() => buildCrossEntropyLab({ scenario, logitScale, labelSmoothing }), [scenario, logitScale, labelSmoothing]);
+  const batchLab = useMemo(() => buildBatchReductionLab(CROSS_ENTROPY_BATCH_EXAMPLES), []);
 
   const correctCautious = scenarioLab('correct-cautious');
   const correctConfident = scenarioLab('correct-confident');
@@ -77,7 +82,7 @@ export default function CrossEntropyAnimation() {
         <Stat label="Cross-entropy" value={lab.loss.toFixed(4)} detail="nats" />
         <Stat label="True-class p" value={`${(lab.trueClassProbability * 100).toFixed(2)}%`} detail={CLASS_NAMES[scenario.targetIndex]} />
         <Stat label="Argmax" value={CLASS_NAMES[lab.predictedIndex]} detail={lab.correct ? 'correct prediction' : 'wrong prediction'} />
-        <Stat label="Target entropy" value={lab.targetEntropy.toFixed(4)} detail="irreducible target uncertainty" />
+        <Stat label="Target entropy" value={lab.targetEntropy.toFixed(4)} detail="target uncertainty" />
         <Stat label="KL mismatch" value={lab.klDivergence.toFixed(4)} detail="extra loss from Q ≠ P" />
       </div>
 
@@ -110,22 +115,43 @@ export default function CrossEntropyAnimation() {
         <section className="rounded-lg border border-slate-200 bg-white p-5">
           <h3 className="flex items-center gap-2 text-sm font-black uppercase tracking-wide text-slate-600"><Sigma size={16} /> Why logits are the stable path</h3>
           <p className="mt-4 text-sm leading-6 text-slate-700">
-            Computing <span className="font-mono">-log(softmax(z))</span> naively can overflow or underflow for extreme logits.
-            The model uses log-sum-exp, subtracting the largest logit before exponentiating.
+            Raw <span className="font-mono">exp(z)</span> can overflow before probabilities are even formed. Stable softmax/log-softmax subtracts the maximum logit, and fused cross-entropy can stay in log space entirely.
           </p>
           <div className="mt-4 rounded-lg bg-slate-950 p-4 font-mono text-sm text-slate-100">
             log softmax(zᵢ) = zᵢ - logΣ exp(zⱼ)
           </div>
-          <div className="mt-4 rounded-lg border border-emerald-200 bg-emerald-50 p-4 text-sm leading-6 text-emerald-950">
-            {Number.isFinite(lab.probabilityLoss)
-              ? <>Probability-space loss and stable logit-space loss agree here: difference {Math.abs(lab.loss - lab.probabilityLoss).toExponential(2)}.</>
-              : <>The naive probability-space path has underflowed to an infinite loss, while the stable logit-space loss remains {lab.loss.toFixed(4)}.</>}
+          <div className={`mt-4 rounded-lg border p-4 text-sm leading-6 ${lab.naiveSoftmaxFinite ? 'border-emerald-200 bg-emerald-50 text-emerald-950' : 'border-rose-200 bg-rose-50 text-rose-950'}`}>
+            Raw exponentiation path: <strong>{lab.naiveSoftmaxFinite ? 'finite for these logits' : 'overflow / NaN'}</strong>. Stable logit-space cross-entropy remains {lab.loss.toFixed(4)}.
           </div>
           <div className="mt-4 rounded-lg border border-cyan-200 bg-cyan-50 p-4 text-sm leading-6 text-cyan-950">
-            For softmax + cross-entropy, the gradient is simply <span className="font-mono">prediction - target</span>. Its components sum to {lab.gradientSum.toExponential(1)}.
+            The stable probability-space and stable logit-space losses agree when probabilities remain representable: difference {Number.isFinite(lab.probabilityLoss) ? Math.abs(lab.loss - lab.probabilityLoss).toExponential(2) : '∞ after probability underflow'}.
+          </div>
+          <div className="mt-4 rounded-lg border border-cyan-200 bg-cyan-50 p-4 text-sm leading-6 text-cyan-950">
+            For softmax + cross-entropy, the gradient is <span className="font-mono">prediction - target</span>. Its components sum to {lab.gradientSum.toExponential(1)}.
           </div>
         </section>
       </div>
+
+      <section className="rounded-lg border border-slate-200 bg-white p-5">
+        <h3 className="flex items-center gap-2 text-sm font-black uppercase tracking-wide text-slate-600"><Sigma size={16} /> Batch reduction changes optimization scale</h3>
+        <p className="mt-3 max-w-4xl text-sm leading-6 text-slate-700">
+          The per-example losses are identical in both batches below. The only change is duplicating every example once. A <strong>sum</strong> reduction doubles the objective and the gradient of a shared logit-scale parameter; a <strong>mean</strong> reduction leaves both unchanged.
+        </p>
+        <div className="mt-4 grid gap-3 md:grid-cols-3">
+          {batchLab.perExampleLosses.map((loss, index) => (
+            <Stat key={CROSS_ENTROPY_BATCH_EXAMPLES[index].id} label={`Example ${index + 1}`} value={loss.toFixed(4)} detail={`target class ${CROSS_ENTROPY_BATCH_EXAMPLES[index].targetIndex}`} />
+          ))}
+        </div>
+        <div className="mt-4 grid gap-3 md:grid-cols-4">
+          <Stat label="Sum loss" value={batchLab.sumLoss.toFixed(4)} detail={`duplicate batch → ${batchLab.duplicatedSumLoss.toFixed(4)} (${batchLab.sumLossRatio.toFixed(1)}×)`} />
+          <Stat label="Mean loss" value={batchLab.meanLoss.toFixed(4)} detail={`duplicate batch → ${batchLab.duplicatedMeanLoss.toFixed(4)} (${batchLab.meanLossRatio.toFixed(1)}×)`} />
+          <Stat label="Sum gradient" value={batchLab.sumGradient.toFixed(4)} detail={`shared scale gradient → ${batchLab.duplicatedSumGradient.toFixed(4)}`} />
+          <Stat label="Mean gradient" value={batchLab.meanGradient.toFixed(4)} detail={`shared scale gradient → ${batchLab.duplicatedMeanGradient.toFixed(4)}`} />
+        </div>
+        <p className="mt-4 rounded-lg border border-amber-200 bg-amber-50 p-4 text-sm leading-6 text-amber-950">
+          Reduction is part of the optimization contract. Changing batch size while using <span className="font-mono">sum</span> changes effective gradient scale; <span className="font-mono">mean</span> normalizes by total sample weight in this lesson's weighted form.
+        </p>
+      </section>
 
       <section className="rounded-lg border border-slate-200 bg-white p-5">
         <h3 className="flex items-center gap-2 text-sm font-black uppercase tracking-wide text-slate-600"><Binary size={16} /> Accuracy can hide probability quality</h3>
@@ -166,7 +192,7 @@ export default function CrossEntropyAnimation() {
 
       {scenarioId === 'extreme-logits' && (
         <div className="rounded-lg border border-amber-300 bg-amber-50 p-4 text-sm leading-6 text-amber-950">
-          <AlertTriangle className="mr-2 inline" size={16} /> Extreme logits remain finite because the implementation uses stable log-sum-exp rather than direct exponentiation of 1000.
+          <AlertTriangle className="mr-2 inline" size={16} /> The raw exp(1000) path overflows, but stable log-sum-exp keeps the cross-entropy finite.
         </div>
       )}
 
