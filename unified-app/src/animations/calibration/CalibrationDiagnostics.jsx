@@ -24,6 +24,20 @@ function MetricCard({ label, reference, raw, calibrated, formatter }) {
   );
 }
 
+function BrierComponent({ label, raw, calibrated, detail }) {
+  return (
+    <div className="rounded-lg border border-violet-100 bg-white/80 p-3">
+      <p className="text-[10px] font-black uppercase tracking-wide text-violet-700">{label}</p>
+      <div className="mt-2 flex items-center justify-between gap-3 text-sm font-black">
+        <span className="text-rose-700">{raw.toFixed(3)}</span>
+        <span className="text-slate-400">→</span>
+        <span className="text-cyan-800">{calibrated.toFixed(3)}</span>
+      </div>
+      <p className="mt-1 text-xs font-semibold leading-5 text-slate-500">{detail}</p>
+    </div>
+  );
+}
+
 function DiagnosticBanner({ diagnostic }) {
   const config = {
     stable: {
@@ -55,7 +69,9 @@ function DiagnosticBanner({ diagnostic }) {
 
 export default function CalibrationDiagnostics({ referenceMetrics, rawMetrics, calibratedMetrics, diagnostic, method, parameters }) {
   const percent = (value) => `${(value * 100).toFixed(1)}%`;
-  const decimal = (value) => value.toFixed(3);
+  const decimal = (value) => value === null ? 'N/A' : value.toFixed(3);
+  const rawBrier = rawMetrics.brierComponents;
+  const calibratedBrier = calibratedMetrics.brierComponents;
 
   return (
     <section className="space-y-4">
@@ -97,6 +113,18 @@ export default function CalibrationDiagnostics({ referenceMetrics, rawMetrics, c
           calibrated={calibratedMetrics.baseRate}
           formatter={percent}
         />
+      </div>
+
+      <div className="rounded-lg border border-violet-200 bg-violet-50 p-4">
+        <p className="text-xs font-black uppercase tracking-wide text-violet-800">Brier anatomy</p>
+        <p className="mt-2 text-sm leading-6 text-violet-950">
+          Brier = reliability − resolution + uncertainty. Recalibration can reduce the reliability penalty, but it does not create new risk separation in these fixed score groups.
+        </p>
+        <div className="mt-3 grid gap-3 md:grid-cols-3">
+          <BrierComponent label="Reliability ↓" raw={rawBrier.reliability} calibrated={calibratedBrier.reliability} detail="squared calibration mismatch" />
+          <BrierComponent label="Resolution ↑" raw={rawBrier.resolution} calibrated={calibratedBrier.resolution} detail="how differently groups actually behave" />
+          <BrierComponent label="Uncertainty" raw={rawBrier.uncertainty} calibrated={calibratedBrier.uncertainty} detail="base-rate difficulty; fixed by outcomes" />
+        </div>
       </div>
 
       <div className="rounded-lg border border-slate-200 bg-slate-50 p-4">
