@@ -81,9 +81,9 @@ function TestTuningExperiment({ experiment, repairApplied }) {
   return (
     <section className="rounded-lg border border-violet-200 bg-violet-50 p-5">
       <p className="text-xs font-black uppercase tracking-wide text-violet-700">Finite-sample selection experiment</p>
-      <h3 className="mt-1 text-lg font-black text-violet-950">Twelve equally good recipes can still produce a lucky winner</h3>
+      <h3 className="mt-1 text-lg font-black text-violet-950">{experiment.candidateCount} equally good recipes can still produce a lucky winner</h3>
       <p className="mt-2 max-w-4xl text-sm leading-6 text-violet-900">
-        Every simulated recipe has the same 76% true accuracy. The only difference is finite-sample evaluation noise. Selection uses {experiment.selectionSource}; the reported estimate uses {experiment.reportSource}.
+        Every simulated recipe has the same {percent(experiment.trueAccuracy)} true accuracy. The only difference is finite-sample evaluation noise. Selection uses {experiment.selectionSource}; the reported estimate uses {experiment.reportSource}.
       </p>
       <div className="mt-4 grid gap-3 md:grid-cols-2 xl:grid-cols-4">
         <Stat label="Recipes" value={experiment.candidateCount} detail="all have identical true accuracy" />
@@ -119,7 +119,7 @@ function TestTuningExperiment({ experiment, repairApplied }) {
           : 'border-rose-200 bg-rose-50 text-rose-950'
       }`}>
         {repairApplied
-          ? `The 90% validation winner is frozen before the final test is opened. Its untouched final-test estimate is ${percent(experiment.reportScore)}, ${points(experiment.optimism)} from the known truth in this simulation.`
+          ? `The ${percent(experiment.selectionScore)} validation winner is frozen before the final test is opened. Its untouched final-test estimate is ${percent(experiment.reportScore)}, ${points(experiment.optimism)} from the known truth in this simulation.`
           : `Selecting and reporting the best final-test result gives ${percent(experiment.reportScore)}. A fresh independent sample gives ${percent(experiment.referenceScore)}, exposing ${points(experiment.optimism)} of winner optimism.`}
       </p>
     </section>
