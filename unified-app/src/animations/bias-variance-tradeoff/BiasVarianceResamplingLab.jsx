@@ -6,7 +6,7 @@ import {
   project,
   resampledCurvePath,
   resamplingProfile,
-  truth,
+  truthCurvePath,
 } from './biasVarianceTradeoffModel.js';
 
 function DecompositionBar({ label, value, total, className }) {
@@ -39,13 +39,7 @@ export default function BiasVarianceResamplingLab({ model, sampleLevel, noise })
     () => resamplingProfile(model, sampleLevel, noise),
     [model, sampleLevel, noise],
   );
-  const truthPath = useMemo(() => {
-    return Array.from({ length: 70 }, (_, index) => {
-      const x = (index / 69) * 100;
-      const { cx, cy } = project({ x, y: truth(x) });
-      return `${index === 0 ? 'M' : 'L'} ${cx.toFixed(1)} ${cy.toFixed(1)}`;
-    }).join(' ');
-  }, []);
+  const truthPath = useMemo(() => truthCurvePath(), []);
   const fitPaths = useMemo(
     () => RESAMPLING_SEEDS.map((seed) => resampledCurvePath(model, sampleLevel, noise, seed)),
     [model, sampleLevel, noise],
@@ -57,7 +51,29 @@ export default function BiasVarianceResamplingLab({ model, sampleLevel, noise })
   const probeTarget = project({ x: profile.probeX, y: profile.target });
   const probeMean = project({ x: profile.probeX, y: profile.meanPrediction });
   const total = profile.expectedSquaredError;
-  const dominant = profile.biasSquared > profile.variance ? 'bias' : 'variance';
+  const dominant = [
+    ['bias', profile.biasSquared],
+    ['variance', profile.variance],
+    ['noise', profile.irreducibleVariance],
+  ].reduce((best, current) => (current[1] > best[1] ? current : best))[0];
+
+  const dominantMessage = {
+    bias: {
+      title: 'Bias dominates at this probe',
+      className: 'border-amber-200 bg-amber-50 text-amber-950',
+      body: 'Retraining is fairly consistent, but the average fitted model is systematically wrong here. More samples alone cannot remove a miss caused by the model class.',
+    },
+    variance: {
+      title: 'Variance dominates at this probe',
+      className: 'border-violet-200 bg-violet-50 text-violet-950',
+      body: 'The same model specification lands in noticeably different places when the training sample changes. Try a larger sample or less flexibility and watch the fan tighten.',
+    },
+    noise: {
+      title: 'Irreducible noise dominates at this probe',
+      className: 'border-slate-300 bg-slate-100 text-slate-900',
+      body: 'Random outcome variation is larger than the reducible model error here. Extra flexibility cannot predict noise that is independent of the features.',
+    },
+  }[dominant];
 
   return (
     <section className="space-y-5 rounded-lg border border-violet-200 bg-violet-50/40 p-5">
@@ -67,7 +83,7 @@ export default function BiasVarianceResamplingLab({ model, sampleLevel, noise })
         </p>
         <h3 className="mt-1 text-xl font-black text-slate-950">Variance means the fitted model moves when the training sample changes</h3>
         <p className="mt-2 max-w-4xl text-sm leading-6 text-slate-700">
-          Train the same model specification on many plausible samples from the same population. Bias is where the average fitted model misses the truth; variance is how widely individual fitted models move around that average.
+          Each faint curve is the same polynomial model specification fitted from scratch to a different generated sample from the same population. Bias is where the average fitted model misses the truth; variance is how widely individual fitted models move around that average.
         </p>
       </div>
 
@@ -75,8 +91,8 @@ export default function BiasVarianceResamplingLab({ model, sampleLevel, noise })
         <div className="rounded-lg border border-slate-200 bg-white p-5">
           <div className="flex flex-wrap items-center justify-between gap-3">
             <div>
-              <p className="text-xs font-black uppercase tracking-wide text-slate-500">Same setup · different training samples</p>
-              <p className="mt-1 text-sm text-slate-600">Each faint curve is one retraining run. The dark curve is their mean.</p>
+              <p className="text-xs font-black uppercase tracking-wide text-slate-500">Same model · different training samples</p>
+              <p className="mt-1 text-sm text-slate-600">Each faint curve is one fitted model. The dark curve is their mean prediction.</p>
             </div>
             <span className="rounded-full bg-violet-100 px-3 py-1 text-xs font-black text-violet-800">
               {RESAMPLING_SEEDS.length} retrainings
@@ -110,7 +126,7 @@ export default function BiasVarianceResamplingLab({ model, sampleLevel, noise })
             })}
             <circle cx={probeTarget.cx} cy={probeTarget.cy} r="6" className="fill-slate-700" />
             <circle cx={probeMean.cx} cy={probeMean.cy} r="6" className="fill-cyan-700" />
-            <text x="255" y="52" className="fill-slate-600 text-xs font-bold">truth</text>
+            <text x="255" y="52" className="fill-slate-600 text-xs font-bold">true mean signal</text>
             <text x="255" y="72" className="fill-cyan-800 text-xs font-bold">mean fitted model</text>
             <text x={probeTarget.cx + 7} y="282" className="fill-slate-500 text-[10px] font-bold">probe x={profile.probeX}</text>
           </svg>
@@ -137,17 +153,9 @@ export default function BiasVarianceResamplingLab({ model, sampleLevel, noise })
             </div>
           </div>
 
-          <div className={`rounded-lg border p-4 text-sm leading-6 ${
-            dominant === 'bias'
-              ? 'border-amber-200 bg-amber-50 text-amber-950'
-              : 'border-violet-200 bg-violet-50 text-violet-950'
-          }`}>
-            <strong className="block">{dominant === 'bias' ? 'Bias dominates at this probe' : 'Variance dominates at this probe'}</strong>
-            <span>
-              {dominant === 'bias'
-                ? 'Retraining is fairly consistent, but the average fitted model is systematically wrong here. More copies of the same data cannot fix the model assumption.'
-                : 'The same model specification lands in noticeably different places when the training sample changes. Try a larger sample or less flexibility and watch the fan tighten.'}
-            </span>
+          <div className={`rounded-lg border p-4 text-sm leading-6 ${dominantMessage.className}`}>
+            <strong className="block">{dominantMessage.title}</strong>
+            <span>{dominantMessage.body}</span>
           </div>
         </div>
       </div>
@@ -155,15 +163,15 @@ export default function BiasVarianceResamplingLab({ model, sampleLevel, noise })
       <div className="grid gap-3 md:grid-cols-3">
         <div className="rounded-lg border border-slate-200 bg-white p-4 text-sm leading-6 text-slate-700">
           <strong className="block text-slate-950">Simple model</strong>
-          The curves tend to agree with each other but can agree on the wrong answer: low variance, high bias.
+          Degree 1 fits tend to agree with each other but can agree on the wrong curve: low variance, high bias.
         </div>
         <div className="rounded-lg border border-slate-200 bg-white p-4 text-sm leading-6 text-slate-700">
           <strong className="block text-slate-950">Flexible model</strong>
-          With scarce noisy data, retraining changes the fitted curve much more: lower structural bias, higher variance.
+          With scarce noisy data, degree 8 fits move much more across samples: lower structural bias, higher variance.
         </div>
         <div className="rounded-lg border border-slate-200 bg-white p-4 text-sm leading-6 text-slate-700">
           <strong className="block text-slate-950">More data</strong>
-          Keep the model fixed and move from small to large samples. The prediction fan contracts because sampling uncertainty falls.
+          Keep the model fixed and move from small to large samples. Variance falls, while independently generated outcome noise remains.
         </div>
       </div>
     </section>
