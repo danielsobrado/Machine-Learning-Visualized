@@ -159,7 +159,7 @@ export default function RegularizationAnimation() {
               max={REGULARIZATION_EXPERIMENT.maxLambda}
               step="0.01"
               type="range"
-              value={lambda}
+              value={penaltyId === 'none' ? 0 : lambda}
               disabled={penaltyId === 'none'}
               aria-label="Regularization strength lambda"
               onChange={(event) => setLambda(Number(event.target.value))}
