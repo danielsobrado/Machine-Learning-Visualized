@@ -32,6 +32,8 @@ export default function MinoritySliceAudit() {
   const aggregate = useMemo(() => mergeBands(MAJORITY_SLICE_BANDS, MINORITY_SLICE_BANDS), []);
   const aggregatePoints = useMemo(() => curvePoints(aggregate), [aggregate]);
   const minorityPoints = useMemo(() => curvePoints(MINORITY_SLICE_BANDS), []);
+  const aggregatePrevalence = useMemo(() => prevalenceOf(aggregate), [aggregate]);
+  const minorityPrevalence = useMemo(() => prevalenceOf(MINORITY_SLICE_BANDS), []);
 
   return (
     <section className="rounded-lg border border-slate-200 bg-white p-5">
@@ -83,7 +85,8 @@ export default function MinoritySliceAudit() {
           xKey="recall"
           yKey="precisionPlot"
           threshold={0.8}
-          baseline={prevalenceOf(MINORITY_SLICE_BANDS)}
+          baseline={minorityPrevalence}
+          comparisonBaseline={aggregatePrevalence}
           primary={{ label: 'Minority slice', points: minorityPoints }}
           comparison={{ label: 'Aggregate', points: aggregatePoints }}
         />
