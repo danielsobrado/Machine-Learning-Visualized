@@ -67,14 +67,16 @@ export default function MetricPolicyLab({
   const f1Best = useMemo(() => bestThresholdBy(sweep, 'f1'), [sweep]);
   const costBest = useMemo(() => bestThresholdBy(sweep, 'cost'), [sweep]);
   const selectedPreset = PREVALENCE_PRESETS.find((preset) => preset.id === prevalencePreset) || PREVALENCE_PRESETS[0];
+  const measuredTpr = metrics.recall;
+  const measuredFpr = 1 - metrics.specificity;
   const projected = useMemo(
     () => projectFromRates({
-      tpr: 0.8,
-      fpr: 0.1,
+      tpr: measuredTpr,
+      fpr: measuredFpr,
       prevalence: selectedPreset.prevalence,
       population: PROJECTION_POPULATION,
     }),
-    [selectedPreset],
+    [measuredTpr, measuredFpr, selectedPreset],
   );
 
   return (
@@ -143,9 +145,13 @@ export default function MetricPolicyLab({
             ))}
           </div>
           <p className="mt-3 text-sm leading-6 text-amber-950">
-            Hold sensitivity at 80% and FPR at 10%. At {pct(selectedPreset.prevalence, 1)} prevalence, the same classifier
-            produces about <strong>{Math.round(projected.counts.tp).toLocaleString()} TP</strong> and <strong>{Math.round(projected.counts.fp).toLocaleString()} FP</strong> per {PROJECTION_POPULATION.toLocaleString()} decisions.
+            At threshold <strong>{threshold.toFixed(2)}</strong>, this toy set measures TPR <strong>{pct(measuredTpr, 1)}</strong> and FPR <strong>{pct(measuredFpr, 1)}</strong>.
+            Hold those operating rates fixed and change only prevalence to {pct(selectedPreset.prevalence, 1)}: that projects about{' '}
+            <strong>{Math.round(projected.counts.tp).toLocaleString()} TP</strong> and <strong>{Math.round(projected.counts.fp).toLocaleString()} FP</strong> per {PROJECTION_POPULATION.toLocaleString()} decisions.
             Precision becomes <strong>{pct(projected.metrics.precision, 1)}</strong>, while balanced accuracy stays <strong>{pct(projected.metrics.balancedAccuracy, 1)}</strong>.
+          </p>
+          <p className="mt-2 text-xs font-semibold leading-5 text-amber-800">
+            This is a base-rate projection of the measured operating point, not a claim that TPR/FPR will remain stable after real deployment shift.
           </p>
         </div>
       </div>
