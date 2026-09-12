@@ -2,110 +2,129 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 
 import {
-  PROFILE_EPOCHS,
-  bestEpoch,
-  curvePath,
-  epochProfile,
-  errorPath,
+  COMPLEXITY_STEPS,
+  bestCandidate,
+  complexityProfile,
+  errorChart,
+  fitPolynomial,
+  fittedCurvePath,
+  freshTestAudit,
   generalizationDiagnostics,
-  makePoints,
+  makeDataSplits,
+  meanSquaredError,
   observedProfile,
-  predict,
-  project,
+  pathFromChart,
+  predictFitted,
   pseudoNoise,
+  truth,
+  truthCurvePath,
 } from './overfittingModel.js';
 
-test('point generation is deterministic and marks only noisy-label examples in the noisy dataset', () => {
-  const clean = makePoints('clean');
-  const noisy = makePoints('noisy');
-  const tiny = makePoints('tiny');
+function closeTo(actual, expected, tolerance = 1e-8) {
+  assert.ok(Math.abs(actual - expected) <= tolerance, `${actual} should be within ${tolerance} of ${expected}`);
+}
 
-  assert.equal(clean.length, 26);
-  assert.equal(noisy.length, 26);
-  assert.equal(tiny.length, 14);
-  assert.deepEqual(noisy.filter((point) => point.noisy).map((point) => point.id), [4, 10, 17, 22]);
-  assert.ok(clean.every((point) => !point.noisy));
-  assert.deepEqual(makePoints('noisy'), noisy);
-  assert.throws(() => makePoints('missing'), RangeError);
+test('data splits are deterministic, independent, and only training carries injected noisy labels', () => {
+  const noisy = makeDataSplits('noisy');
+  assert.equal(noisy.train.length, 26);
+  assert.equal(noisy.validation.length, 24);
+  assert.equal(noisy.test.length, 80);
+  assert.deepEqual(noisy.train.filter((point) => point.noisy).map((point) => Number(point.id.split('-')[1])), [4, 10, 17, 22]);
+  assert.ok(noisy.validation.every((point) => !point.noisy));
+  assert.ok(noisy.test.every((point) => !point.noisy));
+  assert.deepEqual(makeDataSplits('noisy'), noisy);
+  assert.throws(() => makeDataSplits('missing'), RangeError);
 });
 
-test('pseudo-noise and projection stay within expected display ranges', () => {
+test('pseudo noise and truth remain deterministic', () => {
+  closeTo(truth(40), truth(40));
   for (let index = 0; index < 20; index += 1) {
-    const noise = pseudoNoise(index);
-    assert.ok(noise >= 0 && noise < 1, `noise ${index} should be in [0, 1)`);
+    const value = pseudoNoise(index, 3);
+    assert.ok(value >= -0.5 && value < 0.5);
   }
-
-  assert.deepEqual(project({ x: 0, y: 12 }), { cx: 34, cy: 262 });
-  assert.deepEqual(project({ x: 100, y: 116 }), { cx: 366, cy: 36 });
 });
 
-test('profile always models the full training horizon while observation is truncated separately', () => {
-  const profile = epochProfile('noisy', 'mild');
-  const observed = observedProfile(profile, 4);
-
-  assert.equal(profile.length, PROFILE_EPOCHS);
-  assert.deepEqual(observed.map((point) => point.epoch), [1, 2, 3, 4]);
-  assert.throws(() => observedProfile(profile, 0), RangeError);
-  assert.throws(() => observedProfile(profile, PROFILE_EPOCHS + 1), RangeError);
+test('polynomial fitting is genuine and higher degree reduces noisy training MSE', () => {
+  const splits = makeDataSplits('noisy');
+  const degree4 = fitPolynomial(splits.train, 4, 'none');
+  const degree12 = fitPolynomial(splits.train, 12, 'none');
+  assert.ok(meanSquaredError(splits.train, degree12) < meanSquaredError(splits.train, degree4));
+  assert.ok(Number.isFinite(predictFitted(50, degree12)));
 });
 
-test('best observed epoch never uses validation evidence from the future', () => {
-  const profile = epochProfile('noisy', 'none');
-  const atThree = generalizationDiagnostics(profile, 3);
-  const atTwelve = generalizationDiagnostics(profile, 12);
-
-  assert.ok(atThree.best.epoch <= 3);
-  assert.equal(atThree.current.epoch, 3);
-  assert.ok(atTwelve.best.epoch < atTwelve.current.epoch);
-});
-
-test('no regularization on noisy data shows the defining overfitting divergence after the observed best epoch', () => {
-  const diagnostics = generalizationDiagnostics(epochProfile('noisy', 'none'), 12);
-
+test('noisy unregularized complexity shows empirical overfitting after the validation optimum', () => {
+  const profile = complexityProfile('noisy', 'none');
+  const diagnostics = generalizationDiagnostics(profile, COMPLEXITY_STEPS);
   assert.equal(diagnostics.status, 'overfit');
+  assert.equal(diagnostics.best.degree, 5);
   assert.ok(diagnostics.current.train < diagnostics.best.train);
-  assert.ok(diagnostics.current.validation > diagnostics.best.validation);
-  assert.ok(diagnostics.validationExcess > 0);
-  assert.ok(diagnostics.trainingImprovementSinceBest > 0);
+  assert.ok(diagnostics.current.validation > diagnostics.best.validation * 1.5);
+  assert.ok(diagnostics.trainingImprovementSinceBest > 20);
 });
 
-test('an early run is not called overfit merely because train and validation differ', () => {
-  const diagnostics = generalizationDiagnostics(epochProfile('noisy', 'none'), 3);
-
-  assert.notEqual(diagnostics.status, 'overfit');
-  assert.equal(diagnostics.best.epoch, diagnostics.current.epoch);
+test('tiny-sample interpolation can destroy held-out error while training error keeps falling', () => {
+  const profile = complexityProfile('tiny', 'none');
+  const best = bestCandidate(profile, 'validation');
+  const last = profile.at(-1);
+  assert.ok(last.train < best.train);
+  assert.ok(last.validation > best.validation * 3);
+  const bestAudit = freshTestAudit('tiny', 'none', best.degree);
+  const lastAudit = freshTestAudit('tiny', 'none', last.degree);
+  assert.ok(lastAudit.testMse > bestAudit.testMse * 3);
 });
 
-test('regularization reduces the late noisy-data generalization gap', () => {
-  const none = generalizationDiagnostics(epochProfile('noisy', 'none'), 12);
-  const mild = generalizationDiagnostics(epochProfile('noisy', 'mild'), 12);
-  const strong = generalizationDiagnostics(epochProfile('noisy', 'strong'), 12);
-
-  assert.ok(none.gap > mild.gap);
-  assert.ok(mild.gap > strong.gap);
+test('mild ridge materially limits late noisy-data validation damage', () => {
+  const none = complexityProfile('noisy', 'none').at(-1);
+  const mild = complexityProfile('noisy', 'mild').at(-1);
+  assert.ok(mild.validation < none.validation * 0.7);
+  assert.ok(freshTestAudit('noisy', 'mild', mild.degree).testMse < freshTestAudit('noisy', 'none', none.degree).testMse * 0.7);
 });
 
-test('underfit-style early complexity is visibly smoother than late flexible fits', () => {
-  const early = predict(50, 1, 'noisy', 'mild');
-  const middle = predict(50, 4, 'noisy', 'mild');
-  const late = predict(50, 12, 'noisy', 'mild');
-
-  assert.notEqual(early, middle);
-  assert.notEqual(middle, late);
+test('strong ridge can trade training fit for substantially higher held-out bias', () => {
+  const mild = bestCandidate(complexityProfile('noisy', 'mild'), 'validation');
+  const strong = bestCandidate(complexityProfile('noisy', 'strong'), 'validation');
+  assert.ok(strong.train > mild.train * 2);
+  assert.ok(strong.validation > mild.validation * 2);
 });
 
-test('bestEpoch rejects empty profiles and selects minimum validation error', () => {
-  const profile = epochProfile('clean', 'mild');
-  const best = bestEpoch(profile);
+test('fresh test evidence is absent from model-selection profiles until the recipe is frozen', () => {
+  const profile = complexityProfile('noisy', 'none');
+  assert.ok(profile.every((candidate) => !Object.hasOwn(candidate, 'test')));
 
-  assert.equal(best.validation, Math.min(...profile.map((point) => point.validation)));
-  assert.throws(() => bestEpoch([]), RangeError);
+  const selected = bestCandidate(profile, 'validation');
+  const audit = freshTestAudit('noisy', 'none', selected.degree);
+  assert.equal(audit.degree, selected.degree);
+  assert.ok(audit.validationMse > 0);
+  assert.ok(audit.testMse > 0);
+  assert.equal(audit.testCount, 80);
 });
 
-test('svg path helpers render only the observations supplied to them', () => {
-  const observed = observedProfile(epochProfile('noisy', 'mild'), 7);
+test('observed profile never uses unrevealed higher-complexity candidates', () => {
+  const profile = complexityProfile('noisy', 'none');
+  const observed = observedProfile(profile, 5);
+  const diagnostics = generalizationDiagnostics(profile, 5);
+  assert.deepEqual(observed.map((point) => point.degree), [1, 2, 3, 4, 5]);
+  assert.ok(diagnostics.best.degree <= 5);
+  assert.throws(() => observedProfile(profile, 0), RangeError);
+  assert.throws(() => observedProfile(profile, COMPLEXITY_STEPS + 1), RangeError);
+});
 
-  assert.equal(curvePath(7, 'noisy', 'mild').split(' ').filter((token) => token === 'M' || token === 'L').length, 75);
-  assert.equal(errorPath(observed, 'validation').split(' ').filter((token) => token === 'M' || token === 'L').length, 7);
-  assert.throws(() => errorPath(observed, 'test'), RangeError);
+test('fit and score helpers reject malformed requests', () => {
+  const splits = makeDataSplits('clean');
+  assert.throws(() => fitPolynomial([], 2, 'none'), RangeError);
+  assert.throws(() => fitPolynomial(splits.train, 0, 'none'), RangeError);
+  assert.throws(() => fitPolynomial(splits.train, 2, 'missing'), RangeError);
+  assert.throws(() => meanSquaredError([], fitPolynomial(splits.train, 2, 'none')), RangeError);
+  assert.throws(() => bestCandidate([], 'validation'), RangeError);
+  assert.throws(() => bestCandidate(complexityProfile('clean', 'none'), 'bogus'), RangeError);
+});
+
+test('chart and curve helpers render measured candidates only', () => {
+  const profile = observedProfile(complexityProfile('noisy', 'mild'), 7);
+  const chart = errorChart(profile, 'validation');
+  assert.equal(chart.length, 7);
+  assert.equal(pathFromChart(chart).split(' ').filter((token) => token === 'M' || token === 'L').length, 7);
+  assert.equal(fittedCurvePath(profile.at(-1).fit).split(' ').filter((token) => token === 'M' || token === 'L').length, 92);
+  assert.equal(truthCurvePath().split(' ').filter((token) => token === 'M' || token === 'L').length, 92);
+  assert.throws(() => errorChart(profile, 'bogus'), RangeError);
 });

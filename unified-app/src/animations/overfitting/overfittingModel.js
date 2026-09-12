@@ -1,138 +1,165 @@
-export const DATASETS = Object.freeze({
-  clean: {
-    label: 'Clean signal',
-    detail: 'Validation keeps improving until the model reaches useful flexibility.',
-    noise: 0.18,
-    gapBoost: 0.8,
-  },
-  noisy: {
-    label: 'Noisy labels',
-    detail: 'Flexible models can memorize label noise and lose validation performance.',
-    noise: 0.52,
-    gapBoost: 1.25,
-  },
-  tiny: {
-    label: 'Tiny sample',
-    detail: 'Scarce data makes the validation gap open earlier.',
-    noise: 0.38,
-    gapBoost: 1.7,
-  },
-});
+import {
+  COMPLEXITY_STEPS,
+  DATASETS,
+  NORMALIZED_X_CENTER,
+  NORMALIZED_X_SCALE,
+  NUMERIC_RIDGE,
+  REGULARIZATION,
+  TEST_COUNT,
+  TEST_SEED,
+  TRAIN_X_MAX,
+  TRAIN_X_MIN,
+  VALIDATION_COUNT,
+  VALIDATION_SEED,
+} from './overfittingConstants.js';
 
-export const REGULARIZATION = Object.freeze({
-  none: { label: 'None', strength: 0, detail: 'The model is free to chase every training quirk.' },
-  mild: { label: 'Mild', strength: 0.35, detail: 'Enough constraint to slow memorization without flattening the signal.' },
-  strong: { label: 'Strong', strength: 0.75, detail: 'Useful for variance, but too much can underfit.' },
-});
-
-export const PROFILE_EPOCHS = 12;
-export const OVERFIT_VALIDATION_EXCESS = 1.5;
-export const OVERFIT_TRAIN_IMPROVEMENT = 0.5;
+export { COMPLEXITY_STEPS, DATASETS, REGULARIZATION };
 
 export function truth(x) {
   return 48 + 25 * Math.sin((x - 8) / 12) + x * 0.42;
 }
 
-export function pseudoNoise(index) {
-  const raw = Math.sin(index * 17.17) * 9917.3;
-  return raw - Math.floor(raw);
+export function pseudoNoise(index, seed = 0) {
+  const raw = Math.sin((index + seed * 0.731) * 17.17 + seed * 13.37) * 9917.3;
+  return raw - Math.floor(raw) - 0.5;
 }
 
-export function makePoints(datasetId) {
-  const dataset = DATASETS[datasetId];
-  if (!dataset) throw new RangeError(`Unknown dataset: ${datasetId}`);
+export function makeDataSplits(datasetId) {
+  const dataset = getDataset(datasetId);
+  const train = makeSplit(
+    dataset.trainCount,
+    TRAIN_X_MIN,
+    TRAIN_X_MAX,
+    dataset.trainNoiseAmplitude,
+    0,
+    dataset.noisyIndices,
+  );
+  const validation = makeSplit(
+    VALIDATION_COUNT,
+    5.5,
+    94.5,
+    dataset.holdoutNoiseAmplitude,
+    VALIDATION_SEED,
+  );
+  const test = makeSplit(
+    TEST_COUNT,
+    4.7,
+    95.3,
+    dataset.holdoutNoiseAmplitude,
+    TEST_SEED,
+  );
 
-  const count = datasetId === 'tiny' ? 14 : 26;
-  return Array.from({ length: count }, (_, index) => {
-    const x = 4 + (index / Math.max(1, count - 1)) * 92;
-    const centered = pseudoNoise(index + count) - 0.5;
-    const mislabeled = datasetId === 'noisy' && [4, 10, 17, 22].includes(index);
-    return {
-      id: index,
-      x,
-      y: truth(x) + centered * dataset.noise * 46 + (mislabeled ? (index % 2 === 0 ? 22 : -22) : 0),
-      noisy: mislabeled,
-    };
-  });
+  return { train, validation, test };
 }
 
-export function predict(x, complexity, datasetId, regularizationId) {
-  const dataset = DATASETS[datasetId];
-  const regularization = REGULARIZATION[regularizationId];
-  if (!dataset) throw new RangeError(`Unknown dataset: ${datasetId}`);
-  if (!regularization) throw new RangeError(`Unknown regularization: ${regularizationId}`);
-
-  const reg = regularization.strength;
-  const wiggle = Math.max(0, complexity - 3) * (1 - reg) * dataset.noise;
-  const underfit = Math.max(0, 3 - complexity) * 5.8;
-  return 47 + 0.46 * x + (24 - underfit) * Math.sin((x - 7) / (13 + underfit * 0.15)) + Math.sin(x * 0.48) * wiggle * 16;
-}
-
-export function epochProfile(datasetId, regularizationId) {
-  const dataset = DATASETS[datasetId];
-  const regularization = REGULARIZATION[regularizationId];
-  if (!dataset) throw new RangeError(`Unknown dataset: ${datasetId}`);
-  if (!regularization) throw new RangeError(`Unknown regularization: ${regularizationId}`);
-
-  const reg = regularization.strength;
-  return Array.from({ length: PROFILE_EPOCHS }, (_, index) => {
-    const epoch = index + 1;
-    const fitProgress = 1 - Math.exp(-epoch / 3.2);
-    const memorization = Math.max(0, epoch - 4.5) ** 1.55 * dataset.noise * dataset.gapBoost * (1 - reg);
-    const underfitPenalty = reg > 0.6 ? Math.max(0, epoch - 6) * 0.8 : 0;
-    const train = Math.max(5, 42 - fitProgress * 27 - epoch * (1.1 + dataset.noise) + reg * epoch * 0.8);
-    const validation = Math.max(7, 39 - fitProgress * 24 + memorization + underfitPenalty + dataset.noise * 7);
-    return {
-      epoch,
-      complexity: epoch,
-      train,
-      validation,
-    };
-  });
-}
-
-export function observedProfile(profile, maxEpochs) {
-  if (!Array.isArray(profile) || !profile.length) throw new RangeError('Profile must contain at least one epoch.');
-  if (!Number.isInteger(maxEpochs) || maxEpochs < 1 || maxEpochs > profile.length) {
-    throw new RangeError(`maxEpochs must be between 1 and ${profile.length}`);
+export function fitPolynomial(points, degree, regularizationId) {
+  if (!Array.isArray(points) || points.length === 0) throw new RangeError('Training points are required.');
+  if (!Number.isInteger(degree) || degree < 1 || degree > COMPLEXITY_STEPS) {
+    throw new RangeError(`degree must be an integer from 1 to ${COMPLEXITY_STEPS}`);
   }
-  return profile.slice(0, maxEpochs);
+  const regularization = getRegularization(regularizationId);
+  if (points.length <= degree) throw new RangeError(`Degree-${degree} fit requires more than ${degree} training rows.`);
+
+  const size = degree + 1;
+  const matrix = Array.from({ length: size }, () => Array(size).fill(0));
+  const vector = Array(size).fill(0);
+
+  for (const point of points) {
+    validatePoint(point);
+    const row = polynomialRow(point.x, degree);
+    for (let i = 0; i < size; i += 1) {
+      vector[i] += row[i] * point.y;
+      for (let j = 0; j < size; j += 1) matrix[i][j] += row[i] * row[j];
+    }
+  }
+
+  for (let index = 0; index < size; index += 1) {
+    matrix[index][index] += NUMERIC_RIDGE + (index === 0 ? 0 : regularization.lambda);
+  }
+
+  return {
+    degree,
+    regularizationId,
+    lambda: regularization.lambda,
+    coefficients: solveLinearSystem(matrix, vector),
+  };
 }
 
-export function bestEpoch(profile) {
-  if (!Array.isArray(profile) || !profile.length) throw new RangeError('Profile must contain at least one epoch.');
-  return profile.reduce((best, point) => (point.validation < best.validation ? point : best), profile[0]);
+export function predictFitted(x, fittedModel) {
+  if (!Number.isFinite(x)) throw new TypeError('x must be finite.');
+  if (!fittedModel?.coefficients?.length) throw new TypeError('A fitted model is required.');
+  const z = normalizeX(x);
+  return fittedModel.coefficients.reduce((sum, coefficient, exponent) => sum + coefficient * (z ** exponent), 0);
 }
 
-export function generalizationDiagnostics(profile, maxEpochs) {
-  const observed = observedProfile(profile, maxEpochs);
+export function meanSquaredError(points, fittedModel) {
+  if (!Array.isArray(points) || points.length === 0) throw new RangeError('Cannot score an empty point set.');
+  return average(points.map((point) => {
+    validatePoint(point);
+    return (point.y - predictFitted(point.x, fittedModel)) ** 2;
+  }));
+}
+
+export function complexityProfile(datasetId, regularizationId) {
+  const splits = makeDataSplits(datasetId);
+  getRegularization(regularizationId);
+
+  return Array.from({ length: COMPLEXITY_STEPS }, (_, index) => {
+    const degree = index + 1;
+    const fit = fitPolynomial(splits.train, degree, regularizationId);
+    return {
+      degree,
+      fit,
+      train: meanSquaredError(splits.train, fit),
+      validation: meanSquaredError(splits.validation, fit),
+    };
+  });
+}
+
+export function observedProfile(profile, maxComplexity) {
+  if (!Array.isArray(profile) || profile.length === 0) throw new RangeError('Profile must contain at least one candidate.');
+  if (!Number.isInteger(maxComplexity) || maxComplexity < 1 || maxComplexity > profile.length) {
+    throw new RangeError(`maxComplexity must be between 1 and ${profile.length}`);
+  }
+  return profile.slice(0, maxComplexity);
+}
+
+export function bestCandidate(profile, key = 'validation') {
+  if (!Array.isArray(profile) || profile.length === 0) throw new RangeError('Profile must contain at least one candidate.');
+  if (!['train', 'validation'].includes(key)) throw new RangeError(`Unsupported score series: ${key}`);
+  return profile.reduce((best, candidate) => (candidate[key] < best[key] ? candidate : best), profile[0]);
+}
+
+export function generalizationDiagnostics(profile, maxComplexity) {
+  const observed = observedProfile(profile, maxComplexity);
   const current = observed.at(-1);
-  const best = bestEpoch(observed);
+  const best = bestCandidate(observed, 'validation');
   const gap = current.validation - current.train;
   const validationExcess = current.validation - best.validation;
   const trainingImprovementSinceBest = best.train - current.train;
-  const pastBest = current.epoch > best.epoch;
+  const pastBest = current.degree > best.degree;
+  const overfitThreshold = Math.max(2, best.validation * 0.2);
+  const trainingThreshold = Math.max(1, best.train * 0.05);
   const overfit = pastBest
-    && validationExcess >= OVERFIT_VALIDATION_EXCESS
-    && trainingImprovementSinceBest >= OVERFIT_TRAIN_IMPROVEMENT;
-  const underfit = !overfit && current.train > 24 && current.validation > 32;
+    && validationExcess >= overfitThreshold
+    && trainingImprovementSinceBest >= trainingThreshold;
 
   let status = 'balanced';
   let label = 'Balanced';
-  let explanation = 'Held-out error is still near the best value observed so far.';
+  let explanation = 'Validation MSE remains close to the best measured candidate so far.';
 
   if (overfit) {
     status = 'overfit';
     label = 'Overfit';
-    explanation = `Since epoch ${best.epoch}, training error improved by ${trainingImprovementSinceBest.toFixed(1)} while validation error worsened by ${validationExcess.toFixed(1)}.`;
-  } else if (underfit) {
+    explanation = `After degree ${best.degree}, training MSE fell by ${trainingImprovementSinceBest.toFixed(1)} while validation MSE rose by ${validationExcess.toFixed(1)}.`;
+  } else if (current.degree <= 2 && current.train > 100 && current.validation > 100) {
     status = 'underfit';
     label = 'Underfit';
-    explanation = 'Training and validation errors are both still high, so the model has not fit the available signal well yet.';
-  } else if (current.epoch === best.epoch) {
+    explanation = 'Both training and validation MSE are still high, so the fitted family has not captured the available signal yet.';
+  } else if (current.degree === best.degree) {
     status = 'best-so-far';
     label = 'Best so far';
-    explanation = 'The current epoch has the lowest validation error observed up to this point.';
+    explanation = 'The current degree has the lowest validation MSE among the candidates revealed so far.';
   }
 
   return {
@@ -149,28 +176,122 @@ export function generalizationDiagnostics(profile, maxEpochs) {
   };
 }
 
-export function project(point) {
+export function freshTestAudit(datasetId, regularizationId, degree) {
+  const splits = makeDataSplits(datasetId);
+  const fit = fitPolynomial(splits.train, degree, regularizationId);
   return {
-    cx: 34 + (point.x / 100) * 332,
-    cy: 262 - ((point.y - 12) / 104) * 226,
+    degree,
+    validationMse: meanSquaredError(splits.validation, fit),
+    testMse: meanSquaredError(splits.test, fit),
+    testCount: splits.test.length,
   };
 }
 
-export function curvePath(complexity, datasetId, regularizationId) {
-  return Array.from({ length: 75 }, (_, index) => {
-    const x = (index / 74) * 100;
-    const y = predict(x, complexity, datasetId, regularizationId);
+export function project(point) {
+  return {
+    cx: 34 + ((point.x - TRAIN_X_MIN) / (TRAIN_X_MAX - TRAIN_X_MIN)) * 332,
+    cy: 262 - ((point.y - 10) / 110) * 226,
+  };
+}
+
+export function fittedCurvePath(fittedModel) {
+  return Array.from({ length: 92 }, (_, index) => {
+    const x = TRAIN_X_MIN + (index / 91) * (TRAIN_X_MAX - TRAIN_X_MIN);
+    const y = predictFitted(x, fittedModel);
     const { cx, cy } = project({ x, y });
     return `${index === 0 ? 'M' : 'L'} ${cx.toFixed(1)} ${cy.toFixed(1)}`;
   }).join(' ');
 }
 
-export function errorPath(profile, key) {
-  if (!['train', 'validation'].includes(key)) throw new RangeError(`Unsupported error series: ${key}`);
-  const max = 58;
-  return profile.map((point) => {
-    const x = 34 + (point.epoch - 1) * 28;
-    const y = 170 - (point[key] / max) * 128;
-    return `${point.epoch === profile[0].epoch ? 'M' : 'L'} ${x.toFixed(1)} ${y.toFixed(1)}`;
+export function truthCurvePath() {
+  return Array.from({ length: 92 }, (_, index) => {
+    const x = TRAIN_X_MIN + (index / 91) * (TRAIN_X_MAX - TRAIN_X_MIN);
+    const { cx, cy } = project({ x, y: truth(x) });
+    return `${index === 0 ? 'M' : 'L'} ${cx.toFixed(1)} ${cy.toFixed(1)}`;
   }).join(' ');
+}
+
+export function errorChart(profile, key, width = 308, height = 128) {
+  if (!['train', 'validation'].includes(key)) throw new RangeError(`Unsupported score series: ${key}`);
+  if (!Array.isArray(profile) || profile.length === 0) throw new RangeError('Profile must contain at least one candidate.');
+  const maxMse = Math.max(1, ...profile.flatMap((point) => [point.train, point.validation]));
+  return profile.map((point) => ({
+    x: 34 + ((point.degree - 1) / (COMPLEXITY_STEPS - 1)) * width,
+    y: 170 - (point[key] / maxMse) * height,
+    degree: point.degree,
+    value: point[key],
+  }));
+}
+
+export function pathFromChart(points) {
+  return points.map((point, index) => `${index === 0 ? 'M' : 'L'} ${point.x.toFixed(1)} ${point.y.toFixed(1)}`).join(' ');
+}
+
+function getDataset(datasetId) {
+  const dataset = DATASETS[datasetId];
+  if (!dataset) throw new RangeError(`Unknown dataset: ${datasetId}`);
+  return dataset;
+}
+
+function getRegularization(regularizationId) {
+  const regularization = REGULARIZATION[regularizationId];
+  if (!regularization) throw new RangeError(`Unknown regularization: ${regularizationId}`);
+  return regularization;
+}
+
+function makeSplit(count, xMin, xMax, noiseAmplitude, seed, noisyIndices = []) {
+  return Array.from({ length: count }, (_, index) => {
+    const x = xMin + (index / Math.max(1, count - 1)) * (xMax - xMin);
+    const corrupted = noisyIndices.includes(index);
+    const corruption = corrupted ? (index % 2 === 0 ? 22 : -22) : 0;
+    return {
+      id: `${seed}-${index}`,
+      x,
+      y: truth(x) + pseudoNoise(index + count * 3, seed) * noiseAmplitude + corruption,
+      noisy: corrupted,
+    };
+  });
+}
+
+function normalizeX(x) {
+  return (x - NORMALIZED_X_CENTER) / NORMALIZED_X_SCALE;
+}
+
+function polynomialRow(x, degree) {
+  const z = normalizeX(x);
+  return Array.from({ length: degree + 1 }, (_, exponent) => z ** exponent);
+}
+
+function solveLinearSystem(matrix, vector) {
+  const size = vector.length;
+  const augmented = matrix.map((row, index) => [...row, vector[index]]);
+
+  for (let column = 0; column < size; column += 1) {
+    let pivotRow = column;
+    for (let row = column + 1; row < size; row += 1) {
+      if (Math.abs(augmented[row][column]) > Math.abs(augmented[pivotRow][column])) pivotRow = row;
+    }
+    if (Math.abs(augmented[pivotRow][column]) < 1e-12) throw new Error('Polynomial fit is numerically singular.');
+    [augmented[column], augmented[pivotRow]] = [augmented[pivotRow], augmented[column]];
+
+    const pivot = augmented[column][column];
+    for (let index = column; index <= size; index += 1) augmented[column][index] /= pivot;
+
+    for (let row = 0; row < size; row += 1) {
+      if (row === column) continue;
+      const factor = augmented[row][column];
+      for (let index = column; index <= size; index += 1) augmented[row][index] -= factor * augmented[column][index];
+    }
+  }
+
+  return augmented.map((row) => row[size]);
+}
+
+function validatePoint(point) {
+  if (!Number.isFinite(point?.x) || !Number.isFinite(point?.y)) throw new TypeError('Points must contain finite x and y values.');
+}
+
+function average(values) {
+  if (!values.length) throw new RangeError('Cannot average an empty collection.');
+  return values.reduce((sum, value) => sum + value, 0) / values.length;
 }
