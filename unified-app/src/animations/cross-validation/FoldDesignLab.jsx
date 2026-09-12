@@ -165,7 +165,7 @@ export default function FoldDesignLab({
       </div>
 
       <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-5">
-        <Stat label="Mean CV score" value={`${(summary.mean * 100).toFixed(1)}%`} detail="average held-out score" />
+        <Stat label="Fold mean" value={`${(summary.mean * 100).toFixed(1)}%`} detail="each validation fold weighted equally" />
         <Stat label="Fold spread" value={`${((summary.max - summary.min) * 100).toFixed(1)} pts`} detail="best minus worst fold" />
         <Stat label="Class drift" value={`${(classBalanceDrift * 100).toFixed(1)} pts`} detail="mean validation-rate drift" />
         <Stat label="Entity-leak folds" value={`${summary.entityLeakFolds}/${summary.folds.length}`} detail="validation user also in train" />
@@ -174,6 +174,28 @@ export default function FoldDesignLab({
           value={`${summary.timeViolationFolds}/${summary.folds.length}`}
           detail={futureStrategy ? 'must be zero for this contract' : 'relevant when predicting future events'}
         />
+      </div>
+
+      <div className="grid gap-3 md:grid-cols-2">
+        <div className="rounded-lg border border-slate-200 bg-white p-4">
+          <p className="text-xs font-black uppercase tracking-wide text-slate-500">Validation coverage</p>
+          <strong className="mt-1 block text-2xl font-black text-slate-950">{summary.coverage.validatedRows}/{summary.coverage.totalRows} rows</strong>
+          <p className="mt-1 text-sm leading-6 text-slate-600">
+            {summary.coverage.neverValidated.length === 0
+              ? 'Every row is held out exactly once across these folds.'
+              : `${summary.coverage.neverValidated.length} seed-history rows are never validation examples. That is expected for forward-chaining CV, but it must be explicit.`}
+          </p>
+          {summary.coverage.multiplyValidated.length > 0 && (
+            <p className="mt-2 text-xs font-bold text-rose-700">Some rows are validated more than once in this fold design.</p>
+          )}
+        </div>
+        <div className="rounded-lg border border-slate-200 bg-white p-4">
+          <p className="text-xs font-black uppercase tracking-wide text-slate-500">Row-weighted score</p>
+          <strong className="mt-1 block text-2xl font-black text-slate-950">{(summary.weightedMean * 100).toFixed(1)}%</strong>
+          <p className="mt-1 text-sm leading-6 text-slate-600">
+            Weights each fold by its validation-row count. When fold sizes differ, this is not the same estimand as the equal-weight fold mean above.
+          </p>
+        </div>
       </div>
 
       <div className="rounded-lg border border-slate-200 bg-white p-5">
