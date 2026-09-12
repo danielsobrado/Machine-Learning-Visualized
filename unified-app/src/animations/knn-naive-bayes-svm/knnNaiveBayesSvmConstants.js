@@ -10,24 +10,12 @@ export const POINTS = Object.freeze([
 ]);
 
 export const MODELS = Object.freeze({
-  knn: {
-    label: 'kNN',
-    detail: 'Classifies by the labels of the nearest training points.',
-  },
-  naiveBayes: {
-    label: 'Naive Bayes',
-    detail: 'Multiplies per-feature likelihoods as if features were conditionally independent.',
-  },
-  svm: {
-    label: 'SVM',
-    detail: 'Chooses the side of a maximum-margin decision boundary.',
-  },
+  knn: { label: 'kNN', detail: 'Classifies by the labels of the nearest training points.' },
+  naiveBayes: { label: 'Naive Bayes', detail: 'Multiplies per-feature likelihoods as if features were conditionally independent.' },
+  svm: { label: 'SVM', detail: 'Fits a linear soft-margin boundary that trades margin width against violations.' },
 });
 
-export const SVM_PARAMS = Object.freeze({
-  weight: Object.freeze([1.05, -0.9]),
-  bias: -0.05,
-});
+export const GAUSSIAN_VARIANCE_FLOOR = 0.08;
 
 export const NAIVE_BAYES_DEPENDENCE_DEMO = Object.freeze({
   priorBlue: 0.5,
@@ -36,4 +24,24 @@ export const NAIVE_BAYES_DEPENDENCE_DEMO = Object.freeze({
   minCopies: 1,
   maxCopies: 8,
   defaultCopies: 4,
+});
+
+export const KNN_SCALE_DEMO = Object.freeze({
+  k: 1,
+  query: Object.freeze({ signal: 0, largeUnit: 5000 }),
+  points: Object.freeze([
+    Object.freeze({ id: 'A', signal: 0.1, largeUnit: 1000, label: 'blue' }),
+    Object.freeze({ id: 'B', signal: -0.1, largeUnit: 9000, label: 'blue' }),
+    Object.freeze({ id: 'C', signal: 5.0, largeUnit: 4900, label: 'orange' }),
+    Object.freeze({ id: 'D', signal: 5.2, largeUnit: 5100, label: 'orange' }),
+  ]),
+});
+
+export const SVM_FIT = Object.freeze({
+  defaultC: 10,
+  cOptions: Object.freeze([0.1, 1, 10, 100]),
+  iterations: 20000,
+  initialLearningRate: 0.08,
+  learningRateDecay: 0.0005,
+  marginTolerance: 0.03,
 });
