@@ -5,6 +5,7 @@ import {
   MINORITY_SLICE_BANDS,
 } from './rocPrCurvesConstants.js';
 import {
+  averagePrecision,
   curvePoints,
   mergeBands,
   metricPercent,
@@ -24,6 +25,7 @@ function SliceRow({ name, bands, emphasis = false }) {
       <td className="px-3 py-3 text-right font-mono text-sm">{metricPercent(prevalenceOf(bands), 1)}</td>
       <td className="px-3 py-3 text-right font-mono text-sm">{rocAuc(bands).toFixed(3)}</td>
       <td className="px-3 py-3 text-right font-mono text-sm">{prAuc(bands).toFixed(3)}</td>
+      <td className="px-3 py-3 text-right font-mono text-sm">{averagePrecision(bands).toFixed(3)}</td>
     </tr>
   );
 }
@@ -49,14 +51,15 @@ export default function MinoritySliceAudit() {
       </div>
 
       <div className="mt-5 overflow-x-auto rounded-lg border border-slate-200">
-        <table className="w-full min-w-[620px] border-collapse text-sm">
+        <table className="w-full min-w-[760px] border-collapse text-sm">
           <thead className="bg-slate-50 text-xs font-black uppercase tracking-wide text-slate-500">
             <tr>
               <th className="px-3 py-3 text-left">Slice</th>
               <th className="px-3 py-3 text-right">Rows</th>
               <th className="px-3 py-3 text-right">Positive rate</th>
               <th className="px-3 py-3 text-right">ROC AUC</th>
-              <th className="px-3 py-3 text-right">PR AUC</th>
+              <th className="px-3 py-3 text-right">PR area (trap.)</th>
+              <th className="px-3 py-3 text-right">Avg precision</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-slate-200">
@@ -93,7 +96,7 @@ export default function MinoritySliceAudit() {
       </div>
 
       <p className="mt-5 rounded-lg border border-rose-200 bg-rose-50 p-4 text-sm leading-6 text-rose-950">
-        <strong>Deployment rule:</strong> report ROC/PR and threshold metrics on important slices, not only globally. A high aggregate AUC is not evidence that every subgroup receives useful ranking or acceptable precision.
+        <strong>Deployment rule:</strong> report ROC/PR and threshold metrics on important slices, not only globally. A high aggregate AUC is not evidence that every subgroup receives useful ranking or acceptable precision. Name the PR-area convention as well; Average Precision and trapezoidal PR area can differ on the same empirical ranking.
       </p>
     </section>
   );

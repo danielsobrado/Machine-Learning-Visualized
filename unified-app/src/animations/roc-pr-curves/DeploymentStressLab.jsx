@@ -5,6 +5,8 @@ import {
   REFERENCE_BANDS,
 } from './rocPrCurvesConstants.js';
 import {
+  averagePrecision,
+  bestPointUnderFpr,
   confusionAt,
   curvePoints,
   findCapacityThreshold,
@@ -16,6 +18,8 @@ import {
   rocAuc,
 } from './rocPrCurvesModel.js';
 import RocPrCurvePanel from './RocPrCurvePanel.jsx';
+
+const LOW_FPR_LIMIT = 0.05;
 
 function Stat({ label, value, detail }) {
   return (
@@ -48,6 +52,12 @@ export default function DeploymentStressLab({
     () => findCapacityThreshold(projectedBands, reviewCapacity),
     [projectedBands, reviewCapacity],
   );
+  const lowFprChoice = useMemo(
+    () => bestPointUnderFpr(projectedBands, LOW_FPR_LIMIT),
+    [projectedBands],
+  );
+  const trapezoidalPrArea = useMemo(() => prAuc(projectedBands), [projectedBands]);
+  const ap = useMemo(() => averagePrecision(projectedBands), [projectedBands]);
 
   return (
     <section className="space-y-5">
@@ -80,9 +90,10 @@ export default function DeploymentStressLab({
         </div>
       </div>
 
-      <div className="grid gap-3 md:grid-cols-4">
-        <Stat label="ROC AUC" value={rocAuc(projectedBands).toFixed(3)} detail="unchanged by prevalence reweighting" />
-        <Stat label="PR AUC" value={prAuc(projectedBands).toFixed(3)} detail={`random baseline is ${metricPercent(prevalence, 1)}`} />
+      <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-5">
+        <Stat label="ROC AUC" value={rocAuc(projectedBands).toFixed(3)} detail="pairwise ranking probability; unchanged by prevalence" />
+        <Stat label="PR area (trapezoid)" value={trapezoidalPrArea.toFixed(3)} detail="linear interpolation between empirical PR points" />
+        <Stat label="Average precision" value={ap.toFixed(3)} detail={`stepwise PR summary; random baseline ${metricPercent(prevalence, 1)}`} />
         <Stat label="Precision" value={metricPercent(summary.precision, 1)} detail={`${Math.round(counts.tp)} TP, ${Math.round(counts.fp)} FP`} />
         <Stat label="Recall" value={metricPercent(summary.recall, 1)} detail={`${Math.round(counts.tp)} found, ${Math.round(counts.fn)} missed`} />
       </div>
@@ -112,7 +123,11 @@ export default function DeploymentStressLab({
         />
       </div>
 
-      <div className="grid gap-4 lg:grid-cols-[1fr_1fr]">
+      <div className="rounded-lg border border-violet-200 bg-violet-50 p-4 text-sm leading-6 text-violet-950">
+        <strong>PR summary convention matters:</strong> Average Precision treats the empirical PR curve as stepwise and weights precision by each recall gain. Trapezoidal PR area linearly interpolates between observed points. They are both legitimate summaries when named explicitly, but they are not interchangeable.
+      </div>
+
+      <div className="grid gap-4 lg:grid-cols-3">
         <div className="rounded-lg border border-amber-200 bg-amber-50 p-5">
           <p className="flex items-center gap-2 text-xs font-black uppercase tracking-wide text-amber-800"><AlertTriangle size={15} /> FPR can look tiny and still hurt</p>
           <p className="mt-2 text-sm leading-6 text-amber-950">
@@ -121,12 +136,24 @@ export default function DeploymentStressLab({
           </p>
         </div>
 
+        <div className="rounded-lg border border-blue-200 bg-blue-50 p-5">
+          <p className="text-xs font-black uppercase tracking-wide text-blue-800">Low-FPR operating region</p>
+          {lowFprChoice ? (
+            <p className="mt-2 text-sm leading-6 text-blue-950">
+              Requiring FPR ≤ {metricPercent(LOW_FPR_LIMIT, 0)} limits this ranking to <strong>{metricPercent(lowFprChoice.recall, 1)} recall</strong> at threshold{' '}
+              <strong>{lowFprChoice.threshold.toFixed(2)}</strong>. A strong global AUC does not remove this local operating constraint.
+            </p>
+          ) : (
+            <p className="mt-2 text-sm leading-6 text-blue-950">No empirical threshold satisfies the selected FPR region.</p>
+          )}
+        </div>
+
         <div className="rounded-lg border border-emerald-200 bg-emerald-50 p-5">
           <p className="text-xs font-black uppercase tracking-wide text-emerald-800">Capacity-aware threshold</p>
           {capacityChoice ? (
             <>
               <p className="mt-2 text-sm leading-6 text-emerald-950">
-                With a review budget of {reviewCapacity.toLocaleString()}, the best threshold on this sweep is <strong>{capacityChoice.threshold.toFixed(2)}</strong>:
+                With a review budget of {reviewCapacity.toLocaleString()}, the best observed score cutoff is <strong>{capacityChoice.threshold.toFixed(2)}</strong>:
                 {' '}{Math.round(capacityChoice.summary.predictedPositives)} alerts at {metricPercent(capacityChoice.summary.recall, 1)} recall.
               </p>
               <button type="button" onClick={() => onThresholdChange(capacityChoice.threshold)} className="mt-3 rounded-lg bg-emerald-900 px-4 py-2 text-sm font-black text-white">
@@ -134,7 +161,7 @@ export default function DeploymentStressLab({
               </button>
             </>
           ) : (
-            <p className="mt-2 text-sm leading-6 text-emerald-950">No threshold in the displayed sweep satisfies that capacity.</p>
+            <p className="mt-2 text-sm leading-6 text-emerald-950">No observed score cutoff satisfies that capacity.</p>
           )}
         </div>
       </div>

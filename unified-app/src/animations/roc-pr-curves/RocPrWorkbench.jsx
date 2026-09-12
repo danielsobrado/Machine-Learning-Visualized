@@ -27,7 +27,7 @@ export default function RocPrWorkbench() {
             <p className="text-xs font-black uppercase tracking-wide text-slate-500">Ranking under deployment pressure</p>
             <h2 className="mt-1 text-2xl font-black text-slate-950">ROC / Precision-Recall Curves</h2>
             <p className="mt-2 max-w-4xl text-sm leading-6 text-slate-700">
-              Curves summarize ranking across thresholds, but deployment happens at one operating point, under one prevalence, with finite capacity, and across real subgroups.
+              Curves summarize ranking across observed score cutoffs, but deployment happens at one operating point, under one prevalence, with finite capacity, and across real subgroups.
               Stress all four before calling a classifier good.
             </p>
           </div>
@@ -55,15 +55,15 @@ export default function RocPrWorkbench() {
       <section className="grid gap-4 lg:grid-cols-3">
         <div className="rounded-lg border border-blue-200 bg-blue-50 p-5">
           <p className="text-xs font-black uppercase tracking-wide text-blue-700">ROC answers</p>
-          <p className="mt-2 text-sm leading-6 text-blue-950">How well do scores rank positives above negatives across thresholds? It is largely prevalence-insensitive.</p>
+          <p className="mt-2 text-sm leading-6 text-blue-950">How well do scores rank positives above negatives across thresholds? ROC AUC can be read as a positive-negative pairwise ranking probability and is largely prevalence-insensitive.</p>
         </div>
         <div className="rounded-lg border border-rose-200 bg-rose-50 p-5">
           <p className="text-xs font-black uppercase tracking-wide text-rose-700">PR answers</p>
-          <p className="mt-2 text-sm leading-6 text-rose-950">When we act on positive predictions, how pure are they and how many real positives do we recover? Its baseline moves with prevalence.</p>
+          <p className="mt-2 text-sm leading-6 text-rose-950">When we act on positive predictions, how pure are they and how many real positives do we recover? Its baseline moves with prevalence, and area summaries must name their interpolation convention.</p>
         </div>
         <div className="rounded-lg border border-slate-200 bg-white p-5">
           <p className="text-xs font-black uppercase tracking-wide text-slate-600">Neither answers</p>
-          <p className="mt-2 text-sm leading-6 text-slate-700">Which threshold the business should deploy. That requires costs, capacity, calibration where probabilities matter, and slice-level constraints.</p>
+          <p className="mt-2 text-sm leading-6 text-slate-700">Which threshold the business should deploy. That requires costs, capacity, the operating region that matters, calibration where probabilities matter, and slice-level constraints.</p>
         </div>
       </section>
     </div>
