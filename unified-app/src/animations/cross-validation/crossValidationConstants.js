@@ -4,6 +4,30 @@ export const DEFAULT_REPEATS = 5;
 export const DEFAULT_CANDIDATE_COUNT = 8;
 export const BASE_GENERALIZATION_SCORE = 0.78;
 
+export const CV_LIMITS = Object.freeze({
+  kMin: 3,
+  kMax: 5,
+  repeatMin: 1,
+  repeatMax: 10,
+  candidateMin: 2,
+  candidateMax: 12,
+  outerFoldMin: 2,
+  outerFoldMax: 8,
+});
+
+export const REPEATED_CV_EXPERIMENT = Object.freeze({
+  seed: 0x43a91d,
+});
+
+export const NESTED_SELECTION_EXPERIMENT = Object.freeze({
+  trueAccuracy: 0.76,
+  innerSampleSize: 80,
+  outerSampleSize: 240,
+  trials: 300,
+  defaultOuterFolds: 5,
+  seed: 0x6e57ed,
+});
+
 export const SPLIT_STRATEGIES = Object.freeze({
   random: {
     label: 'Random K-fold',

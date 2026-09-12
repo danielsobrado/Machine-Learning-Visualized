@@ -1,5 +1,6 @@
 import React, { useMemo } from 'react';
 import { Repeat2 } from 'lucide-react';
+import { CV_LIMITS } from './crossValidationConstants.js';
 import { repeatedStratifiedReplay } from './crossValidationModel.js';
 
 function percent(value) {
@@ -16,36 +17,48 @@ export default function RepeatedCvLab({ repeatCount, onRepeatCountChange, k }) {
           <p className="flex items-center gap-2 text-xs font-black uppercase tracking-wide text-violet-700"><Repeat2 size={15} /> Partition sensitivity</p>
           <h2 className="mt-1 text-xl font-black text-slate-950">One K-fold run is one partition of the data</h2>
           <p className="mt-2 max-w-3xl text-sm leading-6 text-slate-700">
-            Repeated stratified CV redraws class-balanced folds and shows how much the estimate depends on a lucky or unlucky partition.
-            It reduces dependence on one split; it does not make correlated fold scores independent observations.
+            Each repeat now rebuilds the stratified folds from a different deterministic shuffle, evaluates those actual validation sets, and then compares the resulting K-fold means. It reduces dependence on one split; it does not make correlated fold scores independent observations.
           </p>
         </div>
         <label className="min-w-56 text-sm font-bold text-slate-700">
           Repeats: {repeatCount}
-          <input className="mt-2 block w-full" min="1" max="10" step="1" type="range" value={repeatCount} onChange={(event) => onRepeatCountChange(Number(event.target.value))} />
+          <input
+            className="mt-2 block w-full"
+            min={CV_LIMITS.repeatMin}
+            max={CV_LIMITS.repeatMax}
+            step="1"
+            type="range"
+            value={repeatCount}
+            onChange={(event) => onRepeatCountChange(Number(event.target.value))}
+          />
         </label>
       </div>
 
-      <div className="mt-5 grid gap-3 md:grid-cols-4">
+      <div className="mt-5 grid gap-3 md:grid-cols-5">
         <div className="rounded-lg border border-slate-200 bg-slate-50 p-4">
           <p className="text-xs font-black uppercase text-slate-500">First K-fold run</p>
           <strong className="mt-1 block text-2xl text-slate-950">{percent(replay.firstRepeatMean)}</strong>
-          <span className="text-sm text-slate-600">what one partition would report</span>
+          <span className="text-sm text-slate-600">what one partition reports</span>
         </div>
         <div className="rounded-lg border border-violet-200 bg-violet-50 p-4">
           <p className="text-xs font-black uppercase text-violet-700">Repeated mean</p>
           <strong className="mt-1 block text-2xl text-violet-950">{percent(replay.mean)}</strong>
-          <span className="text-sm text-violet-800">average across repeat means</span>
+          <span className="text-sm text-violet-800">average across redrawn folds</span>
         </div>
         <div className="rounded-lg border border-slate-200 bg-slate-50 p-4">
           <p className="text-xs font-black uppercase text-slate-500">Repeat std</p>
-          <strong className="mt-1 block text-2xl text-slate-950">{(replay.repeatStd * 100).toFixed(1)} pts</strong>
+          <strong className="mt-1 block text-2xl text-slate-950">{(replay.repeatStd * 100).toFixed(2)} pts</strong>
           <span className="text-sm text-slate-600">partition-to-partition movement</span>
         </div>
         <div className="rounded-lg border border-slate-200 bg-slate-50 p-4">
-          <p className="text-xs font-black uppercase text-slate-500">Observed range</p>
-          <strong className="mt-1 block text-2xl text-slate-950">{((replay.max - replay.min) * 100).toFixed(1)} pts</strong>
-          <span className="text-sm text-slate-600">best repeat minus worst repeat</span>
+          <p className="text-xs font-black uppercase text-slate-500">Distinct partitions</p>
+          <strong className="mt-1 block text-2xl text-slate-950">{replay.uniquePartitionCount}/{repeatCount}</strong>
+          <span className="text-sm text-slate-600">actual fold assignments observed</span>
+        </div>
+        <div className="rounded-lg border border-slate-200 bg-slate-50 p-4">
+          <p className="text-xs font-black uppercase text-slate-500">Mean class drift</p>
+          <strong className="mt-1 block text-2xl text-slate-950">{(replay.meanClassBalanceDrift * 100).toFixed(1)} pts</strong>
+          <span className="text-sm text-slate-600">validation rate vs dataset</span>
         </div>
       </div>
 
