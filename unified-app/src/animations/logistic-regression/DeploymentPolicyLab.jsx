@@ -8,6 +8,7 @@ import {
   calibratedCostThreshold,
   evaluateThreshold,
   findCostOptimalThreshold,
+  findCostOptimalThresholdRanges,
   metricPercent,
   thresholdSweep,
 } from './logisticRegressionModel.js';
@@ -31,6 +32,12 @@ function MetricCard({ label, value, detail }) {
       <span className="text-xs font-semibold leading-5 text-slate-600">{detail}</span>
     </div>
   );
+}
+
+function formatThresholdRanges(ranges) {
+  return ranges.map(({ min, max }) => (
+    Math.abs(max - min) < 1e-9 ? min.toFixed(2) : `${min.toFixed(2)}–${max.toFixed(2)}`
+  )).join(', ');
 }
 
 export default function DeploymentPolicyLab({ scored, threshold, onThresholdChange }) {
@@ -62,6 +69,8 @@ export default function DeploymentPolicyLab({ scored, threshold, onThresholdChan
     [scored, threshold, prevalence, falsePositiveCost, falseNegativeCost],
   );
   const optimal = useMemo(() => findCostOptimalThreshold(sweep), [sweep]);
+  const optimalRanges = useMemo(() => findCostOptimalThresholdRanges(sweep), [sweep]);
+  const optimalRangeLabel = formatThresholdRanges(optimalRanges);
   const theoreticalThreshold = calibratedCostThreshold(falsePositiveCost, falseNegativeCost);
   const alwaysNegativeAccuracy = 1 - prevalence;
   const alwaysNegativeCost = DEPLOYMENT_POPULATION * prevalence * falseNegativeCost;
@@ -148,9 +157,9 @@ export default function DeploymentPolicyLab({ scored, threshold, onThresholdChan
           detail={`Per ${DEPLOYMENT_POPULATION.toLocaleString()} decisions at threshold ${threshold.toFixed(2)}.`}
         />
         <MetricCard
-          label="Empirical best threshold"
-          value={optimal.threshold.toFixed(2)}
-          detail={`Lowest cost on this validation-like toy set: ${Math.round(optimal.cost).toLocaleString()} units.`}
+          label="Empirical best region"
+          value={optimalRangeLabel}
+          detail={`Every displayed threshold in this region has the same minimum toy-validation cost: ${Math.round(optimal.cost).toLocaleString()} units.`}
         />
         <MetricCard
           label="Projected precision"
@@ -169,7 +178,9 @@ export default function DeploymentPolicyLab({ scored, threshold, onThresholdChan
           <div className="mb-3 flex flex-wrap items-center justify-between gap-3">
             <div>
               <p className="text-sm font-black text-slate-900">Threshold cost curve</p>
-              <p className="mt-1 text-xs font-semibold leading-5 text-slate-600">The black marker is your threshold; green is the lowest empirical cost.</p>
+              <p className="mt-1 text-xs font-semibold leading-5 text-slate-600">
+                Black marks your threshold. The green band contains all equally cheapest thresholds on this 0.01 sweep; the green dot is one representative.
+              </p>
             </div>
             <button
               type="button"
@@ -177,10 +188,15 @@ export default function DeploymentPolicyLab({ scored, threshold, onThresholdChan
               disabled={Math.abs(optimal.threshold - threshold) < 0.001}
               className="rounded-lg bg-slate-950 px-4 py-2 text-sm font-black text-white disabled:cursor-not-allowed disabled:opacity-40"
             >
-              Apply {optimal.threshold.toFixed(2)}
+              Apply representative {optimal.threshold.toFixed(2)}
             </button>
           </div>
-          <ThresholdCostChart sweep={sweep} currentThreshold={threshold} optimalThreshold={optimal.threshold} />
+          <ThresholdCostChart
+            sweep={sweep}
+            currentThreshold={threshold}
+            optimalThreshold={optimal.threshold}
+            optimalRanges={optimalRanges}
+          />
         </div>
 
         <div className="space-y-4">
@@ -210,7 +226,7 @@ export default function DeploymentPolicyLab({ scored, threshold, onThresholdChan
             <p className="text-xs font-black uppercase tracking-wide text-sky-800">Class weighting is different</p>
             <p className="mt-2 text-sm leading-6 text-sky-950">
               Class weights change the training objective and can change the fitted scores. Threshold tuning leaves the fitted scores alone and changes only the operating decision.
-              Use class weighting for the fitting problem, then validate the deployment threshold separately.
+              Use class weighting only when it matches the fitting problem, then validate the deployment threshold separately.
             </p>
           </div>
         </div>
