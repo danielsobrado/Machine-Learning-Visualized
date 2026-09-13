@@ -28,14 +28,15 @@ export function criticBiasComparison({
     actorStep,
     criticStep: 0.1,
   });
+  const idealSign = Math.sign(ideal.actorDelta);
+  const estimatedSign = Math.sign(estimated.actorDelta);
 
   return {
     ideal,
     estimated,
     criticError: criticValue - trueStateValue,
     actorDeltaError: estimated.actorDelta - ideal.actorDelta,
-    directionFlipped: Math.sign(ideal.actorDelta) !== 0
-      && Math.sign(estimated.actorDelta) !== 0
-      && Math.sign(ideal.actorDelta) !== Math.sign(estimated.actorDelta),
+    directionFlipped: idealSign !== 0 && estimatedSign !== 0 && idealSign !== estimatedSign,
+    updateSuppressed: idealSign !== 0 && estimatedSign === 0,
   };
 }
