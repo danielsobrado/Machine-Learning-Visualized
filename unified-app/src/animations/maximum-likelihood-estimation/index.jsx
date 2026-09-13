@@ -18,6 +18,7 @@ import {
   GAUSSIAN_DATASETS,
 } from './mleConfig.js';
 import { buildBernoulliLab, buildGaussianLab } from './mleModel.js';
+import MleFailureLab from './MleFailureLab.jsx';
 
 const pct = (value, digits = 1) => `${(value * 100).toFixed(digits)}%`;
 
@@ -197,6 +198,8 @@ export default function MaximumLikelihoodEstimationAnimation() {
           </div>
         </>
       )}
+
+      <MleFailureLab />
 
       <Note tone="accent" label="Takeaway" title="Optimization quality and model quality are different questions">
         <p>MLE can find the exact best parameter under the chosen likelihood and still produce a poor real-world model if the family is misspecified. First ask whether the likelihood is appropriate; then ask how well it was optimized.</p>
