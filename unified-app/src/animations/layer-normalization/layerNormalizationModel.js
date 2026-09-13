@@ -34,6 +34,11 @@ export function populationVariance(values, mu = mean(values)) {
   return values.reduce((sum, value) => sum + (value - mu) ** 2, 0) / values.length;
 }
 
+export function rootMeanSquare(values) {
+  requireVector(values, 'values');
+  return Math.sqrt(values.reduce((sum, value) => sum + value * value, 0) / values.length);
+}
+
 export function vectorStats(values) {
   const mu = mean(values);
   return {
@@ -59,9 +64,37 @@ export function layerNormalize(values, {
   const output = normalized.map((value, index) => value * gamma[index] + beta[index]);
 
   return {
+    kind: 'layernorm',
     inputStats,
     denominator,
     centered,
+    normalized,
+    normalizedStats: vectorStats(normalized),
+    output,
+    outputStats: vectorStats(output),
+  };
+}
+
+export function rmsNormalize(values, {
+  gamma = Array(values.length).fill(1),
+  epsilon = DEFAULT_EPSILON,
+} = {}) {
+  requireVector(values, 'values');
+  requireSameLength(gamma, values, 'gamma');
+  requireEpsilon(epsilon);
+
+  const inputStats = vectorStats(values);
+  const rms = rootMeanSquare(values);
+  const denominator = Math.sqrt(rms * rms + epsilon);
+  const normalized = values.map((value) => value / denominator);
+  const output = normalized.map((value, index) => value * gamma[index]);
+
+  return {
+    kind: 'rmsnorm',
+    inputStats,
+    rms,
+    denominator,
+    centered: [...values],
     normalized,
     normalizedStats: vectorStats(normalized),
     output,
