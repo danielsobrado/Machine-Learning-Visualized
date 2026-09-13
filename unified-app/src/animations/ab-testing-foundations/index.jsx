@@ -11,6 +11,7 @@ import {
   LessonStat,
 } from '../../components/animation-shell/LessonUi';
 import OptionalStoppingLab from './OptionalStoppingLab.jsx';
+import SampleRatioMismatchLab from './SampleRatioMismatchLab.jsx';
 import {
   AB_TEST_DEFAULTS,
   SIGNIFICANCE_ALPHA,
@@ -186,7 +187,7 @@ export default function AbTestingFoundationsAnimation() {
             expected-case z = {metrics.z.toFixed(2)}, p = {metrics.pValue.toFixed(3)}
           </LessonEquation>
           <p className="ua-lesson-footnote">
-            A realized experiment will fluctuate around these assumptions. Its observed rates, interval, and p-value are random; the optional-stopping lab below shows why that randomness matters.
+            A realized experiment will fluctuate around these assumptions. Its observed rates, interval, and p-value are random; the integrity and optional-stopping labs below show why the analysis policy matters.
           </p>
         </LessonPanel>
       </section>
@@ -197,40 +198,26 @@ export default function AbTestingFoundationsAnimation() {
             {metrics.significant ? <CheckCircle2 size={14} /> : <AlertTriangle size={14} />}
             Expected statistical strength
           </p>
-          <p>
-            {metrics.significant ? 'At the assumed rates, the planned sample produces a strong expected-case z statistic.' : 'At the assumed rates, the planned sample is unlikely to produce strong evidence.'}
-          </p>
+          <p>{metrics.significant ? 'At the assumed rates, the planned sample produces a strong expected-case z statistic.' : 'At the assumed rates, the planned sample is unlikely to produce strong evidence.'}</p>
         </LessonCallout>
         <LessonCallout tone={metrics.practical ? 'good' : 'warn'}>
           <p className="ua-lesson-callout-title">
             {metrics.practical ? <CheckCircle2 size={14} /> : <AlertTriangle size={14} />}
             Practical size
           </p>
-          <p>
-            {metrics.practical ? 'The assumed lift clears the minimum effect worth acting on.' : 'The assumed lift is below the pre-declared practical threshold.'}
-          </p>
+          <p>{metrics.practical ? 'The assumed lift clears the minimum effect worth acting on.' : 'The assumed lift is below the pre-declared practical threshold.'}</p>
         </LessonCallout>
         <LessonCallout tone={metrics.guardrailPass ? 'good' : 'warn'}>
-          <p className="ua-lesson-callout-title">
-            <ShieldCheck size={14} />
-            Guardrail
-          </p>
-          <p>
-            {metrics.guardrailPass
-              ? `Impact ${guardrailImpactPct.toFixed(1)}% stays above the ${guardrailThresholdPct.toFixed(1)}% breach threshold.`
-              : `Impact ${guardrailImpactPct.toFixed(1)}% breaches the ${guardrailThresholdPct.toFixed(1)}% guardrail threshold.`}
-          </p>
+          <p className="ua-lesson-callout-title"><ShieldCheck size={14} />Guardrail</p>
+          <p>{metrics.guardrailPass ? `Impact ${guardrailImpactPct.toFixed(1)}% stays above the ${guardrailThresholdPct.toFixed(1)}% breach threshold.` : `Impact ${guardrailImpactPct.toFixed(1)}% breaches the ${guardrailThresholdPct.toFixed(1)}% guardrail threshold.`}</p>
         </LessonCallout>
         <LessonCallout tone={metrics.decisionReady ? 'good' : 'neutral'}>
           <p className="ua-lesson-callout-title">Design readiness</p>
-          <p>
-            {metrics.decisionReady
-              ? 'Promising design scenario: expected strength, size, guardrail, and allocation checks pass. The realized experiment still decides the outcome.'
-              : 'Revise the design, sample, allocation, or decision thresholds before treating this as launch-ready.'}
-          </p>
+          <p>{metrics.decisionReady ? 'Promising design scenario: expected strength, size, guardrail, and allocation checks pass. The realized experiment still decides the outcome.' : 'Revise the design, sample, allocation, or decision thresholds before treating this as launch-ready.'}</p>
         </LessonCallout>
       </section>
 
+      <SampleRatioMismatchLab />
       <OptionalStoppingLab />
 
       <AssessmentPanel lessonId="ab-testing-foundations" />
