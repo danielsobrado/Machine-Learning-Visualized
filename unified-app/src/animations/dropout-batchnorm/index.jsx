@@ -4,6 +4,7 @@ import AssessmentPanel from '../../components/animation-shell/AssessmentPanel';
 import BatchNormWorkbench from './BatchNormWorkbench.jsx';
 import DropoutExperiment from './DropoutExperiment.jsx';
 import ModeFailureLab from './ModeFailureLab.jsx';
+import TrainEvalPipelineLab from './TrainEvalPipelineLab.jsx';
 
 export default function DropoutBatchNormAnimation() {
   return (
@@ -19,6 +20,7 @@ export default function DropoutBatchNormAnimation() {
       <BatchNormWorkbench />
       <ModeFailureLab />
       <DropoutExperiment />
+      <TrainEvalPipelineLab />
 
       <section className="grid gap-4 md:grid-cols-3">
         <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
