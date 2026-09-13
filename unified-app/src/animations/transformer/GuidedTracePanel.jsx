@@ -40,7 +40,6 @@ export default function GuidedTracePanel() {
 
   const compatibleHeads = [1, 2, 4, 8, 16].filter((heads) => dModel % heads === 0 && heads <= dModel);
   const effectiveHeads = compatibleHeads.includes(numHeads) ? numHeads : compatibleHeads.at(-1);
-  if (effectiveHeads !== numHeads) setNumHeads(effectiveHeads);
 
   const shapes = useMemo(() => transformerShapeLedger({
     sequenceLength,
