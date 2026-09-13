@@ -1,58 +1,19 @@
 import React, { useMemo, useState } from 'react';
-import { AlertTriangle, BarChart3, Calculator, RotateCcw, ShieldCheck, SlidersHorizontal } from 'lucide-react';
+import {
+  AlertTriangle,
+  BarChart3,
+  Calculator,
+  GitBranch,
+  RotateCcw,
+  ShieldCheck,
+  SlidersHorizontal,
+} from 'lucide-react';
 import AssessmentPanel from '../../components/animation-shell/AssessmentPanel';
-
-const TOKENS = [
-  {
-    token: 'The',
-    q: [0.2, 0.3, 0.1],
-    k: [0.1, 0.2, 0.1],
-    v: [0.2, 0.1],
-  },
-  {
-    token: 'animal',
-    q: [0.9, 0.1, 0.2],
-    k: [0.95, 0.1, 0.2],
-    v: [0.9, 0.2],
-  },
-  {
-    token: 'crossed',
-    q: [0.2, 0.85, 0.1],
-    k: [0.1, 0.9, 0.2],
-    v: [0.35, 0.75],
-  },
-  {
-    token: 'street',
-    q: [0.15, 0.8, 0.3],
-    k: [0.1, 0.7, 0.45],
-    v: [0.25, 0.9],
-  },
-  {
-    token: 'tired',
-    q: [0.8, 0.15, 0.4],
-    k: [0.8, 0.15, 0.35],
-    v: [0.85, 0.35],
-  },
-];
-
-function dot(left, right) {
-  return left.reduce((total, value, index) => total + value * right[index], 0);
-}
-
-function softmax(values, temperature) {
-  const scaled = values.map((value) => value / temperature);
-  const max = Math.max(...scaled);
-  const exps = scaled.map((value) => Math.exp(value - max));
-  const total = exps.reduce((sum, value) => sum + value, 0);
-  return exps.map((value) => value / total);
-}
-
-function weightedValue(weights) {
-  return TOKENS.reduce(
-    (out, token, index) => [out[0] + weights[index] * token.v[0], out[1] + weights[index] * token.v[1]],
-    [0, 0],
-  );
-}
+import {
+  attentionMatrix,
+  attentionRow,
+  buildTokenProjections,
+} from './selfAttentionModel.js';
 
 function fmtVector(vector) {
   return `[${vector.map((value) => value.toFixed(2)).join(', ')}]`;
@@ -60,111 +21,106 @@ function fmtVector(vector) {
 
 function Stat({ label, value, detail }) {
   return (
-    <div className="rounded-lg border border-slate-200 bg-white p-4">
+    <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
       <p className="text-xs font-black uppercase tracking-wide text-slate-500">{label}</p>
-      <strong className="mt-1 block text-2xl font-black text-slate-950">{value}</strong>
-      <span className="text-sm text-slate-600">{detail}</span>
+      <strong className="mt-1 block text-xl font-black text-slate-950">{value}</strong>
+      <span className="mt-1 block text-xs leading-5 text-slate-600">{detail}</span>
+    </div>
+  );
+}
+
+function VectorCard({ label, value, detail, tone = 'slate' }) {
+  const tones = {
+    slate: 'border-slate-200 bg-slate-50 text-slate-900',
+    cyan: 'border-cyan-200 bg-cyan-50 text-cyan-950',
+    violet: 'border-violet-200 bg-violet-50 text-violet-950',
+    emerald: 'border-emerald-200 bg-emerald-50 text-emerald-950',
+  };
+  return (
+    <div className={`rounded-xl border p-4 ${tones[tone]}`}>
+      <p className="text-xs font-black uppercase tracking-wide opacity-70">{label}</p>
+      <div className="mt-2 break-words font-mono text-sm font-black">{fmtVector(value)}</div>
+      <p className="mt-2 text-xs leading-5 opacity-80">{detail}</p>
     </div>
   );
 }
 
 function MatrixCell({ value, active, blocked }) {
-  const opacity = blocked ? 0.18 : Math.max(0.18, value);
+  const opacity = blocked ? 1 : Math.max(0.18, value);
   return (
     <div
-      className={`flex aspect-square items-center justify-center rounded text-xs font-black ${
-        active ? 'ring-2 ring-slate-950' : ''
-      } ${blocked ? 'bg-slate-200 text-slate-400' : 'bg-cyan-600 text-white'}`}
-      style={blocked ? undefined : { opacity }}
+      className={`flex aspect-square items-center justify-center rounded-lg text-xs font-black ${active ? 'ring-2 ring-slate-950 ring-offset-1' : ''} ${
+        blocked ? 'bg-slate-200 text-slate-400' : 'bg-cyan-600 text-white'
+      }`}
+      style={{ opacity }}
     >
-      {blocked ? '-' : Math.round(value * 100)}
+      {blocked ? '×' : Math.round(value * 100)}
     </div>
   );
 }
 
 export default function SelfAttentionAnimation() {
+  const projections = useMemo(() => buildTokenProjections(), []);
   const [queryIndex, setQueryIndex] = useState(4);
   const [temperature, setTemperature] = useState(1);
   const [causalMask, setCausalMask] = useState(false);
-  const [boostToken, setBoostToken] = useState(1);
+  const [queryFeatureOffset, setQueryFeatureOffset] = useState(0);
 
-  const attention = useMemo(() => {
-    const query = TOKENS[queryIndex].q.map((value, index) => (index === 0 ? value + boostToken / 10 : value));
-    const scale = Math.sqrt(query.length);
-    const rawScores = TOKENS.map((token, index) => {
-      const blocked = causalMask && index > queryIndex;
-      return {
-        index,
-        token: token.token,
-        blocked,
-        score: blocked ? Number.NEGATIVE_INFINITY : dot(query, token.k) / scale,
-      };
-    });
-    const visibleScores = rawScores.map((item) => (item.blocked ? -1000 : item.score));
-    const weights = softmax(visibleScores, temperature);
-    const output = weightedValue(weights);
-    const winner = rawScores.reduce((best, item, index) => (weights[index] > weights[best.index] ? { ...item, index } : best), {
-      ...rawScores[0],
-      index: 0,
-    });
-    return { query, rawScores, weights, output, winner, scale };
-  }, [boostToken, causalMask, queryIndex, temperature]);
+  const selected = projections[queryIndex];
+  const row = useMemo(() => attentionRow({
+    projections,
+    queryIndex,
+    causal: causalMask,
+    temperature,
+    queryFeatureOffset,
+  }), [causalMask, projections, queryFeatureOffset, queryIndex, temperature]);
 
-  const rows = TOKENS.map((queryToken, rowIndex) => {
-    const scores = TOKENS.map((keyToken, colIndex) => {
-      if (causalMask && colIndex > rowIndex) return Number.NEGATIVE_INFINITY;
-      return dot(queryToken.q, keyToken.k) / Math.sqrt(queryToken.q.length);
-    });
-    return softmax(scores.map((score) => (score === Number.NEGATIVE_INFINITY ? -1000 : score)), temperature);
-  });
+  const matrix = useMemo(() => attentionMatrix({
+    projections,
+    causal: causalMask,
+    temperature,
+    selectedQueryIndex: queryIndex,
+    queryFeatureOffset,
+  }), [causalMask, projections, queryFeatureOffset, queryIndex, temperature]);
 
   const reset = () => {
     setQueryIndex(4);
     setTemperature(1);
     setCausalMask(false);
-    setBoostToken(1);
+    setQueryFeatureOffset(0);
   };
 
   return (
-    <div className="space-y-6">
-      <section className="rounded-lg border border-slate-200 bg-white p-5">
+    <div className="mx-auto flex max-w-7xl flex-col gap-6 p-4 md:p-6">
+      <header className="rounded-2xl border border-slate-200 bg-slate-950 p-5 text-white shadow-sm">
         <div className="flex flex-wrap items-start justify-between gap-4">
           <div>
-            <p className="text-xs font-black uppercase tracking-wide text-slate-500">Transformer foundation</p>
-            <h2 className="mt-1 text-2xl font-black text-slate-950">Self-Attention</h2>
-            <p className="mt-2 max-w-3xl text-sm leading-6 text-slate-700">
-              Self-attention builds a new context vector for each token. A query compares with every key, softmax turns
-              scores into weights, and the output is a weighted mix of value vectors.
+            <p className="text-xs font-black uppercase tracking-wide text-cyan-300">Transformer foundation · real Q/K/V math</p>
+            <h1 className="mt-2 text-2xl font-black md:text-3xl">Self-Attention: trace one token from embedding to context</h1>
+            <p className="mt-2 max-w-4xl text-sm leading-6 text-slate-300">
+              Every vector on this page is computed. Token embeddings are projected into Q, K, and V, scaled dot products become softmax weights, masks are applied before softmax, and the final context vector is a weighted sum of values.
             </p>
           </div>
-          <button
-            type="button"
-            onClick={reset}
-            className="inline-flex items-center gap-2 rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm font-bold text-slate-800"
-          >
-            <RotateCcw size={16} />
-            Reset
+          <button type="button" onClick={reset} className="inline-flex items-center gap-2 rounded-lg border border-slate-600 bg-slate-900 px-4 py-2 text-sm font-bold text-white">
+            <RotateCcw size={16} /> Reset
           </button>
         </div>
-      </section>
+      </header>
 
-      <section className="rounded-lg border border-slate-200 bg-white p-5">
+      <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
         <div className="mb-4 flex items-center gap-2 text-sm font-black uppercase tracking-wide text-slate-600">
-          <SlidersHorizontal size={16} />
-          Attention controls
+          <SlidersHorizontal size={16} /> Experiment controls
         </div>
-        <div className="grid gap-4 xl:grid-cols-[1.4fr_1fr_1fr_1fr]">
-          <div className="grid gap-2">
+        <div className="grid gap-5 xl:grid-cols-[1.4fr_1fr_1fr_1fr]">
+          <div>
             <span className="text-sm font-bold text-slate-700">Query token</span>
-            <div className="flex flex-wrap gap-2">
-              {TOKENS.map((token, index) => (
+            <div className="mt-2 flex flex-wrap gap-2">
+              {projections.map((token, index) => (
                 <button
                   key={token.token}
                   type="button"
                   onClick={() => setQueryIndex(index)}
-                  className={`rounded-lg border px-3 py-2 text-sm font-black ${
-                    queryIndex === index ? 'border-cyan-500 bg-cyan-600 text-white' : 'border-slate-200 bg-slate-50 text-slate-700'
-                  }`}
+                  className={`rounded-lg border px-3 py-2 text-sm font-black ${queryIndex === index ? 'border-cyan-600 bg-cyan-600 text-white' : 'border-slate-200 bg-slate-50 text-slate-700'}`}
                 >
                   {token.token}
                 </button>
@@ -172,124 +128,113 @@ export default function SelfAttentionAnimation() {
             </div>
           </div>
           <label className="grid gap-2 text-sm font-bold text-slate-700">
-            Softmax temperature: {temperature.toFixed(2)}
-            <input min="0.35" max="2.5" step="0.05" type="range" value={temperature} onChange={(event) => setTemperature(Number(event.target.value))} />
-            <span className="text-xs font-semibold text-slate-500">Lower values make attention sharper.</span>
+            Query feature intervention: {queryFeatureOffset >= 0 ? '+' : ''}{queryFeatureOffset.toFixed(2)}
+            <input min="-0.8" max="0.8" step="0.05" type="range" value={queryFeatureOffset} onChange={(event) => setQueryFeatureOffset(Number(event.target.value))} />
+            <span className="text-xs font-semibold leading-5 text-slate-500">Perturb q₁ for the selected token and watch only its attention row change.</span>
           </label>
           <label className="grid gap-2 text-sm font-bold text-slate-700">
-            Animal-query boost: {boostToken.toFixed(1)}
-            <input min="-2" max="3" step="0.1" type="range" value={boostToken} onChange={(event) => setBoostToken(Number(event.target.value))} />
-            <span className="text-xs font-semibold text-slate-500">Perturbs the selected query vector.</span>
+            Softmax temperature: {temperature.toFixed(2)}
+            <input min="0.35" max="2.5" step="0.05" type="range" value={temperature} onChange={(event) => setTemperature(Number(event.target.value))} />
+            <span className="text-xs font-semibold leading-5 text-slate-500">1.0 is the normal lesson path; lower values sharpen the same scores.</span>
           </label>
-          <label className="flex items-start gap-3 rounded-lg border border-slate-200 bg-slate-50 p-3 text-sm font-bold text-slate-700">
+          <label className="flex items-start gap-3 rounded-xl border border-slate-200 bg-slate-50 p-4 text-sm font-bold text-slate-700">
             <input type="checkbox" checked={causalMask} onChange={(event) => setCausalMask(event.target.checked)} className="mt-1" />
             <span>
-              Causal mask
-              <small className="mt-1 block font-semibold leading-5 text-slate-500">Block future keys before softmax.</small>
+              Causal attention
+              <small className="mt-1 block font-semibold leading-5 text-slate-500">Future keys receive zero probability because masking happens before softmax.</small>
             </span>
           </label>
         </div>
       </section>
 
-      <section className="grid gap-4 md:grid-cols-4">
-        <Stat label="Query" value={TOKENS[queryIndex].token} detail={`q = ${fmtVector(attention.query)}`} />
-        <Stat label="Scale" value={`sqrt(${TOKENS[0].q.length})`} detail={`Scores divide by ${attention.scale.toFixed(2)}.`} />
-        <Stat label="Strongest key" value={attention.winner.token} detail={`${Math.round(attention.weights[attention.winner.index] * 100)}% attention weight.`} />
-        <Stat label="Output" value={fmtVector(attention.output)} detail="Weighted value mixture." />
+      <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+        <div className="mb-4 flex items-center gap-2 text-sm font-black uppercase tracking-wide text-slate-600">
+          <GitBranch size={16} /> Projection pipeline for “{selected.token}”
+        </div>
+        <div className="grid gap-3 md:grid-cols-4">
+          <VectorCard label="Embedding x" value={selected.embedding} detail="The token representation before attention projections." />
+          <VectorCard label="Query q = xWq" value={row.query} detail={queryFeatureOffset === 0 ? 'What this token is looking for.' : 'Includes the live q₁ intervention.'} tone="cyan" />
+          <VectorCard label="Key k = xWk" value={selected.k} detail="What this token offers for matching." tone="violet" />
+          <VectorCard label="Value v = xWv" value={selected.v} detail="The information routed if this token receives weight." tone="emerald" />
+        </div>
       </section>
 
-      <section className="grid gap-6 xl:grid-cols-[1.15fr_0.85fr]">
-        <div className="rounded-lg border border-slate-200 bg-white p-5">
+      <section className="grid gap-3 md:grid-cols-4">
+        <Stat label="dₖ" value={row.query.length} detail={`Scale = √dₖ = ${row.scale.toFixed(3)}`} />
+        <Stat label="Strongest key" value={projections[row.winnerIndex].token} detail={`${(row.weights[row.winnerIndex] * 100).toFixed(1)}% of this row's probability.`} />
+        <Stat label="Visible keys" value={row.blocked.filter((value) => !value).length} detail={causalMask ? 'Future tokens are excluded.' : 'Bidirectional: every token is visible.'} />
+        <Stat label="Context output" value={fmtVector(row.output)} detail="Σ attentionᵢ · Vᵢ" />
+      </section>
+
+      <section className="grid gap-5 xl:grid-cols-[1.2fr_0.8fr]">
+        <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
           <div className="mb-4 flex items-center gap-2 text-sm font-black uppercase tracking-wide text-slate-600">
-            <BarChart3 size={16} />
-            One attention row
+            <Calculator size={16} /> One complete attention row
           </div>
-          <div className="grid gap-3">
-            {attention.rawScores.map((item, index) => (
-              <div key={item.token}>
-                <div className="mb-1 flex items-center justify-between text-sm">
-                  <strong className="text-slate-800">{TOKENS[queryIndex].token} reads {item.token}</strong>
-                  <span className="font-bold text-slate-500">
-                    {item.blocked ? 'masked' : `${Math.round(attention.weights[index] * 100)}%`}
-                  </span>
-                </div>
-                <div className="h-3 overflow-hidden rounded-full bg-slate-100">
-                  <div
-                    className={`h-full rounded-full ${item.blocked ? 'bg-slate-300' : 'bg-cyan-600'}`}
-                    style={{ width: `${item.blocked ? 0 : attention.weights[index] * 100}%` }}
-                  />
-                </div>
-                <p className="mt-1 text-xs font-semibold text-slate-500">
-                  score = {item.blocked ? 'blocked before softmax' : item.score.toFixed(2)}
-                </p>
-              </div>
-            ))}
+          <div className="overflow-x-auto">
+            <table className="w-full min-w-[720px] text-sm">
+              <thead className="bg-slate-100 text-xs uppercase tracking-wide text-slate-500">
+                <tr>
+                  <th className="px-3 py-2 text-left">Key token</th>
+                  <th className="px-3 py-2 text-right">q · k</th>
+                  <th className="px-3 py-2 text-right">/ √dₖ</th>
+                  <th className="px-3 py-2 text-right">softmax</th>
+                  <th className="px-3 py-2 text-left">Value routed</th>
+                </tr>
+              </thead>
+              <tbody>
+                {projections.map((token, index) => (
+                  <tr key={token.token} className="border-t border-slate-200">
+                    <td className="px-3 py-3 font-black text-slate-900">{token.token}</td>
+                    <td className="px-3 py-3 text-right font-mono">{row.blocked[index] ? 'masked' : row.dotProducts[index].toFixed(3)}</td>
+                    <td className="px-3 py-3 text-right font-mono">{row.blocked[index] ? '−∞' : row.scaledScores[index].toFixed(3)}</td>
+                    <td className="px-3 py-3 text-right font-mono font-black text-cyan-700">{(row.weights[index] * 100).toFixed(1)}%</td>
+                    <td className="px-3 py-3 font-mono text-xs text-slate-600">{fmtVector(token.v)}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+          <div className="mt-4 rounded-xl bg-slate-950 p-4 font-mono text-sm leading-7 text-cyan-100">
+            Q = XWq · K = XWk · V = XWv<br />
+            scores = QKᵀ / √dₖ<br />
+            weights = softmax(mask(scores))<br />
+            context = weights · V
           </div>
         </div>
 
         <div className="space-y-4">
-          <div className="rounded-lg border border-slate-200 bg-white p-5">
-            <div className="mb-3 flex items-center gap-2 text-sm font-black uppercase tracking-wide text-slate-600">
-              <Calculator size={16} />
-              Formula trace
-            </div>
-            <div className="rounded-lg bg-slate-950 p-4 font-mono text-sm leading-7 text-cyan-100">
-              scores = Q K^T / sqrt(d_k)<br />
-              weights = softmax(scores)<br />
-              output = weights V
-            </div>
-            <p className="mt-3 text-sm leading-6 text-slate-700">
-              Scaling prevents high-dimensional dot products from pushing softmax into a nearly one-hot distribution too early.
-            </p>
+          <div className="rounded-xl border border-cyan-200 bg-cyan-50 p-4 text-cyan-950">
+            <p className="text-xs font-black uppercase tracking-wide text-cyan-700">Hands-on challenge</p>
+            <p className="mt-2 text-sm leading-6">Pick <strong>crossed</strong>, turn on causal attention, then predict which columns must become exactly zero before looking at the matrix.</p>
           </div>
-          <div className="rounded-lg border border-cyan-200 bg-cyan-50 p-4">
-            <p className="text-xs font-black uppercase tracking-wide text-cyan-700">Predict before running</p>
-            <p className="mt-2 text-sm leading-6 text-cyan-950">
-              Lower the temperature before checking the bars, then predict which value vector will dominate the output.
-            </p>
+          <div className="rounded-xl border border-amber-200 bg-amber-50 p-4 text-amber-950">
+            <p className="flex items-center gap-2 text-xs font-black uppercase tracking-wide text-amber-700"><AlertTriangle size={14} /> Interpretation trap</p>
+            <p className="mt-2 text-sm leading-6">A large attention weight says which value vector is routed strongly. It does not prove that token is a human-readable explanation for the model's final prediction.</p>
           </div>
-          <div className="rounded-lg border border-amber-200 bg-amber-50 p-4">
-            <p className="flex items-center gap-2 text-xs font-black uppercase tracking-wide text-amber-700">
-              <AlertTriangle size={14} />
-              Failure mode
-            </p>
-            <p className="mt-2 text-sm leading-6 text-amber-950">
-              Attention weights are routing weights for value mixing. They are not guaranteed human explanations.
-            </p>
-          </div>
-          <div className="rounded-lg border border-emerald-200 bg-emerald-50 p-4">
-            <p className="flex items-center gap-2 text-xs font-black uppercase tracking-wide text-emerald-700">
-              <ShieldCheck size={14} />
-              Practical rule
-            </p>
-            <p className="mt-2 text-sm leading-6 text-emerald-950">
-              Check the row, mask, and value vectors together. The largest attention weight only matters through the value it retrieves.
-            </p>
+          <div className="rounded-xl border border-emerald-200 bg-emerald-50 p-4 text-emerald-950">
+            <p className="flex items-center gap-2 text-xs font-black uppercase tracking-wide text-emerald-700"><ShieldCheck size={14} /> Boundary to remember</p>
+            <p className="mt-2 text-sm leading-6">Bidirectional self-attention can read both sides of a token. Causal self-attention uses the same mechanism with a mask that removes future positions.</p>
           </div>
         </div>
       </section>
 
-      <section className="rounded-lg border border-slate-200 bg-white p-5">
+      <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
         <div className="mb-4 flex items-center gap-2 text-sm font-black uppercase tracking-wide text-slate-600">
-          <BarChart3 size={16} />
-          Full attention matrix
+          <BarChart3 size={16} /> Full attention matrix · rows are queries, columns are keys
         </div>
-        <div className="grid grid-cols-[96px_repeat(5,minmax(42px,1fr))] gap-2">
+        <div className="grid grid-cols-[96px_repeat(5,minmax(48px,1fr))] gap-2">
           <div />
-          {TOKENS.map((token) => (
-            <div key={token.token} className="truncate text-center text-xs font-black uppercase text-slate-500">
-              {token.token}
-            </div>
-          ))}
-          {rows.map((row, rowIndex) => (
-            <React.Fragment key={TOKENS[rowIndex].token}>
-              <div className="flex items-center text-sm font-black text-slate-700">{TOKENS[rowIndex].token}</div>
-              {row.map((value, colIndex) => (
+          {projections.map((token) => <div key={token.token} className="truncate text-center text-xs font-black uppercase text-slate-500">{token.token}</div>)}
+          {matrix.map((matrixRow, rowIndex) => (
+            <React.Fragment key={projections[rowIndex].token}>
+              <div className="flex items-center text-sm font-black text-slate-700">{projections[rowIndex].token}</div>
+              {matrixRow.weights.map((value, colIndex) => (
                 <MatrixCell
                   key={`${rowIndex}-${colIndex}`}
                   value={value}
-                  active={rowIndex === queryIndex && colIndex === attention.winner.index}
-                  blocked={causalMask && colIndex > rowIndex}
+                  active={rowIndex === queryIndex && colIndex === row.winnerIndex}
+                  blocked={matrixRow.blocked[colIndex]}
                 />
               ))}
             </React.Fragment>
@@ -297,7 +242,7 @@ export default function SelfAttentionAnimation() {
         </div>
       </section>
 
-      <AssessmentPanel lessonId="self-attention" />
+      <AssessmentPanel lessonId="self-attention" title="Self-attention check" />
     </div>
   );
 }
