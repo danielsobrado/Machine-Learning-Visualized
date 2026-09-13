@@ -1,6 +1,7 @@
 import React, { useMemo, useState } from 'react';
 import { AlertTriangle, Gauge, ShieldCheck } from 'lucide-react';
 import AssessmentPanel from '../../components/animation-shell/AssessmentPanel';
+import PpoRepeatedEpochLab from './PpoRepeatedEpochLab.jsx';
 import { PPO_DEFAULTS, PPO_PRESETS } from './ppoConfig';
 import { buildPpoCounterexamples, evaluatePpoBatch } from './ppoModel';
 
@@ -20,7 +21,7 @@ export default function PpoClippedPolicyGradientAnimation() {
       <section className="rounded-lg border border-slate-200 bg-white p-5">
         <p className="text-xs font-black uppercase tracking-wide text-blue-700">Policy optimization</p>
         <h2 className="mt-1 text-2xl font-black text-slate-950">PPO: clip the surrogate, not the whole policy</h2>
-        <p className="mt-2 max-w-4xl text-sm leading-6 text-slate-700">For an action sampled under πold, PPO uses the feasible ratio <strong>r = πnew(a|s) / πold(a|s)</strong>. The clipped objective limits surrogate improvement in dangerous directions, but it is not a hard KL trust region.</p>
+        <p className="mt-2 max-w-4xl text-sm leading-6 text-slate-700">For an action sampled under πold, PPO uses the feasible ratio <strong>r = πnew(a|s) / πold(a|s)</strong>. The clipped objective limits surrogate improvement in dangerous directions, but it is not a hard KL trust region or an optimizer step-size clamp.</p>
       </section>
 
       <section className="rounded-lg border border-slate-200 bg-white p-5">
@@ -40,12 +41,14 @@ export default function PpoClippedPolicyGradientAnimation() {
         <div className="mt-4 overflow-x-auto"><table className="w-full min-w-[760px] text-left text-sm"><thead><tr className="border-b border-slate-200 text-xs uppercase text-slate-500"><th className="p-2">Action</th><th className="p-2">π old</th><th className="p-2">π new</th><th className="p-2">Ratio</th><th className="p-2">Advantage</th><th className="p-2">Objective</th><th className="p-2">KL</th><th className="p-2">Status</th></tr></thead><tbody>{batch.rows.map((row, index) => <tr key={index} className="border-b border-slate-100"><td className="p-2 font-mono">{row.action}</td><td className="p-2 font-mono">{row.oldProbability.toFixed(3)}</td><td className="p-2 font-mono">{row.newProbability.toFixed(3)}</td><td className="p-2 font-mono">{row.ratio.toFixed(3)}</td><td className="p-2 font-mono">{row.advantage.toFixed(2)}</td><td className="p-2 font-mono">{row.objective.toFixed(3)}</td><td className="p-2 font-mono">{row.kl.toFixed(3)}</td><td className="p-2"><span className={`rounded px-2 py-1 text-xs font-black ${row.clippingActive ? 'bg-amber-100 text-amber-800' : 'bg-emerald-100 text-emerald-800'}`}>{row.clippingActive ? 'clipped' : 'unclipped'}</span></td></tr>)}</tbody></table></div>
       </section>
 
+      <PpoRepeatedEpochLab epsilon={epsilon} />
+
       <section className="grid gap-4 md:grid-cols-2">
         <div className="rounded-lg border border-emerald-200 bg-emerald-50 p-5 text-sm leading-6 text-emerald-950"><h3 className="flex items-center gap-2 font-black"><ShieldCheck size={16} /> Helpful-direction clipping</h3><p className="mt-2">Positive advantage + excessively high ratio clips: {examples.positiveHelpful.objective.toFixed(2)}. Negative advantage + excessively low ratio also clips: {examples.negativeHelpful.objective.toFixed(2)}.</p></div>
         <div className="rounded-lg border border-amber-200 bg-amber-50 p-5 text-sm leading-6 text-amber-950"><h3 className="flex items-center gap-2 font-black"><AlertTriangle size={16} /> Not a hard trust region</h3><p className="mt-2">Large wrong-way moves can remain unclipped because they already make the surrogate worse. PPO clipping prevents excessive surrogate improvement; monitor KL separately if policy drift matters.</p></div>
       </section>
 
-      <section className="rounded-lg border border-slate-200 bg-slate-50 p-4 text-sm leading-6 text-slate-700">The previous lesson let a ratio imply an impossible action probability and then silently clamped it. This version starts from complete old/new policies, so every displayed ratio is realizable by construction.</section>
+      <section className="rounded-lg border border-slate-200 bg-slate-50 p-4 text-sm leading-6 text-slate-700">Every ratio shown here comes from complete old/new Bernoulli policies, so displayed probabilities are realizable by construction. The repeated-epoch lab also keeps πold fixed after data collection, matching the stale-denominator semantics used by PPO minibatch updates.</section>
       <AssessmentPanel lessonId="ppo-clipped-policy-gradient" title="PPO clipped policy gradient check" />
     </div>
   );
