@@ -50,20 +50,17 @@ export default function PositionBiasLab() {
                 <tr><th className="p-3">Item</th><th className="p-3">Rank</th><th className="p-3">True preference</th><th className="p-3">Exam probability</th><th className="p-3">Expected clicks</th><th className="p-3">Observed CTR</th><th className="p-3">Corrected</th></tr>
               </thead>
               <tbody>
-                {rows.map((row) => {
-                  const rank = row.examination === POSITION_BIAS_DEFAULTS.topExamination ? 1 : 2;
-                  return (
-                    <tr key={row.id} className="border-t border-slate-200">
-                      <td className="p-3 font-black">{row.id}</td>
-                      <td className="p-3">#{rank}</td>
-                      <td className="p-3 font-mono">{pct(row.relevance)}</td>
-                      <td className="p-3 font-mono">{pct(row.examination)}</td>
-                      <td className="p-3 font-mono">{Math.round(row.expectedClicks).toLocaleString()}</td>
-                      <td className="p-3 font-mono">{pct(row.observedCtr)}</td>
-                      <td className="p-3 font-mono">{pct(row.correctedPreference)}</td>
-                    </tr>
-                  );
-                })}
+                {rows.map((row) => (
+                  <tr key={row.id} className="border-t border-slate-200">
+                    <td className="p-3 font-black">{row.id}</td>
+                    <td className="p-3">#{row.rank}</td>
+                    <td className="p-3 font-mono">{pct(row.relevance)}</td>
+                    <td className="p-3 font-mono">{pct(row.examination)}</td>
+                    <td className="p-3 font-mono">{Math.round(row.expectedClicks).toLocaleString()}</td>
+                    <td className="p-3 font-mono">{pct(row.observedCtr)}</td>
+                    <td className="p-3 font-mono">{pct(row.correctedPreference)}</td>
+                  </tr>
+                ))}
               </tbody>
             </table>
           </div>
