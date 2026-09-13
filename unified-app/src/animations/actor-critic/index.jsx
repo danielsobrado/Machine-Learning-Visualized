@@ -3,6 +3,7 @@ import { Brain, SlidersHorizontal, Users } from 'lucide-react';
 import AssessmentPanel from '../../components/animation-shell/AssessmentPanel';
 import { ACTOR_CRITIC_DEFAULTS, ACTOR_CRITIC_LIMITS } from './actorCriticConstants.js';
 import { actorCriticStep, policySensitivityExperiment, tdTarget } from './actorCriticModel.js';
+import CriticBiasLab from './CriticBiasLab.jsx';
 
 function Stat({ label, value, detail }) {
   return (
@@ -122,6 +123,8 @@ export default function ActorCriticAnimation() {
         </div>
         <p className="mt-4 text-sm leading-6 text-amber-950">The old visualization showed only <span className="font-mono">α × advantage</span>. That is a learning signal, not the policy-parameter gradient.</p>
       </section>
+
+      <CriticBiasLab />
 
       <AssessmentPanel lessonId="actor-critic" title="Actor-critic check" />
     </div>
