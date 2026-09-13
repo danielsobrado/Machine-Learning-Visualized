@@ -1,15 +1,17 @@
 # Assessment Remaining Plan
 
-Status: **Active living plan**  
-Last reviewed: **2026-09-11**
+Status: **Active living plan — current roadmap closed**  
+Last reviewed: **2026-09-13**
 
-This is the source of truth for assessment work that remains after the large quality, coverage, and semantic-protection passes.
+This is the source of truth for assessment work that remains after the large quality, coverage, semantic-protection, and priority reasoning-gap passes.
 
 The default rule remains:
 
 > Add a question or scenario only when a real reasoning, diagnostic, numerical, comparison, or visual-state gap exists. Otherwise protect strong existing evidence with a regression contract.
 
-Aggregate validation was run on `1d1ec806`. Statuses below describe repository implementation plus that review. The remaining `STRUCTURE_ONLY` lessons are the non-priority Qwen Flash-Next drill family and are not A3 promotion work.
+The last full aggregate validation recorded by this plan was run on `1d1ec806`. The latest priority reasoning-gap closure is implemented through `8433c8b3` and repository wiring was reviewed, but GitHub Actions had not started an aggregate workflow for that direct-main HEAD at the time of this update. Do not treat that latest batch as CI-validated until the aggregate suite runs successfully.
+
+The remaining `STRUCTURE_ONLY` lessons are the non-priority Qwen Flash-Next drill family and are not A3 promotion work.
 
 ## Status values
 
@@ -38,6 +40,7 @@ Aggregate validation was run on `1d1ec806`. Statuses below describe repository i
 - Shared adapter for stable legacy depth contracts.
 - Scheduled/manual browser-level assessment smoke coverage.
 - Deterministic report-only near-duplicate audit.
+- Priority reasoning-gap re-audit with duplicate-question avoidance and regression protection for the remaining real gaps.
 
 ## Roadmap
 
@@ -52,6 +55,7 @@ Aggregate validation was run on `1d1ec806`. Statuses below describe repository i
 | A7 | P1 | Browser-level assessment smoke CI | `DONE` | Nightly/manual Playwright smoke without normal-commit browser cost |
 | A8 | P2 | Semantic near-duplicate audit | `DONE` | Deterministic report-only token-overlap audit with allowlisting |
 | A9 | P2 | Documentation synchronization | `DONE` | Design/completion docs point back to this living plan |
+| A10 | P1 | Remaining priority reasoning gaps | `DONE` | Ten genuine gaps added; already-covered topics deliberately left unchanged; focused regression contract added |
 
 ---
 
@@ -253,7 +257,7 @@ CI runs the report with `continue-on-error: true`. This phase must remain non-bl
 
 **Status:** `DONE`
 
-Documentation now uses three concepts consistently:
+Documentation uses three concepts consistently:
 
 ```text
 DESIGN
@@ -264,13 +268,71 @@ ACTIVE REMAINING WORK
 - `ASSESSMENT_QUALITY_CONTRACT.md` is historical design plus implemented baseline.
 - `ASSESSMENT_P0_COMPLETION.md` records the P0 baseline.
 - `ASSESSMENT_P2_COMPLETION.md` records the P2 baseline.
-- this file owns active remaining assessment work.
+- this file owns active remaining assessment work and records closed follow-up passes so gaps are not accidentally reopened.
+
+---
+
+## A10 — Remaining priority reasoning gaps
+
+**Status:** `DONE`
+
+Implemented in:
+
+- `unified-app/src/data/p1NextPriorityGapScenarioQuestions.js`
+- `unified-app/src/data/remainingPriorityGapAssessment.test.mjs`
+
+### Review rule
+
+The September 13 pass re-audited the requested deep-learning, transformer/RAG, and reinforcement-learning gap list against current `main` before writing new scenarios. Existing strong coverage was treated as evidence, not as a reason to create duplicate questions.
+
+The following areas were **not** expanded because the required reasoning was already represented strongly enough:
+
+- Neural Network Fundamentals: XOR/nonlinearity, tensor shapes, parameter counting, and forward-pass reasoning.
+- Initialization: symmetry breaking plus Xavier/He activation-aware initialization.
+- Dropout + BatchNorm: training/evaluation mode, tiny-batch behavior, scaling/expectation, and ordering.
+- RAG Vector Indexing: ANN recall/latency, restrictive filtering, metric mismatch, and freshness/maintenance.
+
+### Genuine gaps closed
+
+Ten independent competencies were added to the existing `p1-next-priority-gaps` source:
+
+1. **Optimization** — objective/geometry versus optimizer/update-rule failure localization.
+2. **Transformer** — worked parameter accounting across Q/K/V/O and FFN projections.
+3. **Fine-tuning** — evaluation contamination when benchmark items or close variants enter SFT data.
+4. **RAG Vector Indexing** — embedding-model migration and incompatibility between old and new vector spaces even when dimensions match.
+5. **Attention Mechanism** — worked scaled dot-product attention score calculation before softmax.
+6. **Self-Attention** — causal versus bidirectional masking chosen from the learning objective.
+7. **Layer Normalization** — explicit LayerNorm versus RMSNorm calculation and semantic difference.
+8. **Policy Gradients** — state baseline as variance reduction without changing the expected policy-gradient objective.
+9. **Actor-Critic** — critic bias propagating into actor updates through incorrect advantage signs/magnitudes.
+10. **RL Exploration** — maintaining/adapting exploration in nonstationary environments after an initially good policy becomes stale.
+
+### Regression protection
+
+`remainingPriorityGapAssessment.test.mjs` protects the batch by requiring:
+
+- every named scenario to remain live through `getLessonAssessment(...)`;
+- reasoning-level depth rather than recall-only questions;
+- substantive scenario, prompt, explanation, and misconception text;
+- exactly three unique choices;
+- a stable related-comparison contract;
+- stable defining-answer semantics;
+- one independent competency per lesson;
+- coverage of all three answer positions.
+
+The scenarios reuse the already registered `p1-next-priority-gaps` source. No parallel assessment registry or new assembly mechanism was introduced.
+
+### Validation state
+
+Repository-level review confirmed that the central assessment extension registry already consumes `P1_NEXT_PRIORITY_GAP_SCENARIOS_BY_LESSON`, and the final diff from the pre-pass base contains only the scenario-source change plus its focused regression test before this documentation update.
+
+GitHub Actions had not started a workflow for direct-main HEAD `8433c8b3` when this plan was updated. The implementation is therefore marked `DONE` because the code and contract exist, but full aggregate validation remains pending execution of the commands below on the latest HEAD.
 
 ---
 
 ## Aggregate validation
 
-Run together after the implementation batch:
+Run together after an implementation batch:
 
 ```bash
 cd unified-app
@@ -289,4 +351,5 @@ Expected interpretation:
 - semantic audit failures are blocking and should be fixed;
 - near-duplicate findings are review candidates, not failures;
 - browser smoke is intentionally outside the normal per-commit quality workflow;
-- A3 is closed: remaining `STRUCTURE_ONLY` candidates were reviewed and left as non-priority Qwen drills.
+- A3 is closed: remaining `STRUCTURE_ONLY` candidates were reviewed and left as non-priority Qwen drills;
+- A10 is closed at the implementation/contract level; do not claim the latest direct-main batch is aggregate-CI validated until these checks run successfully against the latest HEAD.
