@@ -49,10 +49,17 @@ export function gradientDescentTrace({ landscapeId = 'ravine', start = [2.5, 2],
 
 export function classifyTrace(trace) {
   if (!Array.isArray(trace) || trace.length < 2) throw new TypeError('trace must contain at least two points');
-  const first = trace[0].value;
-  const last = trace.at(-1).value;
+  const firstPoint = trace[0];
+  const lastPoint = trace.at(-1);
+  const first = firstPoint.value;
+  const last = lastPoint.value;
+  const firstMagnitude = Math.hypot(firstPoint.x, firstPoint.y);
+  const lastMagnitude = Math.hypot(lastPoint.x, lastPoint.y);
   const maxMagnitude = Math.max(...trace.map((point) => Math.hypot(point.x, point.y)));
-  if (!Number.isFinite(last) || maxMagnitude > 50) return 'diverged';
+
+  const escapingParameterSpace = lastMagnitude > firstMagnitude * 1.5
+    && Math.abs(last) > Math.abs(first) * 2 + 0.1;
+  if (!Number.isFinite(last) || maxMagnitude > 50 || escapingParameterSpace) return 'diverged';
   if (last < first * 0.1) return 'converging';
   if (last < first) return 'improving slowly';
   return 'not improving';
