@@ -10,12 +10,13 @@ function requirePositiveInteger(value, name) {
   }
 }
 
-function expectedItem({ id, relevance, examination, impressions }) {
+function expectedItem({ id, rank, relevance, examination, impressions }) {
   const observedCtr = relevance * examination;
   const expectedClicks = impressions * observedCtr;
   const correctedPreference = examination > 0 ? observedCtr / examination : 0;
   return {
     id,
+    rank,
     relevance,
     examination,
     impressions,
@@ -43,12 +44,14 @@ export function positionBiasExperiment({
 
   const itemA = expectedItem({
     id: 'A',
+    rank: itemAOnTop ? 1 : 2,
     relevance: itemARelevance,
     examination: itemAOnTop ? topExamination : secondExamination,
     impressions,
   });
   const itemB = expectedItem({
     id: 'B',
+    rank: itemAOnTop ? 2 : 1,
     relevance: itemBRelevance,
     examination: itemAOnTop ? secondExamination : topExamination,
     impressions,
