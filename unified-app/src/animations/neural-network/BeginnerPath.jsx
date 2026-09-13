@@ -1,5 +1,5 @@
 import React, { useMemo, useState } from 'react';
-import { ArrowRight, Braces, Calculator, Layers3, Sparkles } from 'lucide-react';
+import { Braces, Calculator, Layers3, Sparkles } from 'lucide-react';
 import {
   FUNDAMENTALS_ARCHITECTURE,
   parameterCount,
@@ -21,6 +21,15 @@ function ShapeBadge({ label, shape }) {
     <div className="rounded-xl border border-slate-200 bg-white p-3 text-center shadow-sm">
       <div className="text-xs font-black uppercase tracking-wide text-slate-500">{label}</div>
       <div className="mt-1 font-mono text-lg font-black text-slate-950">[{shape.join(' × ')}]</div>
+    </div>
+  );
+}
+
+function ValueBadge({ label, values }) {
+  return (
+    <div className="rounded-xl border border-slate-200 bg-white p-3 text-center shadow-sm">
+      <div className="text-xs font-black uppercase tracking-wide text-slate-500">{label}</div>
+      <div className="mt-1 font-mono text-lg font-black text-slate-950">[{values.map((value) => Number(value).toFixed(2)).join(', ')}]</div>
     </div>
   );
 }
@@ -47,12 +56,7 @@ export default function BeginnerPath() {
       <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
         <div className="flex items-center gap-2 text-sm font-black uppercase tracking-wide text-blue-700"><Layers3 size={17} /> 1. Shapes first</div>
         <div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
-          {shapes.map((item, index) => (
-            <React.Fragment key={item.label}>
-              <ShapeBadge {...item} />
-              {index < shapes.length - 1 && <ArrowRight className="hidden self-center justify-self-center text-slate-300 lg:block" size={18} />}
-            </React.Fragment>
-          ))}
+          {shapes.map((item) => <ShapeBadge key={item.label} {...item} />)}
         </div>
         <p className="mt-4 text-sm leading-6 text-slate-600">The inner dimensions must match: [4×2] · [2×2] → [4×2], then [4×2] · [2×1] → [4×1]. Batch size travels through the network; feature width changes.</p>
       </section>
@@ -87,10 +91,10 @@ export default function BeginnerPath() {
             })}
           </div>
           <div className="mt-5 grid gap-3 sm:grid-cols-4">
-            <ShapeBadge label="Input x" shape={trace.input} />
-            <ShapeBadge label="z = [x₁-x₂, x₂-x₁]" shape={trace.hiddenPre.map((value) => Number(value.toFixed(2)))} />
-            <ShapeBadge label="ReLU(z)" shape={trace.hidden.map((value) => Number(value.toFixed(2)))} />
-            <ShapeBadge label="Output" shape={[trace.output]} />
+            <ValueBadge label="Input x" values={trace.input} />
+            <ValueBadge label="z = [x₁-x₂, x₂-x₁]" values={trace.hiddenPre} />
+            <ValueBadge label="ReLU(z)" values={trace.hidden} />
+            <ValueBadge label="Output" values={[trace.output]} />
           </div>
           <p className="mt-4 text-sm leading-6 text-slate-600">The hidden units keep opposite differences. ReLU clips the negative difference, and adding the two hidden activations produces |x₁-x₂|, which is exactly XOR on binary inputs.</p>
         </div>
