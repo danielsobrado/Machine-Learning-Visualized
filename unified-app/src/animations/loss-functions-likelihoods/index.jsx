@@ -1,6 +1,7 @@
 import React, { useMemo, useState } from 'react';
 import { AlertTriangle, BarChart3, Calculator, RotateCcw, ShieldCheck } from 'lucide-react';
 import AssessmentPanel from '../../components/animation-shell/AssessmentPanel';
+import HeteroscedasticLikelihoodLab from './HeteroscedasticLikelihoodLab';
 import { CLASSIFICATION_POINTS, LOSS_DEFAULTS, LOSS_MODES, REGRESSION_POINTS } from './lossConfig';
 import { buildLossLab, gaussianNll, laplaceNll } from './lossModel';
 
@@ -182,6 +183,8 @@ export default function LossFunctionsLikelihoodsAnimation() {
           <AlertTriangle className="mr-2 inline" size={16} /> Bernoulli NLL is computed from logits with a stable softplus identity, so extreme confidence does not require clipping probabilities to 0.001 or 0.999.
         </section>
       )}
+
+      <HeteroscedasticLikelihoodLab />
 
       <section className="rounded-lg border border-cyan-200 bg-cyan-50 p-5 text-sm leading-6 text-cyan-950">
         <ShieldCheck className="mr-2 inline" size={16} /> A lower NLL only means better fit inside the assumed distribution family. It does not prove Gaussian, Laplace, or Bernoulli is the right data-generating model.
