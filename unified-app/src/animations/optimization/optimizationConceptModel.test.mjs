@@ -13,7 +13,8 @@ test('ravine exposes anisotropic gradients', () => {
   assert.deepEqual(trace[0].gradient, [0.8, 16]);
 });
 
-test('saddle can move away from the origin along the negative-curvature direction', () => {
+test('saddle can escape parameter space while the scalar objective decreases', () => {
   const trace = gradientDescentTrace({ landscapeId: 'saddle', start: [0.4, 0.4], learningRate: 0.1, steps: 6 });
   assert.ok(Math.abs(trace.at(-1).y) > Math.abs(trace[0].y));
+  assert.equal(classifyTrace(trace), 'diverged');
 });
