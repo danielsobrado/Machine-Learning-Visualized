@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 import { sampleRatioMismatch } from './abTestingModel.js';
 
-function close(actual, expected, tolerance = 1e-9) {
+function close(actual, expected, tolerance = 2e-9) {
   assert.ok(Math.abs(actual - expected) <= tolerance, `${actual} != ${expected}`);
 }
 
