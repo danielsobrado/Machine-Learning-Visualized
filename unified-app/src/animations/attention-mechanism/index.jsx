@@ -1,6 +1,7 @@
 import React, { Suspense, lazy, useState } from 'react';
-import { Lightbulb, Brain, Calculator, Grid3X3, CheckCircle, Eye } from 'lucide-react';
+import { Lightbulb, Brain, Calculator, Grid3X3, CheckCircle, Eye, Route } from 'lucide-react';
 
+const AttentionRowLab = lazy(() => import('./AttentionRowLab'));
 const IntuitionPanel = lazy(() => import('./IntuitionPanel'));
 const QkvPanel = lazy(() => import('./QkvPanel'));
 const ScaledDotProductPanel = lazy(() => import('./ScaledDotProductPanel'));
@@ -9,6 +10,7 @@ const SelfAttentionPanel = lazy(() => import('./SelfAttentionPanel'));
 const AttentionPracticePanel = lazy(() => import('./AttentionPracticePanel'));
 
 const tabs = [
+    { id: 'row', label: '0. One Attention Row', icon: Route, color: 'from-slate-700 to-slate-950' },
     { id: 'intuition', label: '1. Intuition', icon: Lightbulb, color: 'from-amber-500 to-orange-500' },
     { id: 'qkv', label: '2. Q, K, V', icon: Brain, color: 'from-blue-500 to-cyan-500' },
     { id: 'scaled', label: '3. Scaled Dot-Product', icon: Calculator, color: 'from-purple-500 to-pink-500' },
@@ -22,17 +24,18 @@ function LoadingPanel() {
 }
 
 export default function AttentionMechanismAnimation() {
-    const [activeTab, setActiveTab] = useState('intuition');
+    const [activeTab, setActiveTab] = useState('row');
 
     const renderPanel = () => {
         const content = {
+            row: <AttentionRowLab />,
             intuition: <IntuitionPanel />,
             qkv: <QkvPanel />,
             scaled: <ScaledDotProductPanel />,
             multihead: <MultiHeadPanel />,
             self: <SelfAttentionPanel />,
             practice: <AttentionPracticePanel />,
-        }[activeTab] || <IntuitionPanel />;
+        }[activeTab] || <AttentionRowLab />;
         return <Suspense fallback={<LoadingPanel />}>{content}</Suspense>;
     };
 
