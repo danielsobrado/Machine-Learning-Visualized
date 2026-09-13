@@ -1,5 +1,5 @@
 import React, { useMemo, useState } from 'react';
-import { AlertTriangle, BrainCircuit, CheckCircle2 } from 'lucide-react';
+import { AlertTriangle, BrainCircuit, CheckCircle2, PauseCircle } from 'lucide-react';
 import { criticBiasComparison } from './criticBiasModel.js';
 
 const TARGET_VALUE = 8;
@@ -29,6 +29,7 @@ export default function CriticBiasLab() {
     criticValue,
     actorStep: ACTOR_STEP,
   }), [criticValue]);
+  const failure = comparison.directionFlipped ? 'reversed' : comparison.updateSuppressed ? 'stalled' : 'aligned';
 
   return (
     <section className="space-y-5 rounded-2xl border border-rose-200 bg-rose-50/50 p-5 shadow-sm">
@@ -45,12 +46,21 @@ export default function CriticBiasLab() {
 
       <div className="grid gap-4 md:grid-cols-2">
         <DeltaCard title="Ideal update using true V(s)" result={comparison.ideal} tone="border-emerald-200 bg-emerald-50 text-emerald-900" />
-        <DeltaCard title="Actor update using critic estimate" result={comparison.estimated} tone={comparison.directionFlipped ? 'border-rose-300 bg-rose-100 text-rose-900' : 'border-amber-200 bg-amber-50 text-amber-900'} />
+        <DeltaCard title="Actor update using critic estimate" result={comparison.estimated} tone={failure === 'reversed' ? 'border-rose-300 bg-rose-100 text-rose-900' : failure === 'stalled' ? 'border-amber-300 bg-amber-100 text-amber-900' : 'border-sky-200 bg-sky-50 text-sky-900'} />
       </div>
 
-      <div className={`rounded-xl border p-4 ${comparison.directionFlipped ? 'border-rose-300 bg-white text-rose-950' : 'border-emerald-300 bg-white text-emerald-950'}`}>
-        <div className="flex items-center gap-2 font-black">{comparison.directionFlipped ? <AlertTriangle size={18} /> : <CheckCircle2 size={18} />}{comparison.directionFlipped ? 'Update direction flipped' : 'Update direction still agrees'}</div>
-        <p className="mt-2 text-sm leading-6">Critic error is {comparison.criticError >= 0 ? '+' : ''}{comparison.criticError.toFixed(2)}. When V̂(s) rises above the observed target, the estimated advantage becomes negative even though the true advantage is positive.</p>
+      <div className={`rounded-xl border bg-white p-4 ${failure === 'reversed' ? 'border-rose-300 text-rose-950' : failure === 'stalled' ? 'border-amber-300 text-amber-950' : 'border-emerald-300 text-emerald-950'}`}>
+        <div className="flex items-center gap-2 font-black">
+          {failure === 'reversed' ? <AlertTriangle size={18} /> : failure === 'stalled' ? <PauseCircle size={18} /> : <CheckCircle2 size={18} />}
+          {failure === 'reversed' ? 'Update direction flipped' : failure === 'stalled' ? 'Useful update suppressed' : 'Update direction still agrees'}
+        </div>
+        <p className="mt-2 text-sm leading-6">
+          Critic error is {comparison.criticError >= 0 ? '+' : ''}{comparison.criticError.toFixed(2)}. {failure === 'reversed'
+            ? 'The critic estimate is high enough to make the estimated advantage negative even though the true advantage is positive.'
+            : failure === 'stalled'
+              ? 'The critic estimate exactly cancels the observed target, so the actor receives zero update despite a positive true advantage.'
+              : 'The sign is still correct, but critic error can exaggerate or weaken the actor step.'}
+        </p>
       </div>
     </section>
   );
