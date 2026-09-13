@@ -18,6 +18,34 @@ export function twoSidedPValue(z) {
   return Math.min(1, 2 * (1 - normalCdf(Math.abs(z))));
 }
 
+export function sampleRatioMismatch({ total, plannedTreatmentShare, observedTreatment }) {
+  if (!Number.isInteger(total) || total < 2) throw new RangeError('total must be an integer >= 2');
+  if (!Number.isFinite(plannedTreatmentShare) || plannedTreatmentShare <= 0 || plannedTreatmentShare >= 1) {
+    throw new RangeError('plannedTreatmentShare must be in (0, 1)');
+  }
+  if (!Number.isInteger(observedTreatment) || observedTreatment < 0 || observedTreatment > total) {
+    throw new RangeError('observedTreatment must be an integer between 0 and total');
+  }
+
+  const expectedTreatment = total * plannedTreatmentShare;
+  const expectedControl = total - expectedTreatment;
+  const observedControl = total - observedTreatment;
+  const standardDeviation = Math.sqrt(total * plannedTreatmentShare * (1 - plannedTreatmentShare));
+  const z = standardDeviation === 0 ? 0 : (observedTreatment - expectedTreatment) / standardDeviation;
+  const pValue = twoSidedPValue(z);
+
+  return {
+    expectedTreatment,
+    expectedControl,
+    observedTreatment,
+    observedControl,
+    observedTreatmentShare: observedTreatment / total,
+    z,
+    pValue,
+    flagged: pValue < 0.001,
+  };
+}
+
 export function planningMetrics({
   baselinePct,
   liftPct,
