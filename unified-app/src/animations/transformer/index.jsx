@@ -1,7 +1,8 @@
 import React, { useState, Suspense, lazy } from 'react';
-import { Building2, Layers, ArrowRightLeft, Zap, GraduationCap } from 'lucide-react';
+import { Building2, Layers, ArrowRightLeft, Zap, GraduationCap, Route } from 'lucide-react';
+import AssessmentPanel from '../../components/animation-shell/AssessmentPanel';
 
-// Lazy load panels
+const GuidedTracePanel = lazy(() => import('./GuidedTracePanel'));
 const OverviewPanel = lazy(() => import('./OverviewPanel'));
 const EncoderPanel = lazy(() => import('./EncoderPanel'));
 const DecoderPanel = lazy(() => import('./DecoderPanel'));
@@ -9,8 +10,8 @@ const DataFlowPanel = lazy(() => import('./DataFlowPanel'));
 const VariantsPanel = lazy(() => import('./VariantsPanel'));
 const PracticePanel = lazy(() => import('./PracticePanel'));
 
-// Tab configuration
 const tabs = [
+    { id: 'guided', label: '0. Guided Trace', icon: Route, color: 'from-slate-700 to-slate-950' },
     { id: 'overview', label: '1. Architecture', icon: Building2, color: 'from-amber-500 to-orange-500' },
     { id: 'encoder', label: '2. Encoder', icon: Layers, color: 'from-blue-500 to-cyan-500' },
     { id: 'decoder', label: '3. Decoder', icon: Layers, color: 'from-purple-500 to-pink-500' },
@@ -19,20 +20,21 @@ const tabs = [
     { id: 'practice', label: '6. Practice Lab', icon: GraduationCap, color: 'from-rose-500 to-red-500' },
 ];
 
-// Loading fallback
 function LoadingPanel() {
     return (
         <div className="flex items-center justify-center p-12">
-            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-amber-500"></div>
+            <div className="h-8 w-8 animate-spin rounded-full border-b-2 border-amber-500" />
         </div>
     );
 }
 
 export default function TransformerAnimation() {
-    const [activeTab, setActiveTab] = useState('overview');
+    const [activeTab, setActiveTab] = useState('guided');
 
     const renderPanel = () => {
         switch (activeTab) {
+            case 'guided':
+                return <Suspense fallback={<LoadingPanel />}><GuidedTracePanel /></Suspense>;
             case 'overview':
                 return <Suspense fallback={<LoadingPanel />}><OverviewPanel /></Suspense>;
             case 'encoder':
@@ -46,24 +48,23 @@ export default function TransformerAnimation() {
             case 'practice':
                 return <Suspense fallback={<LoadingPanel />}><PracticePanel /></Suspense>;
             default:
-                return <Suspense fallback={<LoadingPanel />}><OverviewPanel /></Suspense>;
+                return <Suspense fallback={<LoadingPanel />}><GuidedTracePanel /></Suspense>;
         }
     };
 
     return (
-        <div className="flex flex-col h-full">
-            {/* Navigation Tabs */}
-            <nav className="bg-white/50 backdrop-blur-sm border-b border-slate-200 sticky top-0 z-10">
-                <div className="px-4 overflow-x-auto">
+        <div className="flex h-full flex-col">
+            <nav className="sticky top-0 z-10 border-b border-slate-200 bg-white/90 backdrop-blur-sm">
+                <div className="overflow-x-auto px-4">
                     <div className="flex space-x-1 py-2">
                         {tabs.map((tab) => (
                             <button
                                 key={tab.id}
                                 onClick={() => setActiveTab(tab.id)}
-                                className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-medium transition-all whitespace-nowrap ${
+                                className={`flex items-center gap-2 whitespace-nowrap rounded-xl px-4 py-2.5 text-sm font-medium transition-all ${
                                     activeTab === tab.id
-                                        ? `bg-gradient-to-r ${tab.color} text-white shadow-lg scale-105`
-                                        : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'
+                                        ? `bg-gradient-to-r ${tab.color} scale-105 text-white shadow-lg`
+                                        : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900'
                                 }`}
                             >
                                 <tab.icon size={18} />
@@ -74,9 +75,11 @@ export default function TransformerAnimation() {
                 </div>
             </nav>
 
-            {/* Panel Content */}
             <div className="flex-1 overflow-auto">
                 {renderPanel()}
+                <div className="p-4 md:p-6">
+                    <AssessmentPanel lessonId="transformer" title="Transformer fundamentals check" />
+                </div>
             </div>
         </div>
     );
