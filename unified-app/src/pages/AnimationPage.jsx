@@ -23,6 +23,12 @@ export default function AnimationPage() {
   const { id } = useParams();
   const location = useLocation();
   const animation = applyLessonMetadataOverrides(getAnimationById(id));
+  const activeSection = animation ? getLessonSectionId(location.pathname, animation.id) : null;
+  const { isReady: depthReady, hasDeepDive } = useLessonDepthAvailability({
+    lessonId: animation?.id,
+    categoryId: animation?.categoryId,
+    eager: activeSection === 'deep-dive',
+  });
 
   if (!animation) {
     return (
@@ -37,16 +43,9 @@ export default function AnimationPage() {
     );
   }
 
-  const activeSection = getLessonSectionId(location.pathname, animation.id);
   if (!activeSection) {
     return <Navigate replace to={getLessonSectionPath(animation.id)} />;
   }
-
-  const { isReady: depthReady, hasDeepDive } = useLessonDepthAvailability({
-    lessonId: animation.id,
-    categoryId: animation.categoryId,
-    eager: activeSection === 'deep-dive',
-  });
 
   if (activeSection === 'deep-dive' && !depthReady) {
     return (
