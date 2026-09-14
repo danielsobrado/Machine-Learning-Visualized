@@ -10,8 +10,6 @@ import {
   writeGitHubSyncSettings,
 } from './data/githubProgressSync.js';
 
-import { getGlossaryTerm } from './data/glossaryRepository.js';
-
 const HomePage = lazy(() => import('./pages/HomePage'));
 const AnimationPage = lazy(() => import('./pages/AnimationPage'));
 const LabsPage = lazy(() => import('./pages/LabsPage'));
@@ -86,7 +84,7 @@ function getAnimationMeta(animation) {
   };
 }
 
-function getMetaFromPath(pathname, currentLesson) {
+function getMetaFromPath(pathname, currentLesson, currentGlossaryTerm) {
   if (pathname === '/') {
     return {
       ...DEFAULT_META,
@@ -129,12 +127,10 @@ function getMetaFromPath(pathname, currentLesson) {
   }
 
   if (pathname.startsWith('/glossary/')) {
-    const slug = decodeURIComponent(pathname.split('/').pop() || '');
-    const term = getGlossaryTerm(slug);
-    if (term) {
+    if (currentGlossaryTerm) {
       return {
-        title: `${term.term} - Machine Learning Visualized Glossary`,
-        description: `${term.definition} Explore intuition, examples, and related concepts.`,
+        title: `${currentGlossaryTerm.term} - Machine Learning Visualized Glossary`,
+        description: `${currentGlossaryTerm.definition} Explore intuition, examples, and related concepts.`,
         path: `${pathname.replace(/\/?$/, '/')}`,
       };
     }
@@ -172,6 +168,7 @@ export default function App() {
   const [commandPaletteOpen, setCommandPaletteOpen] = useState(false);
   const [visitedLessons, setVisitedLessons] = useState(() => new Set(readVisitedLessons()));
   const [currentLesson, setCurrentLesson] = useState(null);
+  const [currentGlossaryTerm, setCurrentGlossaryTerm] = useState(null);
 
   useEffect(() => {
     if (window.innerWidth < 768) setSidebarOpen(false);
@@ -222,14 +219,36 @@ export default function App() {
       return undefined;
     }
 
-    import('./data/animations').then(({ getAnimationById }) => {
-      if (!disposed) setCurrentLesson(getAnimationById(currentLessonId) || null);
+    Promise.all([
+      import('./data/animations'),
+      import('./data/lessonMetadataOverrides.js'),
+    ]).then(([{ getAnimationById }, { applyLessonMetadataOverrides }]) => {
+      if (!disposed) setCurrentLesson(applyLessonMetadataOverrides(getAnimationById(currentLessonId)) || null);
     });
 
     return () => {
       disposed = true;
     };
   }, [currentLessonId]);
+
+  useEffect(() => {
+    let disposed = false;
+    const match = location.pathname.match(/^\/glossary\/([^/]+)/);
+
+    if (!match) {
+      setCurrentGlossaryTerm(null);
+      return undefined;
+    }
+
+    const slug = decodeURIComponent(match[1]);
+    import('./data/glossaryRepository.js').then(({ getGlossaryTerm }) => {
+      if (!disposed) setCurrentGlossaryTerm(getGlossaryTerm(slug) || null);
+    });
+
+    return () => {
+      disposed = true;
+    };
+  }, [location.pathname]);
 
   const handleSidebarControlClick = () => {
     if (!sidebarOpen) {
@@ -243,9 +262,9 @@ export default function App() {
 
   useEffect(() => {
     const normalizedPath = location.pathname || '/';
-    const pageMeta = getMetaFromPath(normalizedPath, currentLesson);
+    const pageMeta = getMetaFromPath(normalizedPath, currentLesson, currentGlossaryTerm);
     setHeadMeta(pageMeta);
-  }, [location.pathname, currentLessonId, currentLesson]);
+  }, [location.pathname, currentLessonId, currentLesson, currentGlossaryTerm]);
 
   useEffect(() => {
     let timeoutId = null;
