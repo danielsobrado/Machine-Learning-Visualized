@@ -30,8 +30,8 @@ export default function MultiHeadPanel() {
         <p className="mt-2 max-w-4xl text-sm leading-6 text-slate-700">Different learned Q/K projections can make heads attend to different positions. Their outputs are concatenated and mixed by an output projection, preserving head-specific features before recombination.</p>
       </section>
       <section className="grid gap-4 lg:grid-cols-2">
-        <HeadCard title="Head A · focuses early" weights={result.headAWeights} output={result.headAOutput} />
-        <HeadCard title="Head B · focuses late" weights={result.headBWeights} output={result.headBOutput} />
+        <HeadCard title="Head A · highest weight on Token 1" weights={result.headAWeights} output={result.headAOutput} />
+        <HeadCard title="Head B · highest weight on Token 3" weights={result.headBWeights} output={result.headBOutput} />
       </section>
       <section className="grid gap-4 md:grid-cols-2">
         <div className="rounded-xl border border-violet-200 bg-violet-50 p-4"><div className="text-xs font-black uppercase text-violet-700">Concatenate before output projection</div><div className="mt-2 font-mono text-2xl font-black text-slate-950">[{result.concatenated.map((value) => value.toFixed(2)).join(', ')}]</div><p className="mt-2 text-sm leading-6 text-slate-700">Both head features remain available to the learned output projection.</p></div>
