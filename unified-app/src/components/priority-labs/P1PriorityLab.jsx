@@ -1,6 +1,7 @@
 import React from 'react';
 import { P1_LAB_LESSON_IDS } from './p1PriorityConstants.js';
 import FoundationPriorityLab from './FoundationPriorityLab.jsx';
+import OptimizationPriorityLab from './OptimizationPriorityLab.jsx';
 import CausalPriorityLab from './CausalPriorityLab.jsx';
 import ReliabilityPriorityLab from './ReliabilityPriorityLab.jsx';
 import SystemsPriorityLab from './SystemsPriorityLab.jsx';
@@ -9,6 +10,10 @@ const FOUNDATION_IDS = new Set([
   'probability-distributions',
   'loss-functions-likelihoods',
   'maximum-likelihood-estimation',
+]);
+
+const OPTIMIZATION_IDS = new Set([
+  'gradient-descent',
 ]);
 
 const CAUSAL_IDS = new Set([
@@ -56,6 +61,7 @@ export default function P1PriorityLab({ lessonId }) {
 
   let Lab;
   if (FOUNDATION_IDS.has(lessonId)) Lab = FoundationPriorityLab;
+  else if (OPTIMIZATION_IDS.has(lessonId)) Lab = OptimizationPriorityLab;
   else if (CAUSAL_IDS.has(lessonId)) Lab = CausalPriorityLab;
   else if (RELIABILITY_IDS.has(lessonId)) Lab = ReliabilityPriorityLab;
   else if (SYSTEM_IDS.has(lessonId)) Lab = SystemsPriorityLab;
