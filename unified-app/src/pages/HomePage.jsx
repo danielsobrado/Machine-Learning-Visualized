@@ -5,6 +5,7 @@ import PrerequisiteMap from '../components/catalog/PrerequisiteMap';
 import { allAnimations, categories, curriculumBacklog, curriculumTracks } from '../data/animations';
 import { ACTIVE_LESSON_COUNT } from '../data/catalogStats';
 import { formatLessonCatalogNumber } from '../data/lessonCatalogNumbers';
+import { applyLessonMetadataOverrides } from '../data/lessonMetadataOverrides';
 import { HUB_LEARNING_PATHS } from '../data/learningPaths';
 import { LEARNING_PROGRESS_EVENT, readCompletedLessons } from '../data/learningProgress';
 
@@ -28,7 +29,12 @@ export default function HomePage() {
   const [showCompleted, setShowCompleted] = React.useState(true);
   const [showEntireMap, setShowEntireMap] = React.useState(false);
   const [completedLessons, setCompletedLessons] = React.useState(() => readCompletedLessons());
-  const animationById = React.useMemo(() => new Map(allAnimations.map((item) => [item.id, item])), []);
+  const animationById = React.useMemo(() => new Map(
+    allAnimations.map((item) => {
+      const resolved = applyLessonMetadataOverrides(item);
+      return [resolved.id, resolved];
+    }),
+  ), []);
   const activePath = HUB_LEARNING_PATHS.find((path) => path.id === activePathId) || HUB_LEARNING_PATHS[0];
   const getPathProgress = React.useCallback((path) => {
     const completedCount = path.nodes.filter((id) => completedLessons.has(id)).length;
@@ -164,13 +170,16 @@ export default function HomePage() {
           <section className="ua-toc-section" key={category.id}>
             <div className="ua-toc-head"><span>{String(categoryIndex + 1).padStart(2, '0')}</span><h2>{category.name}</h2><small>{category.items.length} entries</small></div>
             <div className="ua-toc-list">
-              {category.items.map((item, itemIndex) => (
-                <Link className="ua-toc-item" key={item.id} to={`/animation/${item.id}`}>
-                  <span className="ua-toc-num">{formatLessonCatalogNumber(categoryIndex, itemIndex)}</span>
-                  <span className="ua-toc-title">{item.name}</span><span className="ua-toc-desc">{item.description}</span>
-                  <ConceptSketch animation={animationById.get(item.id) || item} label={item.name} /><span className="ua-toc-open">Open ↗</span>
-                </Link>
-              ))}
+              {category.items.map((item, itemIndex) => {
+                const resolved = applyLessonMetadataOverrides(item);
+                return (
+                  <Link className="ua-toc-item" key={item.id} to={`/animation/${item.id}`}>
+                    <span className="ua-toc-num">{formatLessonCatalogNumber(categoryIndex, itemIndex)}</span>
+                    <span className="ua-toc-title">{resolved.name}</span><span className="ua-toc-desc">{resolved.description}</span>
+                    <ConceptSketch animation={animationById.get(item.id) || resolved} label={resolved.name} /><span className="ua-toc-open">Open ↗</span>
+                  </Link>
+                );
+              })}
             </div>
           </section>
         ))}
