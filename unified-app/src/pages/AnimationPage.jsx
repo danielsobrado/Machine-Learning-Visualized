@@ -3,6 +3,7 @@ import { Link, Navigate, useLocation, useParams } from 'react-router-dom';
 import { allAnimations, getAnimationById } from '../data/animations';
 import { getLessonCatalogNumber } from '../data/lessonCatalogNumbers';
 import { getCurriculumDepth } from '../data/curriculumDepth';
+import { applyLessonMetadataOverrides } from '../data/lessonMetadataOverrides';
 import {
   getAvailableLessonSections,
   getLessonSection,
@@ -21,7 +22,7 @@ const LessonSectionView = lazy(() => import('../components/lesson/LessonSectionV
 export default function AnimationPage() {
   const { id } = useParams();
   const location = useLocation();
-  const animation = getAnimationById(id);
+  const animation = applyLessonMetadataOverrides(getAnimationById(id));
 
   if (!animation) {
     return (
