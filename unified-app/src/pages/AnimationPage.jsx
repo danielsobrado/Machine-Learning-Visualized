@@ -11,6 +11,7 @@ import {
 } from '../data/lessonSections';
 import { getAnimationComponent, isAnimationAvailable } from '../animations';
 import AnimationShell from '../components/animation-shell/AnimationShell';
+import P1PriorityLab from '../components/priority-labs/P1PriorityLab';
 import LessonLayout from '../components/lesson/LessonLayout';
 import LessonSectionTabs from '../components/lesson/LessonSectionTabs';
 import LessonSectionView from '../components/lesson/LessonSectionView';
@@ -141,6 +142,7 @@ function AnimationContent({ animationId, animation }) {
   return (
     <AnimationShell animation={animation}>
       <AnimationComponent />
+      <P1PriorityLab lessonId={animationId} />
     </AnimationShell>
   );
 }
