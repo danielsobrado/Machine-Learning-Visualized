@@ -6,8 +6,8 @@ import { allAnimations, categories, getAnimationById } from '../src/data/animati
 import { HUB_LEARNING_PATHS } from '../src/data/learningPaths.js';
 import { lessonAssessments } from '../src/data/lessonAssessments.js';
 import { getGlossaryTermsForCategory } from '../src/data/glossaryRepository.js';
+import { EFFECTIVE_MANUAL_LESSON_QUALITY } from '../src/data/effectiveLessonQuality.js';
 import {
-  MANUAL_LESSON_QUALITY,
   D_TIER_PLACEHOLDERS,
   MODULE_QUALITY_TIERS,
 } from '../src/data/lessonQualityManifest.js';
@@ -66,7 +66,7 @@ function classifyLesson(id) {
   }
 
   const indexPath = path.join(dir, indexFile);
-  const manual = MANUAL_LESSON_QUALITY[id];
+  const manual = EFFECTIVE_MANUAL_LESSON_QUALITY[id];
   const size = fs.statSync(indexPath).size;
   const childCount = countChildPanels(dir);
 
