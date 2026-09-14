@@ -2,7 +2,6 @@ import React, { Suspense, lazy } from 'react';
 import { Link, Navigate, useLocation, useParams } from 'react-router-dom';
 import { allAnimations, getAnimationById } from '../data/animations';
 import { getLessonCatalogNumber } from '../data/lessonCatalogNumbers';
-import { getCurriculumDepth } from '../data/curriculumDepth';
 import { applyLessonMetadataOverrides } from '../data/lessonMetadataOverrides';
 import {
   getAvailableLessonSections,
@@ -14,7 +13,7 @@ import { getAnimationComponent, isAnimationAvailable } from '../animations';
 import AnimationShell from '../components/animation-shell/AnimationShell';
 import { P1_LAB_LESSON_IDS } from '../components/priority-labs/p1PriorityConstants.js';
 import LessonLayout from '../components/lesson/LessonLayout';
-import { hasLessonDepth } from '../components/lesson/LessonDepthView';
+import useLessonDepthAvailability from '../hooks/useLessonDepthAvailability.js';
 
 const P1PriorityLab = lazy(() => import('../components/priority-labs/P1PriorityLab'));
 const LessonSectionTabs = lazy(() => import('../components/lesson/LessonSectionTabs'));
@@ -43,8 +42,20 @@ export default function AnimationPage() {
     return <Navigate replace to={getLessonSectionPath(animation.id)} />;
   }
 
-  const depth = getCurriculumDepth(animation);
-  const hasDeepDive = hasLessonDepth(depth);
+  const { isReady: depthReady, hasDeepDive } = useLessonDepthAvailability({
+    lessonId: animation.id,
+    categoryId: animation.categoryId,
+    eager: activeSection === 'deep-dive',
+  });
+
+  if (activeSection === 'deep-dive' && !depthReady) {
+    return (
+      <div className="ua-animation-page">
+        <LoadingPanel label="deep-dive metadata" />
+      </div>
+    );
+  }
+
   if (activeSection === 'deep-dive' && !hasDeepDive) {
     return <Navigate replace to={getLessonSectionPath(animation.id)} />;
   }
