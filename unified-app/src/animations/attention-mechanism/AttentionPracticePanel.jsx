@@ -25,7 +25,7 @@ export default function AttentionPracticePanel() {
   return (
     <div className="space-y-6 p-6 md:p-8">
       <section className="rounded-2xl border border-rose-200 bg-rose-50/40 p-5">
-        <div className="flex items-center gap-2 text-sm font-black uppercase tracking-wide text-rose-700"><AlertTriangle size={16} /> Interpretation failure lab</div>
+        <div className="flex items-center gap-2 text-sm font-black uppercase tracking-wide text-rose-700"><AlertTriangle size={16} /> Interpretation Lab</div>
         <h2 className="mt-2 text-2xl font-black text-slate-950">Attention weights are routing coefficients, not a complete explanation</h2>
         <p className="mt-2 max-w-4xl text-sm leading-6 text-slate-700">Weights matter, but so do the value vectors, residual stream, other heads, later layers, nonlinearities, and the final readout. Reading the largest attention weight as “the reason for the prediction” is a much stronger claim than the computation supports.</p>
       </section>
