@@ -1,4 +1,4 @@
-import React, { Suspense } from 'react';
+import React, { Suspense, lazy } from 'react';
 import { Link, Navigate, useLocation, useParams } from 'react-router-dom';
 import { allAnimations, getAnimationById } from '../data/animations';
 import { getLessonCatalogNumber } from '../data/lessonCatalogNumbers';
@@ -13,9 +13,10 @@ import { getAnimationComponent, isAnimationAvailable } from '../animations';
 import AnimationShell from '../components/animation-shell/AnimationShell';
 import P1PriorityLab from '../components/priority-labs/P1PriorityLab';
 import LessonLayout from '../components/lesson/LessonLayout';
-import LessonSectionTabs from '../components/lesson/LessonSectionTabs';
-import LessonSectionView from '../components/lesson/LessonSectionView';
 import { hasLessonDepth } from '../components/lesson/LessonDepthView';
+
+const LessonSectionTabs = lazy(() => import('../components/lesson/LessonSectionTabs'));
+const LessonSectionView = lazy(() => import('../components/lesson/LessonSectionView'));
 
 export default function AnimationPage() {
   const { id } = useParams();
@@ -78,11 +79,13 @@ export default function AnimationPage() {
         </header>
 
         {activeSection === 'code' && (
-          <LessonSectionTabs
-            animationId={animation.id}
-            activeSection={activeSection}
-            hasDeepDive={hasDeepDive}
-          />
+          <Suspense fallback={<LoadingPanel label="section navigation" />}>
+            <LessonSectionTabs
+              animationId={animation.id}
+              activeSection={activeSection}
+              hasDeepDive={hasDeepDive}
+            />
+          </Suspense>
         )}
 
         {activeSection === 'lesson' ? (
@@ -90,7 +93,9 @@ export default function AnimationPage() {
             <AnimationContent animationId={id} animation={animation} />
           </Suspense>
         ) : (
-          <LessonSectionView animation={animation} sectionId={activeSection} />
+          <Suspense fallback={<LoadingPanel label={activeSectionDefinition?.label || 'lesson section'} />}>
+            <LessonSectionView animation={animation} sectionId={activeSection} />
+          </Suspense>
         )}
 
         <nav className="ua-lesson-mode-footer" aria-label="Lesson section navigation">
@@ -147,11 +152,11 @@ function AnimationContent({ animationId, animation }) {
   );
 }
 
-function LoadingPanel() {
+function LoadingPanel({ label = 'animation' }) {
   return (
     <div className="ds-panel ua-loading">
       <div className="ua-spinner" />
-      <span>Loading animation</span>
+      <span>Loading {label}</span>
     </div>
   );
 }
