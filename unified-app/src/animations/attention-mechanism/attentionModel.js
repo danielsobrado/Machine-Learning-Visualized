@@ -56,11 +56,12 @@ export function scaledDotProductAttention({ query, keys, values, scale = true })
   return { scores, weights, output: weightedSum(weights, values), divisor };
 }
 
-export function qkvExperiment() {
-  const query = [1, 0];
+export function qkvExperiment(query = [1, 0]) {
+  requireVector(query, 'query');
+  if (query.length !== 2) throw new RangeError('qkvExperiment query must have dimension 2');
   const keys = [[1, 0], [0, 1], [-1, 0]];
   const values = [[8, 1], [0, 6], [-4, 2]];
-  return { query, keys, values, ...scaledDotProductAttention({ query, keys, values }) };
+  return { query: [...query], keys, values, ...scaledDotProductAttention({ query, keys, values }) };
 }
 
 export function scalingExperiment(dimension) {
