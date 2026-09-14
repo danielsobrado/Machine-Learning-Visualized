@@ -10,6 +10,7 @@ import {
   buildDagPathLab,
   buildPropensityBalanceLab,
   buildSequentialSpendingLab,
+  buildStandardizationLab,
   buildTreatmentInferenceLab,
 } from './causalPriorityModel.js';
 import {
@@ -63,6 +64,22 @@ test('propensity trimming example improves standardized balance', () => {
   });
   assert.equal(lab.improved, true);
   assert.ok(Math.abs(lab.afterSmd) < Math.abs(lab.beforeSmd));
+});
+
+test('standardization separates composition bias from within-stratum effects', () => {
+  const lab = buildStandardizationLab({
+    lowShareTreated: 0.8,
+    lowShareControl: 0.25,
+    lowShareTarget: 0.5,
+    lowControl: 0.2,
+    lowTreated: 0.28,
+    highControl: 0.7,
+    highTreated: 0.76,
+  });
+  assert.ok(lab.lowEffect > 0);
+  assert.ok(lab.highEffect > 0);
+  assert.ok(lab.crudeEffect < 0);
+  assert.ok(lab.targetStandardizedEffect > 0);
 });
 
 test('CUPED model separates variance reduction from post-treatment validity', () => {
