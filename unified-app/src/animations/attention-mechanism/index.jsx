@@ -1,4 +1,4 @@
-import React, { Suspense, lazy, useState } from 'react';
+import React, { Suspense, lazy, useRef, useState } from 'react';
 import { Lightbulb, Brain, Calculator, Grid3X3, CheckCircle, Eye, Route } from 'lucide-react';
 
 const AttentionRowLab = lazy(() => import('./AttentionRowLab'));
@@ -20,11 +20,12 @@ const tabs = [
 ];
 
 function LoadingPanel() {
-    return <div className="flex items-center justify-center p-12"><div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500" /></div>;
+    return <div className="flex items-center justify-center p-12"><div className="h-8 w-8 animate-spin rounded-full border-b-2 border-blue-500 motion-reduce:animate-none" /></div>;
 }
 
 export default function AttentionMechanismAnimation() {
     const [activeTab, setActiveTab] = useState('row');
+    const tabRefs = useRef({});
 
     const renderPanel = () => {
         const content = {
@@ -41,13 +42,41 @@ export default function AttentionMechanismAnimation() {
 
     const activeIndex = tabs.findIndex((tab) => tab.id === activeTab);
 
+    const activateTab = (tabId, focus = false) => {
+        setActiveTab(tabId);
+        if (focus) window.requestAnimationFrame(() => tabRefs.current[tabId]?.focus());
+    };
+
+    const handleTabKeyDown = (event, index) => {
+        let nextIndex = null;
+        if (event.key === 'ArrowRight') nextIndex = (index + 1) % tabs.length;
+        if (event.key === 'ArrowLeft') nextIndex = (index - 1 + tabs.length) % tabs.length;
+        if (event.key === 'Home') nextIndex = 0;
+        if (event.key === 'End') nextIndex = tabs.length - 1;
+        if (nextIndex === null) return;
+        event.preventDefault();
+        activateTab(tabs[nextIndex].id, true);
+    };
+
     return (
-        <div className="flex flex-col h-full">
-            <nav className="bg-white/50 backdrop-blur-sm border-b border-slate-200 sticky top-0 z-10">
-                <div className="px-4 overflow-x-auto">
-                    <div className="flex space-x-1 py-2">
-                        {tabs.map((tab) => (
-                            <button key={tab.id} type="button" onClick={() => setActiveTab(tab.id)} aria-pressed={activeTab === tab.id} className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-medium transition-all whitespace-nowrap ${activeTab === tab.id ? `bg-gradient-to-r ${tab.color} text-white shadow-lg scale-105` : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'}`}>
+        <div className="flex h-full flex-col">
+            <nav className="sticky top-0 z-10 border-b border-slate-200 bg-white/50 backdrop-blur-sm" aria-label="Attention lesson sections">
+                <div className="overflow-x-auto px-4">
+                    <div className="flex space-x-1 py-2" role="tablist" aria-label="Attention mechanism lesson">
+                        {tabs.map((tab, index) => (
+                            <button
+                                key={tab.id}
+                                ref={(node) => { tabRefs.current[tab.id] = node; }}
+                                id={`attention-tab-${tab.id}`}
+                                type="button"
+                                role="tab"
+                                aria-selected={activeTab === tab.id}
+                                aria-controls={`attention-panel-${tab.id}`}
+                                tabIndex={activeTab === tab.id ? 0 : -1}
+                                onClick={() => activateTab(tab.id)}
+                                onKeyDown={(event) => handleTabKeyDown(event, index)}
+                                className={`flex items-center gap-2 whitespace-nowrap rounded-xl px-4 py-2.5 text-sm font-medium transition-all ${activeTab === tab.id ? `bg-gradient-to-r ${tab.color} scale-105 text-white shadow-lg` : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900'}`}
+                            >
                                 <tab.icon size={18} />{tab.label}
                             </button>
                         ))}
@@ -55,20 +84,33 @@ export default function AttentionMechanismAnimation() {
                 </div>
             </nav>
 
-            <div className="bg-slate-100/50 border-b border-slate-200">
+            <div className="border-b border-slate-200 bg-slate-100/50">
                 <div className="px-4 py-2">
-                    <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-2" aria-label="Lesson progress">
                         {tabs.map((tab, index) => (
                             <React.Fragment key={tab.id}>
-                                <button type="button" aria-label={`Open ${tab.label}`} onClick={() => setActiveTab(tab.id)} className={`w-3 h-3 rounded-full transition-all ${activeTab === tab.id ? `bg-gradient-to-r ${tab.color}` : activeIndex > index ? 'bg-green-500' : 'bg-slate-300'}`} />
-                                {index < tabs.length - 1 && <div className={`flex-1 h-0.5 ${activeIndex > index ? 'bg-green-500' : 'bg-slate-300'}`} />}
+                                <button
+                                    type="button"
+                                    aria-label={`Go to ${tab.label}`}
+                                    aria-current={activeTab === tab.id ? 'step' : undefined}
+                                    onClick={() => activateTab(tab.id)}
+                                    className={`h-3 w-3 rounded-full transition-all ${activeTab === tab.id ? `bg-gradient-to-r ${tab.color}` : activeIndex > index ? 'bg-green-500' : 'bg-slate-300'}`}
+                                />
+                                {index < tabs.length - 1 && <div className={`h-0.5 flex-1 ${activeIndex > index ? 'bg-green-500' : 'bg-slate-300'}`} aria-hidden="true" />}
                             </React.Fragment>
                         ))}
                     </div>
                 </div>
             </div>
 
-            <div className="flex-1 overflow-y-auto">{renderPanel()}</div>
+            <div
+                id={`attention-panel-${activeTab}`}
+                role="tabpanel"
+                aria-labelledby={`attention-tab-${activeTab}`}
+                className="flex-1 overflow-y-auto"
+            >
+                {renderPanel()}
+            </div>
         </div>
     );
 }
