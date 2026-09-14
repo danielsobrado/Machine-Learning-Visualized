@@ -8,7 +8,7 @@ export const P1_CAUSAL_DEFAULTS = Object.freeze({
   'causal-graphs-dags': Object.freeze({ conditionMediator: false, conditionCollider: false }),
   'treatment-effects': Object.freeze({ effect: 0.08, standardError: 0.025, subgroupCount: 8, alpha: 0.05 }),
   'propensity-scores': Object.freeze({ treatedMean: 0.72, controlMean: 0.43, pooledSd: 0.28, trimmedTreatedMean: 0.58, trimmedControlMean: 0.52, trimmedPooledSd: 0.27, extremeWeightShare: 0.16 }),
-  'confounding-simpsons-paradox': Object.freeze({ lowShareObserved: 0.8, lowShareTarget: 0.5, lowControl: 0.2, lowTreated: 0.28, highControl: 0.7, highTreated: 0.76 }),
+  'confounding-simpsons-paradox': Object.freeze({ lowShareTreated: 0.8, lowShareControl: 0.25, lowShareTarget: 0.5, lowControl: 0.2, lowTreated: 0.28, highControl: 0.7, highTreated: 0.76 }),
   'cuped-variance-reduction': Object.freeze({ rSquared: 0.36, postTreatmentCovariate: false }),
   'sequential-testing-peeking': Object.freeze({ alpha: 0.05, looks: 5 }),
 });
