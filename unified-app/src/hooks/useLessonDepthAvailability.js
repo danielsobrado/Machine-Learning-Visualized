@@ -19,6 +19,11 @@ export default function useLessonDepthAvailability({ lessonId, categoryId, eager
     let idleId = null;
     let timerId = null;
 
+    if (!lessonId) {
+      setState({ isReady: true, hasDeepDive: false });
+      return undefined;
+    }
+
     setState({ isReady: false, hasDeepDive: false });
 
     const load = async () => {
