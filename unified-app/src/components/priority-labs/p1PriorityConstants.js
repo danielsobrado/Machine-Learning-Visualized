@@ -2,6 +2,7 @@ export const P1_FOUNDATION_DEFAULTS = Object.freeze({
   'probability-distributions': Object.freeze({ residual: 2.5, scale: 1 }),
   'loss-functions-likelihoods': Object.freeze({ confidence: 0.82, smoothing: 0.1, classes: 4 }),
   'maximum-likelihood-estimation': Object.freeze({ successes: 7, trials: 10, alpha: 2, beta: 2 }),
+  'gradient-descent': Object.freeze({ conditionNumber: 20, learningRate: 0.08, saddleX: 0.05, saddleY: 0.05 }),
 });
 
 export const P1_CAUSAL_DEFAULTS = Object.freeze({
@@ -60,6 +61,7 @@ export const P1_LAB_LESSON_IDS = Object.freeze(new Set([
   'probability-distributions',
   'loss-functions-likelihoods',
   'maximum-likelihood-estimation',
+  'gradient-descent',
   'causal-graphs-dags',
   'treatment-effects',
   'propensity-scores',
