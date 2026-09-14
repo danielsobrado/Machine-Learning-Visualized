@@ -71,7 +71,7 @@ export const P1_REMAINING_SCENARIOS_BY_LESSON = Object.freeze({
       misconceptionTested: 'Operational constraints can always be ignored until after optimization.',
     },
   ],
-  'mixture-of-experts': [
+  moe: [
     {
       id: 'moe-active-vs-total-params',
       level: 'mechanism',
