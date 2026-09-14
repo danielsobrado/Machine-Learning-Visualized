@@ -37,6 +37,20 @@ export function hasP1PriorityLab(lessonId) {
   return P1_LAB_LESSON_IDS.has(lessonId);
 }
 
+export function withP1PriorityLab(BaseLesson, lessonId) {
+  function LessonWithP1PriorityLab(props) {
+    return (
+      <>
+        <BaseLesson {...props} />
+        <P1PriorityLab lessonId={lessonId} />
+      </>
+    );
+  }
+
+  LessonWithP1PriorityLab.displayName = `WithP1PriorityLab(${lessonId})`;
+  return LessonWithP1PriorityLab;
+}
+
 export default function P1PriorityLab({ lessonId }) {
   if (!hasP1PriorityLab(lessonId)) return null;
 
