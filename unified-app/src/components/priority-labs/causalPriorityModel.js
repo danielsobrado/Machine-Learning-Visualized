@@ -65,21 +65,19 @@ export function buildPropensityBalanceLab(scenario) {
 export function buildStandardizationLab(scenario) {
   const lowEffect = scenario.lowTreated - scenario.lowControl;
   const highEffect = scenario.highTreated - scenario.highControl;
-  const observedStandardizedEffect = scenario.lowShareObserved * lowEffect
-    + (1 - scenario.lowShareObserved) * highEffect;
+  const observedTreated = scenario.lowShareTreated * scenario.lowTreated
+    + (1 - scenario.lowShareTreated) * scenario.highTreated;
+  const observedControl = scenario.lowShareControl * scenario.lowControl
+    + (1 - scenario.lowShareControl) * scenario.highControl;
   const targetStandardizedEffect = scenario.lowShareTarget * lowEffect
     + (1 - scenario.lowShareTarget) * highEffect;
-  const observedControl = scenario.lowShareObserved * scenario.lowControl
-    + (1 - scenario.lowShareObserved) * scenario.highControl;
-  const observedTreated = scenario.lowShareObserved * scenario.lowTreated
-    + (1 - scenario.lowShareObserved) * scenario.highTreated;
 
   return {
     lowEffect,
     highEffect,
     crudeEffect: observedTreated - observedControl,
-    observedStandardizedEffect,
     targetStandardizedEffect,
+    compositionGap: scenario.lowShareTreated - scenario.lowShareControl,
   };
 }
 
