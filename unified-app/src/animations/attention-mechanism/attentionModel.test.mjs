@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 
+import { ATTENTION_INTUITION_SCENARIOS } from './attentionIntuitionScenarios.js';
 import {
   attentionInterpretationTrap,
   dotProduct,
@@ -31,6 +32,18 @@ test('scaled dot-product attention normalizes query-key scores by sqrt(dk)', () 
   close(result.divisor, 2);
   close(result.scores[0], 2);
   close(result.weights.reduce((sum, value) => sum + value, 0), 1);
+});
+
+test('intuition scenarios use normalized attention rather than arbitrary relevance percentages', () => {
+  Object.values(ATTENTION_INTUITION_SCENARIOS).forEach((scenario) => {
+    const result = scaledDotProductAttention({
+      query: scenario.query,
+      keys: scenario.items.map((item) => item.key),
+      values: scenario.items.map((item) => item.value),
+    });
+    close(result.weights.reduce((sum, value) => sum + value, 0), 1);
+    assert.ok(result.weights.every((weight) => weight >= 0 && weight <= 1));
+  });
 });
 
 test('QKV experiment uses keys for routing and values for output content', () => {
