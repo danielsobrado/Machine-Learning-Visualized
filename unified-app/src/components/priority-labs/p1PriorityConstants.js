@@ -68,6 +68,7 @@ export const P1_LAB_LESSON_IDS = Object.freeze(new Set([
   'confounding-simpsons-paradox',
   'cuped-variance-reduction',
   'sequential-testing-peeking',
+  'recommender-systems-ranking-track',
   'model-debugging',
   'model-monitoring',
   'uncertainty-estimation',
