@@ -30,6 +30,7 @@ test('scaled dot-product attention normalizes query-key scores by sqrt(dk)', () 
   });
   close(result.divisor, 2);
   close(result.scores[0], 2);
+  close(result.weights.reduce((sum, value) => sum + value, 0), 1);
 });
 
 test('QKV experiment uses keys for routing and values for output content', () => {
@@ -37,6 +38,19 @@ test('QKV experiment uses keys for routing and values for output content', () =>
   assert.ok(result.weights[0] > result.weights[1]);
   assert.notDeepEqual(result.keys, result.values);
   assert.equal(result.output.length, 2);
+  close(result.weights.reduce((sum, value) => sum + value, 0), 1);
+});
+
+test('QKV experiment accepts a live two-dimensional query', () => {
+  const towardFirst = qkvExperiment([1, 0]);
+  const towardSecond = qkvExperiment([0, 1]);
+  const towardThird = qkvExperiment([-1, 0]);
+
+  assert.equal(towardFirst.weights.indexOf(Math.max(...towardFirst.weights)), 0);
+  assert.equal(towardSecond.weights.indexOf(Math.max(...towardSecond.weights)), 1);
+  assert.equal(towardThird.weights.indexOf(Math.max(...towardThird.weights)), 2);
+  assert.notDeepEqual(towardFirst.output, towardThird.output);
+  assert.throws(() => qkvExperiment([1, 0, 0]), RangeError);
 });
 
 test('without scaling, increasing dk makes the same score pattern more peaky', () => {
