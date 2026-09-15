@@ -30,6 +30,21 @@ export const P1_DROPOUT_SCENARIOS_BY_LESSON = Object.freeze({
       explanation: 'Dropout changes the values and distribution that a following BatchNorm layer observes, so its batch and running statistics can reflect the masked training distribution. At ordinary inference dropout disappears while BatchNorm uses stored statistics. This does not imply one universal layer order for every architecture, but it does mean the operations are not interchangeable and their ordering should be chosen and validated deliberately.',
       misconceptionTested: 'Dropout and BatchNorm commute, so their order cannot affect learned normalization statistics or the train-to-inference distribution.',
     },
+    {
+      id: 'dropout-module-mode-vs-autograd-diagnosis',
+      level: 'diagnosis',
+      relatedComparison: 'module-training-state-vs-gradient-recording-state',
+      scenario: 'A PyTorch-style validation loop wraps the forward pass in no_grad(), but the model is accidentally left in training mode. Repeated predictions still change and BatchNorm outputs depend on the validation batch. Another engineer suggests that no_grad() should already have disabled all training-only layer behavior.',
+      prompt: 'Which distinction explains the bug and the correct fix?',
+      choices: [
+        'Gradient recording and module mode are separate controls: no_grad() suppresses autograd bookkeeping, while model.eval() changes Dropout and BatchNorm behavior; ordinary validation usually needs both eval mode and disabled gradient recording',
+        'no_grad() and model.eval() are aliases, so the changing predictions prove the random seed is the only possible cause',
+        'model.eval() disables all gradients automatically, so using no_grad() with it would make the forward pass invalid',
+      ],
+      answerIndex: 0,
+      explanation: 'Module mode controls layers whose forward behavior differs between training and evaluation, such as Dropout and BatchNorm. Autograd mode controls whether operations are recorded for differentiation. They are independent: evaluation can still record gradients, and a no-grad training-mode forward can still apply dropout masks and batch statistics.',
+      misconceptionTested: 'Disabling gradient recording automatically switches every module into evaluation behavior, or evaluation mode automatically disables autograd.',
+    },
   ],
 });
 
