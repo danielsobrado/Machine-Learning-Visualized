@@ -85,7 +85,11 @@ export const NEURAL_NETWORK_COVERAGE = Object.freeze({
     "conv2d-stacked-receptive-field-worked",
   ]),
   "conv-relu": requirement(["conv-relu-polarity-design"]),
-  "max-pooling": requirement(["max-pooling-window-worked"]),
+  "max-pooling": requirement([
+    "max-pooling-window-worked",
+    "max-pooling-backward-routing-worked",
+    "cnn-pooling-localization-loss-diagnosis",
+  ]),
   "computation-graph-backprop": requirement([
     "backprop-branch-gradient-worked",
     "backprop-gradient-vs-optimizer-decision",
@@ -129,6 +133,8 @@ export const NEURAL_NETWORK_DEPTH_REQUIREMENTS = Object.freeze([
   depthRequirement("stacked-convolution-receptive-field-calculation", "conv2d", ["conv2d-stacked-receptive-field-worked"]),
   depthRequirement("conv-relu-feature-polarity-design", "conv-relu", ["conv-relu-polarity-design"]),
   depthRequirement("max-pooling-output-information-calculation", "max-pooling", ["max-pooling-window-worked"]),
+  depthRequirement("max-pooling-backward-routing-calculation", "max-pooling", ["max-pooling-backward-routing-worked"]),
+  depthRequirement("max-pooling-localization-loss-diagnosis", "max-pooling", ["cnn-pooling-localization-loss-diagnosis"]),
   depthRequirement("branched-backprop-gradient-calculation", "computation-graph-backprop", ["backprop-branch-gradient-worked"]),
   depthRequirement("backprop-gradient-check-debugging", "computation-graph-backprop", ["backprop-gradient-vs-optimizer-decision"]),
 ]);
