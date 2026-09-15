@@ -9,12 +9,15 @@ const SENTENCES = [
 ];
 
 const ENCODING_TYPES = [
-  { id: 'sinusoidal', label: 'Sinusoidal' },
-  { id: 'learned', label: 'Learned absolute' },
-  { id: 'none', label: 'No position signal' },
+  { id: 'sinusoidal', label: 'Sinusoidal absolute' },
+  { id: 'learned', label: 'Learned absolute (toy lookup)' },
+  { id: 'none', label: 'No explicit position signal' },
 ];
 
 const DIMENSIONS = [16, 32, 64, 128];
+const VISIBLE_DIMENSIONS = 16;
+const VECTOR_SLICE_DIMENSIONS = 12;
+const MAX_PROBE_POSITION = 64;
 
 function positionalValue(type, position, dimIndex, dimension) {
   if (type === 'none') return 0;
@@ -24,6 +27,14 @@ function positionalValue(type, position, dimIndex, dimension) {
   }
   const angle = position / Math.pow(10000, (2 * Math.floor(dimIndex / 2)) / dimension);
   return dimIndex % 2 === 0 ? Math.sin(angle) : Math.cos(angle);
+}
+
+function cosineSimilarity(left, right) {
+  const dot = left.reduce((sum, value, index) => sum + value * right[index], 0);
+  const leftNorm = Math.sqrt(left.reduce((sum, value) => sum + value * value, 0));
+  const rightNorm = Math.sqrt(right.reduce((sum, value) => sum + value * value, 0));
+  if (leftNorm === 0 || rightNorm === 0) return 0;
+  return dot / (leftNorm * rightNorm);
 }
 
 function colorFor(value) {
@@ -60,6 +71,25 @@ function Metric({ label, value, helper }) {
   );
 }
 
+function extensionDescription(encodingType) {
+  if (encodingType === 'sinusoidal') {
+    return {
+      value: 'Formula defined',
+      helper: 'The sinusoidal function can be evaluated at unseen positions; model quality beyond training is not guaranteed.',
+    };
+  }
+  if (encodingType === 'learned') {
+    return {
+      value: 'Lookup bounded',
+      helper: 'A learned absolute table needs a row or another strategy for positions outside its configured range.',
+    };
+  }
+  return {
+    value: 'No signal',
+    helper: 'There is no explicit position representation to extend.',
+  };
+}
+
 export default function PositionalEncodingAnimation() {
   const [sentenceIndex, setSentenceIndex] = useState(0);
   const [encodingType, setEncodingType] = useState('sinusoidal');
@@ -68,14 +98,13 @@ export default function PositionalEncodingAnimation() {
   const [probePosition, setProbePosition] = useState(32);
 
   const tokens = SENTENCES[sentenceIndex];
-  const visibleDims = 16;
 
   const encodingRows = useMemo(
     () =>
       tokens.map((token, position) => ({
         token,
         position,
-        values: Array.from({ length: visibleDims }, (_, dimIndex) =>
+        values: Array.from({ length: VISIBLE_DIMENSIONS }, (_, dimIndex) =>
           positionalValue(encodingType, position, dimIndex, dimension),
         ),
       })),
@@ -83,7 +112,10 @@ export default function PositionalEncodingAnimation() {
   );
 
   const selectedValues = useMemo(
-    () => Array.from({ length: 12 }, (_, dimIndex) => positionalValue(encodingType, selectedPosition, dimIndex, dimension)),
+    () =>
+      Array.from({ length: VECTOR_SLICE_DIMENSIONS }, (_, dimIndex) =>
+        positionalValue(encodingType, selectedPosition, dimIndex, dimension),
+      ),
     [dimension, encodingType, selectedPosition],
   );
 
@@ -94,16 +126,11 @@ export default function PositionalEncodingAnimation() {
     const probe = Array.from({ length: dimension }, (_, dimIndex) =>
       positionalValue(encodingType, probePosition, dimIndex, dimension),
     );
-    const dot = current.reduce((sum, value, index) => sum + value * probe[index], 0);
-    const currentNorm = Math.sqrt(current.reduce((sum, value) => sum + value * value, 0));
-    const probeNorm = Math.sqrt(probe.reduce((sum, value) => sum + value * value, 0));
-    if (currentNorm === 0 || probeNorm === 0) return 0;
-    return dot / (currentNorm * probeNorm);
+    return cosineSimilarity(current, probe);
   }, [dimension, encodingType, probePosition, selectedPosition]);
 
-  const orderAmbiguity = encodingType === 'none' ? 'High' : 'Reduced';
-  const extrapolation =
-    encodingType === 'sinusoidal' ? 'Formula extends beyond trained positions' : encodingType === 'learned' ? 'Needs learned rows for new positions' : 'No ordering signal';
+  const extension = extensionDescription(encodingType);
+  const explicitSignal = encodingType === 'none' ? 'Absent' : 'Present';
 
   return (
     <div className="min-h-full bg-slate-50">
@@ -113,18 +140,24 @@ export default function PositionalEncodingAnimation() {
             <div>
               <div className="flex items-center gap-2 text-sm font-semibold uppercase tracking-wide text-cyan-700">
                 <Waves size={17} />
-                Transformer input order
+                Additive absolute position signals
               </div>
               <h1 className="mt-2 text-2xl font-bold text-slate-950 md:text-3xl">Positional encoding</h1>
               <p className="mt-2 max-w-3xl text-slate-700">
-                Self-attention sees token interactions but has no built-in left-to-right order. Positional encodings add
-                a position-dependent vector so identical words at different places become distinguishable.
+                Plain unmasked self-attention is permutation-equivariant: reordering input tokens reorders the outputs in
+                the same way unless position information is supplied. Additive absolute encodings attach a position-dependent
+                vector to each token representation before attention.
               </p>
             </div>
             <div className="rounded-lg border border-cyan-200 bg-cyan-50 px-4 py-3 text-sm text-cyan-950">
-              <div className="font-bold">Key question</div>
-              <div>Can the model tell which token came first?</div>
+              <div className="font-bold">Scope</div>
+              <div>Absolute additive encodings, not RoPE.</div>
             </div>
+          </div>
+          <div className="mt-4 rounded-lg border border-amber-200 bg-amber-50 p-3 text-sm text-amber-950">
+            A causal mask does introduce index-dependent visibility, so decoder-only attention is not fully permutation-equivariant.
+            The mask controls <strong>which positions are visible</strong>; an explicit position mechanism supplies a representation
+            of <strong>where tokens are</strong>. Do not treat those as the same mechanism.
           </div>
         </header>
 
@@ -163,6 +196,11 @@ export default function PositionalEncodingAnimation() {
                     </ControlButton>
                   ))}
                 </div>
+                {encodingType === 'learned' && (
+                  <p className="mt-2 text-xs text-slate-500">
+                    The displayed lookup rows are deterministic toy values standing in for parameters that would be learned during training.
+                  </p>
+                )}
               </div>
 
               <div>
@@ -184,7 +222,7 @@ export default function PositionalEncodingAnimation() {
                 <input
                   type="range"
                   min="0"
-                  max="64"
+                  max={MAX_PROBE_POSITION}
                   step="1"
                   value={probePosition}
                   onChange={(event) => setProbePosition(Number(event.target.value))}
@@ -196,21 +234,25 @@ export default function PositionalEncodingAnimation() {
 
           <main className="space-y-4">
             <div className="grid gap-4 md:grid-cols-3">
-              <Metric label="Order ambiguity" value={orderAmbiguity} helper="Without position, token order can collapse under attention." />
+              <Metric
+                label="Explicit position signal"
+                value={explicitSignal}
+                helper={encodingType === 'none' ? 'This toy unmasked-attention setup has no position vector.' : 'Each position receives a distinct vector.'}
+              />
               <Metric label="Probe similarity" value={similarity.toFixed(2)} helper={`Position ${selectedPosition} compared with position ${probePosition}.`} />
-              <Metric label="Extrapolation" value={encodingType === 'sinusoidal' ? 'Strong' : encodingType === 'learned' ? 'Limited' : 'None'} helper={extrapolation} />
+              <Metric label="Outside trained positions" value={extension.value} helper={extension.helper} />
             </div>
 
             <section className="rounded-lg border border-slate-200 bg-white p-4 shadow-sm">
               <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
                 <div>
-                  <h2 className="text-lg font-bold text-slate-950">Token plus position</h2>
+                  <h2 className="text-lg font-bold text-slate-950">Token plus absolute position</h2>
                   <p className="text-sm text-slate-600">
-                    Click a token to inspect its position vector. The heatmap shows the first 16 position dimensions.
+                    Click a token to inspect its position vector. The heatmap shows the first {VISIBLE_DIMENSIONS} position dimensions.
                   </p>
                 </div>
                 <div className="flex items-center gap-2 rounded-md bg-slate-100 px-3 py-2 text-sm font-semibold text-slate-700">
-                  token embedding <ArrowRight size={14} /> token + position
+                  token embedding <ArrowRight size={14} /> token + absolute position
                 </div>
               </div>
 
@@ -252,8 +294,8 @@ export default function PositionalEncodingAnimation() {
                   Predict before running
                 </div>
                 <p className="mt-2 text-sm text-slate-700">
-                  Switch between "dog bites man" and "man bites dog". With no position signal, the bag of tokens is the
-                  same, so order-sensitive meaning becomes hard to represent.
+                  In the unmasked setup modeled here, reorder the same token set with no position signal. Attention has no
+                  explicit coordinate telling it that one occurrence is position 0 and another is position 2.
                 </p>
               </div>
               <div className="rounded-lg border border-slate-200 bg-white p-4 shadow-sm">
@@ -262,15 +304,15 @@ export default function PositionalEncodingAnimation() {
                   Sinusoidal formula
                 </div>
                 <p className="mt-2 text-sm text-slate-700">
-                  Even dimensions use sine and odd dimensions use cosine at different frequencies, giving each position
-                  a repeatable multi-scale fingerprint.
+                  Even dimensions use sine and odd dimensions use cosine at different frequencies, giving every position
+                  a deterministic multi-scale coordinate. The function extends past training positions, but learned behavior may not.
                 </p>
               </div>
               <div className="rounded-lg border border-slate-200 bg-white p-4 shadow-sm">
-                <h3 className="font-bold text-slate-950">Failure mode</h3>
+                <h3 className="font-bold text-slate-950">Related mechanism</h3>
                 <p className="mt-2 text-sm text-slate-700">
-                  Learned absolute positions can work well inside the trained context window, but unseen positions need
-                  learned rows or another extrapolation strategy.
+                  RoPE does not add this vector to the token embedding. It rotates query and key dimension pairs before
+                  attention scoring so position enters the QK geometry instead.
                 </p>
               </div>
             </section>
