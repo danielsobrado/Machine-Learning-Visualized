@@ -55,10 +55,12 @@ export default function BeginnerPath() {
 
       <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
         <div className="flex items-center gap-2 text-sm font-black uppercase tracking-wide text-blue-700"><Layers3 size={17} /> 1. Shapes first</div>
-        <div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
+        <div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-7">
           {shapes.map((item) => <ShapeBadge key={item.label} {...item} />)}
         </div>
-        <p className="mt-4 text-sm leading-6 text-slate-600">The inner dimensions must match: [4×2] · [2×2] → [4×2], then [4×2] · [2×1] → [4×1]. Batch size travels through the network; feature width changes.</p>
+        <p className="mt-4 text-sm leading-6 text-slate-600">
+          Matrix inner dimensions must match: [4×2] · [2×2] → [4×2], then [4×2] · [2×1] → [4×1]. Biases do not add a batch dimension: b₁ has shape [2] and broadcasts across all four rows; b₂ has shape [1] and broadcasts the same way. Batch size travels through the network while feature width changes.
+        </p>
       </section>
 
       <section className="grid gap-4 lg:grid-cols-[0.9fr_1.1fr]">
