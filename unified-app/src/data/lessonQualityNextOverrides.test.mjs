@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 
 import { CAUSAL_ADVANCED_LESSON_IDS } from '../components/priority-labs/causalAdvancedDefaults.js';
 import { CLASSICAL_ML_NEXT_LESSON_IDS } from '../components/quality-labs/classicalMlNextConstants.js';
+import { FOUNDATIONS_NEXT_LESSON_IDS } from '../components/quality-labs/foundationsNextConstants.js';
 import { EFFECTIVE_MANUAL_LESSON_QUALITY } from './effectiveLessonQuality.js';
 import { MANUAL_LESSON_QUALITY } from './lessonQualityManifest.js';
 import { LESSON_QUALITY_NEXT_OVERRIDES } from './lessonQualityNextOverrides.js';
@@ -11,6 +12,7 @@ import { P1_COMPLETED_QUALITY_OVERRIDES } from './lessonQualityP1Overrides.js';
 const NEXT_QUALITY_LESSON_IDS = Object.freeze(new Set([
   ...CLASSICAL_ML_NEXT_LESSON_IDS,
   ...CAUSAL_ADVANCED_LESSON_IDS,
+  ...FOUNDATIONS_NEXT_LESSON_IDS,
 ]));
 
 test('every advanced lesson lab has matching quality metadata', () => {

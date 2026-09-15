@@ -13,11 +13,13 @@ import { getAnimationComponent, isAnimationAvailable } from '../animations';
 import AnimationShell from '../components/animation-shell/AnimationShell';
 import { P1_LAB_LESSON_IDS } from '../components/priority-labs/p1PriorityConstants.js';
 import { CLASSICAL_ML_NEXT_LESSON_IDS } from '../components/quality-labs/classicalMlNextConstants.js';
+import { FOUNDATIONS_NEXT_LESSON_IDS } from '../components/quality-labs/foundationsNextConstants.js';
 import LessonLayout from '../components/lesson/LessonLayout';
 import useLessonDepthAvailability from '../hooks/useLessonDepthAvailability.js';
 
 const P1PriorityLab = lazy(() => import('../components/priority-labs/P1PriorityLab'));
 const ClassicalMlNextLab = lazy(() => import('../components/quality-labs/ClassicalMlNextLab'));
+const FoundationsNextLab = lazy(() => import('../components/quality-labs/FoundationsNextLab'));
 const LessonSectionTabs = lazy(() => import('../components/lesson/LessonSectionTabs'));
 const LessonSectionView = lazy(() => import('../components/lesson/LessonSectionView'));
 
@@ -163,6 +165,7 @@ function AnimationContent({ animationId, animation }) {
       <AnimationComponent />
       {P1_LAB_LESSON_IDS.has(animationId) && <P1PriorityLab lessonId={animationId} />}
       {CLASSICAL_ML_NEXT_LESSON_IDS.has(animationId) && <ClassicalMlNextLab lessonId={animationId} />}
+      {FOUNDATIONS_NEXT_LESSON_IDS.has(animationId) && <FoundationsNextLab lessonId={animationId} />}
     </AnimationShell>
   );
 }

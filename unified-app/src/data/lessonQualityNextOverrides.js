@@ -43,4 +43,20 @@ export const LESSON_QUALITY_NEXT_OVERRIDES = Object.freeze({
     reason: 'Sequential-testing lesson now compares the observed interim Z statistic with a pre-specified five-look O’Brien–Fleming efficacy boundary and turns the result into an explicit stop-or-continue decision.',
     nextAction: 'Add futility boundaries and simulate achieved type-I error, power, and expected sample size under stopping.',
   }),
+  'gradient-descent': Object.freeze({
+    reason: 'Optimization lesson now compares vanilla gradient descent, momentum, and diagonal preconditioning on the same ill-conditioned quadratic with a shared start, trajectory view, and loss reduction readout.',
+    nextAction: 'Add Nesterov and RMSProp/Adam trajectories with per-coordinate effective-step diagnostics.',
+  }),
+  'probability-distributions': Object.freeze({
+    reason: 'Distribution lesson now contrasts a two-Gaussian mixture with its moment-matched single Gaussian, making multimodality loss visible even when mean and variance are preserved.',
+    nextAction: 'Add heavy-tail and skew model-selection diagnostics with Q-Q or residual-shape checks.',
+  }),
+  'loss-functions-likelihoods': Object.freeze({
+    reason: 'Loss lesson now compares class-weighted categorical NLL with focal loss under severe imbalance and exposes how each objective reallocates contribution toward minority or hard examples.',
+    nextAction: 'Add label-noise-robust losses and show downstream calibration and decision-cost consequences after reweighting.',
+  }),
+  'maximum-likelihood-estimation': Object.freeze({
+    reason: 'MLE lesson now distinguishes likelihood-only MLE, Beta-Bernoulli MAP, and posterior mean while sweeping prior concentration to expose shrinkage sensitivity.',
+    nextAction: 'Add posterior credible intervals and prior-predictive checks to separate point estimation from uncertainty and model checking.',
+  }),
 });
