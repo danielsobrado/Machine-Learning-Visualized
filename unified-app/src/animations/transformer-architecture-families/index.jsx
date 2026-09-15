@@ -1,66 +1,15 @@
 import React, { useMemo, useState } from 'react';
 import { GitBranch, RotateCcw, SlidersHorizontal } from 'lucide-react';
 import AssessmentPanel from '../../components/animation-shell/AssessmentPanel';
-
-const FAMILIES = {
-  encoder: {
-    label: 'Encoder-only',
-    example: 'BERT',
-    objective: 'Masked language modeling or representation learning',
-    attention: 'Bidirectional self-attention over visible input tokens',
-    output: 'Contextual embeddings for classification, search, extraction, and reranking',
-    prompt: ['[CLS]', 'the', 'movie', '[MASK]', 'great', '[SEP]'],
-    target: ['was'],
-    visible: 'all input tokens except masked content',
-    color: 'cyan',
-  },
-  decoder: {
-    label: 'Decoder-only',
-    example: 'GPT',
-    objective: 'Next-token prediction',
-    attention: 'Causal self-attention over previous tokens only',
-    output: 'One token at a time, appended back into the context',
-    prompt: ['The', 'model', 'writes'],
-    target: ['the', 'next', 'token'],
-    visible: 'past and current tokens only',
-    color: 'emerald',
-  },
-  encoderDecoder: {
-    label: 'Encoder-decoder',
-    example: 'T5',
-    objective: 'Conditional generation from an encoded source sequence',
-    attention: 'Encoder bidirectional attention plus decoder causal and cross-attention',
-    output: 'Target sequence conditioned on a separate input sequence',
-    prompt: ['translate:', 'good', 'morning'],
-    target: ['buenos', 'dias'],
-    visible: 'source tokens through cross-attention, target prefix through causal attention',
-    color: 'violet',
-  },
-};
-
-const COLORS = {
-  cyan: { active: 'border-cyan-500 bg-cyan-600 text-white', soft: 'border-cyan-200 bg-cyan-50 text-cyan-950', line: '#0891b2' },
-  emerald: { active: 'border-emerald-500 bg-emerald-600 text-white', soft: 'border-emerald-200 bg-emerald-50 text-emerald-950', line: '#059669' },
-  violet: { active: 'border-violet-500 bg-violet-600 text-white', soft: 'border-violet-200 bg-violet-50 text-violet-950', line: '#7c3aed' },
-};
+import {
+  CAUSAL_ATTENTION_MATRIX,
+  FAMILY_COLORS,
+  FULL_ATTENTION_MATRIX,
+  TRANSFORMER_ARCHITECTURE_FAMILIES,
+} from './architectureFamilyConstants.js';
 
 function attentionMatrix(family) {
-  if (family === 'encoder') {
-    return [
-      [1, 1, 1, 1, 1],
-      [1, 1, 1, 1, 1],
-      [1, 1, 1, 1, 1],
-      [1, 1, 1, 1, 1],
-      [1, 1, 1, 1, 1],
-    ];
-  }
-  return [
-    [1, 0, 0, 0, 0],
-    [1, 1, 0, 0, 0],
-    [1, 1, 1, 0, 0],
-    [1, 1, 1, 1, 0],
-    [1, 1, 1, 1, 1],
-  ];
+  return family === 'encoder' ? FULL_ATTENTION_MATRIX : CAUSAL_ATTENTION_MATRIX;
 }
 
 function Stat({ label, value, detail }) {
@@ -90,13 +39,11 @@ function TokenRow({ label, tokens, activeColor }) {
 
 export default function TransformerArchitectureFamiliesAnimation() {
   const [family, setFamily] = useState('decoder');
-  const config = FAMILIES[family];
-  const color = COLORS[config.color];
-  const matrix = useMemo(() => attentionMatrix(family === 'encoderDecoder' ? 'decoder' : family), [family]);
+  const config = TRANSFORMER_ARCHITECTURE_FAMILIES[family];
+  const color = FAMILY_COLORS[config.color];
+  const matrix = useMemo(() => attentionMatrix(family), [family]);
 
-  const reset = () => {
-    setFamily('decoder');
-  };
+  const reset = () => setFamily('decoder');
 
   return (
     <div className="space-y-6">
@@ -106,8 +53,8 @@ export default function TransformerArchitectureFamiliesAnimation() {
             <p className="text-xs font-black uppercase tracking-wide text-slate-500">Transformer families</p>
             <h2 className="mt-1 text-2xl font-black text-slate-950">Encoder-Only vs Decoder-Only vs Encoder-Decoder</h2>
             <p className="mt-2 max-w-3xl text-sm leading-6 text-slate-700">
-              BERT, GPT, and T5 use transformer blocks differently. The key differences are which tokens can attend to
-              which other tokens, what objective trains the model, and what kind of output the model is built to produce.
+              These families differ in attention visibility, available context, output contract, and common training objectives.
+              Autoregressive generation is a serial inference loop; causal training can still score many token positions in parallel.
             </p>
           </div>
           <button
@@ -127,12 +74,12 @@ export default function TransformerArchitectureFamiliesAnimation() {
           Architecture controls
         </div>
         <div className="grid gap-2 sm:grid-cols-3">
-          {Object.entries(FAMILIES).map(([id, option]) => (
+          {Object.entries(TRANSFORMER_ARCHITECTURE_FAMILIES).map(([id, option]) => (
             <button
               key={id}
               type="button"
               onClick={() => setFamily(id)}
-              className={`rounded-lg border px-3 py-3 text-sm font-black transition ${family === id ? COLORS[option.color].active : 'border-slate-200 bg-slate-50 text-slate-700'}`}
+              className={`rounded-lg border px-3 py-3 text-sm font-black transition ${family === id ? FAMILY_COLORS[option.color].active : 'border-slate-200 bg-slate-50 text-slate-700'}`}
             >
               {option.label}
             </button>
@@ -142,9 +89,9 @@ export default function TransformerArchitectureFamiliesAnimation() {
 
       <div className="grid gap-3 md:grid-cols-4">
         <Stat label="Family" value={config.label} detail={config.example} />
-        <Stat label="Objective" value={family === 'decoder' ? 'Next token' : family === 'encoder' ? 'Masked token' : 'Seq2seq'} detail="training signal" />
-        <Stat label="Visibility" value={family === 'encoder' ? 'Full' : family === 'decoder' ? 'Causal' : 'Mixed'} detail="attention mask pattern" />
-        <Stat label="Output" value={family === 'encoder' ? 'Vectors' : 'Tokens'} detail="natural use case" />
+        <Stat label="Objective" value={config.objectiveLabel} detail="common training signal" />
+        <Stat label="Visibility" value={family === 'encoder' ? 'Full' : family === 'decoder' ? 'Causal' : 'Mixed'} detail="attention pattern" />
+        <Stat label="Natural output" value={family === 'encoder' ? 'Representations' : 'Token logits'} detail="before any decoding policy" />
       </div>
 
       <div className="grid gap-4 xl:grid-cols-[1.05fr_0.95fr]">
@@ -157,11 +104,11 @@ export default function TransformerArchitectureFamiliesAnimation() {
             <TokenRow label="Input / source" tokens={config.prompt} activeColor={color.soft} />
             {family === 'encoderDecoder' && (
               <div className="rounded-lg border border-violet-200 bg-violet-50 p-4 text-sm leading-6 text-violet-950">
-                The encoder first builds source representations. The decoder then uses causal target attention plus
-                cross-attention into those source representations.
+                The encoder builds source representations first. The decoder uses a causally visible target prefix plus
+                cross-attention into those source states.
               </div>
             )}
-            <TokenRow label={family === 'encoder' ? 'Predicted masked content' : 'Generated target'} tokens={config.target} activeColor="border-slate-200 bg-slate-50 text-slate-950" />
+            <TokenRow label={config.targetLabel} tokens={config.target} activeColor="border-slate-200 bg-slate-50 text-slate-950" />
           </div>
 
           <div className="mt-6 rounded-lg border border-slate-200 bg-slate-50 p-4">
@@ -177,6 +124,11 @@ export default function TransformerArchitectureFamiliesAnimation() {
               )))}
             </div>
             <p className="mt-3 text-sm leading-6 text-slate-700">{config.visible}</p>
+            {family === 'encoderDecoder' && (
+              <p className="mt-2 text-xs leading-5 text-slate-500">
+                The matrix shown here is the decoder's causal target self-attention. Cross-attention into encoder source states is a separate attention matrix.
+              </p>
+            )}
           </div>
         </section>
 
@@ -184,9 +136,10 @@ export default function TransformerArchitectureFamiliesAnimation() {
           <h3 className="text-sm font-black uppercase tracking-wide">Why this family exists</h3>
           <div className="mt-4 space-y-4 text-sm leading-6">
             <p><strong>Example:</strong> {config.example}</p>
-            <p><strong>Training objective:</strong> {config.objective}</p>
+            <p><strong>Common training objective:</strong> {config.objective}</p>
             <p><strong>Attention rule:</strong> {config.attention}</p>
-            <p><strong>Best fit:</strong> {config.output}</p>
+            <p><strong>Execution:</strong> {config.execution}</p>
+            <p><strong>Natural output contract:</strong> {config.output}</p>
           </div>
         </section>
       </div>
@@ -195,21 +148,21 @@ export default function TransformerArchitectureFamiliesAnimation() {
         <div className="rounded-lg border border-cyan-200 bg-cyan-50 p-5">
           <h3 className="text-sm font-black uppercase tracking-wide text-cyan-700">Problem solved</h3>
           <p className="mt-3 text-sm leading-6 text-cyan-950">
-            Architecture families explain why a BERT-style model, GPT-style model, and T5-style model are not swapped
-            into the same workflow.
+            Architecture families explain why representation models, causal language models, and source-conditioned
+            sequence-to-sequence models expose different information flows even when all use Transformer blocks.
           </p>
         </div>
         <div className="rounded-lg border border-amber-200 bg-amber-50 p-5">
           <h3 className="text-sm font-black uppercase tracking-wide text-amber-700">Mistake to avoid</h3>
           <p className="mt-3 text-sm leading-6 text-amber-950">
-            Bidirectional attention is useful for understanding a fixed input, but it cannot directly generate left to
-            right without changing the objective and mask.
+            Do not equate “autoregressive” with “training one token per forward pass.” Causal masking lets teacher-forced
+            training score multiple next-token targets in parallel; serial dependence appears across inference decisions.
           </p>
         </div>
         <div className="rounded-lg border border-emerald-200 bg-emerald-50 p-5">
           <h3 className="text-sm font-black uppercase tracking-wide text-emerald-700">Understanding check</h3>
           <p className="mt-3 text-sm leading-6 text-emerald-950">
-            Pick a task, then choose the family whose attention pattern and output type match the task.
+            Pick a task, then identify the available context, required output, attention visibility, and training objective before choosing a family.
           </p>
         </div>
       </section>
