@@ -78,7 +78,12 @@ export const NEURAL_NETWORK_COVERAGE = Object.freeze({
     "lstm-padding-mask-diagnosis",
     "lstm-truncated-bptt-state-detach-design",
   ]),
-  "conv2d": requirement(["conv2d-stacked-receptive-field-worked"]),
+  "conv2d": requirement([
+    "conv2d-stride-padding-dilation-worked",
+    "conv2d-parameter-sharing-worked",
+    "conv2d-output-shape-channels-worked",
+    "conv2d-stacked-receptive-field-worked",
+  ]),
   "conv-relu": requirement(["conv-relu-polarity-design"]),
   "max-pooling": requirement(["max-pooling-window-worked"]),
   "computation-graph-backprop": requirement([
@@ -118,6 +123,9 @@ export const NEURAL_NETWORK_DEPTH_REQUIREMENTS = Object.freeze([
   depthRequirement("recurrent-gradient-pathology-diagnosis", "lstm", ["recurrent-gradient-pathology-diagnosis"]),
   depthRequirement("lstm-padding-mask-diagnosis", "lstm", ["lstm-padding-mask-diagnosis"]),
   depthRequirement("lstm-truncated-bptt-state-design", "lstm", ["lstm-truncated-bptt-state-detach-design"]),
+  depthRequirement("conv-output-dilation-calculation", "conv2d", ["conv2d-stride-padding-dilation-worked"]),
+  depthRequirement("conv-parameter-sharing-calculation", "conv2d", ["conv2d-parameter-sharing-worked"]),
+  depthRequirement("conv-output-channel-shape-calculation", "conv2d", ["conv2d-output-shape-channels-worked"]),
   depthRequirement("stacked-convolution-receptive-field-calculation", "conv2d", ["conv2d-stacked-receptive-field-worked"]),
   depthRequirement("conv-relu-feature-polarity-design", "conv-relu", ["conv-relu-polarity-design"]),
   depthRequirement("max-pooling-output-information-calculation", "max-pooling", ["max-pooling-window-worked"]),
