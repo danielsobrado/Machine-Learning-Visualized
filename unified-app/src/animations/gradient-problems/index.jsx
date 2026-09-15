@@ -16,7 +16,8 @@ function configFromPreset(presetId, current = GRADIENT_PROBLEM_DEFAULTS) {
     ...current,
     ...preset,
     presetId,
-    useResidual: false,
+    useResidual: preset.useResidual ?? false,
+    residualScale: preset.residualScale ?? GRADIENT_PROBLEM_DEFAULTS.residualScale,
   };
 }
 
