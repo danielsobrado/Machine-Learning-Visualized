@@ -26,8 +26,9 @@ test('attention score storage scales quadratically with sequence length', () => 
   assert.equal(large, small * 4);
 });
 
-test('encoder and decoder modes have different visibility rules', () => {
-  assert.match(attentionMaskRule('encoder'), /every token/i);
+test('encoder and decoder-only modes expose different visibility rules', () => {
+  assert.match(attentionMaskRule('encoder'), /encoder-style full self-attention/i);
+  assert.match(attentionMaskRule('decoder'), /decoder-only causal self-attention/i);
   assert.match(attentionMaskRule('decoder'), /future/i);
 });
 
