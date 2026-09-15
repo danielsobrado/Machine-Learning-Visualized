@@ -12,6 +12,7 @@ import {
   mathematicalConvolve2d,
   outputShape,
   padInput,
+  stackedReceptiveField,
 } from './conv2dModel.js';
 
 const patch = [
@@ -57,6 +58,20 @@ test('dilation expands the effective kernel footprint', () => {
   assert.equal(convOutputSize({ inputSize: 15, kernelSize: 3, stride: 2, padding: 2, dilation: 2 }), 8);
 });
 
+test('stacked stride-two 3x3 convolutions grow receptive field from 1 to 3 to 7', () => {
+  assert.deepEqual(stackedReceptiveField([
+    { kernelSize: 3, stride: 2, dilation: 1 },
+    { kernelSize: 3, stride: 2, dilation: 1 },
+  ]), {
+    receptiveField: 7,
+    jump: 4,
+    trace: [
+      { layer: 1, effectiveKernel: 3, receptiveField: 3, jump: 2 },
+      { layer: 2, effectiveKernel: 3, receptiveField: 7, jump: 4 },
+    ],
+  });
+});
+
 test('Conv2D parameter count spans all input channels but not spatial locations', () => {
   assert.deepEqual(conv2dParameterCount({
     inputChannels: 3,
@@ -94,4 +109,5 @@ test('invalid convolution configurations fail explicitly', () => {
   assert.throws(() => padInput([[1, Number.NaN]], 1), TypeError);
   assert.throws(() => convOutputSize({ inputSize: 3, kernelSize: 5 }), RangeError);
   assert.throws(() => conv2dParameterCount({ inputChannels: 3, outputChannels: 2, kernelHeight: 3, kernelWidth: 3, useBias: 'yes' }), TypeError);
+  assert.throws(() => stackedReceptiveField([]), TypeError);
 });
