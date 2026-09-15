@@ -1,295 +1,151 @@
 import React, { useState } from 'react';
-import { Zap, ChevronRight, Check, X, ArrowRight, Brain, MessageSquare, Search, Image } from 'lucide-react';
+import { GitBranch, Network, Sparkles } from 'lucide-react';
+import {
+  TRANSFORMER_FAMILIES,
+  TRANSFORMER_SYSTEM_PATTERNS,
+} from './transformerVariantConstants.js';
+
+function FamilyButton({ family, active, onClick }) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className={`rounded-xl border px-4 py-3 text-sm font-black transition ${
+        active
+          ? 'border-indigo-700 bg-indigo-700 text-white'
+          : 'border-slate-200 bg-white text-slate-700 hover:border-indigo-300'
+      }`}
+    >
+      {family.label}
+    </button>
+  );
+}
+
+function DetailRow({ label, children }) {
+  return (
+    <div className="grid gap-1 border-b border-slate-100 py-3 last:border-b-0 md:grid-cols-[180px_1fr]">
+      <div className="text-xs font-black uppercase tracking-wide text-slate-500">{label}</div>
+      <div className="text-sm leading-6 text-slate-800">{children}</div>
+    </div>
+  );
+}
 
 export default function VariantsPanel() {
-    const [selectedVariant, setSelectedVariant] = useState('encoder-only');
+  const [selectedId, setSelectedId] = useState('decoder-only');
+  const selected = TRANSFORMER_FAMILIES.find((family) => family.id === selectedId);
 
-    const variants = {
-        'encoder-only': {
-            name: 'Encoder-Only',
-            icon: Brain,
-            color: 'blue',
-            examples: ['BERT', 'RoBERTa', 'ALBERT', 'DistilBERT', 'ELECTRA'],
-            useCase: 'Understanding / Classification',
-            description: 'Bidirectional attention - each position can see all other positions. Great for understanding tasks.',
-            tasks: ['Text Classification', 'Named Entity Recognition', 'Question Answering', 'Sentiment Analysis'],
-            attention: 'Full bidirectional self-attention',
-            training: 'Masked Language Modeling (MLM)',
-            diagram: {
-                encoder: true,
-                decoder: false
-            }
-        },
-        'decoder-only': {
-            name: 'Decoder-Only',
-            icon: MessageSquare,
-            color: 'purple',
-            examples: ['GPT-1/2/3/4', 'LLaMA', 'Claude', 'PaLM', 'Mistral', 'Falcon'],
-            useCase: 'Generation / Completion',
-            description: 'Causal (left-to-right) attention only. Designed for autoregressive text generation.',
-            tasks: ['Text Generation', 'Chat/Dialogue', 'Code Generation', 'Creative Writing'],
-            attention: 'Causal self-attention (masked)',
-            training: 'Next Token Prediction',
-            diagram: {
-                encoder: false,
-                decoder: true
-            }
-        },
-        'encoder-decoder': {
-            name: 'Encoder-Decoder',
-            icon: ArrowRight,
-            color: 'green',
-            examples: ['T5', 'BART', 'mT5', 'FLAN-T5', 'mBART'],
-            useCase: 'Sequence-to-Sequence',
-            description: 'Full transformer as originally proposed. Best for tasks with distinct input and output sequences.',
-            tasks: ['Translation', 'Summarization', 'Text-to-Text', 'Data-to-Text'],
-            attention: 'Bidirectional (enc) + Causal (dec) + Cross',
-            training: 'Seq2Seq / Denoising',
-            diagram: {
-                encoder: true,
-                decoder: true
-            }
-        }
-    };
-
-    const current = variants[selectedVariant];
-    const colorClasses = {
-        blue: 'bg-blue-500/20 border-blue-500/50 text-blue-600',
-        purple: 'bg-purple-500/20 border-purple-500/50 text-purple-600',
-        green: 'bg-green-500/20 border-green-500/50 text-green-400'
-    };
-
-    return (
-        <div className="p-6 min-h-screen">
-            <div className="max-w-6xl mx-auto">
-                {/* Header */}
-                <div className="text-center mb-8">
-                    <h2 className="text-3xl font-bold text-white mb-2">
-                        Transformer Variants: <span className="gradient-text">The Family Tree</span>
-                    </h2>
-                    <p className="text-slate-800">
-                        Three architectural patterns that dominate modern NLP
-                    </p>
-                </div>
-
-                {/* Variant Selector */}
-                <div className="flex justify-center gap-4 mb-8">
-                    {Object.entries(variants).map(([key, variant]) => (
-                        <button
-                            key={key}
-                            onClick={() => setSelectedVariant(key)}
-                            className={`flex items-center gap-2 px-6 py-3 rounded-xl font-medium transition-all ${
-                                selectedVariant === key
-                                    ? `${colorClasses[variant.color]} border-2`
-                                    : 'bg-slate-700/50 text-slate-800 hover:bg-slate-700 border-2 border-transparent'
-                            }`}
-                        >
-                            <variant.icon size={20} />
-                            {variant.name}
-                        </button>
-                    ))}
-                </div>
-
-                <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-                    {/* Architecture Diagram */}
-                    <div className="bg-slate-800/50 rounded-2xl p-6 border border-slate-700">
-                        <h3 className="text-white font-bold mb-4 text-center">{current.name} Architecture</h3>
-
-                        <div className="flex justify-center items-end gap-8 h-64">
-                            {/* Encoder */}
-                            <div className="flex flex-col items-center">
-                                {current.diagram.encoder ? (
-                                    <div className="w-24 h-40 bg-gradient-to-t from-green-600 to-green-400 rounded-lg flex flex-col items-center justify-center p-2">
-                                        <div className="text-white font-bold text-sm">ENCODER</div>
-                                        <div className="text-white/70 text-xs mt-2 text-center">
-                                            Bidirectional Attention
-                                        </div>
-                                    </div>
-                                ) : (
-                                    <div className="w-24 h-40 bg-slate-700/30 rounded-lg flex flex-col items-center justify-center p-2 border-2 border-dashed border-slate-600">
-                                        <X className="text-slate-700" size={32} />
-                                        <div className="text-slate-700 mt-2">Not Used</div>
-                                    </div>
-                                )}
-                                <div className="text-slate-800 mt-2">Encoder</div>
-                            </div>
-
-                            {/* Arrow */}
-                            {current.diagram.encoder && current.diagram.decoder && (
-                                <div className="flex flex-col items-center justify-center h-40">
-                                    <ArrowRight className="text-yellow-400" size={32} />
-                                    <div className="text-xs mt-1">K, V</div>
-                                </div>
-                            )}
-
-                            {/* Decoder */}
-                            <div className="flex flex-col items-center">
-                                {current.diagram.decoder ? (
-                                    <div className="w-24 h-48 bg-gradient-to-t from-purple-600 to-purple-400 rounded-lg flex flex-col items-center justify-center p-2">
-                                        <div className="text-white font-bold text-sm">DECODER</div>
-                                        <div className="text-white/70 text-xs mt-2 text-center">
-                                            Causal Attention
-                                        </div>
-                                        {current.diagram.encoder && (
-                                            <div className="text-xs mt-1 text-center">
-                                                + Cross-Attn
-                                            </div>
-                                        )}
-                                    </div>
-                                ) : (
-                                    <div className="w-24 h-48 bg-slate-700/30 rounded-lg flex flex-col items-center justify-center p-2 border-2 border-dashed border-slate-600">
-                                        <X className="text-slate-700" size={32} />
-                                        <div className="text-slate-700 mt-2">Not Used</div>
-                                    </div>
-                                )}
-                                <div className="text-slate-800 mt-2">Decoder</div>
-                            </div>
-                        </div>
-
-                        {/* Description */}
-                        <div className="mt-6 p-4 bg-slate-700/30 rounded-lg">
-                            <p className="text-slate-700">{current.description}</p>
-                        </div>
-                    </div>
-
-                    {/* Details */}
-                    <div className="space-y-4">
-                        {/* Use Case */}
-                        <div className={`rounded-xl p-4 border ${colorClasses[current.color]}`}>
-                            <h4 className="font-bold mb-2">Primary Use Case</h4>
-                            <p className="text-white text-lg">{current.useCase}</p>
-                        </div>
-
-                        {/* Attention Type */}
-                        <div className="bg-slate-800/50 rounded-xl p-4 border border-slate-700">
-                            <h4 className="text-white font-bold mb-2">Attention Pattern</h4>
-                            <p className="text-slate-700">{current.attention}</p>
-                        </div>
-
-                        {/* Training Objective */}
-                        <div className="bg-slate-800/50 rounded-xl p-4 border border-slate-700">
-                            <h4 className="text-white font-bold mb-2">Training Objective</h4>
-                            <p className="text-slate-700">{current.training}</p>
-                        </div>
-
-                        {/* Tasks */}
-                        <div className="bg-slate-800/50 rounded-xl p-4 border border-slate-700">
-                            <h4 className="text-white font-bold mb-2">Common Tasks</h4>
-                            <div className="flex flex-wrap gap-2">
-                                {current.tasks.map((task, i) => (
-                                    <span key={i} className="bg-slate-700 px-3 py-1 rounded-full text-sm text-slate-700">
-                                        {task}
-                                    </span>
-                                ))}
-                            </div>
-                        </div>
-
-                        {/* Examples */}
-                        <div className="bg-slate-800/50 rounded-xl p-4 border border-slate-700">
-                            <h4 className="text-white font-bold mb-2">Popular Models</h4>
-                            <div className="flex flex-wrap gap-2">
-                                {current.examples.map((model, i) => (
-                                    <span
-                                        key={i}
-                                        className={`px-3 py-1 rounded-full text-sm font-medium ${colorClasses[current.color]}`}
-                                    >
-                                        {model}
-                                    </span>
-                                ))}
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-                {/* Comparison Table */}
-                <div className="mt-8 bg-slate-800/50 rounded-2xl p-6 border border-slate-700">
-                    <h3 className="text-white font-bold mb-4">📊 Quick Comparison</h3>
-
-                    <div className="overflow-x-auto">
-                        <table className="w-full text-sm">
-                            <thead>
-                                <tr className="border-b border-slate-700">
-                                    <th className="text-left text-slate-800 py-3 px-4">Feature</th>
-                                    <th className="text-center text-blue-600 py-3 px-4">Encoder-Only</th>
-                                    <th className="text-center text-purple-600 py-3 px-4">Decoder-Only</th>
-                                    <th className="text-center text-green-400 py-3 px-4">Encoder-Decoder</th>
-                                </tr>
-                            </thead>
-                            <tbody className="text-slate-700">
-                                <tr className="border-b border-slate-700/50">
-                                    <td className="py-3 px-4 text-slate-800">Bidirectional?</td>
-                                    <td className="py-3 px-4 text-center"><Check className="inline text-green-400" size={18} /></td>
-                                    <td className="py-3 px-4 text-center"><X className="inline text-red-400" size={18} /></td>
-                                    <td className="py-3 px-4 text-center"><span className="text-yellow-400">Partial</span></td>
-                                </tr>
-                                <tr className="border-b border-slate-700/50">
-                                    <td className="py-3 px-4 text-slate-800">Autoregressive?</td>
-                                    <td className="py-3 px-4 text-center"><X className="inline text-red-400" size={18} /></td>
-                                    <td className="py-3 px-4 text-center"><Check className="inline text-green-400" size={18} /></td>
-                                    <td className="py-3 px-4 text-center"><Check className="inline text-green-400" size={18} /></td>
-                                </tr>
-                                <tr className="border-b border-slate-700/50">
-                                    <td className="py-3 px-4 text-slate-800">Best for Generation?</td>
-                                    <td className="py-3 px-4 text-center"><X className="inline text-red-400" size={18} /></td>
-                                    <td className="py-3 px-4 text-center"><Check className="inline text-green-400" size={18} /></td>
-                                    <td className="py-3 px-4 text-center"><Check className="inline text-green-400" size={18} /></td>
-                                </tr>
-                                <tr className="border-b border-slate-700/50">
-                                    <td className="py-3 px-4 text-slate-800">Best for Understanding?</td>
-                                    <td className="py-3 px-4 text-center"><Check className="inline text-green-400" size={18} /></td>
-                                    <td className="py-3 px-4 text-center"><span className="text-yellow-400">OK</span></td>
-                                    <td className="py-3 px-4 text-center"><Check className="inline text-green-400" size={18} /></td>
-                                </tr>
-                                <tr>
-                                    <td className="py-3 px-4 text-slate-800">Cross-Attention?</td>
-                                    <td className="py-3 px-4 text-center"><X className="inline text-red-400" size={18} /></td>
-                                    <td className="py-3 px-4 text-center"><X className="inline text-red-400" size={18} /></td>
-                                    <td className="py-3 px-4 text-center"><Check className="inline text-green-400" size={18} /></td>
-                                </tr>
-                            </tbody>
-                        </table>
-                    </div>
-                </div>
-
-                {/* Modern Trends */}
-                <div className="mt-8 bg-gradient-to-r from-indigo-500/10 to-purple-500/10 rounded-2xl p-6 border border-indigo-500/30">
-                    <h3 className="text-indigo-600 font-bold mb-4 flex items-center gap-2">
-                        <Zap size={20} />
-                        Modern Trends (2023-2024)
-                    </h3>
-
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <div className="bg-slate-800/50 p-4 rounded-lg">
-                            <h4 className="text-white font-medium mb-2">🦙 Decoder-Only Dominance</h4>
-                            <p className="text-slate-800">
-                                GPT, LLaMA, Mistral - decoder-only models dominate due to simplicity and scaling properties.
-                                They can be prompted to do encoder tasks too!
-                            </p>
-                        </div>
-                        <div className="bg-slate-800/50 p-4 rounded-lg">
-                            <h4 className="text-white font-medium mb-2">🔀 Mixture of Experts (MoE)</h4>
-                            <p className="text-slate-800">
-                                Models like Mixtral use sparse MoE layers - only some "experts" activate per token.
-                                More parameters, same compute!
-                            </p>
-                        </div>
-                        <div className="bg-slate-800/50 p-4 rounded-lg">
-                            <h4 className="text-white font-medium mb-2">📏 Longer Context</h4>
-                            <p className="text-slate-800">
-                                Techniques like RoPE, ALiBi, and sparse attention enable 100K+ token contexts.
-                                Original transformer: only 512 tokens!
-                            </p>
-                        </div>
-                        <div className="bg-slate-800/50 p-4 rounded-lg">
-                            <h4 className="text-white font-medium mb-2">🖼️ Multimodal</h4>
-                            <p className="text-slate-800">
-                                GPT-4V, Gemini, LLaVA - transformers now process images, audio, and text together.
-                                Same architecture, different encoders!
-                            </p>
-                        </div>
-                    </div>
-                </div>
-            </div>
+  return (
+    <div className="space-y-6 p-4 md:p-6">
+      <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+        <div className="flex items-center gap-2 text-xs font-black uppercase tracking-wide text-indigo-700">
+          <GitBranch size={16} />
+          Transformer family map
         </div>
-    );
+        <h2 className="mt-2 text-2xl font-black text-slate-950 md:text-3xl">Three common architecture families</h2>
+        <p className="mt-3 max-w-4xl text-sm leading-6 text-slate-700">
+          “Transformer” does not mean one fixed stack. The family is determined by which stacks are present, the visibility
+          pattern inside self-attention, whether cross-attention exists, and the training objective. These are common patterns,
+          not rules that every model must follow exactly.
+        </p>
+      </section>
+
+      <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+        <div className="grid gap-2 md:grid-cols-3">
+          {TRANSFORMER_FAMILIES.map((family) => (
+            <FamilyButton
+              key={family.id}
+              family={family}
+              active={selectedId === family.id}
+              onClick={() => setSelectedId(family.id)}
+            />
+          ))}
+        </div>
+      </section>
+
+      <section className="grid gap-4 lg:grid-cols-[0.8fr_1.2fr]">
+        <div className="rounded-2xl border border-indigo-200 bg-indigo-50 p-5">
+          <div className="flex items-center gap-2 text-sm font-black uppercase tracking-wide text-indigo-700">
+            <Network size={16} />
+            {selected.label}
+          </div>
+          <div className="mt-4 text-xs font-black uppercase tracking-wide text-indigo-700">Documented examples</div>
+          <div className="mt-2 flex flex-wrap gap-2">
+            {selected.examples.map((example) => (
+              <span key={example} className="rounded-lg border border-indigo-200 bg-white px-3 py-2 text-sm font-bold text-indigo-950">
+                {example}
+              </span>
+            ))}
+          </div>
+          <div className="mt-5 text-xs font-black uppercase tracking-wide text-indigo-700">Typical uses</div>
+          <div className="mt-2 flex flex-wrap gap-2">
+            {selected.typicalUses.map((useCase) => (
+              <span key={useCase} className="rounded-full border border-indigo-200 bg-white px-3 py-1 text-xs font-semibold text-indigo-900">
+                {useCase}
+              </span>
+            ))}
+          </div>
+        </div>
+
+        <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+          <DetailRow label="Self-attention">{selected.selfAttention}</DetailRow>
+          <DetailRow label="Cross-attention">{selected.crossAttention}</DetailRow>
+          <DetailRow label="Common objective">{selected.commonObjective}</DetailRow>
+          <DetailRow label="Natural output">{selected.naturalOutput}</DetailRow>
+        </div>
+      </section>
+
+      <section className="grid gap-4 md:grid-cols-3">
+        {TRANSFORMER_FAMILIES.map((family) => (
+          <article key={family.id} className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+            <h3 className="font-black text-slate-950">{family.label}</h3>
+            <p className="mt-3 text-sm leading-6 text-slate-700">{family.selfAttention}</p>
+            <p className="mt-3 text-sm leading-6 text-slate-700"><strong>Cross:</strong> {family.crossAttention}</p>
+          </article>
+        ))}
+      </section>
+
+      <section className="rounded-2xl border border-slate-200 bg-slate-50 p-5">
+        <div className="flex items-center gap-2 text-sm font-black uppercase tracking-wide text-slate-600">
+          <Sparkles size={16} />
+          Orthogonal system patterns
+        </div>
+        <p className="mt-2 max-w-4xl text-sm leading-6 text-slate-700">
+          MoE, long-context techniques, and multimodal wiring are not fourth/fifth/sixth architecture families. They can be
+          combined with different Transformer families and should be reasoned about separately.
+        </p>
+        <div className="mt-4 grid gap-4 md:grid-cols-3">
+          {TRANSFORMER_SYSTEM_PATTERNS.map((pattern) => (
+            <article key={pattern.title} className="rounded-xl border border-slate-200 bg-white p-4">
+              <h3 className="font-black text-slate-950">{pattern.title}</h3>
+              <p className="mt-2 text-sm leading-6 text-slate-700">{pattern.detail}</p>
+            </article>
+          ))}
+        </div>
+      </section>
+
+      <section className="grid gap-4 md:grid-cols-3">
+        <div className="rounded-2xl border border-amber-200 bg-amber-50 p-5">
+          <h3 className="text-sm font-black uppercase tracking-wide text-amber-700">Do not infer private architectures</h3>
+          <p className="mt-3 text-sm leading-6 text-amber-950">
+            If a vendor has not publicly documented a model's architecture, do not use that model as a canonical example of a
+            specific family merely because external speculation is common.
+          </p>
+        </div>
+        <div className="rounded-2xl border border-cyan-200 bg-cyan-50 p-5">
+          <h3 className="text-sm font-black uppercase tracking-wide text-cyan-700">No universal 512-token limit</h3>
+          <p className="mt-3 text-sm leading-6 text-cyan-950">
+            The Transformer architecture itself does not impose a universal 512-token context limit. Practical limits come from
+            model configuration, training, position handling, attention cost, memory, and serving constraints.
+          </p>
+        </div>
+        <div className="rounded-2xl border border-emerald-200 bg-emerald-50 p-5">
+          <h3 className="text-sm font-black uppercase tracking-wide text-emerald-700">MoE compute caveat</h3>
+          <p className="mt-3 text-sm leading-6 text-emerald-950">
+            Sparse routing can activate fewer parameters per token than the model stores, but it does not make routing,
+            communication, memory traffic, or expert computation free.
+          </p>
+        </div>
+      </section>
+    </div>
+  );
 }
