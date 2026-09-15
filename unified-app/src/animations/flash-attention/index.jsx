@@ -1,21 +1,26 @@
 import React, { useMemo, useState } from 'react';
 import { Cpu, Database, Grid3X3, HardDrive, Layers3, Zap } from 'lucide-react';
 import AssessmentPanel from '../../components/animation-shell/AssessmentPanel';
-
-const SEQ_OPTIONS = [1024, 2048, 4096, 8192];
-const TILE_OPTIONS = [32, 64, 128, 256];
-const DTYPE_BYTES = {
-  fp32: 4,
-  fp16: 2,
-  bf16: 2,
-};
+import {
+  DTYPE_BYTES,
+  SEQUENCE_OPTIONS,
+  TILE_OPTIONS,
+} from './flashAttentionConstants.js';
+import { buildFlashAttentionStats } from './flashAttentionModel.js';
 
 const formatNumber = (value) => new Intl.NumberFormat('en-US').format(Math.round(value));
-const formatBytes = (bytes) => {
-  if (bytes >= 1024 ** 3) return `${(bytes / 1024 ** 3).toFixed(2)} GB`;
-  if (bytes >= 1024 ** 2) return `${(bytes / 1024 ** 2).toFixed(1)} MB`;
-  return `${(bytes / 1024).toFixed(1)} KB`;
-};
+
+function formatBytes(bytes) {
+  if (bytes >= 1024 ** 3) return `${(bytes / 1024 ** 3).toFixed(2)} GiB`;
+  if (bytes >= 1024 ** 2) return `${(bytes / 1024 ** 2).toFixed(1)} MiB`;
+  return `${(bytes / 1024).toFixed(1)} KiB`;
+}
+
+function formatFlops(flops) {
+  if (flops >= 1e12) return `${(flops / 1e12).toFixed(2)} TFLOPs`;
+  if (flops >= 1e9) return `${(flops / 1e9).toFixed(2)} GFLOPs`;
+  return `${(flops / 1e6).toFixed(1)} MFLOPs`;
+}
 
 function ButtonGroup({ label, options, value, onChange, format = (item) => item }) {
   return (
@@ -61,38 +66,16 @@ export default function FlashAttentionAnimation() {
   const [dtype, setDtype] = useState('fp16');
   const [activeTile, setActiveTile] = useState(5);
 
-  const stats = useMemo(() => {
-    const bytes = DTYPE_BYTES[dtype];
-    const blocks = Math.ceil(seqLength / tileSize);
-    const tileCount = blocks * blocks;
-    const fullScores = seqLength * seqLength * bytes;
-    const tileScores = tileSize * tileSize * bytes;
-    const qkvTile = tileSize * headDim * bytes * 3;
-    const runningState = tileSize * bytes * 3;
-    const workingSet = tileScores + qkvTile + runningState;
-    const memoryRatio = workingSet / fullScores;
-    const savedPercent = (1 - memoryRatio) * 100;
-    const flops = 2 * seqLength * seqLength * headDim;
-    const ioProxyStandard = fullScores * 3;
-    const ioProxyFlash = seqLength * headDim * bytes * blocks * 2 + seqLength * headDim * bytes;
-    const ioSaved = (1 - ioProxyFlash / ioProxyStandard) * 100;
-
-    return {
-      blocks,
-      tileCount,
-      fullScores,
-      tileScores,
-      workingSet,
-      savedPercent,
-      flops,
-      ioSaved: Math.max(0, ioSaved),
-    };
-  }, [dtype, headDim, seqLength, tileSize]);
+  const stats = useMemo(() => buildFlashAttentionStats({
+    sequenceLength: seqLength,
+    tileSize,
+    headDim,
+    dtype,
+  }), [dtype, headDim, seqLength, tileSize]);
 
   const currentTile = activeTile % stats.tileCount;
   const activeRow = Math.floor(currentTile / stats.blocks);
   const activeCol = currentTile % stats.blocks;
-
   const visibleBlocks = Array.from({ length: Math.min(stats.blocks, 8) }, (_, index) => index);
   const scaleLabel = stats.blocks > 8 ? `showing 8 of ${stats.blocks} blocks` : `${stats.blocks} blocks`;
 
@@ -106,15 +89,16 @@ export default function FlashAttentionAnimation() {
                 <Zap size={17} />
                 Hardware-aware attention
               </div>
-              <h1 className="mt-2 text-2xl font-bold text-slate-950 md:text-3xl">Flash Attention</h1>
+              <h1 className="mt-2 text-2xl font-bold text-slate-950 md:text-3xl">FlashAttention</h1>
               <p className="mt-2 max-w-3xl text-slate-700">
-                Flash Attention computes exact attention while streaming score tiles through fast memory. It avoids
-                writing the full attention matrix to high-bandwidth memory by keeping online softmax statistics per row.
+                FlashAttention evaluates dense scaled dot-product attention with a tiled I/O schedule. It avoids
+                materializing the full score/probability matrix in high-bandwidth memory by maintaining online softmax
+                statistics and an output accumulator for each active query row.
               </p>
             </div>
             <div className="rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">
-              <div className="font-bold">Exact result, different schedule</div>
-              <div>Same attention math, less memory traffic.</div>
+              <div className="font-bold">Same dense attention objective</div>
+              <div>No sparse or low-rank approximation; floating-point operation order can still differ.</div>
             </div>
           </div>
         </header>
@@ -128,7 +112,7 @@ export default function FlashAttentionAnimation() {
             <div className="mt-5 space-y-5">
               <ButtonGroup
                 label="Sequence length"
-                options={SEQ_OPTIONS}
+                options={SEQUENCE_OPTIONS}
                 value={seqLength}
                 onChange={(next) => {
                   setSeqLength(next);
@@ -171,30 +155,30 @@ export default function FlashAttentionAnimation() {
           </aside>
 
           <main className="space-y-4">
-            <div className="grid gap-4 md:grid-cols-4">
+            <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
               <Metric
                 icon={HardDrive}
-                label="Full score matrix"
-                value={formatBytes(stats.fullScores)}
-                detail="Materializing QK^T scales with sequence length squared."
+                label="Full score matrix / head"
+                value={formatBytes(stats.fullScoreBytes)}
+                detail="N² score elements if QKᵀ is materialized for one attention head."
               />
               <Metric
                 icon={Cpu}
-                label="Tile working set"
-                value={formatBytes(stats.workingSet)}
-                detail="Approximate fast-memory footprint for one tile and row state."
+                label="Conceptual tile working set"
+                value={formatBytes(stats.workingSetBytes)}
+                detail="Q/K/V tiles + score tile + row max/sum + vector output accumulator."
               />
               <Metric
                 icon={Database}
-                label="Memory avoided"
-                value={`${stats.savedPercent.toFixed(1)}%`}
-                detail="Relative to storing the full attention score matrix."
+                label="Score tile / full scores"
+                value={`${(stats.scoreStorageRatio * 100).toFixed(4)}%`}
+                detail="The resident score tile stays bounded by tile size instead of sequence length."
               />
               <Metric
                 icon={Layers3}
-                label="Tiles streamed"
-                value={formatNumber(stats.tileCount)}
-                detail={`${stats.blocks} by ${stats.blocks} block schedule.`}
+                label="Dense attention matmuls"
+                value={formatFlops(stats.denseAttentionMatmulFlops)}
+                detail="QKᵀ plus attention·V for one head; tiling changes scheduling, not dense asymptotic arithmetic."
               />
             </div>
 
@@ -203,8 +187,8 @@ export default function FlashAttentionAnimation() {
                 <div>
                   <h2 className="text-lg font-bold text-slate-950">Tiled attention schedule</h2>
                   <p className="text-sm text-slate-600">
-                    Move across key/value tiles for each query block, updating the row max, denominator, and output
-                    accumulator without storing every score.
+                    Move across key/value tiles for each query block, updating the row max, normalization denominator,
+                    and vector output accumulator without writing every attention score to HBM.
                   </p>
                 </div>
                 <button
@@ -249,22 +233,22 @@ export default function FlashAttentionAnimation() {
               <div className="rounded-lg border border-slate-200 bg-white p-4 shadow-sm">
                 <h3 className="font-bold text-slate-950">Online softmax state</h3>
                 <p className="mt-2 text-sm text-slate-700">
-                  Each query row keeps a running max, normalization denominator, and output accumulator. New tiles
-                  rescale that state before adding their contribution.
+                  Each active query row keeps a running max and normalization denominator plus a head-dimension output
+                  vector. When a new tile raises the max, previous accumulated contributions are rescaled consistently.
                 </p>
               </div>
               <div className="rounded-lg border border-slate-200 bg-white p-4 shadow-sm">
                 <h3 className="font-bold text-slate-950">What does not change</h3>
                 <p className="mt-2 text-sm text-slate-700">
-                  The algorithm still computes exact scaled dot-product attention. The savings come from memory
-                  scheduling, not from approximating attention probabilities.
+                  Dense FlashAttention still evaluates every required query-key interaction. It does not turn quadratic
+                  dense attention into linear-time attention; the main win is reduced memory traffic and materialization.
                 </p>
               </div>
               <div className="rounded-lg border border-slate-200 bg-white p-4 shadow-sm">
-                <h3 className="font-bold text-slate-950">Bottleneck it targets</h3>
+                <h3 className="font-bold text-slate-950">Hardware boundary</h3>
                 <p className="mt-2 text-sm text-slate-700">
-                  Long-context attention is often limited by high-bandwidth-memory reads and writes. Streaming tiles
-                  reduces traffic by about {stats.ioSaved.toFixed(0)}% in this simplified proxy.
+                  The working-set number here is a transparent teaching model, not a claimed kernel benchmark. Real tile
+                  shapes, register use, SRAM limits, fusion, causal skipping, and throughput depend on hardware and implementation.
                 </p>
               </div>
             </section>
