@@ -2,6 +2,7 @@ import React, { useMemo, useState } from 'react';
 import { AlertTriangle, BarChart3, Calculator, RotateCcw, ShieldCheck } from 'lucide-react';
 import AssessmentPanel from '../../components/animation-shell/AssessmentPanel';
 import HeteroscedasticLikelihoodLab from './HeteroscedasticLikelihoodLab';
+import OutputLossPairingLab from './OutputLossPairingLab';
 import { CLASSIFICATION_POINTS, LOSS_DEFAULTS, LOSS_MODES, REGRESSION_POINTS } from './lossConfig';
 import { buildLossLab, gaussianNll, laplaceNll } from './lossModel';
 
@@ -184,6 +185,7 @@ export default function LossFunctionsLikelihoodsAnimation() {
         </section>
       )}
 
+      <OutputLossPairingLab />
       <HeteroscedasticLikelihoodLab />
 
       <section className="rounded-lg border border-cyan-200 bg-cyan-50 p-5 text-sm leading-6 text-cyan-950">
