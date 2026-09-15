@@ -66,8 +66,10 @@ export function shapeLedger({ batchSize = 4, inputWidth = 2, hiddenWidth = 2, ou
   return [
     { label: 'Input X', shape: [batchSize, inputWidth] },
     { label: 'W₁', shape: [inputWidth, hiddenWidth] },
+    { label: 'b₁', shape: [hiddenWidth] },
     { label: 'Hidden H', shape: [batchSize, hiddenWidth] },
     { label: 'W₂', shape: [hiddenWidth, outputWidth] },
+    { label: 'b₂', shape: [outputWidth] },
     { label: 'Output ŷ', shape: [batchSize, outputWidth] },
   ];
 }
