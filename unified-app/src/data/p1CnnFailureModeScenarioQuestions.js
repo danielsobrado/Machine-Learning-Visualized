@@ -47,6 +47,21 @@ export const P1_CNN_FAILURE_MODE_SCENARIOS_BY_LESSON = Object.freeze({
       explanation: 'Max pooling trades spatial detail for compactness and some local tolerance. Dense prediction tasks often need skip connections, less aggressive downsampling, or other mechanisms that preserve fine-resolution information.',
       misconceptionTested: 'Pooling can reduce spatial resolution without losing information that matters for localization.',
     },
+    {
+      id: 'max-pooling-backward-routing-worked',
+      level: 'calculation',
+      relatedComparison: 'forward-max-selection-vs-backward-argmax-routing',
+      scenario: 'A 2 x 2 max-pooling window contains [2, 5, 1, 4] in row-major order. The pooled output is 5, and the upstream gradient arriving from the next layer is 3. The maximum is unique.',
+      prompt: 'What gradient is sent back to the four window inputs?',
+      choices: [
+        '[0.75, 0.75, 0.75, 0.75], because max pooling divides the upstream gradient equally across every input in its window',
+        '[0, 3, 0, 0], because the upstream gradient is routed to the unique argmax selected during the forward pass and the non-winning inputs receive zero',
+        '[2, 5, 1, 4], because max pooling copies the original activation values into the backward pass rather than propagating the upstream gradient',
+      ],
+      answerIndex: 1,
+      explanation: 'With a unique maximum, the local derivative is one for the winning input and zero for the others. The upstream gradient 3 therefore goes entirely to the input whose forward value was 5. Equal-max ties require an explicit framework/kernel convention and should not be generalized from this unique-max case.',
+      misconceptionTested: 'Max pooling spreads gradients uniformly across the pooling window instead of routing them through the forward argmax.',
+    },
   ],
 });
 
