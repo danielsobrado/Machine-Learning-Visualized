@@ -1,7 +1,7 @@
 import React, { useMemo, useState } from 'react';
 import { Boxes, Calculator, Maximize2 } from 'lucide-react';
 import { CONV_LAYER_DEFAULTS, CONV_LAYER_LIMITS } from './convLayerConstants.js';
-import { conv2dLayerSummary } from './conv2dModel.js';
+import { conv2dLayerSummary, stackedReceptiveField } from './conv2dModel.js';
 
 function ShapeCard({ label, shape, helper }) {
   return (
@@ -52,6 +52,10 @@ export default function ConvLayerGeometryLab() {
     dilation,
     useBias,
   }), [dilation, inputChannels, kernelSize, outputChannels, padding, stride, useBias]);
+  const repeatedStack = useMemo(() => stackedReceptiveField([
+    { kernelSize, stride, dilation },
+    { kernelSize, stride, dilation },
+  ]), [dilation, kernelSize, stride]);
 
   return (
     <section className="rounded-2xl border border-cyan-200 bg-cyan-50/40 p-5 shadow-sm">
@@ -107,6 +111,22 @@ export default function ConvLayerGeometryLab() {
               <div className="mt-1 text-lg font-black text-slate-950">One weight tensor, many windows</div>
               <p className="mt-1 text-xs leading-5 text-slate-600">Changing image height or width changes how often filters are applied, not how many filter parameters exist.</p>
             </div>
+          </div>
+
+          <div className="rounded-xl border border-blue-200 bg-blue-50 p-4">
+            <div className="text-xs font-black uppercase tracking-wide text-blue-700">If this same layer is stacked twice</div>
+            <div className="mt-3 grid gap-3 sm:grid-cols-2">
+              {repeatedStack.trace.map((layer) => (
+                <div key={layer.layer} className="rounded-lg bg-white p-3">
+                  <div className="text-xs font-bold text-slate-500">After layer {layer.layer}</div>
+                  <div className="mt-1 font-mono text-lg font-black text-slate-950">RF {layer.receptiveField} · jump {layer.jump}</div>
+                  <div className="mt-1 text-xs text-slate-600">effective kernel {layer.effectiveKernel}</div>
+                </div>
+              ))}
+            </div>
+            <p className="mt-3 text-sm leading-6 text-blue-950">
+              Receptive field grows using the previous layer's input jump: <span className="font-mono">r′ = r + (Keff−1)·jump</span>. Kernel sizes therefore do not simply multiply. With K=3, S=2, D=1, the sequence is RF 1 → 3 → 7 while jump becomes 1 → 2 → 4.
+            </p>
           </div>
 
           <div className="rounded-xl border border-slate-200 bg-white p-4 text-sm leading-6 text-slate-700">
