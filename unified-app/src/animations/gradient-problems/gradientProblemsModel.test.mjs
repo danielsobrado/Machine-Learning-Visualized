@@ -93,6 +93,21 @@ test('residual path can preserve signal through a dead ReLU branch', () => {
   assert.ok(trace.layers.every((layer) => layer.localDerivative === 1));
 });
 
+test('residual branch can exactly cancel the identity gradient path', () => {
+  const trace = buildGradientTrace({
+    depth: 8,
+    input: 1,
+    weight: -1,
+    bias: 0,
+    activationId: 'linear',
+    useResidual: true,
+    residualScale: 1,
+  });
+  close(trace.layers[0].localDerivative, 0);
+  close(trace.inputGradient, 0);
+  assert.equal(diagnoseGradient(trace.inputGradient), 'vanishing');
+});
+
 test('residual path is not a guarantee against explosion', () => {
   const trace = buildGradientTrace({
     depth: 18,
