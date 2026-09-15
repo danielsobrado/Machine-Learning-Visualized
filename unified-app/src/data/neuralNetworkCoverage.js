@@ -30,7 +30,11 @@ export const NEURAL_NETWORK_AUDITED_LESSON_IDS = Object.freeze([
 export const NEURAL_NETWORK_COVERAGE = Object.freeze({
   "gradient-descent": requirement(["gd-quadratic-step-worked"]),
   "neural-network": requirement(["nn-capacity-serving-tradeoff-worked"]),
-  "initialization": requirement(["init-he-fan-in-worked"]),
+  "initialization": requirement([
+    "init-he-fan-in-worked",
+    "init-symmetry-breaking-diagnosis",
+    "init-rectangular-fan-direction-diagnosis",
+  ]),
   "optimizers": requirement(["optimizer-resume-state-diagnosis"]),
   "training-loop-dynamics": requirement(["training-loop-scheduler-accumulation-diagnosis"]),
   "dropout-batchnorm": requirement(["dropout-batchnorm-eval-mode-diagnosis"]),
@@ -54,6 +58,8 @@ export const NEURAL_NETWORK_DEPTH_REQUIREMENTS = Object.freeze([
   depthRequirement("gradient-step-size-calculation", "gradient-descent", ["gd-quadratic-step-worked"]),
   depthRequirement("capacity-generalization-serving-decision", "neural-network", ["nn-capacity-serving-tradeoff-worked"]),
   depthRequirement("fan-in-initialization-scale-calculation", "initialization", ["init-he-fan-in-worked"]),
+  depthRequirement("initialization-symmetry-breaking-diagnosis", "initialization", ["init-symmetry-breaking-diagnosis"]),
+  depthRequirement("initialization-forward-backward-geometry-diagnosis", "initialization", ["init-rectangular-fan-direction-diagnosis"]),
   depthRequirement("stateful-optimizer-resume-diagnosis", "optimizers", ["optimizer-resume-state-diagnosis"]),
   depthRequirement("accumulation-scheduler-step-diagnosis", "training-loop-dynamics", ["training-loop-scheduler-accumulation-diagnosis"]),
   depthRequirement("train-eval-mode-diagnosis", "dropout-batchnorm", ["dropout-batchnorm-eval-mode-diagnosis"]),
