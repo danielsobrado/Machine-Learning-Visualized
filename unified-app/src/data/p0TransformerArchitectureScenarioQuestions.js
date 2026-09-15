@@ -61,6 +61,23 @@ export const P0_TRANSFORMER_ARCHITECTURE_SCENARIOS_BY_LESSON = Object.freeze({
       misconceptionTested: 'Pre-norm and post-norm are interchangeable names for the same ordering.',
     },
   ],
+  'residual-stream': [
+    {
+      id: 'residual-layernorm-vs-l2-diagnosis',
+      level: 'diagnosis',
+      relatedComparison: 'layernorm-vs-unit-vector-normalization',
+      scenario: 'A visualization implements "LayerNorm" by dividing each token residual vector by its Euclidean norm after every attention or MLP write. The resulting vector always has L2 norm 1.',
+      prompt: 'What is the core modeling error?',
+      choices: [
+        'LayerNorm standardizes features for each token using their mean and variance (plus learned affine parameters); it is not an L2 projection of the residual stream onto the unit sphere',
+        'The implementation is correct because every normalized transformer hidden state must have Euclidean norm exactly 1',
+        'The only error is that LayerNorm should divide by the sequence length instead of the vector norm',
+      ],
+      answerIndex: 0,
+      explanation: 'LayerNorm and L2 normalization have different geometry. LayerNorm centers and rescales a token feature vector according to feature mean and variance, commonly followed by learned gain and bias. Pre-norm and post-norm then differ by where that operation sits relative to the residual branch; neither means unit-normalizing the stream after every write.',
+      misconceptionTested: 'LayerNorm is equivalent to dividing the residual vector by its L2 norm after each sublayer update.',
+    },
+  ],
 });
 
 export function getP0TransformerArchitectureScenariosForLesson(lessonId) {
