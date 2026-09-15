@@ -29,7 +29,13 @@ export const NEURAL_NETWORK_AUDITED_LESSON_IDS = Object.freeze([
 
 export const NEURAL_NETWORK_COVERAGE = Object.freeze({
   "gradient-descent": requirement(["gd-quadratic-step-worked"]),
-  "neural-network": requirement(["nn-capacity-serving-tradeoff-worked"]),
+  "neural-network": requirement([
+    "nn-fundamentals-xor-nonlinearity",
+    "nn-fundamentals-tensor-shape-worked",
+    "nn-fundamentals-parameter-count-worked",
+    "nn-fundamentals-forward-pass-worked",
+    "nn-capacity-serving-tradeoff-worked",
+  ]),
   "initialization": requirement([
     "init-he-fan-in-worked",
     "init-symmetry-breaking-diagnosis",
@@ -59,6 +65,10 @@ export const NEURAL_NETWORK_COVERAGE = Object.freeze({
 
 export const NEURAL_NETWORK_DEPTH_REQUIREMENTS = Object.freeze([
   depthRequirement("gradient-step-size-calculation", "gradient-descent", ["gd-quadratic-step-worked"]),
+  depthRequirement("xor-nonlinearity-diagnosis", "neural-network", ["nn-fundamentals-xor-nonlinearity"]),
+  depthRequirement("dense-tensor-shape-calculation", "neural-network", ["nn-fundamentals-tensor-shape-worked"]),
+  depthRequirement("dense-parameter-count-calculation", "neural-network", ["nn-fundamentals-parameter-count-worked"]),
+  depthRequirement("dense-forward-pass-calculation", "neural-network", ["nn-fundamentals-forward-pass-worked"]),
   depthRequirement("capacity-generalization-serving-decision", "neural-network", ["nn-capacity-serving-tradeoff-worked"]),
   depthRequirement("fan-in-initialization-scale-calculation", "initialization", ["init-he-fan-in-worked"]),
   depthRequirement("initialization-symmetry-breaking-diagnosis", "initialization", ["init-symmetry-breaking-diagnosis"]),
