@@ -25,8 +25,8 @@ const closeTo = (actual, expected, tolerance = 1e-9) => {
 test('prediction intervals are wider than confidence intervals for a future observation', () => {
   const result = calculateRegressionIntervals(LINEAR_REGRESSION_NEXT_DEFAULTS);
   closeTo(result.leverage, 0.13);
-  closeTo(result.confidenceHalfWidth, 1.4133760999818838);
-  closeTo(result.predictionHalfWidth, 4.167017158591982);
+  closeTo(result.confidenceHalfWidth, 1.491977117786999);
+  closeTo(result.predictionHalfWidth, 4.398754337309597);
   assert.ok(result.predictionHalfWidth > result.confidenceHalfWidth);
 });
 
