@@ -1,0 +1,86 @@
+/* Final palette authority for the application shell and lesson chrome. */
+
+:root {
+  --cf-accent-rgb: 10 42 74;
+  --cf-accent: #0a2a4a;
+  --cf-accent-strong: #08233e;
+  --cf-accent-ink: #061b31;
+  --cf-accent-soft: #edf3f8;
+  --cf-accent-border: rgb(var(--cf-accent-rgb) / 0.28);
+
+  --cf-warning-rgb: 18 61 102;
+  --cf-warning: #123d66;
+  --cf-warning-soft: #eef4fa;
+  --cf-warning-border: rgb(var(--cf-warning-rgb) / 0.24);
+
+  --ds-accent: var(--cf-accent-strong);
+  --ds-accent-2: var(--cf-accent-ink);
+  --ds-accent-w: rgb(var(--cf-accent-rgb) / 0.07);
+  --ds-warm: var(--cf-warning);
+  --ds-warm-w: var(--cf-warning-soft);
+  --ds-warn: var(--cf-warning);
+}
+
+::selection {
+  background: rgb(var(--cf-accent-rgb) / 0.18);
+}
+
+.ua-codefix-step.active,
+.ua-prereq-node.is-next {
+  box-shadow: 0 0 0 2px rgb(var(--cf-accent-rgb) / 0.1), var(--cf-shadow);
+}
+
+.ua-codefix-step.active {
+  border-color: var(--cf-accent);
+}
+
+.ua-notes-drawer textarea {
+  background:
+    linear-gradient(90deg, rgb(var(--cf-accent-rgb) / 0.12) 1px, transparent 1px) 54px 0 / 1px 100%,
+    repeating-linear-gradient(#fff 0, #fff 27px, #ededed 28px);
+}
+
+/* Legacy warm utility colors are decorative chrome in the unified lesson shell. */
+#root .ua-stage-wrap :where(button, a, div, section, article, aside, span, label, strong)[class*="text-orange-"],
+#root .ua-stage-wrap :where(button, a, div, section, article, aside, span, label, strong)[class*="text-amber-"],
+#root .ua-stage-wrap :where(button, a, div, section, article, aside, span, label, strong)[class*="text-yellow-"] {
+  color: var(--cf-accent-strong) !important;
+}
+
+#root .ua-stage-wrap :where(button, a, div, section, article, aside)[class*="border-orange-"],
+#root .ua-stage-wrap :where(button, a, div, section, article, aside)[class*="border-amber-"],
+#root .ua-stage-wrap :where(button, a, div, section, article, aside)[class*="border-yellow-"] {
+  border-color: var(--cf-accent-border) !important;
+}
+
+#root .ua-stage-wrap :where(button, a, div, section, article, aside)[class*="bg-orange-"],
+#root .ua-stage-wrap :where(button, a, div, section, article, aside)[class*="bg-amber-"],
+#root .ua-stage-wrap :where(button, a, div, section, article, aside)[class*="bg-yellow-"] {
+  background-color: var(--cf-accent-soft) !important;
+}
+
+#root .ua-stage-wrap :where(button, a, div, section, article, aside)[class*="from-orange-"],
+#root .ua-stage-wrap :where(button, a, div, section, article, aside)[class*="from-amber-"],
+#root .ua-stage-wrap :where(button, a, div, section, article, aside)[class*="from-yellow-"] {
+  --tw-gradient-from: var(--cf-accent-strong) var(--tw-gradient-from-position) !important;
+  --tw-gradient-to: rgb(var(--cf-accent-rgb) / 0) var(--tw-gradient-to-position) !important;
+  --tw-gradient-stops: var(--tw-gradient-from), var(--tw-gradient-to) !important;
+}
+
+#root .ua-stage-wrap :where(button, a, div, section, article, aside)[class*="to-orange-"],
+#root .ua-stage-wrap :where(button, a, div, section, article, aside)[class*="to-amber-"],
+#root .ua-stage-wrap :where(button, a, div, section, article, aside)[class*="to-yellow-"] {
+  --tw-gradient-to: var(--cf-accent) var(--tw-gradient-to-position) !important;
+}
+
+#root .ua-stage-wrap :where(svg, path, line, circle, polyline, polygon)[class*="stroke-orange-"],
+#root .ua-stage-wrap :where(svg, path, line, circle, polyline, polygon)[class*="stroke-amber-"],
+#root .ua-stage-wrap :where(svg, path, line, circle, polyline, polygon)[class*="stroke-yellow-"] {
+  stroke: var(--cf-accent) !important;
+}
+
+#root .ua-stage-wrap :where(svg, path, circle, polygon)[class*="fill-orange-"],
+#root .ua-stage-wrap :where(svg, path, circle, polygon)[class*="fill-amber-"],
+#root .ua-stage-wrap :where(svg, path, circle, polygon)[class*="fill-yellow-"] {
+  fill: var(--cf-accent) !important;
+}
