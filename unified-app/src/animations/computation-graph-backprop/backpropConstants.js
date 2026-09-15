@@ -29,3 +29,4 @@ export const BRANCH_CONTROL_LIMITS = {
 };
 
 export const NUMERICAL_GRADIENT_EPSILON = 1e-5;
+export const GRADIENT_CHECK_TOLERANCE = 1e-6;
