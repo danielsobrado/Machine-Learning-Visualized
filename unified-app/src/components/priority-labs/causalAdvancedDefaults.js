@@ -1,5 +1,14 @@
 export const OBRIEN_FLEMING_FIVE_LOOK_C = 2.04;
 
+export const CAUSAL_ADVANCED_LESSON_IDS = Object.freeze(new Set([
+  'causal-graphs-dags',
+  'treatment-effects',
+  'propensity-scores',
+  'confounding-simpsons-paradox',
+  'cuped-variance-reduction',
+  'sequential-testing-peeking',
+]));
+
 const PROPENSITY_ROWS = Object.freeze([
   Object.freeze({ id: 'T1', treatment: 1, outcome: 1, propensity: 0.25, mu0: 0.35, mu1: 0.62 }),
   Object.freeze({ id: 'T2', treatment: 1, outcome: 0, propensity: 0.65, mu0: 0.25, mu1: 0.55 }),
