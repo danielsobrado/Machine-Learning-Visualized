@@ -1,4 +1,36 @@
 export const P1_NEURAL_APPLIED_ARCHITECTURE_SCENARIOS_BY_LESSON = Object.freeze({
+  "initialization": [
+    {
+      id: "init-symmetry-breaking-diagnosis",
+      level: "diagnosis",
+      relatedComparison: "variance-scaling-vs-symmetry-breaking",
+      scenario: "Two tanh hidden neurons receive the same input, have the same outgoing weight, and are initialized with exactly the same incoming weight. Their initial activation and gradient are therefore identical. After one ordinary gradient step, the two incoming weights are still equal even though their numerical scale is otherwise reasonable.",
+      prompt: "What is the real initialization failure, and what fixes it?",
+      choices: [
+        "The neurons were initialized symmetrically; give them different random initial weights so their activations and gradients can diverge and the units can specialize",
+        "The learning rate must be doubled because identical neurons automatically receive different gradients once the optimizer step is large enough",
+        "Replace the random initializer with one shared constant chosen from the Xavier formula, because correct variance scaling guarantees identical neurons will break symmetry",
+      ],
+      answerIndex: 0,
+      explanation: "Variance scaling and symmetry breaking solve different problems. Xavier or He can choose a sensible scale, but if two units start with identical weights and see the same downstream conditions, backprop gives them identical updates and preserves the redundancy. Random differences let the units follow different gradient trajectories.",
+      misconceptionTested: "A correct Xavier or He scale automatically breaks symmetry even when hidden neurons receive exactly identical initial weights.",
+    },
+    {
+      id: "init-rectangular-fan-direction-diagnosis",
+      level: "diagnosis",
+      relatedComparison: "forward-fan-in-vs-backward-fan-out-scaling",
+      scenario: "A deep ReLU network contains a sharp 256 -> 32 bottleneck. Under fan-in scaling, the forward activation second moments remain healthy through the bottleneck, but the backward gradient second moments collapse as gradients cross the same rectangular transition. The team concludes the initializer is proven healthy because the forward activations look stable.",
+      prompt: "What is missing from that conclusion?",
+      choices: [
+        "Initialization must be checked in both propagation directions; on a rectangular layer fan-in and fan-out geometry differ, so a scale that protects forward variance can still shrink or amplify backward gradients",
+        "Nothing is missing because stable forward activations mathematically guarantee stable backward gradients for every layer shape and activation",
+        "The bottleneck width is irrelevant because initialization variance depends only on the learning rate after the first optimizer step",
+      ],
+      answerIndex: 0,
+      explanation: "Forward signal propagation is driven by fan-in while the reverse gradient accumulation involves fan-out. Those are equal on square layers but can differ sharply at bottlenecks or expansions. A forward-only health check can therefore hide a backward failure, which is exactly why the initialization lesson tracks both second-moment paths.",
+      misconceptionTested: "Stable forward activation variance proves that backward gradient variance is also stable, even across rectangular layers.",
+    },
+  ],
   "relu": [
     {
       id: "relu-dead-units-lr-decision",
