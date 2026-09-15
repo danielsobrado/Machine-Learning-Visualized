@@ -19,12 +19,14 @@ test('parameter ledger reconciles with total count', () => {
   assert.equal(ledger.reduce((sum, row) => sum + row.total, 0), parameterCount([2, 3, 1]));
 });
 
-test('shape ledger preserves matrix multiplication dimensions', () => {
+test('shape ledger preserves matrix multiplication and bias broadcasting dimensions', () => {
   assert.deepEqual(shapeLedger({ batchSize: 8, inputWidth: 3, hiddenWidth: 5, outputWidth: 2 }), [
     { label: 'Input X', shape: [8, 3] },
     { label: 'W₁', shape: [3, 5] },
+    { label: 'b₁', shape: [5] },
     { label: 'Hidden H', shape: [8, 5] },
     { label: 'W₂', shape: [5, 2] },
+    { label: 'b₂', shape: [2] },
     { label: 'Output ŷ', shape: [8, 2] },
   ]);
 });
