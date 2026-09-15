@@ -57,7 +57,10 @@ export const NEURAL_NETWORK_COVERAGE = Object.freeze({
     "dropout-module-mode-vs-autograd-diagnosis",
   ]),
   "gradient-problems": requirement(["gradient-clipping-norm-worked"]),
-  "layer-normalization": requirement(["layernorm-token-axis-worked"]),
+  "layer-normalization": requirement([
+    "layernorm-vs-batchnorm",
+    "layernorm-token-axis-worked",
+  ]),
   "relu": requirement([
     "relu-dead-units-lr-decision",
     "activation-saturation-layer-role-decision",
@@ -92,6 +95,7 @@ export const NEURAL_NETWORK_DEPTH_REQUIREMENTS = Object.freeze([
   depthRequirement("train-eval-mode-diagnosis", "dropout-batchnorm", ["dropout-batchnorm-eval-mode-diagnosis"]),
   depthRequirement("module-mode-vs-autograd-diagnosis", "dropout-batchnorm", ["dropout-module-mode-vs-autograd-diagnosis"]),
   depthRequirement("gradient-clipping-norm-calculation", "gradient-problems", ["gradient-clipping-norm-worked"]),
+  depthRequirement("layernorm-vs-batchnorm-comparison", "layer-normalization", ["layernorm-vs-batchnorm"]),
   depthRequirement("layernorm-axis-calculation", "layer-normalization", ["layernorm-token-axis-worked"]),
   depthRequirement("dead-relu-root-cause-decision", "relu", ["relu-dead-units-lr-decision"]),
   depthRequirement("activation-saturation-layer-role-diagnosis", "relu", ["activation-saturation-layer-role-decision"]),
