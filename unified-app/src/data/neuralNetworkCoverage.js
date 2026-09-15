@@ -41,7 +41,10 @@ export const NEURAL_NETWORK_COVERAGE = Object.freeze({
   "conv2d": requirement(["conv2d-stacked-receptive-field-worked"]),
   "conv-relu": requirement(["conv-relu-polarity-design"]),
   "max-pooling": requirement(["max-pooling-window-worked"]),
-  "computation-graph-backprop": requirement(["backprop-branch-gradient-worked"]),
+  "computation-graph-backprop": requirement([
+    "backprop-branch-gradient-worked",
+    "backprop-gradient-vs-optimizer-decision",
+  ]),
 });
 
 export const NEURAL_NETWORK_DEPTH_REQUIREMENTS = Object.freeze([
@@ -59,4 +62,5 @@ export const NEURAL_NETWORK_DEPTH_REQUIREMENTS = Object.freeze([
   depthRequirement("conv-relu-feature-polarity-design", "conv-relu", ["conv-relu-polarity-design"]),
   depthRequirement("max-pooling-output-information-calculation", "max-pooling", ["max-pooling-window-worked"]),
   depthRequirement("branched-backprop-gradient-calculation", "computation-graph-backprop", ["backprop-branch-gradient-worked"]),
+  depthRequirement("backprop-gradient-check-debugging", "computation-graph-backprop", ["backprop-gradient-vs-optimizer-decision"]),
 ]);
