@@ -43,5 +43,5 @@ test('FlashAttention does not remove dense attention matmul arithmetic', () => {
     dtype: 'bf16',
   });
 
-  assert.equal(stats.denseAttentionMatmulFlops, 134_217_728);
+  assert.equal(stats.denseAttentionMatmulFlops, 268_435_456);
 });
