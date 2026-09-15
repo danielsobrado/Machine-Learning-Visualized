@@ -47,7 +47,11 @@ export const NEURAL_NETWORK_COVERAGE = Object.freeze({
     "optimizer-learning-rate-overshoot-worked",
     "optimizer-schedule-phase-choice",
   ]),
-  "training-loop-dynamics": requirement(["training-loop-scheduler-accumulation-diagnosis"]),
+  "training-loop-dynamics": requirement([
+    "loop-batch-lr-interaction",
+    "loop-gradient-accumulation-equivalence",
+    "training-loop-scheduler-accumulation-diagnosis",
+  ]),
   "dropout-batchnorm": requirement([
     "dropout-batchnorm-eval-mode-diagnosis",
     "dropout-module-mode-vs-autograd-diagnosis",
@@ -82,6 +86,8 @@ export const NEURAL_NETWORK_DEPTH_REQUIREMENTS = Object.freeze([
   depthRequirement("optimizer-mechanism-comparison", "optimizers", ["optimizer-sgd-momentum-adam-choice"]),
   depthRequirement("optimizer-learning-rate-overshoot-calculation", "optimizers", ["optimizer-learning-rate-overshoot-worked"]),
   depthRequirement("optimizer-schedule-phase-decision", "optimizers", ["optimizer-schedule-phase-choice"]),
+  depthRequirement("batch-size-learning-rate-interaction", "training-loop-dynamics", ["loop-batch-lr-interaction"]),
+  depthRequirement("gradient-accumulation-equivalence", "training-loop-dynamics", ["loop-gradient-accumulation-equivalence"]),
   depthRequirement("accumulation-scheduler-step-diagnosis", "training-loop-dynamics", ["training-loop-scheduler-accumulation-diagnosis"]),
   depthRequirement("train-eval-mode-diagnosis", "dropout-batchnorm", ["dropout-batchnorm-eval-mode-diagnosis"]),
   depthRequirement("module-mode-vs-autograd-diagnosis", "dropout-batchnorm", ["dropout-module-mode-vs-autograd-diagnosis"]),
