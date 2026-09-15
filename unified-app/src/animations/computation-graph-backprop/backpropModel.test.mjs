@@ -3,6 +3,7 @@ import test from 'node:test';
 
 import {
   branchGradientCheck,
+  chainGradientCheck,
   computeBranchGraph,
   computeChainGraph,
   numericalDerivative,
@@ -20,6 +21,29 @@ test('chain graph forward and backward values are internally consistent', () => 
   close(result.z, result.wx + BACKPROP_DEFAULTS.b);
   close(result.dLossDw, result.dLossDz * BACKPROP_DEFAULTS.x);
   close(result.dLossDx, result.dLossDz * BACKPROP_DEFAULTS.w);
+});
+
+test('chain parameter gradients match centered finite differences away from the ReLU kink', () => {
+  const check = chainGradientCheck(BACKPROP_DEFAULTS);
+  assert.equal(check.isSmoothNeighborhood, true);
+  assert.equal(check.passes, true);
+  assert.ok(check.weightAbsoluteError < 1e-6);
+  assert.ok(check.biasAbsoluteError < 1e-6);
+});
+
+test('chain gradient check marks the ReLU kink as non-smooth', () => {
+  const check = chainGradientCheck({ ...BACKPROP_DEFAULTS, w: 0, b: 0 });
+  assert.equal(check.isSmoothNeighborhood, false);
+  assert.equal(check.passes, false);
+});
+
+test('learning rate changes the optimizer step but not the backpropagated gradient', () => {
+  const slow = computeChainGraph({ ...BACKPROP_DEFAULTS, learningRate: 0.05 });
+  const fast = computeChainGraph({ ...BACKPROP_DEFAULTS, learningRate: 0.8 });
+  close(slow.dLossDw, fast.dLossDw);
+  close(slow.dLossDb, fast.dLossDb);
+  assert.notEqual(slow.nextW, fast.nextW);
+  assert.notEqual(slow.nextB, fast.nextB);
 });
 
 test('negative ReLU blocks the chain gradient', () => {
