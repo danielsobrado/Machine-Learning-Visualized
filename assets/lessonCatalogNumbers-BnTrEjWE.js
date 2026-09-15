@@ -1,0 +1,1 @@
+import{o as a}from"./assessment-data-DN694JRR.js";function i(t,n){return`${String(t+1).padStart(2,"0")}.${String(n+1).padStart(2,"0")}`}function d(t,n){const r=a.findIndex(e=>e.id===n);if(r<0)return null;const o=a[r].items.findIndex(e=>e.id===t);return o<0?null:i(r,o)}export{i as f,d as g};

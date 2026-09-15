@@ -1,0 +1,1 @@
+import{k as t}from"./react-vendor-BeqvafmB.js";import o from"./QwenChapter-JR0Q5QC6.js";import"./router-BOQIj1s7.js";import"./assessment-data-DN694JRR.js";import"./icons-BQHzJ7Tp.js";function n(){return t.jsx(o,{chapterId:"qwen-multimodal-moe"})}export{n as default};

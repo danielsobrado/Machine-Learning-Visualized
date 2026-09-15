@@ -1,0 +1,1 @@
+import{k as r}from"./react-vendor-BeqvafmB.js";import o from"./QwenChapter-JR0Q5QC6.js";import"./router-BOQIj1s7.js";import"./assessment-data-DN694JRR.js";import"./icons-BQHzJ7Tp.js";function m(){return r.jsx(o,{chapterId:"qwen-reasoning-control"})}export{m as default};
