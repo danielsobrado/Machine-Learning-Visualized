@@ -80,6 +80,23 @@ export const P1_NEURAL_APPLIED_ARCHITECTURE_SCENARIOS_BY_LESSON = Object.freeze(
       misconceptionTested: "Leaky ReLU and standard ReLU propagate the same gradient whenever the pre-activation is negative.",
     },
   ],
+  "softmax": [
+    {
+      id: "softmax-jacobian-coupling-diagnosis",
+      level: "calculation",
+      relatedComparison: "elementwise-activation-vs-coupled-probability-normalization",
+      scenario: "A three-class softmax currently outputs probabilities [0.6, 0.3, 0.1] at temperature 1. An engineer slightly increases only the second logit z2 and assumes only p2 can change because each output is treated like an independent sigmoid.",
+      prompt: "What does the local softmax Jacobian predict?",
+      choices: [
+        "Only p2 changes because softmax differentiates each class independently once probabilities have been normalized",
+        "p2 increases while p1 and p3 decrease; ∂p2/∂z2 = 0.3(1-0.3) is positive, the off-diagonal derivatives are negative, and the probability changes sum to zero locally",
+        "All three probabilities increase together because increasing any logit raises the shared exponential denominator and numerator by the same amount",
+      ],
+      answerIndex: 1,
+      explanation: "Softmax is coupled through its shared normalization denominator. Its Jacobian is ∂p_i/∂z_j = p_i(δ_ij - p_j) at temperature 1. The selected class has a positive diagonal derivative, every other class has a negative off-diagonal derivative, and the derivative column sums to zero because total probability remains one.",
+      misconceptionTested: "Softmax behaves like independent elementwise sigmoids whose non-selected probabilities do not respond when one logit changes.",
+    },
+  ],
   "conv2d": [
     {
       id: "conv2d-stacked-receptive-field-worked",
