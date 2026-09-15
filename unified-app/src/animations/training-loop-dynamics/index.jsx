@@ -3,6 +3,7 @@ import { RotateCcw } from 'lucide-react';
 import AssessmentPanel from '../../components/animation-shell/AssessmentPanel';
 import AccumulationFailureLab from './AccumulationFailureLab.jsx';
 import LoopTracePanel from './LoopTracePanel.jsx';
+import SchedulerCadenceLab from './SchedulerCadenceLab.jsx';
 import TrainingLoopControls from './TrainingLoopControls.jsx';
 import { TRAINING_LOOP_DEFAULTS } from './trainingLoopConstants.js';
 import { simulateTrainingLoop } from './trainingLoopModel.js';
@@ -70,6 +71,7 @@ export default function TrainingLoopDynamicsAnimation() {
 
       <LoopTracePanel result={result} />
       <AccumulationFailureLab config={config} />
+      <SchedulerCadenceLab />
 
       <section className="grid gap-4 lg:grid-cols-3">
         <div className="rounded-2xl border border-emerald-200 bg-emerald-50 p-5">
