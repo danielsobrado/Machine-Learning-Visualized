@@ -3,6 +3,7 @@ import { Activity } from 'lucide-react';
 import AssessmentPanel from '../../components/animation-shell/AssessmentPanel';
 import BatchNormWorkbench from './BatchNormWorkbench.jsx';
 import DropoutExperiment from './DropoutExperiment.jsx';
+import EvaluationModeContractLab from './EvaluationModeContractLab.jsx';
 import ModeFailureLab from './ModeFailureLab.jsx';
 import TrainEvalPipelineLab from './TrainEvalPipelineLab.jsx';
 
@@ -21,6 +22,7 @@ export default function DropoutBatchNormAnimation() {
       <ModeFailureLab />
       <DropoutExperiment />
       <TrainEvalPipelineLab />
+      <EvaluationModeContractLab />
 
       <section className="grid gap-4 md:grid-cols-3">
         <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
@@ -33,7 +35,7 @@ export default function DropoutBatchNormAnimation() {
         </div>
         <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
           <h3 className="font-black text-slate-950">Deployment check</h3>
-          <p className="mt-2 text-sm leading-6 text-slate-600">Evaluation mode should normally use stored BatchNorm state and disable dropout. Test repeatability before serving.</p>
+          <p className="mt-2 text-sm leading-6 text-slate-600">Ordinary inference normally needs evaluation-mode layer behavior and no gradient graph. Configure both axes intentionally.</p>
         </div>
       </section>
 
