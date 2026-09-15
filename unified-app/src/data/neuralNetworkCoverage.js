@@ -56,7 +56,10 @@ export const NEURAL_NETWORK_COVERAGE = Object.freeze({
     "dropout-batchnorm-eval-mode-diagnosis",
     "dropout-module-mode-vs-autograd-diagnosis",
   ]),
-  "gradient-problems": requirement(["gradient-clipping-norm-worked"]),
+  "gradient-problems": requirement([
+    "gradient-problem-differential-diagnosis",
+    "gradient-clipping-norm-worked",
+  ]),
   "layer-normalization": requirement([
     "layernorm-vs-batchnorm",
     "layernorm-token-axis-worked",
@@ -94,6 +97,7 @@ export const NEURAL_NETWORK_DEPTH_REQUIREMENTS = Object.freeze([
   depthRequirement("accumulation-scheduler-step-diagnosis", "training-loop-dynamics", ["training-loop-scheduler-accumulation-diagnosis"]),
   depthRequirement("train-eval-mode-diagnosis", "dropout-batchnorm", ["dropout-batchnorm-eval-mode-diagnosis"]),
   depthRequirement("module-mode-vs-autograd-diagnosis", "dropout-batchnorm", ["dropout-module-mode-vs-autograd-diagnosis"]),
+  depthRequirement("gradient-failure-differential-diagnosis", "gradient-problems", ["gradient-problem-differential-diagnosis"]),
   depthRequirement("gradient-clipping-norm-calculation", "gradient-problems", ["gradient-clipping-norm-worked"]),
   depthRequirement("layernorm-vs-batchnorm-comparison", "layer-normalization", ["layernorm-vs-batchnorm"]),
   depthRequirement("layernorm-axis-calculation", "layer-normalization", ["layernorm-token-axis-worked"]),
