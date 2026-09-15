@@ -20,6 +20,14 @@ test('top-k and top-p filtering renormalizes the final sampling distribution', (
   close(kept[1].sampleProbability, 0.375);
 });
 
+test('the lab applies top-k before evaluating the top-p nucleus', () => {
+  const rows = filterDistribution({ probabilities: [0.4, 0.3, 0.2, 0.1], topK: 2, topP: 0.55 });
+  const kept = rows.filter((row) => row.kept);
+
+  assert.deepEqual(kept.map((row) => row.index), [0]);
+  close(kept[0].sampleProbability, 1);
+});
+
 test('probability-weighted sampling uses the renormalized mass instead of a candidate index', () => {
   const rows = filterDistribution({ probabilities: [0.6, 0.3, 0.1], topK: 3, topP: 1 });
   assert.equal(selectToken(rows, 'sample', 0.59).index, 0);
