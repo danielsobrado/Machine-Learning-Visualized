@@ -32,7 +32,7 @@ export function buildFlashAttentionStats({ sequenceLength, tileSize, headDim, dt
   const workingSetBytes = workingSetElements * bytesPerElement;
   const scoreTileBytes = scoreTileElements * bytesPerElement;
   const scoreStorageRatio = scoreTileBytes / fullScoreBytes;
-  const denseAttentionMatmulFlops = 2 * sequenceLength * sequenceLength * headDim;
+  const denseAttentionMatmulFlops = 4 * sequenceLength * sequenceLength * headDim;
 
   return {
     blocks,
