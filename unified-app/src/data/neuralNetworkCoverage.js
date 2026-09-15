@@ -37,7 +37,10 @@ export const NEURAL_NETWORK_COVERAGE = Object.freeze({
   ]),
   "optimizers": requirement(["optimizer-resume-state-diagnosis"]),
   "training-loop-dynamics": requirement(["training-loop-scheduler-accumulation-diagnosis"]),
-  "dropout-batchnorm": requirement(["dropout-batchnorm-eval-mode-diagnosis"]),
+  "dropout-batchnorm": requirement([
+    "dropout-batchnorm-eval-mode-diagnosis",
+    "dropout-module-mode-vs-autograd-diagnosis",
+  ]),
   "gradient-problems": requirement(["gradient-clipping-norm-worked"]),
   "layer-normalization": requirement(["layernorm-token-axis-worked"]),
   "relu": requirement([
@@ -63,6 +66,7 @@ export const NEURAL_NETWORK_DEPTH_REQUIREMENTS = Object.freeze([
   depthRequirement("stateful-optimizer-resume-diagnosis", "optimizers", ["optimizer-resume-state-diagnosis"]),
   depthRequirement("accumulation-scheduler-step-diagnosis", "training-loop-dynamics", ["training-loop-scheduler-accumulation-diagnosis"]),
   depthRequirement("train-eval-mode-diagnosis", "dropout-batchnorm", ["dropout-batchnorm-eval-mode-diagnosis"]),
+  depthRequirement("module-mode-vs-autograd-diagnosis", "dropout-batchnorm", ["dropout-module-mode-vs-autograd-diagnosis"]),
   depthRequirement("gradient-clipping-norm-calculation", "gradient-problems", ["gradient-clipping-norm-worked"]),
   depthRequirement("layernorm-axis-calculation", "layer-normalization", ["layernorm-token-axis-worked"]),
   depthRequirement("dead-relu-root-cause-decision", "relu", ["relu-dead-units-lr-decision"]),
