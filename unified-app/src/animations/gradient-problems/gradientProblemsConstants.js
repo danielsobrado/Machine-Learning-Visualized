@@ -56,6 +56,17 @@ export const GRADIENT_PRESETS = Object.freeze({
     bias: 0,
     activationId: 'linear',
   }),
+  residualCancellation: Object.freeze({
+    label: 'Residual branch · exact cancellation',
+    description: 'A negative branch derivative can cancel the identity path: 1 + α·w·f′(z) = 0.',
+    depth: 8,
+    input: 1,
+    weight: -1,
+    bias: 0,
+    activationId: 'linear',
+    useResidual: true,
+    residualScale: 1,
+  }),
 });
 
 export const GRADIENT_THRESHOLDS = Object.freeze({
