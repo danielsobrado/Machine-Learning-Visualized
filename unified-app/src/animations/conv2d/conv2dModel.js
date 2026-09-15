@@ -12,9 +12,82 @@ function requirePositiveInteger(value, name) {
   if (!Number.isInteger(value) || value <= 0) throw new RangeError(`${name} must be a positive integer`);
 }
 
+function requireNonNegativeInteger(value, name) {
+  if (!Number.isInteger(value) || value < 0) throw new RangeError(`${name} must be a non-negative integer`);
+}
+
+export function effectiveKernelSize(kernelSize, dilation = 1) {
+  requirePositiveInteger(kernelSize, 'kernelSize');
+  requirePositiveInteger(dilation, 'dilation');
+  return dilation * (kernelSize - 1) + 1;
+}
+
+export function convOutputSize({ inputSize, kernelSize, stride = 1, padding = 0, dilation = 1 }) {
+  requirePositiveInteger(inputSize, 'inputSize');
+  requirePositiveInteger(kernelSize, 'kernelSize');
+  requirePositiveInteger(stride, 'stride');
+  requireNonNegativeInteger(padding, 'padding');
+  requirePositiveInteger(dilation, 'dilation');
+  const effectiveKernel = effectiveKernelSize(kernelSize, dilation);
+  const numerator = inputSize + (2 * padding) - effectiveKernel;
+  if (numerator < 0) throw new RangeError('effective kernel cannot exceed the padded input');
+  return Math.floor(numerator / stride) + 1;
+}
+
+export function conv2dParameterCount({
+  inputChannels,
+  outputChannels,
+  kernelHeight,
+  kernelWidth,
+  useBias = true,
+}) {
+  [inputChannels, outputChannels, kernelHeight, kernelWidth].forEach((value, index) => {
+    requirePositiveInteger(value, ['inputChannels', 'outputChannels', 'kernelHeight', 'kernelWidth'][index]);
+  });
+  if (typeof useBias !== 'boolean') throw new TypeError('useBias must be boolean');
+  const weights = outputChannels * inputChannels * kernelHeight * kernelWidth;
+  const biases = useBias ? outputChannels : 0;
+  return { weights, biases, total: weights + biases };
+}
+
+export function conv2dLayerSummary({
+  batchSize,
+  inputChannels,
+  inputHeight,
+  inputWidth,
+  outputChannels,
+  kernelSize,
+  stride = 1,
+  padding = 0,
+  dilation = 1,
+  useBias = true,
+}) {
+  [batchSize, inputChannels, inputHeight, inputWidth, outputChannels].forEach((value, index) => {
+    requirePositiveInteger(value, ['batchSize', 'inputChannels', 'inputHeight', 'inputWidth', 'outputChannels'][index]);
+  });
+  const effectiveKernel = effectiveKernelSize(kernelSize, dilation);
+  const outputHeight = convOutputSize({ inputSize: inputHeight, kernelSize, stride, padding, dilation });
+  const outputWidth = convOutputSize({ inputSize: inputWidth, kernelSize, stride, padding, dilation });
+  const parameters = conv2dParameterCount({
+    inputChannels,
+    outputChannels,
+    kernelHeight: kernelSize,
+    kernelWidth: kernelSize,
+    useBias,
+  });
+
+  return {
+    inputShape: [batchSize, inputChannels, inputHeight, inputWidth],
+    weightShape: [outputChannels, inputChannels, kernelSize, kernelSize],
+    outputShape: [batchSize, outputChannels, outputHeight, outputWidth],
+    effectiveKernel,
+    parameters,
+  };
+}
+
 export function padInput(input, padding) {
   requireMatrix(input, 'input');
-  if (!Number.isInteger(padding) || padding < 0) throw new RangeError('padding must be a non-negative integer');
+  requireNonNegativeInteger(padding, 'padding');
   if (padding === 0) return input.map((row) => [...row]);
   const width = input[0].length + padding * 2;
   const border = () => Array(width).fill(0);
