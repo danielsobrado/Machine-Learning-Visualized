@@ -44,7 +44,7 @@ export function attentionScoreElements({ batchSize = 1, sequenceLength, numHeads
 }
 
 export function attentionMaskRule(mode) {
-  if (mode === 'encoder') return 'Bidirectional: every token may read every non-padding token.';
-  if (mode === 'decoder') return 'Causal: token t may read positions ≤ t, never future tokens.';
+  if (mode === 'encoder') return 'Encoder-style full self-attention: every token may read every non-padding token.';
+  if (mode === 'decoder') return 'Decoder-only causal self-attention: token t may read positions ≤ t, never future tokens.';
   throw new RangeError(`Unknown transformer mode: ${mode}`);
 }
