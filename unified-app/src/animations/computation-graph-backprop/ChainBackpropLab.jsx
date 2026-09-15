@@ -1,7 +1,7 @@
 import React, { useMemo, useState } from 'react';
-import { ArrowRight, RotateCcw } from 'lucide-react';
+import { ArrowRight, RotateCcw, ShieldCheck } from 'lucide-react';
 import { BACKPROP_CONTROL_LIMITS, BACKPROP_DEFAULTS } from './backpropConstants.js';
-import { computeChainGraph } from './backpropModel.js';
+import { chainGradientCheck, computeChainGraph } from './backpropModel.js';
 
 function format(value) {
   if (Math.abs(value) >= 1000 || (Math.abs(value) > 0 && Math.abs(value) < 0.001)) return value.toExponential(2);
@@ -59,6 +59,7 @@ function Arrow({ label }) {
 export default function ChainBackpropLab() {
   const [params, setParams] = useState(BACKPROP_DEFAULTS);
   const result = useMemo(() => computeChainGraph(params), [params]);
+  const check = useMemo(() => chainGradientCheck(params), [params]);
   const setParam = (key) => (value) => setParams((current) => ({ ...current, [key]: value }));
 
   return (
@@ -96,22 +97,33 @@ export default function ChainBackpropLab() {
         </div>
       </div>
 
-      <div className="mt-4 grid gap-3 lg:grid-cols-3">
+      <div className="mt-4 grid gap-3 lg:grid-cols-2 xl:grid-cols-4">
         <div className="rounded-xl border border-slate-200 bg-slate-50 p-4 text-sm leading-6 text-slate-700">
           <div className="font-black text-slate-950">Local ReLU derivative</div>
           <div className="mt-1 font-mono">da/dz = {format(result.dAdZ)}</div>
           <p className="mt-1">When z is negative, that local zero blocks every upstream parameter gradient through this path.</p>
         </div>
         <div className="rounded-xl border border-slate-200 bg-slate-50 p-4 text-sm leading-6 text-slate-700">
-          <div className="font-black text-slate-950">Parameter gradients</div>
+          <div className="font-black text-slate-950">Backpropagation output</div>
           <div className="mt-1 font-mono">dL/dw = {format(result.dLossDw)}</div>
           <div className="font-mono">dL/db = {format(result.dLossDb)}</div>
+          <p className="mt-1">Backprop stops after computing gradients. It does not choose or apply the learning rate.</p>
+        </div>
+        <div className={`rounded-xl border p-4 text-sm leading-6 ${check.isSmoothNeighborhood ? 'border-emerald-200 bg-emerald-50 text-emerald-950' : 'border-amber-200 bg-amber-50 text-amber-950'}`}>
+          <div className="flex items-center gap-2 font-black"><ShieldCheck size={17} /> Parameter gradient check</div>
+          <div className="mt-2 font-mono text-xs">w: analytic {format(check.analyticW)} / finite diff {format(check.numericalW)}</div>
+          <div className="font-mono text-xs">b: analytic {format(check.analyticB)} / finite diff {format(check.numericalB)}</div>
+          {check.isSmoothNeighborhood ? (
+            <p className="mt-2">Finite differences independently verify the backward formulas using forward loss evaluations only.</p>
+          ) : (
+            <p className="mt-2">The perturbation crosses the ReLU kink at z = 0, where ReLU is not differentiable. A mismatch here is expected, not proof of a backward bug.</p>
+          )}
         </div>
         <div className={`rounded-xl border p-4 text-sm leading-6 ${result.nextLoss < result.loss ? 'border-emerald-200 bg-emerald-50 text-emerald-950' : 'border-rose-200 bg-rose-50 text-rose-950'}`}>
-          <div className="font-black">One gradient-descent step</div>
+          <div className="font-black">Optimizer step after backprop</div>
           <div className="mt-1 font-mono">w′={format(result.nextW)}, b′={format(result.nextB)}</div>
           <div className="font-mono">loss {format(result.loss)} → {format(result.nextLoss)}</div>
-          <p className="mt-1">A gradient is a local direction; an oversized learning rate can still increase the recomputed loss.</p>
+          <p className="mt-1">Gradient descent consumes the gradients and applies the learning rate. Changing that rate cannot repair an incorrect derivative.</p>
         </div>
       </div>
     </section>
