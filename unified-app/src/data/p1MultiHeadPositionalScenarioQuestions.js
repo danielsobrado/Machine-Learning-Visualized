@@ -93,6 +93,23 @@ export const P1_MULTI_HEAD_POSITIONAL_SCENARIOS_BY_LESSON = Object.freeze({
       misconceptionTested: 'Formula-defined positions guarantee long-context generalization, or learned absolute positions automatically define unseen position rows.',
     },
   ],
+  rope: [
+    {
+      id: 'rope-rotary-width-vs-model-width-worked',
+      level: 'calculation',
+      relatedComparison: 'model-width-vs-head-width-vs-rotary-width',
+      scenario: 'A transformer has d_model = 4,096, 32 equal-width attention heads, and applies RoPE to all query/key dimensions in each head. There is no partial-rotary configuration.',
+      prompt: 'Which width belongs in the RoPE frequency schedule for one head?',
+      choices: [
+        '128, because d_head = 4,096 / 32 and the rotary schedule is defined over the Q/K coordinates inside that head',
+        '4,096, because RoPE always uses the transformer hidden width even after Q/K are split into heads',
+        '32, because the number of heads becomes the rotary vector width',
+      ],
+      answerIndex: 0,
+      explanation: 'With an equal head split, d_head = 4,096 / 32 = 128. If all Q/K dimensions in a head are rotary, the rotary width is 128. Some architectures use a smaller configured rotary subset, but d_model itself is not the per-head rotary width.',
+      misconceptionTested: 'The full model hidden width d_model is automatically the dimension used by each head\'s RoPE frequency schedule.',
+    },
+  ],
 });
 
 export function getP1MultiHeadPositionalScenariosForLesson(lessonId) {
