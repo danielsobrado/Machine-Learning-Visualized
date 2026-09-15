@@ -13,7 +13,7 @@ export const LINEAR_REGRESSION_NEXT_DEFAULTS = Object.freeze({
   x: 8,
   xMean: 5,
   sxx: 100,
-  criticalValue: 1.96,
+  criticalValue: 2.069,
   probeX: 5,
   points: Object.freeze([
     Object.freeze({ x: 0, y: 1 }),
