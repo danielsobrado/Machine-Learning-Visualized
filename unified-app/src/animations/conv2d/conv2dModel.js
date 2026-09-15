@@ -34,6 +34,27 @@ export function convOutputSize({ inputSize, kernelSize, stride = 1, padding = 0,
   return Math.floor(numerator / stride) + 1;
 }
 
+export function stackedReceptiveField(layers) {
+  if (!Array.isArray(layers) || layers.length === 0) throw new TypeError('layers must be a non-empty array');
+  let receptiveField = 1;
+  let jump = 1;
+  const trace = layers.map((layer, index) => {
+    if (!layer || typeof layer !== 'object') throw new TypeError(`layer ${index + 1} must be an object`);
+    const { kernelSize, stride = 1, dilation = 1 } = layer;
+    const effectiveKernel = effectiveKernelSize(kernelSize, dilation);
+    requirePositiveInteger(stride, `layer ${index + 1} stride`);
+    receptiveField += (effectiveKernel - 1) * jump;
+    jump *= stride;
+    return {
+      layer: index + 1,
+      effectiveKernel,
+      receptiveField,
+      jump,
+    };
+  });
+  return { receptiveField, jump, trace };
+}
+
 export function conv2dParameterCount({
   inputChannels,
   outputChannels,
