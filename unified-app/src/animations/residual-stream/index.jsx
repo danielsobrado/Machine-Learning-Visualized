@@ -1,28 +1,25 @@
 import React, { useMemo, useState } from 'react';
 import { Activity, GitMerge, Layers, Route, SlidersHorizontal } from 'lucide-react';
 import AssessmentPanel from '../../components/animation-shell/AssessmentPanel';
+import {
+  DEFAULT_WRITE_STRENGTHS,
+  FEATURE_LABELS,
+  INITIAL_STREAM,
+  RESIDUAL_WRITES,
+} from './residualStreamConstants.js';
+import {
+  buildResidualLedger,
+  normalizationPlacement,
+} from './residualStreamModel.js';
 
-const COMPONENTS = [
-  { id: 'embedding', label: 'Token embedding', base: [0.9, 0.2, 0.1, 0.4], color: '#0f766e' },
-  { id: 'attn1', label: 'Attention write 1', base: [0.2, 0.7, -0.1, 0.1], color: '#2563eb' },
-  { id: 'mlp1', label: 'MLP write 1', base: [-0.1, 0.2, 0.8, 0.2], color: '#7c3aed' },
-  { id: 'attn2', label: 'Attention write 2', base: [0.1, -0.3, 0.1, 0.7], color: '#db2777' },
-  { id: 'mlp2', label: 'MLP write 2', base: [0.3, 0.1, 0.4, -0.2], color: '#ea580c' },
+const COMPONENTS = [INITIAL_STREAM, ...RESIDUAL_WRITES];
+const NORMALIZATION_MODES = [
+  { id: 'pre', label: 'Pre-norm' },
+  { id: 'post', label: 'Post-norm' },
 ];
 
-const FEATURE_LABELS = ['subject', 'relation', 'syntax', 'prediction'];
-
-const clamp = (value, min, max) => Math.min(max, Math.max(min, value));
-const add = (left, right) => left.map((value, index) => value + right[index]);
-const scale = (vector, amount) => vector.map((value) => value * amount);
-const norm = (vector) => Math.sqrt(vector.reduce((sum, value) => sum + value * value, 0));
-const normalize = (vector) => {
-  const magnitude = norm(vector);
-  return magnitude === 0 ? vector : vector.map((value) => value / magnitude);
-};
-
 function Bar({ value, color }) {
-  const width = `${Math.abs(value) * 100}%`;
+  const width = `${Math.min(50, Math.abs(value) * 25)}%`;
   return (
     <div className="flex items-center gap-2">
       <div className="w-20 text-xs font-semibold text-slate-500">{value.toFixed(2)}</div>
@@ -50,39 +47,46 @@ function Metric({ icon: Icon, label, value, helper }) {
   );
 }
 
+function VectorCard({ title, vector, color = '#1d4ed8' }) {
+  return (
+    <div className="rounded-lg border border-slate-200 bg-white p-4 shadow-sm">
+      <h3 className="font-bold text-slate-950">{title}</h3>
+      <div className="mt-3 space-y-2">
+        {vector.map((value, index) => (
+          <div key={FEATURE_LABELS[index]}>
+            <div className="mb-1 text-xs font-semibold text-slate-500">{FEATURE_LABELS[index]}</div>
+            <Bar value={value} color={color} />
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function ModeButton({ active, children, onClick }) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className={`rounded-lg border px-3 py-2 text-sm font-semibold transition ${
+        active
+          ? 'border-blue-800 bg-blue-700 text-white'
+          : 'border-slate-200 bg-white text-slate-700 hover:border-blue-300'
+      }`}
+    >
+      {children}
+    </button>
+  );
+}
+
 export default function ResidualStreamAnimation() {
-  const [weights, setWeights] = useState({
-    embedding: 1,
-    attn1: 0.7,
-    mlp1: 0.55,
-    attn2: 0.4,
-    mlp2: 0.35,
-  });
-  const [normalizeAfterWrite, setNormalizeAfterWrite] = useState(false);
-  const [selectedStep, setSelectedStep] = useState(3);
+  const [strengths, setStrengths] = useState({ ...DEFAULT_WRITE_STRENGTHS });
+  const [selectedStep, setSelectedStep] = useState(2);
+  const [normalizationMode, setNormalizationMode] = useState('pre');
 
-  const steps = useMemo(() => {
-    let stream = [0, 0, 0, 0];
-    return COMPONENTS.map((component) => {
-      const write = scale(component.base, weights[component.id]);
-      const before = stream;
-      const summed = add(stream, write);
-      stream = normalizeAfterWrite ? normalize(summed) : summed;
-      return {
-        ...component,
-        write,
-        before,
-        after: stream,
-        magnitude: norm(write),
-      };
-    });
-  }, [normalizeAfterWrite, weights]);
-
-  const selected = steps[selectedStep];
-  const finalStream = steps[steps.length - 1].after;
-  const totalWrite = steps.reduce((sumValue, step) => sumValue + step.magnitude, 0);
-  const finalMagnitude = norm(finalStream);
-  const dominantFeature = FEATURE_LABELS[finalStream.reduce((best, value, index, list) => (Math.abs(value) > Math.abs(list[best]) ? index : best), 0)];
+  const ledger = useMemo(() => buildResidualLedger(strengths), [strengths]);
+  const normalization = useMemo(() => normalizationPlacement(normalizationMode), [normalizationMode]);
+  const selected = ledger.writes[selectedStep];
 
   return (
     <div className="min-h-full bg-slate-50">
@@ -96,19 +100,15 @@ export default function ResidualStreamAnimation() {
               </div>
               <h1 className="mt-2 text-2xl font-bold text-slate-950 md:text-3xl">Residual stream</h1>
               <p className="mt-2 max-w-3xl text-slate-700">
-                A transformer layer usually adds new attention and MLP writes into a running vector. The residual stream
-                is the shared workspace where token identity, context, syntax, and prediction features accumulate.
+                Attention and MLP sublayers write updates into the current token representation through residual addition.
+                Normalization changes where a sublayer reads from or where its sum is normalized; it is not unit-length
+                normalization of the residual stream after every write.
               </p>
             </div>
-            <label className="flex items-center gap-3 rounded-lg border border-slate-200 bg-slate-50 px-4 py-3 text-sm font-semibold text-slate-700">
-              <input
-                type="checkbox"
-                checked={normalizeAfterWrite}
-                onChange={(event) => setNormalizeAfterWrite(event.target.checked)}
-                className="h-4 w-4 accent-blue-700"
-              />
-              Normalize after each write
-            </label>
+            <div className="rounded-lg border border-blue-200 bg-blue-50 px-4 py-3 text-sm text-blue-950">
+              <div className="font-bold">Residual rule</div>
+              <div>x next = x + sublayer write</div>
+            </div>
           </div>
         </header>
 
@@ -116,29 +116,23 @@ export default function ResidualStreamAnimation() {
           <aside className="rounded-lg border border-slate-200 bg-white p-4 shadow-sm">
             <div className="flex items-center gap-2 font-semibold text-slate-950">
               <SlidersHorizontal size={18} />
-              Write strengths
+              Contribution strengths
             </div>
             <div className="mt-5 space-y-4">
-              {COMPONENTS.map((component, index) => (
+              {COMPONENTS.map((component) => (
                 <label key={component.id} className="block">
-                  <div className="mb-2 flex items-center justify-between text-sm font-semibold text-slate-700">
-                    <button
-                      type="button"
-                      onClick={() => setSelectedStep(index)}
-                      className={`text-left ${selectedStep === index ? 'text-blue-700' : ''}`}
-                    >
-                      {component.label}
-                    </button>
-                    <span>{weights[component.id].toFixed(2)}</span>
+                  <div className="mb-2 flex items-center justify-between gap-3 text-sm font-semibold text-slate-700">
+                    <span>{component.label}</span>
+                    <span>{strengths[component.id].toFixed(2)}</span>
                   </div>
                   <input
                     type="range"
                     min="0"
                     max="1.5"
                     step="0.05"
-                    value={weights[component.id]}
+                    value={strengths[component.id]}
                     onChange={(event) =>
-                      setWeights((current) => ({
+                      setStrengths((current) => ({
                         ...current,
                         [component.id]: Number(event.target.value),
                       }))
@@ -152,19 +146,30 @@ export default function ResidualStreamAnimation() {
 
           <main className="space-y-4">
             <div className="grid gap-4 md:grid-cols-4">
-              <Metric icon={Activity} label="Final magnitude" value={finalMagnitude.toFixed(2)} helper="How large the accumulated stream is." />
-              <Metric icon={Route} label="Total write load" value={totalWrite.toFixed(2)} helper="Sum of component write magnitudes." />
-              <Metric icon={Layers} label="Dominant feature" value={dominantFeature} helper="Largest final feature dimension." />
-              <Metric icon={GitMerge} label="Update rule" value="add" helper="Layer output is added, not substituted." />
+              <Metric icon={Activity} label="Final magnitude" value={ledger.finalMagnitude.toFixed(2)} helper="Magnitude of the accumulated residual vector." />
+              <Metric icon={Route} label="Write load" value={ledger.totalWriteMagnitude.toFixed(2)} helper="Sum of attention and MLP write magnitudes." />
+              <Metric icon={Layers} label="Dominant feature" value={ledger.dominantFeature} helper="Largest final toy feature dimension." />
+              <Metric icon={GitMerge} label="Update rule" value="add" helper="Writes are added to the running representation." />
             </div>
 
             <section className="rounded-lg border border-slate-200 bg-white p-4 shadow-sm">
-              <h2 className="text-lg font-bold text-slate-950">Layer contribution ledger</h2>
+              <h2 className="text-lg font-bold text-slate-950">Residual contribution ledger</h2>
               <p className="text-sm text-slate-600">
-                Each component writes a vector into the same running stream. Click a row to inspect the before/write/after state.
+                The embedding initializes the stream. Every later row is a sublayer write added to the state above it.
               </p>
-              <div className="mt-4 space-y-2">
-                {steps.map((step, index) => (
+              <div className="mt-4 rounded-lg border border-teal-200 bg-teal-50 p-3">
+                <div className="font-bold text-teal-950">{ledger.initial.label}</div>
+                <div className="mt-2 grid gap-2 md:grid-cols-4">
+                  {FEATURE_LABELS.map((feature, index) => (
+                    <div key={feature} className="rounded-md bg-white p-2">
+                      <div className="mb-1 text-xs font-semibold text-slate-500">{feature}</div>
+                      <Bar value={ledger.initial.value[index]} color={ledger.initial.color} />
+                    </div>
+                  ))}
+                </div>
+              </div>
+              <div className="mt-3 space-y-2">
+                {ledger.writes.map((step, index) => (
                   <button
                     key={step.id}
                     type="button"
@@ -191,29 +196,43 @@ export default function ResidualStreamAnimation() {
             </section>
 
             <section className="grid gap-4 md:grid-cols-3">
-              <div className="rounded-lg border border-slate-200 bg-white p-4 shadow-sm">
-                <h3 className="font-bold text-slate-950">Before</h3>
-                <div className="mt-3 space-y-2">
-                  {selected.before.map((value, index) => (
-                    <Bar key={FEATURE_LABELS[index]} value={value} color="#64748b" />
+              <VectorCard title="Before" vector={selected.before} color="#64748b" />
+              <VectorCard title={`Write: ${selected.label}`} vector={selected.write} color={selected.color} />
+              <VectorCard title="After = before + write" vector={selected.after} />
+            </section>
+
+            <section className="rounded-lg border border-slate-200 bg-white p-4 shadow-sm">
+              <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
+                <div>
+                  <h2 className="text-lg font-bold text-slate-950">Where normalization actually sits</h2>
+                  <p className="mt-1 max-w-3xl text-sm text-slate-600">
+                    This isolated toy sublayer compares normalization placement. LayerNorm standardizes features for one
+                    token; it does not normalize the residual vector to Euclidean length 1.
+                  </p>
+                </div>
+                <div className="flex gap-2">
+                  {NORMALIZATION_MODES.map((mode) => (
+                    <ModeButton key={mode.id} active={normalizationMode === mode.id} onClick={() => setNormalizationMode(mode.id)}>
+                      {mode.label}
+                    </ModeButton>
                   ))}
                 </div>
               </div>
-              <div className="rounded-lg border border-slate-200 bg-white p-4 shadow-sm">
-                <h3 className="font-bold text-slate-950">Write: {selected.label}</h3>
-                <div className="mt-3 space-y-2">
-                  {selected.write.map((value, index) => (
-                    <Bar key={FEATURE_LABELS[index]} value={value} color={selected.color} />
-                  ))}
+
+              <div className="mt-4 rounded-lg border border-slate-200 bg-slate-50 p-4">
+                <div className="font-mono text-base font-bold text-slate-950">{normalization.equation}</div>
+                <div className="mt-2 text-sm text-slate-700">
+                  {normalizationMode === 'pre'
+                    ? 'The sublayer reads LN(x), but the skip path carries x directly to the addition.'
+                    : 'The sublayer reads x, the residual sum is formed, and LayerNorm is applied afterward.'}
                 </div>
               </div>
-              <div className="rounded-lg border border-slate-200 bg-white p-4 shadow-sm">
-                <h3 className="font-bold text-slate-950">After</h3>
-                <div className="mt-3 space-y-2">
-                  {selected.after.map((value, index) => (
-                    <Bar key={FEATURE_LABELS[index]} value={value} color="#1d4ed8" />
-                  ))}
-                </div>
+
+              <div className="mt-4 grid gap-4 md:grid-cols-4">
+                <VectorCard title="Residual input x" vector={normalization.input} color="#64748b" />
+                <VectorCard title={normalizationMode === 'pre' ? 'Sublayer input LN(x)' : 'Sublayer input x'} vector={normalization.sublayerInput} color="#7c3aed" />
+                <VectorCard title="Sublayer write F(·)" vector={normalization.write} color="#db2777" />
+                <VectorCard title="Block output y" vector={normalization.output} color="#1d4ed8" />
               </div>
             </section>
 
@@ -221,22 +240,22 @@ export default function ResidualStreamAnimation() {
               <div className="rounded-lg border border-slate-200 bg-white p-4 shadow-sm">
                 <h3 className="font-bold text-slate-950">Predict before running</h3>
                 <p className="mt-2 text-sm text-slate-700">
-                  Increase an early write and watch later components add on top of it. Residual flow preserves a path for
-                  previous information instead of forcing every layer to rewrite everything.
+                  Increase an early write. Later updates still add on top of the changed state because the residual stream
+                  carries previous information forward.
                 </p>
               </div>
               <div className="rounded-lg border border-slate-200 bg-white p-4 shadow-sm">
                 <h3 className="font-bold text-slate-950">Failure mode</h3>
                 <p className="mt-2 text-sm text-slate-700">
-                  Very large writes can dominate the stream. Normalization and learned projections help keep features
-                  usable across many layers.
+                  Large or badly scaled writes can destabilize a deep stack. Normalization placement, initialization, and
+                  residual scaling affect optimization without changing the basic additive skip connection.
                 </p>
               </div>
               <div className="rounded-lg border border-slate-200 bg-white p-4 shadow-sm">
                 <h3 className="font-bold text-slate-950">Mistake to avoid</h3>
                 <p className="mt-2 text-sm text-slate-700">
-                  The residual stream is not a separate memory bank. It is the current token representation being updated
-                  by attention and MLP blocks.
+                  The residual stream is not a separate memory bank, and LayerNorm is not an L2 projection to the unit
+                  sphere. Those are different operations with different geometry.
                 </p>
               </div>
             </section>
