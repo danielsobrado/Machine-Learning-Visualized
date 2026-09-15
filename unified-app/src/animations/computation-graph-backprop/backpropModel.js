@@ -1,4 +1,7 @@
-import { NUMERICAL_GRADIENT_EPSILON } from './backpropConstants.js';
+import {
+  GRADIENT_CHECK_TOLERANCE,
+  NUMERICAL_GRADIENT_EPSILON,
+} from './backpropConstants.js';
 
 function requireFinite(value, name) {
   if (!Number.isFinite(value)) throw new RangeError(`${name} must be finite`);
@@ -7,6 +10,12 @@ function requireFinite(value, name) {
 export function relu(value) {
   requireFinite(value, 'value');
   return Math.max(0, value);
+}
+
+function chainLoss({ x, w, b, target }) {
+  const activation = relu((w * x) + b);
+  const error = activation - target;
+  return 0.5 * error * error;
 }
 
 export function computeChainGraph({ x, w, b, target, learningRate }) {
@@ -99,6 +108,35 @@ export function numericalDerivative(fn, value, epsilon = NUMERICAL_GRADIENT_EPSI
   return (fn(value + epsilon) - fn(value - epsilon)) / (2 * epsilon);
 }
 
+export function chainGradientCheck(config) {
+  const analytic = computeChainGraph(config);
+  const numericalW = numericalDerivative(
+    (w) => chainLoss({ ...config, w }),
+    config.w,
+  );
+  const numericalB = numericalDerivative(
+    (b) => chainLoss({ ...config, b }),
+    config.b,
+  );
+  const weightAbsoluteError = Math.abs(analytic.dLossDw - numericalW);
+  const biasAbsoluteError = Math.abs(analytic.dLossDb - numericalB);
+  const kinkRadius = NUMERICAL_GRADIENT_EPSILON * Math.max(1, Math.abs(config.x));
+  const isSmoothNeighborhood = Math.abs(analytic.z) > kinkRadius;
+
+  return {
+    analyticW: analytic.dLossDw,
+    numericalW,
+    weightAbsoluteError,
+    analyticB: analytic.dLossDb,
+    numericalB,
+    biasAbsoluteError,
+    isSmoothNeighborhood,
+    passes: isSmoothNeighborhood
+      && weightAbsoluteError < GRADIENT_CHECK_TOLERANCE
+      && biasAbsoluteError < GRADIENT_CHECK_TOLERANCE,
+  };
+}
+
 export function branchGradientCheck(config) {
   const analytic = computeBranchGraph(config);
   const numerical = numericalDerivative(
@@ -114,6 +152,6 @@ export function branchGradientCheck(config) {
     absoluteError,
     onePathOnly: analytic.onePathOnlyGradient,
     onePathAbsoluteError,
-    passes: absoluteError < 1e-6,
+    passes: absoluteError < GRADIENT_CHECK_TOLERANCE,
   };
 }
