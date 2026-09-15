@@ -2,6 +2,7 @@ import React, { useMemo, useState } from 'react';
 import { Calculator, Grid3X3, MoveRight, ScanLine, SlidersHorizontal } from 'lucide-react';
 import AssessmentPanel from '../../components/animation-shell/AssessmentPanel';
 import ConvConventionLab from './ConvConventionLab.jsx';
+import ConvLayerGeometryLab from './ConvLayerGeometryLab.jsx';
 import { crossCorrelate2d, extractPatch, padInput } from './conv2dModel.js';
 
 const INPUT = [
@@ -132,6 +133,7 @@ export default function Conv2dAnimation() {
           </main>
         </section>
 
+        <ConvLayerGeometryLab />
         <ConvConventionLab />
         <AssessmentPanel lessonId="conv2d" />
       </div>
