@@ -27,7 +27,7 @@ function trajectoryPoints(trajectory) {
   const centerX = 55;
   const centerY = 110;
   return trajectory
-    .map(({ x, y }) => `${centerX + ((x + 1) * xScale)},${centerY - (y * yScale)}`)
+    .map(({ x, y }) => `${centerX + (x * xScale)},${centerY - (y * yScale)}`)
     .join(' ');
 }
 
