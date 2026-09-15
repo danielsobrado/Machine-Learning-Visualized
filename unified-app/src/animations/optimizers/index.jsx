@@ -7,6 +7,7 @@ import OptimizerFairnessLab from './OptimizerFairnessLab.jsx';
 import OptimizerLandscape3D from './OptimizerLandscape3D.jsx';
 import OptimizerPathPanel from './OptimizerPathPanel.jsx';
 import OptimizerPredictionCheck from './OptimizerPredictionCheck.jsx';
+import WeightDecayLab from './WeightDecayLab.jsx';
 import { OPTIMIZER_DEFAULTS, OPTIMIZERS } from './optimizerConstants.js';
 import { simulate } from './optimizerModel.js';
 
@@ -88,6 +89,7 @@ export default function OptimizersAnimation() {
       />
 
       <AdamMechanicsLab />
+      <WeightDecayLab />
 
       <section className="grid gap-4 lg:grid-cols-3">
         <div className="rounded-2xl border border-blue-200 bg-blue-50 p-5">
