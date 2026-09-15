@@ -15,6 +15,21 @@ export const P1_NEURAL_APPLIED_ARCHITECTURE_SCENARIOS_BY_LESSON = Object.freeze(
       explanation: "The failure begins exactly when the learning rate jumps, so the optimizer change is strong causal evidence to test first. Large updates can push many units into a persistently negative region. A Leaky ReLU can reduce dead-unit risk, but changing the activation before testing the triggering optimization change would confound the diagnosis.",
       misconceptionTested: "Whenever dead ReLUs appear, replacing the activation is automatically the best first fix regardless of what changed in training.",
     },
+    {
+      id: "activation-saturation-layer-role-decision",
+      level: "diagnosis",
+      relatedComparison: "hidden-activation-saturation-vs-output-probability-link",
+      scenario: "A deep binary classifier uses sigmoid in every hidden layer and at the final output. Hidden pre-activations cluster near +8 and -8, where sigmoid derivatives are close to zero, and early-layer gradients nearly vanish. The final sigmoid is still needed to represent a binary probability.",
+      prompt: "What change best addresses the hidden-layer failure without confusing hidden activation choice with the output link?",
+      choices: [
+        "Investigate hidden pre-activation scale and compare a non-saturating hidden activation such as ReLU or GELU, while keeping the final sigmoid if a binary probability is required",
+        "Only lower the learning rate because learning rate directly increases sigmoid's local derivative when hidden units saturate",
+        "Replace the final sigmoid with ReLU too, because saturation in hidden sigmoid layers proves sigmoid is invalid for binary probability outputs",
+      ],
+      answerIndex: 0,
+      explanation: "The near-zero hidden derivatives are created locally by saturated sigmoid units, so initialization, normalization, and hidden activation choice are the relevant levers. Learning rate scales the later optimizer update and does not restore the local sigmoid derivative. The final sigmoid serves a different role: mapping a binary logit to a probability.",
+      misconceptionTested: "If sigmoid causes hidden-layer saturation, sigmoid must also be removed from a binary probability output or can be fixed locally by learning-rate tuning.",
+    },
   ],
   "leaky-relu": [
     {
