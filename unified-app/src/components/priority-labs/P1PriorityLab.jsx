@@ -7,6 +7,7 @@ import CausalAdvancedPriorityLab from './CausalAdvancedPriorityLab.jsx';
 import RecommenderPriorityLab from './RecommenderPriorityLab.jsx';
 import ReliabilityPriorityLab from './ReliabilityPriorityLab.jsx';
 import SystemsPriorityLab from './SystemsPriorityLab.jsx';
+import P1SystemsNextLab from '../quality-labs/P1SystemsNextLab.jsx';
 import ProductionReliabilityNextLab from '../quality-labs/ProductionReliabilityNextLab.jsx';
 
 const FOUNDATION_IDS = new Set([
@@ -70,11 +71,27 @@ export default function P1PriorityLab({ lessonId }) {
     );
   }
 
+  if (RECOMMENDER_IDS.has(lessonId)) {
+    return (
+      <div className="nb-lesson mt-8" data-p1-priority-lab={lessonId}>
+        <RecommenderPriorityLab lessonId={lessonId} />
+        <P1SystemsNextLab lessonId={lessonId} />
+      </div>
+    );
+  }
+
+  if (SYSTEM_IDS.has(lessonId)) {
+    return (
+      <div className="nb-lesson mt-8" data-p1-priority-lab={lessonId}>
+        <SystemsPriorityLab lessonId={lessonId} />
+        <P1SystemsNextLab lessonId={lessonId} />
+      </div>
+    );
+  }
+
   let Lab;
   if (FOUNDATION_IDS.has(lessonId)) Lab = FoundationPriorityLab;
   else if (OPTIMIZATION_IDS.has(lessonId)) Lab = OptimizationPriorityLab;
-  else if (RECOMMENDER_IDS.has(lessonId)) Lab = RecommenderPriorityLab;
-  else if (SYSTEM_IDS.has(lessonId)) Lab = SystemsPriorityLab;
   else return null;
 
   return (
