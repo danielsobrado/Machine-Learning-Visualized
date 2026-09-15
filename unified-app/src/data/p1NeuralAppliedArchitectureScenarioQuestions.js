@@ -100,6 +100,21 @@ export const P1_NEURAL_APPLIED_ARCHITECTURE_SCENARIOS_BY_LESSON = Object.freeze(
       explanation: "The square branch contributes da/dx = 2x = 4 at x = 2, while the linear branch contributes db/dx = 3. Because y adds the branch outputs, the derivative with respect to their shared ancestor x is the sum of both contributions, 4 + 3 = 7. Following only one branch underestimates the gradient.",
       misconceptionTested: "When a computation graph branches and later recombines by addition, backpropagation only needs one downstream path.",
     },
+    {
+      id: "backprop-gradient-vs-optimizer-decision",
+      level: "diagnosis",
+      relatedComparison: "backward-derivative-vs-optimizer-step-size",
+      scenario: "A gradient check perturbs one weight in the forward pass and estimates dL/dw = 0.42, but backpropagation reports dL/dw = -0.18 at the same parameters and input. The mismatch is measured before any optimizer step, and the point is away from activation kinks or other nondifferentiable boundaries.",
+      prompt: "What should be investigated first, and why will changing the learning rate not repair this mismatch?",
+      choices: [
+        "Inspect the backward derivative chain because the analytical gradient disagrees with an independent finite-difference estimate; the learning rate is applied only after backprop has produced the gradient",
+        "Tune the learning rate until the two derivative values match because step size is part of the chain-rule derivative itself",
+        "Ignore the mismatch if training loss sometimes falls because finite differences cannot be used to check parameter gradients",
+      ],
+      answerIndex: 0,
+      explanation: "A centered finite-difference estimate uses only forward loss evaluations, so disagreement at a smooth point is evidence that the analytical backward computation is wrong. The optimizer learning rate scales the later parameter update; it does not change the derivative that backpropagation should compute at the current parameters.",
+      misconceptionTested: "A wrong backpropagated gradient can be repaired by tuning the optimizer learning rate instead of fixing the backward computation.",
+    },
   ],
 });
 
