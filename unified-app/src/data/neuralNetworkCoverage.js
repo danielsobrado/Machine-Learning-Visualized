@@ -41,7 +41,12 @@ export const NEURAL_NETWORK_COVERAGE = Object.freeze({
     "init-symmetry-breaking-diagnosis",
     "init-rectangular-fan-direction-diagnosis",
   ]),
-  "optimizers": requirement(["optimizer-resume-state-diagnosis"]),
+  "optimizers": requirement([
+    "optimizer-resume-state-diagnosis",
+    "optimizer-sgd-momentum-adam-choice",
+    "optimizer-learning-rate-overshoot-worked",
+    "optimizer-schedule-phase-choice",
+  ]),
   "training-loop-dynamics": requirement(["training-loop-scheduler-accumulation-diagnosis"]),
   "dropout-batchnorm": requirement([
     "dropout-batchnorm-eval-mode-diagnosis",
@@ -74,6 +79,9 @@ export const NEURAL_NETWORK_DEPTH_REQUIREMENTS = Object.freeze([
   depthRequirement("initialization-symmetry-breaking-diagnosis", "initialization", ["init-symmetry-breaking-diagnosis"]),
   depthRequirement("initialization-forward-backward-geometry-diagnosis", "initialization", ["init-rectangular-fan-direction-diagnosis"]),
   depthRequirement("stateful-optimizer-resume-diagnosis", "optimizers", ["optimizer-resume-state-diagnosis"]),
+  depthRequirement("optimizer-mechanism-comparison", "optimizers", ["optimizer-sgd-momentum-adam-choice"]),
+  depthRequirement("optimizer-learning-rate-overshoot-calculation", "optimizers", ["optimizer-learning-rate-overshoot-worked"]),
+  depthRequirement("optimizer-schedule-phase-decision", "optimizers", ["optimizer-schedule-phase-choice"]),
   depthRequirement("accumulation-scheduler-step-diagnosis", "training-loop-dynamics", ["training-loop-scheduler-accumulation-diagnosis"]),
   depthRequirement("train-eval-mode-diagnosis", "dropout-batchnorm", ["dropout-batchnorm-eval-mode-diagnosis"]),
   depthRequirement("module-mode-vs-autograd-diagnosis", "dropout-batchnorm", ["dropout-module-mode-vs-autograd-diagnosis"]),
