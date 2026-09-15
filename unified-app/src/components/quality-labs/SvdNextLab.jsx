@@ -13,8 +13,12 @@ export default function SvdNextLab() {
   const lab = useMemo(() => buildSvdApproximation({
     ...SVD_NEXT_DEFAULTS,
     sigma1,
-    sigma2: Math.min(sigma2, sigma1),
+    sigma2,
   }), [sigma1, sigma2]);
+  const updateSigma1 = (value) => {
+    setSigma1(value);
+    setSigma2((current) => Math.min(current, value));
+  };
 
   return (
     <>
@@ -24,8 +28,8 @@ export default function SvdNextLab() {
         note="Keep the singular vectors fixed and change only the singular values. The best rank-1 approximation keeps σ₁ and discards σ₂."
       >
         <ControlBench label="Singular spectrum">
-          <Slider label="σ₁" value={sigma1} min={2} max={10} step={0.5} onChange={setSigma1} format={(value) => value.toFixed(1)} />
-          <Slider label="σ₂" value={Math.min(sigma2, sigma1)} min={0} max={sigma1} step={0.5} onChange={setSigma2} format={(value) => value.toFixed(1)} />
+          <Slider label="σ₁" value={sigma1} min={2} max={10} step={0.5} onChange={updateSigma1} format={(value) => value.toFixed(1)} />
+          <Slider label="σ₂" value={sigma2} min={0} max={sigma1} step={0.5} onChange={setSigma2} format={(value) => value.toFixed(1)} />
         </ControlBench>
         <Readouts columns={4} items={[
           { label: 'σ₁', value: lab.singularValues[0].toFixed(2), detail: 'kept direction' },
