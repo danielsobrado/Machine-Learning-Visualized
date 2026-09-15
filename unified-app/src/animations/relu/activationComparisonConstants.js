@@ -15,9 +15,20 @@ export const ACTIVATION_KINDS = Object.freeze([
 ]);
 
 export const DERIVATIVE_CHART = Object.freeze({
+  width: 720,
+  height: 280,
+  padding: 36,
   xMin: -6,
   xMax: 6,
   yMin: -0.15,
   yMax: 1.15,
   samples: 121,
+});
+
+export const ACTIVATION_CHART_STROKES = Object.freeze({
+  relu: '#0f766e',
+  'leaky-relu': '#7c3aed',
+  sigmoid: '#2563eb',
+  tanh: '#d97706',
+  gelu: '#be123c',
 });
