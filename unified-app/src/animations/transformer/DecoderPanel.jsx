@@ -1,371 +1,190 @@
-import React, { useState, useEffect } from 'react';
-import { Play, Pause, RotateCcw, ArrowDown, ArrowRight, Eye, Plus, Lock, Unlock, ChevronRight, AlertTriangle } from 'lucide-react';
+import React, { useState } from 'react';
+import { ArrowRight, GitBranch, Lock, Network } from 'lucide-react';
+import {
+  CAUSAL_MASK,
+  DECODER_EXECUTION,
+  DECODER_SUBLAYERS,
+} from './transformerDecoderConstants.js';
+
+function ModeButton({ active, children, onClick }) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className={`rounded-xl border px-4 py-2 text-sm font-black transition ${
+        active
+          ? 'border-violet-700 bg-violet-700 text-white'
+          : 'border-slate-200 bg-white text-slate-700 hover:border-violet-300'
+      }`}
+    >
+      {children}
+    </button>
+  );
+}
+
+function TokenRow({ label, tokens, tone }) {
+  const styles = tone === 'input'
+    ? 'border-blue-200 bg-blue-50 text-blue-950'
+    : 'border-emerald-200 bg-emerald-50 text-emerald-950';
+
+  return (
+    <div>
+      <div className="text-xs font-black uppercase tracking-wide text-slate-500">{label}</div>
+      <div className="mt-2 flex flex-wrap gap-2">
+        {tokens.map((token, index) => (
+          <span key={`${token}-${index}`} className={`rounded-lg border px-3 py-2 font-mono text-sm font-bold ${styles}`}>
+            {token}
+          </span>
+        ))}
+      </div>
+    </div>
+  );
+}
 
 export default function DecoderPanel() {
-    const [currentStep, setCurrentStep] = useState(0);
-    const [isPlaying, setIsPlaying] = useState(false);
-    const [showMasking, setShowMasking] = useState(true);
+  const [mode, setMode] = useState('training');
+  const execution = DECODER_EXECUTION[mode];
 
-    const steps = [
-        {
-            title: 'Output + Positional Encoding',
-            description: 'Previously generated tokens are embedded and get positional encoding (shifted right by 1).',
-            highlight: 'output_input',
-            formula: 'X = Embedding(outputs_shifted) + PE(positions)'
-        },
-        {
-            title: 'Masked Self-Attention',
-            description: 'Each position can only attend to earlier positions. Future tokens are masked to prevent cheating!',
-            highlight: 'masked_attention',
-            formula: 'MaskedAttn = softmax(QK^T/√d_k + Mask)V'
-        },
-        {
-            title: 'Add & Norm (First)',
-            description: 'Residual connection and layer normalization after masked attention.',
-            highlight: 'residual1',
-            formula: 'X = LayerNorm(X + MaskedAttn(X))'
-        },
-        {
-            title: 'Cross-Attention (Encoder-Decoder)',
-            description: 'Queries from decoder, Keys & Values from encoder. This is how decoder "reads" the input!',
-            highlight: 'cross_attention',
-            formula: 'CrossAttn(Q_dec, K_enc, V_enc)'
-        },
-        {
-            title: 'Add & Norm (Second)',
-            description: 'Residual connection and layer normalization after cross-attention.',
-            highlight: 'residual2',
-            formula: 'X = LayerNorm(X + CrossAttn(X))'
-        },
-        {
-            title: 'Feed-Forward Network',
-            description: 'Same FFN structure as encoder - position-wise, two linear layers with ReLU.',
-            highlight: 'ffn',
-            formula: 'FFN(x) = ReLU(xW₁ + b₁)W₂ + b₂'
-        },
-        {
-            title: 'Linear + Softmax Output',
-            description: 'Final projection to vocabulary size, softmax gives probability of next token.',
-            highlight: 'output',
-            formula: 'P(next_token) = softmax(Linear(output))'
-        }
-    ];
-
-    useEffect(() => {
-        let interval;
-        if (isPlaying && currentStep < steps.length - 1) {
-            interval = setInterval(() => {
-                setCurrentStep(prev => prev + 1);
-            }, 3000);
-        } else if (currentStep >= steps.length - 1) {
-            setIsPlaying(false);
-        }
-        return () => clearInterval(interval);
-    }, [isPlaying, currentStep]);
-
-    const handleReset = () => {
-        setCurrentStep(0);
-        setIsPlaying(false);
-    };
-
-    const getHighlightClass = (component) => {
-        const highlight = steps[currentStep]?.highlight;
-        if (highlight === component) {
-            return 'ring-2 ring-yellow-400 scale-105 shadow-lg shadow-yellow-400/20';
-        }
-        return '';
-    };
-
-    // Attention mask visualization
-    const maskMatrix = [
-        [1, 0, 0, 0, 0],
-        [1, 1, 0, 0, 0],
-        [1, 1, 1, 0, 0],
-        [1, 1, 1, 1, 0],
-        [1, 1, 1, 1, 1],
-    ];
-
-    return (
-        <div className="p-6 min-h-screen">
-            <div className="max-w-6xl mx-auto">
-                {/* Header */}
-                <div className="text-center mb-6">
-                    <h2 className="text-3xl font-bold text-white mb-2">
-                        The Decoder: <span className="gradient-text">Generating Output</span>
-                    </h2>
-                    <p className="text-slate-800">
-                        The decoder generates output one token at a time, autoregressively
-                    </p>
-                </div>
-
-                {/* Controls */}
-                <div className="flex justify-center gap-4 mb-6">
-                    <button
-                        onClick={() => setIsPlaying(!isPlaying)}
-                        className="flex items-center gap-2 px-6 py-2 bg-purple-500 hover:bg-purple-600 text-white rounded-lg transition-all"
-                    >
-                        {isPlaying ? <Pause size={20} /> : <Play size={20} />}
-                        {isPlaying ? 'Pause' : 'Play Animation'}
-                    </button>
-                    <button
-                        onClick={handleReset}
-                        className="flex items-center gap-2 px-4 py-2 bg-slate-600 hover:bg-slate-500 text-white rounded-lg transition-all"
-                    >
-                        <RotateCcw size={20} />
-                        Reset
-                    </button>
-                </div>
-
-                {/* Step indicators */}
-                <div className="flex justify-center gap-2 mb-8">
-                    {steps.map((_, i) => (
-                        <button
-                            key={i}
-                            onClick={() => setCurrentStep(i)}
-                            className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium transition-all ${
-                                currentStep === i
-                                    ? 'bg-purple-500 text-white'
-                                    : currentStep > i
-                                        ? 'bg-green-500 text-white'
-                                        : 'bg-slate-700 text-slate-800'
-                            }`}
-                        >
-                            {i + 1}
-                        </button>
-                    ))}
-                </div>
-
-                <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-                    {/* Decoder Visualization */}
-                    <div className="bg-slate-800/50 rounded-2xl p-6 border border-slate-700">
-                        <h3 className="text-white font-bold mb-4 text-center">Single Decoder Layer</h3>
-
-                        <div className="flex gap-8">
-                            {/* Encoder Output (for reference) */}
-                            <div className="flex flex-col items-center">
-                                <div className="text-slate-800 mb-2">From Encoder</div>
-                                <div className="w-16 h-32 bg-green-500/30 rounded-lg border border-green-500/50 flex items-center justify-center">
-                                    <span className="text-xs writing-mode-vertical transform -rotate-90 whitespace-nowrap">K, V</span>
-                                </div>
-                            </div>
-
-                            {/* Main Decoder */}
-                            <div className="flex flex-col items-center gap-3 flex-1">
-                                {/* Output */}
-                                <div className={`w-40 p-3 rounded-lg bg-red-500 text-white text-center text-sm font-medium transition-all ${getHighlightClass('output')}`}>
-                                    Linear + Softmax
-                                </div>
-
-                                <ArrowDown className="text-slate-700" />
-
-                                {/* Add & Norm 3 */}
-                                <div className="w-40 p-2 rounded-lg bg-emerald-500 text-white text-center text-xs">
-                                    <div className="flex items-center justify-center gap-2">
-                                        <Plus size={12} /> Add & Norm
-                                    </div>
-                                </div>
-
-                                <ArrowDown className="text-slate-700" />
-
-                                {/* FFN */}
-                                <div className={`w-40 p-3 rounded-lg bg-orange-500 text-white text-center transition-all ${getHighlightClass('ffn')}`}>
-                                    <div className="text-sm font-medium">Feed Forward</div>
-                                </div>
-
-                                <ArrowDown className="text-slate-700" />
-
-                                {/* Add & Norm 2 */}
-                                <div className={`w-40 p-2 rounded-lg bg-emerald-500 text-white text-center text-xs transition-all ${getHighlightClass('residual2')}`}>
-                                    <div className="flex items-center justify-center gap-2">
-                                        <Plus size={12} /> Add & Norm
-                                    </div>
-                                </div>
-
-                                <ArrowDown className="text-slate-700" />
-
-                                {/* Cross-Attention */}
-                                <div className={`w-40 p-3 rounded-lg bg-yellow-500 text-center transition-all ${getHighlightClass('cross_attention')}`}>
-                                    <div className="flex items-center justify-center gap-2">
-                                        <Eye size={16} />
-                                        <span className="text-sm font-medium">Cross-Attention</span>
-                                    </div>
-                                    <div className="text-xs mt-1">Q from dec, K,V from enc</div>
-                                </div>
-
-                                <ArrowDown className="text-slate-700" />
-
-                                {/* Add & Norm 1 */}
-                                <div className={`w-40 p-2 rounded-lg bg-emerald-500 text-white text-center text-xs transition-all ${getHighlightClass('residual1')}`}>
-                                    <div className="flex items-center justify-center gap-2">
-                                        <Plus size={12} /> Add & Norm
-                                    </div>
-                                </div>
-
-                                <ArrowDown className="text-slate-700" />
-
-                                {/* Masked Self-Attention */}
-                                <div className={`w-40 p-3 rounded-lg bg-purple-500 text-white text-center transition-all ${getHighlightClass('masked_attention')}`}>
-                                    <div className="flex items-center justify-center gap-2">
-                                        <Lock size={16} />
-                                        <span className="text-sm font-medium">Masked Self-Attn</span>
-                                    </div>
-                                    <div className="text-xs mt-1 opacity-80">Can't see future!</div>
-                                </div>
-
-                                <ArrowDown className="text-slate-700" />
-
-                                {/* Input */}
-                                <div className={`w-40 p-3 rounded-lg bg-pink-500 text-white text-center transition-all ${getHighlightClass('output_input')}`}>
-                                    <div className="text-sm font-medium">Output Embedding</div>
-                                    <div className="text-xs opacity-80">+ Positional</div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-
-                    {/* Step Description + Masking */}
-                    <div className="space-y-6">
-                        {/* Current Step */}
-                        <div className="bg-slate-800/50 rounded-2xl p-6 border border-slate-700">
-                            <div className="bg-purple-500/20 rounded-xl p-4 mb-4">
-                                <h3 className="text-purple-600 font-bold text-lg mb-2">
-                                    Step {currentStep + 1}: {steps[currentStep].title}
-                                </h3>
-                                <p className="text-slate-700">
-                                    {steps[currentStep].description}
-                                </p>
-                            </div>
-
-                            <div className="bg-slate-700/50 p-3 rounded-lg">
-                                <div className="text-slate-800 mb-1">Formula:</div>
-                                <div className="text-white font-mono text-center">
-                                    {steps[currentStep].formula}
-                                </div>
-                            </div>
-                        </div>
-
-                        {/* Causal Masking Visualization */}
-                        <div className="bg-slate-800/50 rounded-2xl p-6 border border-slate-700">
-                            <div className="flex items-center justify-between mb-4">
-                                <h3 className="text-white font-bold flex items-center gap-2">
-                                    <Lock size={18} className="text-purple-600" />
-                                    Causal (Look-Ahead) Mask
-                                </h3>
-                                <button
-                                    onClick={() => setShowMasking(!showMasking)}
-                                    className="text-sm text-slate-800 hover:text-white"
-                                >
-                                    {showMasking ? 'Hide' : 'Show'} Details
-                                </button>
-                            </div>
-
-                            {showMasking && (
-                                <>
-                                    <p className="text-slate-800 mb-4">
-                                        Prevents positions from attending to subsequent positions.
-                                        Position i can only attend to positions 0...i.
-                                    </p>
-
-                                    <div className="flex justify-center mb-4">
-                                        <div className="bg-slate-700/50 p-4 rounded-lg">
-                                            <div className="flex mb-2">
-                                                <div className="w-8"></div>
-                                                {['I', 'am', 'a', 'cat', '.']}
-                                            </div>
-                                            <div className="grid gap-1">
-                                                {maskMatrix.map((row, i) => (
-                                                    <div key={i} className="flex items-center gap-1">
-                                                        <div className="w-8 text-xs text-slate-800 pr-2">
-                                                            {['I', 'am', 'a', 'cat', '.'][i]}
-                                                        </div>
-                                                        {row.map((val, j) => (
-                                                            <div
-                                                                key={j}
-                                                                className={`w-8 h-8 rounded flex items-center justify-center text-xs font-medium ${
-                                                                    val === 1
-                                                                        ? 'bg-green-500/50 text-green-300'
-                                                                        : 'bg-red-500/30 text-red-400'
-                                                                }`}
-                                                            >
-                                                                {val === 1 ? '✓' : '✗'}
-                                                            </div>
-                                                        ))}
-                                                    </div>
-                                                ))}
-                                            </div>
-                                        </div>
-                                    </div>
-
-                                    <div className="flex items-center justify-center gap-4 text-sm">
-                                        <div className="flex items-center gap-2">
-                                            <div className="w-4 h-4 rounded bg-green-500/50"></div>
-                                            <span className="text-slate-800">Can attend</span>
-                                        </div>
-                                        <div className="flex items-center gap-2">
-                                            <div className="w-4 h-4 rounded bg-red-500/30"></div>
-                                            <span className="text-slate-800">Masked (-∞)</span>
-                                        </div>
-                                    </div>
-                                </>
-                            )}
-                        </div>
-
-                        {/* Cross-Attention Info */}
-                        <div className="bg-amber-500/10 rounded-2xl p-4 border border-amber-500/30">
-                            <h4 className="text-amber-600 font-bold mb-2 flex items-center gap-2">
-                                <AlertTriangle size={16} />
-                                Key Difference: Cross-Attention
-                            </h4>
-                            <div className="grid grid-cols-3 gap-2 mb-2">
-                                <div className="bg-purple-500/20 p-2 rounded text-center">
-                                    <div className="text-purple-600 font-bold text-sm">Q</div>
-                                    <div className="text-slate-800">From Decoder</div>
-                                </div>
-                                <div className="bg-green-500/20 p-2 rounded text-center">
-                                    <div className="text-green-400 font-bold text-sm">K</div>
-                                    <div className="text-slate-800">From Encoder</div>
-                                </div>
-                                <div className="bg-green-500/20 p-2 rounded text-center">
-                                    <div className="text-green-400 font-bold text-sm">V</div>
-                                    <div className="text-slate-800">From Encoder</div>
-                                </div>
-                            </div>
-                            <p className="text-slate-800">
-                                This is how the decoder "reads" the encoder's understanding of the input!
-                            </p>
-                        </div>
-                    </div>
-                </div>
-
-                {/* Autoregressive Generation */}
-                <div className="mt-8 bg-slate-800/50 rounded-2xl p-6 border border-slate-700">
-                    <h3 className="text-white font-bold mb-4">🔄 Autoregressive Generation</h3>
-
-                    <div className="space-y-4">
-                        <p className="text-slate-800">
-                            During inference, the decoder generates one token at a time, feeding each output back as input:
-                        </p>
-
-                        <div className="flex flex-wrap items-center justify-center gap-2">
-                            <div className="bg-slate-700 px-3 py-2 rounded text-slate-700">&lt;BOS&gt;</div>
-                            <ChevronRight className="text-slate-700" size={16} />
-                            <div className="bg-blue-500/30 px-3 py-2 rounded text-sm">The</div>
-                            <ChevronRight className="text-slate-700" size={16} />
-                            <div className="bg-blue-500/30 px-3 py-2 rounded text-sm">cat</div>
-                            <ChevronRight className="text-slate-700" size={16} />
-                            <div className="bg-blue-500/30 px-3 py-2 rounded text-sm">sat</div>
-                            <ChevronRight className="text-slate-700" size={16} />
-                            <div className="bg-green-500/30 px-3 py-2 rounded text-sm border border-green-500">on</div>
-                            <ChevronRight className="text-slate-700" size={16} />
-                            <div className="bg-slate-700/50 px-3 py-2 rounded text-slate-700">?</div>
-                        </div>
-
-                        <p className="text-slate-700 text-center">
-                            At each step, the model predicts the probability distribution for the next token
-                        </p>
-                    </div>
-                </div>
-            </div>
+  return (
+    <div className="space-y-6 p-4 md:p-6">
+      <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+        <div className="flex items-center gap-2 text-xs font-black uppercase tracking-wide text-violet-700">
+          <Network size={16} />
+          Encoder–decoder Transformer
         </div>
-    );
+        <h2 className="mt-2 text-2xl font-black text-slate-950 md:text-3xl">The decoder stack</h2>
+        <p className="mt-3 max-w-4xl text-sm leading-6 text-slate-700">
+          This tab models the decoder from the original encoder–decoder Transformer family. It has causal target
+          self-attention, cross-attention into encoder states, and a position-wise FFN. A decoder-only language model keeps
+          causal self-attention and the FFN but normally has no encoder cross-attention branch.
+        </p>
+      </section>
+
+      <section className="grid gap-4 lg:grid-cols-[1fr_0.9fr]">
+        <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+          <div className="text-sm font-black uppercase tracking-wide text-slate-600">One decoder block</div>
+          <div className="mt-5 space-y-3">
+            <div className="rounded-xl border border-slate-200 bg-slate-50 p-4 text-sm font-bold text-slate-900">
+              Target-prefix residual stream
+            </div>
+            {DECODER_SUBLAYERS.map((sublayer) => (
+              <React.Fragment key={sublayer.id}>
+                <div className="flex justify-center text-slate-400">↓</div>
+                <div className="rounded-xl border border-violet-200 bg-violet-50 p-4">
+                  <div className="font-black text-violet-950">{sublayer.label}</div>
+                  <p className="mt-2 text-sm leading-6 text-violet-900">{sublayer.detail}</p>
+                  <div className="mt-3 rounded-lg border border-white/70 bg-white/70 px-3 py-2 text-xs font-bold text-slate-600">
+                    Residual addition + architecture-specific normalization placement
+                  </div>
+                </div>
+              </React.Fragment>
+            ))}
+            <div className="flex justify-center text-slate-400">↓</div>
+            <div className="rounded-xl border border-emerald-200 bg-emerald-50 p-4 text-sm font-bold text-emerald-950">
+              Final hidden state → vocabulary logits
+            </div>
+          </div>
+        </div>
+
+        <div className="space-y-4">
+          <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+            <div className="flex items-center gap-2 text-sm font-black uppercase tracking-wide text-slate-600">
+              <Lock size={16} />
+              Causal target mask
+            </div>
+            <p className="mt-2 text-sm leading-6 text-slate-700">
+              Rows are target queries and columns are target keys. A query may read its own position and earlier target positions,
+              but not later target positions.
+            </p>
+            <div className="mt-4 grid w-fit grid-cols-5 gap-1">
+              {CAUSAL_MASK.flatMap((row, rowIndex) => row.map((enabled, columnIndex) => (
+                <div
+                  key={`${rowIndex}-${columnIndex}`}
+                  className={`flex h-9 w-9 items-center justify-center rounded border text-xs font-black ${
+                    enabled
+                      ? 'border-emerald-300 bg-emerald-100 text-emerald-800'
+                      : 'border-rose-200 bg-rose-50 text-rose-500'
+                  }`}
+                  title={`query ${rowIndex}, key ${columnIndex}`}
+                >
+                  {enabled ? '✓' : '×'}
+                </div>
+              )))}
+            </div>
+          </section>
+
+          <section className="rounded-2xl border border-amber-200 bg-amber-50 p-5">
+            <div className="flex items-center gap-2 text-sm font-black uppercase tracking-wide text-amber-700">
+              <ArrowRight size={16} />
+              Cross-attention
+            </div>
+            <div className="mt-4 grid grid-cols-3 gap-2 text-center text-sm">
+              <div className="rounded-lg border border-violet-200 bg-white p-3"><strong>Q</strong><br />decoder states</div>
+              <div className="rounded-lg border border-cyan-200 bg-white p-3"><strong>K</strong><br />encoder states</div>
+              <div className="rounded-lg border border-cyan-200 bg-white p-3"><strong>V</strong><br />encoder states</div>
+            </div>
+            <p className="mt-3 text-sm leading-6 text-amber-950">
+              The causal target mask does not mean the decoder can see only part of the source. Cross-attention normally allows
+              each target query to read all valid encoder source positions, subject to source padding or task-specific masks.
+            </p>
+          </section>
+        </div>
+      </section>
+
+      <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+        <div className="flex flex-wrap items-start justify-between gap-4">
+          <div>
+            <div className="flex items-center gap-2 text-sm font-black uppercase tracking-wide text-slate-600">
+              <GitBranch size={16} />
+              Training and inference are different loops
+            </div>
+            <p className="mt-2 max-w-3xl text-sm leading-6 text-slate-700">
+              “Shift right” describes how target examples are constructed for teacher-forced training. It is not an operation
+              applied to a ground-truth target sequence during inference because no such target sequence exists then.
+            </p>
+          </div>
+          <div className="flex gap-2">
+            {Object.entries(DECODER_EXECUTION).map(([id, option]) => (
+              <ModeButton key={id} active={mode === id} onClick={() => setMode(id)}>
+                {option.label}
+              </ModeButton>
+            ))}
+          </div>
+        </div>
+
+        <div className="mt-5 grid gap-5 lg:grid-cols-[1fr_auto_1fr] lg:items-center">
+          <TokenRow label={execution.inputLabel} tokens={execution.input} tone="input" />
+          <ArrowRight className="mx-auto hidden text-slate-400 lg:block" size={24} />
+          <TokenRow label={execution.outputLabel} tokens={execution.output} tone="output" />
+        </div>
+        <p className="mt-5 rounded-xl border border-slate-200 bg-slate-50 p-4 text-sm leading-6 text-slate-700">
+          {execution.explanation}
+        </p>
+      </section>
+
+      <section className="grid gap-4 md:grid-cols-3">
+        <div className="rounded-2xl border border-blue-200 bg-blue-50 p-5">
+          <h3 className="text-sm font-black uppercase tracking-wide text-blue-700">Training parallelism</h3>
+          <p className="mt-3 text-sm leading-6 text-blue-950">
+            Teacher forcing exposes the correct previous target tokens as inputs, so all target positions can be scored in one
+            forward pass while the causal mask prevents future-target leakage.
+          </p>
+        </div>
+        <div className="rounded-2xl border border-violet-200 bg-violet-50 p-5">
+          <h3 className="text-sm font-black uppercase tracking-wide text-violet-700">Inference seriality</h3>
+          <p className="mt-3 text-sm leading-6 text-violet-950">
+            At inference, token t+1 depends on the token selected at step t. The outer generation loop is therefore serial even
+            though the matrix operations inside each decode step are parallel.
+          </p>
+        </div>
+        <div className="rounded-2xl border border-emerald-200 bg-emerald-50 p-5">
+          <h3 className="text-sm font-black uppercase tracking-wide text-emerald-700">Modern optimization</h3>
+          <p className="mt-3 text-sm leading-6 text-emerald-950">
+            KV caching reuses prior target self-attention keys and values during decoding. It is an inference optimization, not
+            a change to the causal modeling objective.
+          </p>
+        </div>
+      </section>
+    </div>
+  );
 }
