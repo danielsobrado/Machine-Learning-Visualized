@@ -1,8 +1,9 @@
-import React, { Suspense, lazy, useState } from 'react';
-import { AlertTriangle, FlaskConical, LineChart, Play } from 'lucide-react';
+import React, { Suspense, lazy, useRef, useState } from 'react';
+import { AlertTriangle, FlaskConical, GitBranch, LineChart, Play } from 'lucide-react';
 import AssessmentPanel from '../../components/animation-shell/AssessmentPanel';
 import { classifySoftmaxSharpness, computeSoftmax, softmaxMetrics } from '../../data/softmaxModel';
 import SoftmaxConfidenceLab from './SoftmaxConfidenceLab.jsx';
+import SoftmaxJacobianLab from './SoftmaxJacobianLab.jsx';
 
 const SoftmaxAnimationPanel = lazy(() => import('./SoftmaxAnimationPanel'));
 const SoftmaxGraphPanel = lazy(() => import('./SoftmaxGraphPanel'));
@@ -13,12 +14,13 @@ const tabs = [
   { id: 'graph', label: '2. Softmax Graph', icon: LineChart },
   { id: 'practice', label: '3. Practice Lab', icon: FlaskConical },
   { id: 'failure', label: '4. Confidence Trap', icon: AlertTriangle },
+  { id: 'jacobian', label: '5. Coupled Gradients', icon: GitBranch },
 ];
 
 function LoadingPanel() {
   return (
-    <div className="flex items-center justify-center p-12">
-      <div className="h-8 w-8 animate-spin rounded-full border-b-2 border-blue-500" />
+    <div className="flex items-center justify-center p-12" role="status" aria-label="Loading softmax view">
+      <div className="h-8 w-8 animate-spin rounded-full border-b-2 border-blue-500 motion-reduce:animate-none" />
     </div>
   );
 }
@@ -27,9 +29,26 @@ export default function SoftmaxAnimation() {
   const [activeTab, setActiveTab] = useState('animation');
   const [logits, setLogits] = useState([2, 1, 0.1]);
   const [temperature, setTemperature] = useState(1);
+  const tabRefs = useRef({});
   const probabilities = computeSoftmax(logits, temperature);
   const metrics = softmaxMetrics(probabilities);
   const sharpness = classifySoftmaxSharpness(probabilities);
+
+  const selectTab = (id, focus = false) => {
+    setActiveTab(id);
+    if (focus) requestAnimationFrame(() => tabRefs.current[id]?.focus());
+  };
+
+  const handleTabKeyDown = (event, index) => {
+    let nextIndex = null;
+    if (event.key === 'ArrowRight') nextIndex = (index + 1) % tabs.length;
+    if (event.key === 'ArrowLeft') nextIndex = (index - 1 + tabs.length) % tabs.length;
+    if (event.key === 'Home') nextIndex = 0;
+    if (event.key === 'End') nextIndex = tabs.length - 1;
+    if (nextIndex === null) return;
+    event.preventDefault();
+    selectTab(tabs[nextIndex].id, true);
+  };
 
   const renderPanel = () => {
     switch (activeTab) {
@@ -51,6 +70,8 @@ export default function SoftmaxAnimation() {
         );
       case 'failure':
         return <SoftmaxConfidenceLab />;
+      case 'jacobian':
+        return <SoftmaxJacobianLab />;
       default:
         return <Suspense fallback={<LoadingPanel />}><SoftmaxAnimationPanel /></Suspense>;
     }
@@ -58,13 +79,19 @@ export default function SoftmaxAnimation() {
 
   return (
     <div className="ua-softmax-stage">
-      <nav className="ua-segmented-tabs" aria-label="Softmax views">
-        {tabs.map((tab) => (
+      <nav className="ua-segmented-tabs" aria-label="Softmax views" role="tablist">
+        {tabs.map((tab, index) => (
           <button
             type="button"
             key={tab.id}
-            onClick={() => setActiveTab(tab.id)}
-            aria-pressed={activeTab === tab.id}
+            ref={(node) => { tabRefs.current[tab.id] = node; }}
+            role="tab"
+            id={`softmax-tab-${tab.id}`}
+            aria-selected={activeTab === tab.id}
+            aria-controls={`softmax-panel-${tab.id}`}
+            tabIndex={activeTab === tab.id ? 0 : -1}
+            onClick={() => selectTab(tab.id)}
+            onKeyDown={(event) => handleTabKeyDown(event, index)}
             className={activeTab === tab.id ? 'active' : ''}
           >
             <tab.icon size={16} />
@@ -100,7 +127,14 @@ export default function SoftmaxAnimation() {
         These numbers describe the softmax distribution. They do not by themselves prove calibration or correctness.
       </p>
 
-      <div className="ua-softmax-panel">{renderPanel()}</div>
+      <div
+        className="ua-softmax-panel"
+        role="tabpanel"
+        id={`softmax-panel-${activeTab}`}
+        aria-labelledby={`softmax-tab-${activeTab}`}
+      >
+        {renderPanel()}
+      </div>
       <div className="mx-auto w-full max-w-6xl px-4 pb-6">
         <AssessmentPanel lessonId="softmax" />
       </div>
