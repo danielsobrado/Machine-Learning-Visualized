@@ -15,6 +15,7 @@ import { P1_LAB_LESSON_IDS } from '../components/priority-labs/p1PriorityConstan
 import { CLASSICAL_ML_NEXT_LESSON_IDS } from '../components/quality-labs/classicalMlNextConstants.js';
 import { FOUNDATIONS_NEXT_LESSON_IDS } from '../components/quality-labs/foundationsNextConstants.js';
 import { LINEAR_ALGEBRA_NEXT_LESSON_IDS } from '../components/quality-labs/linearAlgebraNextConstants.js';
+import { NEURAL_CNN_NEXT_LAB_LESSON_IDS } from '../components/quality-labs/neuralCnnNextConstants.js';
 import LessonLayout from '../components/lesson/LessonLayout';
 import useLessonDepthAvailability from '../hooks/useLessonDepthAvailability.js';
 
@@ -22,6 +23,7 @@ const P1PriorityLab = lazy(() => import('../components/priority-labs/P1PriorityL
 const ClassicalMlNextLab = lazy(() => import('../components/quality-labs/ClassicalMlNextLab'));
 const FoundationsNextLab = lazy(() => import('../components/quality-labs/FoundationsNextLab'));
 const LinearAlgebraNextLab = lazy(() => import('../components/quality-labs/LinearAlgebraNextLab'));
+const NeuralCnnNextLab = lazy(() => import('../components/quality-labs/NeuralCnnNextLab'));
 const LessonSectionTabs = lazy(() => import('../components/lesson/LessonSectionTabs'));
 const LessonSectionView = lazy(() => import('../components/lesson/LessonSectionView'));
 
@@ -169,6 +171,7 @@ function AnimationContent({ animationId, animation }) {
       {CLASSICAL_ML_NEXT_LESSON_IDS.has(animationId) && <ClassicalMlNextLab lessonId={animationId} />}
       {FOUNDATIONS_NEXT_LESSON_IDS.has(animationId) && <FoundationsNextLab lessonId={animationId} />}
       {LINEAR_ALGEBRA_NEXT_LESSON_IDS.has(animationId) && <LinearAlgebraNextLab lessonId={animationId} />}
+      {NEURAL_CNN_NEXT_LAB_LESSON_IDS.has(animationId) && <NeuralCnnNextLab lessonId={animationId} />}
     </AnimationShell>
   );
 }
