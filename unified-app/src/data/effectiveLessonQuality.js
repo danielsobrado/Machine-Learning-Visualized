@@ -5,6 +5,7 @@ import { PRODUCTION_RELIABILITY_NEXT_QUALITY_OVERRIDES } from './lessonQualityPr
 import { P1_SYSTEMS_NEXT_QUALITY_OVERRIDES } from './lessonQualitySystemsNextOverrides.js';
 import { LINEAR_ALGEBRA_NEXT_QUALITY_OVERRIDES } from './lessonQualityLinearAlgebraNextOverrides.js';
 import { NEURAL_CNN_NEXT_QUALITY_OVERRIDES } from './lessonQualityNeuralCnnNextOverrides.js';
+import { RL_TRANSFORMER_NEXT_QUALITY_OVERRIDES } from './lessonQualityRlTransformerNextOverrides.js';
 
 function mergeQuality(base, ...overrides) {
   return Object.freeze(
@@ -27,6 +28,7 @@ export const EFFECTIVE_MANUAL_LESSON_QUALITY = Object.freeze(
         P1_SYSTEMS_NEXT_QUALITY_OVERRIDES[id],
         LINEAR_ALGEBRA_NEXT_QUALITY_OVERRIDES[id],
         NEURAL_CNN_NEXT_QUALITY_OVERRIDES[id],
+        RL_TRANSFORMER_NEXT_QUALITY_OVERRIDES[id],
       ),
     ]),
   ),
