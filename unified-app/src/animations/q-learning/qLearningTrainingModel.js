@@ -131,33 +131,38 @@ export function simulateTdControl({
       const currentValues = actionValues(table, position);
       const currentValue = currentValues[actionIndex];
       const outcome = transition(position, actionIndex, environment);
-      const nextValues = actionValues(table, outcome.nextPosition);
-      const nextBehaviorActionIndex = outcome.terminal
+      const nextValuesBeforeUpdate = actionValues(table, outcome.nextPosition);
+      const sarsaNextActionIndex = outcome.terminal || algorithm !== 'sarsa'
         ? null
-        : epsilonGreedyAction(nextValues, config.epsilon, random);
+        : epsilonGreedyAction(nextValuesBeforeUpdate, config.epsilon, random);
       const bootstrapActionIndex = outcome.terminal
         ? null
         : algorithm === 'q-learning'
-          ? greedyActionIndex(nextValues)
-          : nextBehaviorActionIndex;
+          ? greedyActionIndex(nextValuesBeforeUpdate)
+          : sarsaNextActionIndex;
       const target = algorithm === 'q-learning'
         ? qLearningTarget({
           reward: outcome.reward,
           gamma: config.gamma,
-          nextActionValues: nextValues,
+          nextActionValues: nextValuesBeforeUpdate,
           terminal: outcome.terminal,
         })
         : sarsaTarget({
           reward: outcome.reward,
           gamma: config.gamma,
-          nextActionValues: nextValues,
-          nextActionIndex: nextBehaviorActionIndex,
+          nextActionValues: nextValuesBeforeUpdate,
+          nextActionIndex: sarsaNextActionIndex,
           terminal: outcome.terminal,
         });
       const updatedValue = qUpdate({ current: currentValue, target, alpha: config.alpha });
-      const bootstrapValue = bootstrapActionIndex === null ? 0 : nextValues[bootstrapActionIndex];
+      const bootstrapValue = bootstrapActionIndex === null ? 0 : nextValuesBeforeUpdate[bootstrapActionIndex];
 
       setActionValue(table, position, actionIndex, updatedValue);
+      const nextBehaviorActionIndex = outcome.terminal
+        ? null
+        : algorithm === 'sarsa'
+          ? sarsaNextActionIndex
+          : epsilonGreedyAction(actionValues(table, outcome.nextPosition), config.epsilon, random);
       totalReturn += outcome.reward;
       cliffFalls += outcome.hitCliff ? 1 : 0;
       steps = stepIndex + 1;
