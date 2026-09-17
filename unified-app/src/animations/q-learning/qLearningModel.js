@@ -4,12 +4,33 @@ function requireSamples(samples, name) {
   }
 }
 
-export function qLearningTarget({ reward, gamma, nextActionValues, terminal = false }) {
+function validateTargetInputs(reward, gamma, nextActionValues) {
   if (![reward, gamma].every(Number.isFinite)) throw new TypeError('reward and gamma must be finite');
   if (gamma < 0 || gamma > 1) throw new RangeError('gamma must be in [0, 1]');
-  if (terminal) return reward;
-  if (!Array.isArray(nextActionValues) || nextActionValues.length === 0 || nextActionValues.some((v) => !Number.isFinite(v))) throw new TypeError('nextActionValues must be finite');
+  if (!Array.isArray(nextActionValues) || nextActionValues.length === 0 || nextActionValues.some((v) => !Number.isFinite(v))) {
+    throw new TypeError('nextActionValues must be finite');
+  }
+}
+
+export function qLearningTarget({ reward, gamma, nextActionValues, terminal = false }) {
+  if (terminal) {
+    if (!Number.isFinite(reward)) throw new TypeError('reward must be finite');
+    return reward;
+  }
+  validateTargetInputs(reward, gamma, nextActionValues);
   return reward + gamma * Math.max(...nextActionValues);
+}
+
+export function sarsaTarget({ reward, gamma, nextActionValues, nextActionIndex, terminal = false }) {
+  if (terminal) {
+    if (!Number.isFinite(reward)) throw new TypeError('reward must be finite');
+    return reward;
+  }
+  validateTargetInputs(reward, gamma, nextActionValues);
+  if (!Number.isInteger(nextActionIndex) || nextActionIndex < 0 || nextActionIndex >= nextActionValues.length) {
+    throw new RangeError('nextActionIndex is outside nextActionValues');
+  }
+  return reward + gamma * nextActionValues[nextActionIndex];
 }
 
 export function qUpdate({ current, target, alpha }) {
