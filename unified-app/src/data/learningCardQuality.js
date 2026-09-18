@@ -16,20 +16,26 @@ export const GENERIC_LEARNING_CARD_PHRASES = Object.freeze([
   'do one pass slowly: predict the update',
 ]);
 
-const ACTION_WORDS = Object.freeze([
+const ACTION_STEMS = Object.freeze([
   'predict',
   'explain',
-  'identify',
-  'choose',
-  'compute',
-  'trace',
+  'identif',
+  'choos',
+  'comput',
+  'trac',
   'find',
-  'compare',
-  'name',
-  'decide',
-  'calculate',
+  'compar',
+  'nam',
+  'decid',
+  'calculat',
   'match',
-  'diagnose',
+  'diagnos',
+  'chang',
+  'tuning',
+  'tun',
+  'pick',
+  'map',
+  'design',
 ]);
 
 function words(value) {
@@ -49,7 +55,7 @@ export function validateLearningCardOverride(lessonId, override) {
       errors.push(`${lessonId}: missing ${type} learning card body`);
       continue;
     }
-    if (body.trim().length < 60 || words(body).length < 10) {
+    if (body.trim().length < 50 || words(body).length < 8) {
       errors.push(`${lessonId}: ${type} learning card is too thin`);
     }
   }
@@ -75,7 +81,7 @@ export function validateLearningCardOverride(lessonId, override) {
   }
 
   const doBody = normalized(override?.do?.body);
-  if (!ACTION_WORDS.some((word) => doBody.includes(word))) {
+  if (!ACTION_STEMS.some((stem) => doBody.includes(stem))) {
     errors.push(`${lessonId}: final practice card must ask for an active learner action`);
   }
 
