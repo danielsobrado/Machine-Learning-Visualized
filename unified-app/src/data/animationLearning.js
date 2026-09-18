@@ -3,6 +3,7 @@ import { curriculumTracks } from './animations.js';
 import { getCurriculumDepth } from './curriculumDepth.js';
 import { getConceptMap } from './conceptMaps.js';
 import { getMindmapCuration } from './mindmapCuration.js';
+import { EXCEPTIONAL_LEARNING_CARD_OVERRIDES } from './exceptionalLearningCardOverrides.js';
 
 export const CARD_TYPES = [
   { id: 'def', label: 'def.', title: 'Definition' },
@@ -176,6 +177,7 @@ function cardSet(def, intuition, equation, example, why, tryIt) {
 }
 
 export const LEARNING_CARD_OVERRIDES = {
+  ...EXCEPTIONAL_LEARNING_CARD_OVERRIDES,
   'matrix-multiplication': cardSet(
     'Matrix multiplication solves the problem of composing many weighted sums into one reusable operation.',
     'Read each output cell as one row asking one column how strongly they line up.',
