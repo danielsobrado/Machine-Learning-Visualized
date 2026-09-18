@@ -1,0 +1,1 @@
+import{k as r}from"./react-vendor-BeqvafmB.js";import t from"./QwenChapter-DToefi0b.js";import"./router-BOQIj1s7.js";import"./assessment-data-D4T2IBbU.js";import"./icons-BQHzJ7Tp.js";function s(){return r.jsx(t,{chapterId:"qwen-gated-residual"})}export{s as default};
