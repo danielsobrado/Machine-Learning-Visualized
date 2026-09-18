@@ -49,3 +49,23 @@ test('visual-state scenarios expose the visual coverage dimension', () => {
   const dimensions = assessmentCoverageDimensions(getLessonAssessment('classification-metrics'));
   assert.equal(dimensions.includes(ASSESSMENT_COVERAGE_DIMENSION.VISUAL), true);
 });
+
+test('representative review lessons include real visual-state evidence', () => {
+  const lessonIds = [
+    'bayes-rule-ml',
+    'condition-number',
+    'conv2d',
+    'kv-cache',
+    'rag-retrieval-evaluation',
+    'q-learning',
+  ];
+
+  for (const lessonId of lessonIds) {
+    const dimensions = assessmentCoverageDimensions(getLessonAssessment(lessonId));
+    assert.equal(
+      dimensions.includes(ASSESSMENT_COVERAGE_DIMENSION.VISUAL),
+      true,
+      `${lessonId}: expected visual-state review evidence`,
+    );
+  }
+});
