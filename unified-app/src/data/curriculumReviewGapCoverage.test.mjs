@@ -10,6 +10,8 @@ import {
   CURRICULUM_REVIEW_GAP_COMPETENCIES,
   CURRICULUM_REVIEW_GAP_SCENARIO_SOURCES,
 } from './curriculumReviewGapCoverage.js';
+import { ASSESSMENT_COMPETENCY_SOURCES } from './assessmentCompetencyRegistry.js';
+import { ASSESSMENT_SCENARIO_EXTENSION_SOURCES } from './assessmentScenarioExtensions.js';
 import { getLessonAssessment } from './lessonAssessments.js';
 
 const APPLIED_LEVELS = new Set(['calculation', 'decision', 'design', 'diagnosis', 'comparison', 'mechanism']);
@@ -59,4 +61,29 @@ test('review scenarios are substantive applied questions rather than count paddi
       }
     }
   }
+});
+
+
+test('review scenario packs are registered exactly once and protected by the central registry', () => {
+  const expectedScenarioSources = new Map([
+    ['p1-review-statistics-causal', 'statistics-causal'],
+    ['p1-review-math-classical', 'math-classical'],
+    ['p1-review-neural-training', 'neural-training'],
+    ['p1-review-transformer-rag', 'transformer-rag'],
+    ['p1-review-rl-diffusion-systems', 'rl-diffusion-systems'],
+  ]);
+
+  for (const [extensionId, coverageId] of expectedScenarioSources) {
+    const extensions = ASSESSMENT_SCENARIO_EXTENSION_SOURCES.filter(({ id }) => id === extensionId);
+    assert.equal(extensions.length, 1, `${extensionId}: expected one live scenario source`);
+
+    const coverageSource = CURRICULUM_REVIEW_GAP_SCENARIO_SOURCES.find(({ id }) => id === coverageId);
+    assert.ok(coverageSource, `${coverageId}: missing coverage source`);
+    assert.equal(extensions[0].questionsByLesson, coverageSource.questionsByLesson);
+  }
+
+  const registrySources = ASSESSMENT_COMPETENCY_SOURCES.filter(({ id }) => id === 'curriculum-review-gaps');
+  assert.equal(registrySources.length, 1);
+  assert.equal(registrySources[0].competencies, CURRICULUM_REVIEW_GAP_COMPETENCIES);
+  assert.equal(registrySources[0].auditedLessonIds, CURRICULUM_REVIEW_GAP_AUDITED_LESSON_IDS);
 });
