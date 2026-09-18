@@ -60,7 +60,7 @@ export const MATH_STATISTICS_LEARNING_CARD_OVERRIDES = Object.freeze({
   'conditional-probability': cardSet(
     'Conditional probability asks how likely an event is after restricting attention to cases where another event is known to have happened.',
     'Imagine filtering a dataset first, then recomputing proportions only inside the rows that survived the filter.',
-    'P(A|B)=P(A∩B)/P(B), provided P(B)>0.',
+    'P(A|B)=P(A∩B)/P(B), provided P(B)>0; the denominator restricts attention to cases where B occurred.',
     'Select a subgroup with event B and compare the rate of A inside that subgroup with the overall rate of A.',
     'Mistake to avoid: P(A|B) and P(B|A) answer different questions and can differ dramatically.',
     'Try it: hold P(A∩B) fixed while making B rarer and predict how P(A|B) changes.',
