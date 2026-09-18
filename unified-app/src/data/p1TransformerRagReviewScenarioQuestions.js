@@ -33,7 +33,7 @@ export const P1_TRANSFORMER_RAG_REVIEW_SCENARIOS_BY_LESSON = Object.freeze({
     misconceptionTested: 'FlashAttention gets its efficiency by changing dense attention into an approximate sparse attention rule.',
   }]),
   'kv-cache': lesson([{
-    id: 'review-kv-cache-prefill-decode-memory', level: 'comparison',
+    id: 'review-kv-cache-prefill-decode-memory', kind: 'visual-state', visualState: Object.freeze({ promptTokens: 4000, generatedTokens: 500, cachedPositionsAfterDecode: 4500 }), level: 'comparison',
     relatedComparison: 'prefill-parallel-context-vs-token-by-token-decode-cache-growth',
     scenario: 'A decoder processes a 4,000-token prompt once, then generates 500 new tokens. During generation it reuses previously computed key/value tensors for all earlier positions instead of recomputing them each step.',
     prompt: 'What tradeoff does the KV cache create between prefill/decode compute and memory?',
