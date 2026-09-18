@@ -3,7 +3,7 @@ function lesson(items) { return Object.freeze(items.map(q)); }
 
 export const P1_RL_DIFFUSION_SYSTEMS_REVIEW_SCENARIOS_BY_LESSON = Object.freeze({
   'q-learning': lesson([{
-    id: 'review-qlearning-off-policy-target', level: 'mechanism',
+    id: 'review-qlearning-off-policy-target', kind: 'visual-state', visualState: Object.freeze({ behaviorPolicy: 'epsilon-greedy', updateTarget: 'r + gamma max_a Q(s_next,a)', targetPolicy: 'greedy' }), level: 'mechanism',
     relatedComparison: 'behavior-policy-action-vs-greedy-target-policy',
     scenario: 'An agent follows an epsilon-greedy behavior policy and sometimes takes exploratory actions. Its update target is r + gamma * max_a Q(s_next,a) for non-terminal transitions.',
     prompt: 'Why is ordinary Q-learning described as off-policy?',
