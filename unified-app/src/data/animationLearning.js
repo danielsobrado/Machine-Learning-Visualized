@@ -1358,7 +1358,9 @@ function makeCards(animation, glossary, equation) {
   }
 
   const overrides = LEARNING_CARD_OVERRIDES[animation.id];
-  if (!overrides) return cards;
+  if (!overrides) {
+    throw new Error(`Missing curated learning-card content for active lesson: ${animation.id}`);
+  }
 
   return cards.map((card) => ({
     ...card,
