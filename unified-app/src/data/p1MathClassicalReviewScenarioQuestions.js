@@ -13,7 +13,7 @@ export const P1_MATH_CLASSICAL_REVIEW_SCENARIOS_BY_LESSON = Object.freeze({
     misconceptionTested: 'Changing basis changes the vector itself rather than changing only the coordinates used to describe that vector.',
   }]),
   'condition-number': lesson([{
-    id: 'review-condition-number-sensitivity', level: 'diagnosis',
+    id: 'review-condition-number-sensitivity', kind: 'visual-state', visualState: Object.freeze({ conditionNumber: 100000000, inputRelativeError: 0.000001, worstCaseAmplification: 100000000 }), level: 'diagnosis',
     relatedComparison: 'well-conditioned-vs-ill-conditioned-linear-systems',
     scenario: 'A linear system has condition number around 10^8 in the chosen norm. Input coefficients are measured with small relative error and floating-point arithmetic also introduces rounding noise.',
     prompt: 'What practical warning does the large condition number provide?',
