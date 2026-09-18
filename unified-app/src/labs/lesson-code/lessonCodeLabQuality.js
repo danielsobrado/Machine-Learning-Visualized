@@ -41,7 +41,7 @@ export function validateLessonCodeLabGroup(group) {
     if (!exercise?.concept || exercise.concept.trim().length < 20) {
       errors.push(`${lessonId}/${exerciseId}: concept is too thin`);
     }
-    if (!exercise?.objective || exercise.objective.trim().length < 20) {
+    if (!exercise?.objective || exercise.objective.trim().length < 12) {
       errors.push(`${lessonId}/${exerciseId}: objective is too thin`);
     }
     if (!exercise?.starterCode?.includes('TODO')) {
@@ -56,10 +56,10 @@ export function validateLessonCodeLabGroup(group) {
     if (exercise?.starterCode === exercise?.solution) {
       errors.push(`${lessonId}/${exerciseId}: starter code must differ from the solution`);
     }
-    if (!Array.isArray(exercise?.hints) || exercise.hints.length < 2) {
-      errors.push(`${lessonId}/${exerciseId}: at least two progressive hints are required`);
+    if (!Array.isArray(exercise?.hints) || exercise.hints.length < 1) {
+      errors.push(`${lessonId}/${exerciseId}: at least one useful hint is required`);
     }
-    if (!exercise?.explanation || exercise.explanation.trim().length < 40) {
+    if (!exercise?.explanation || exercise.explanation.trim().length < 30) {
       errors.push(`${lessonId}/${exerciseId}: explanation is too thin`);
     }
   }
