@@ -123,7 +123,7 @@ export const P1_TRANSFORMER_RAG_REVIEW_SCENARIOS_BY_LESSON = Object.freeze({
     misconceptionTested: 'Speculative decoding is necessarily an approximate generation method whose outputs follow the draft model whenever multiple tokens are proposed.',
   }]),
   'rag-retrieval-evaluation': lesson([{
-    id: 'review-rag-good-retrieval-bad-answer', level: 'diagnosis',
+    id: 'review-rag-good-retrieval-bad-answer', kind: 'visual-state', visualState: Object.freeze({ retrievedChunks: 10, relevantChunks: 1, answerQuality: '58% accurate despite 96% recall@10' }), level: 'diagnosis',
     relatedComparison: 'retrieval-recall-vs-generation-grounding-quality',
     scenario: 'An evaluation shows recall@10 of 96%: the required evidence is almost always in the candidate set. Yet final answer accuracy is only 58%, and manual review shows the generator frequently ignores the relevant passage or combines it with unrelated context.',
     prompt: 'Which subsystem should be investigated next rather than treating retrieval recall as the only bottleneck?',
