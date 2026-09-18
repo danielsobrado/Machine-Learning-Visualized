@@ -7,6 +7,10 @@ import {
   CORE_MODEL_MECHANICS_REQUIREMENTS,
 } from './coreModelMechanicsCoverage.js';
 import {
+  CURRICULUM_REVIEW_GAP_AUDITED_LESSON_IDS,
+  CURRICULUM_REVIEW_GAP_COMPETENCIES,
+} from './curriculumReviewGapCoverage.js';
+import {
   FOUNDATION_ARCHITECTURE_AUDITED_LESSON_IDS,
   FOUNDATION_ARCHITECTURE_COMPETENCIES,
 } from './foundationArchitectureCoverage.js';
@@ -34,6 +38,11 @@ export const ASSESSMENT_COMPETENCY_SOURCES = Object.freeze([
     id: 'core-model-mechanics',
     auditedLessonIds: CORE_MODEL_MECHANICS_AUDITED_LESSON_IDS,
     competencies: CORE_MODEL_MECHANICS_REQUIREMENTS,
+  }),
+  Object.freeze({
+    id: 'curriculum-review-gaps',
+    auditedLessonIds: CURRICULUM_REVIEW_GAP_AUDITED_LESSON_IDS,
+    competencies: CURRICULUM_REVIEW_GAP_COMPETENCIES,
   }),
   Object.freeze({
     id: 'foundation-architecture',
