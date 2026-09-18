@@ -30,6 +30,8 @@ export const P1_STATISTICS_CAUSAL_REVIEW_SCENARIOS_BY_LESSON = Object.freeze({
   'bayes-rule-ml': lesson([
     {
       id: 'review-bayes-prevalence-ppv-shift',
+      kind: 'visual-state',
+      visualState: Object.freeze({ prevalencePercent: 1, sensitivityPercent: 90, specificityPercent: 95, posteriorPositivePercent: 15.4 }),
       level: 'calculation',
       relatedComparison: 'stable-sensitivity-specificity-vs-prior-dependent-posterior',
       scenario: 'A detector keeps 90% sensitivity and 95% specificity when deployed to a new population where only 1% of cases are actually positive. Consider 10,000 cases so the expected counts are easy to reason about: about 100 positives and 9,900 negatives.',
