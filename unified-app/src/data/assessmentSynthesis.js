@@ -88,7 +88,9 @@ export const ASSESSMENT_SYNTHESIS_REQUIREMENTS = Object.freeze([
     scenario('fasttext', 'review-fasttext-oov-vs-polysemy'),
     scenario('embeddings', 'review-embeddings-static-polysemy'),
   ]),
-]);\n\nfunction evidenceIds(assessment, type) {
+]);
+
+function evidenceIds(assessment, type) {
   if (type === ASSESSMENT_COMPETENCY_EVIDENCE_TYPES.QUIZ) {
     return new Set((assessment.quiz || []).map(({ id }) => id));
   }
