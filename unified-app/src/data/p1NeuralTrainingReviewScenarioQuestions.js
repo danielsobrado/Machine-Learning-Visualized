@@ -93,7 +93,7 @@ export const P1_NEURAL_TRAINING_REVIEW_SCENARIOS_BY_LESSON = Object.freeze({
     misconceptionTested: 'Residual connections help only by adding parameters rather than by creating an explicit identity information and gradient path.',
   }]),
   conv2d: lesson([{
-    id: 'review-conv-output-shape-dilation', level: 'calculation',
+    id: 'review-conv-output-shape-dilation', kind: 'visual-state', visualState: Object.freeze({ inputSize: 32, effectiveKernel: 5, stride: 2, padding: 2, outputSize: 16 }), level: 'calculation',
     relatedComparison: 'input-spatial-size-vs-effective-kernel-stride-padding',
     scenario: 'A 2D convolution receives a 32×32 input, uses a 3×3 kernel, dilation 2, padding 2, and stride 2. The effective kernel size is dilation×(k-1)+1 = 5.',
     prompt: 'What spatial output size results in each dimension using floor((n+2p-k_eff)/s)+1?',
