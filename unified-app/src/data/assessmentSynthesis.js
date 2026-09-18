@@ -47,9 +47,48 @@ export const ASSESSMENT_SYNTHESIS_REQUIREMENTS = Object.freeze([
     scenario('model-debugging', 'debugging-slice-first'),
     scenario('model-monitoring', 'monitoring-drift-types'),
   ]),
-]);
-
-function evidenceIds(assessment, type) {
+  requirement('synthesis.classification.preprocessing-to-policy', [
+    scenario('feature-scaling-preprocessing', 'review-scaling-algorithm-sensitivity'),
+    scenario('classification-metrics', 'metrics-calibration-cost-threshold'),
+    scenario('calibration', 'calibration-shift-recalibration'),
+    scenario('roc-pr-curves', 'roc-pr-threshold-operating-point'),
+  ]),
+  requirement('synthesis.numerical-linear-algebra.stability', [
+    scenario('condition-number', 'review-condition-number-sensitivity'),
+    scenario('least-squares-projection', 'review-least-squares-qr-vs-normal-equations'),
+    scenario('svd', 'review-svd-numerical-rank'),
+  ]),
+  requirement('synthesis.causal.identification-to-estimand', [
+    scenario('causal-graphs-dags', 'review-dag-collider-conditioning'),
+    scenario('propensity-scores', 'propensity-doubly-robust-estimator-decision'),
+    scenario('treatment-effects', 'review-treatment-ate-vs-att'),
+  ]),
+  requirement('synthesis.generation.efficiency-stack', [
+    scenario('flash-attention', 'review-flash-attention-exactness'),
+    scenario('kv-cache', 'review-kv-cache-prefill-decode-memory'),
+    scenario('efficient-llm-serving', 'review-serving-continuous-batching'),
+  ]),
+  requirement('synthesis.rl.update-bias-variance', [
+    scenario('q-learning', 'review-qlearning-off-policy-target'),
+    scenario('actor-critic', 'review-actor-critic-bias-variance-bootstrap'),
+    scenario('ppo-clipped-policy-gradient', 'review-ppo-clipping-update-control'),
+  ]),
+  requirement('synthesis.diffusion.parameterization-and-control', [
+    scenario('diffusion-basics', 'review-diffusion-prediction-parameterizations'),
+    scenario('classifier-free-guidance', 'review-cfg-guidance-diversity-artifacts'),
+    scenario('flow-matching', 'review-flow-matching-vector-field-ode'),
+  ]),
+  requirement('synthesis.evaluation.split-integrity', [
+    scenario('cross-validation', 'review-cv-nested-model-selection'),
+    scenario('data-leakage-deep-dive', 'leakage-point-in-time-feature'),
+    scenario('time-series-forecasting-track', 'review-timeseries-random-kfold-leakage'),
+  ]),
+  requirement('synthesis.nlp.representation-boundaries', [
+    scenario('bag-of-words', 'review-bow-word-order-loss'),
+    scenario('fasttext', 'review-fasttext-oov-vs-polysemy'),
+    scenario('embeddings', 'review-embeddings-static-polysemy'),
+  ]),
+]);\n\nfunction evidenceIds(assessment, type) {
   if (type === ASSESSMENT_COMPETENCY_EVIDENCE_TYPES.QUIZ) {
     return new Set((assessment.quiz || []).map(({ id }) => id));
   }
