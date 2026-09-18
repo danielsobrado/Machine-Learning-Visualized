@@ -17,6 +17,14 @@ test('assessment synthesis contract has the required stable families', () => {
       'synthesis.attention.memory-vs-compute',
       'synthesis.rag.failure-localization',
       'synthesis.production-ml.failure-localization',
+      'synthesis.classification.preprocessing-to-policy',
+      'synthesis.numerical-linear-algebra.stability',
+      'synthesis.causal.identification-to-estimand',
+      'synthesis.generation.efficiency-stack',
+      'synthesis.rl.update-bias-variance',
+      'synthesis.diffusion.parameterization-and-control',
+      'synthesis.evaluation.split-integrity',
+      'synthesis.nlp.representation-boundaries',
     ],
   );
 });
