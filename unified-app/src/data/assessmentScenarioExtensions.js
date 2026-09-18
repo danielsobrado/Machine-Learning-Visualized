@@ -31,6 +31,11 @@ import { P1_INFORMATION_THEORY_APPLIED_SCENARIOS_BY_LESSON } from './p1Informati
 import { P1_LATENT_DIFFUSION_PIPELINE_APPLIED_SCENARIOS_BY_LESSON } from './p1LatentDiffusionPipelineAppliedScenarioQuestions.js';
 import { P1_LINEAR_ALGEBRA_APPLIED_SCENARIOS_BY_LESSON } from './p1LinearAlgebraAppliedScenarioQuestions.js';
 import { P1_MATH_SCENARIOS_BY_LESSON } from './p1MathScenarioQuestions.js';
+import { P1_MATH_CLASSICAL_REVIEW_SCENARIOS_BY_LESSON } from './p1MathClassicalReviewScenarioQuestions.js';
+import { P1_NEURAL_TRAINING_REVIEW_SCENARIOS_BY_LESSON } from './p1NeuralTrainingReviewScenarioQuestions.js';
+import { P1_RL_DIFFUSION_SYSTEMS_REVIEW_SCENARIOS_BY_LESSON } from './p1RlDiffusionSystemsReviewScenarioQuestions.js';
+import { P1_STATISTICS_CAUSAL_REVIEW_SCENARIOS_BY_LESSON } from './p1StatisticsCausalReviewScenarioQuestions.js';
+import { P1_TRANSFORMER_RAG_REVIEW_SCENARIOS_BY_LESSON } from './p1TransformerRagReviewScenarioQuestions.js';
 import { P1_MODEL_RELIABILITY_APPLIED_SCENARIOS_BY_LESSON } from './p1ModelReliabilityAppliedScenarioQuestions.js';
 import { P1_MULTI_HEAD_POSITIONAL_SCENARIOS_BY_LESSON } from './p1MultiHeadPositionalScenarioQuestions.js';
 import { P1_NEURAL_APPLIED_ARCHITECTURE_SCENARIOS_BY_LESSON } from './p1NeuralAppliedArchitectureScenarioQuestions.js';
@@ -81,6 +86,11 @@ export const ASSESSMENT_SCENARIO_EXTENSION_SOURCES = Object.freeze([
   Object.freeze({ id: 'p1-diffusion-basics-sampling', priority: 'P1', questionsByLesson: P1_DIFFUSION_BASICS_SAMPLING_SCENARIOS_BY_LESSON }),
   Object.freeze({ id: 'p1-dropout', priority: 'P1', questionsByLesson: P1_DROPOUT_SCENARIOS_BY_LESSON }),
   Object.freeze({ id: 'p1-curriculum-tail-applied', priority: 'P1', questionsByLesson: P1_CURRICULUM_TAIL_APPLIED_SCENARIOS_BY_LESSON }),
+  Object.freeze({ id: 'p1-review-statistics-causal', priority: 'P1', questionsByLesson: P1_STATISTICS_CAUSAL_REVIEW_SCENARIOS_BY_LESSON }),
+  Object.freeze({ id: 'p1-review-math-classical', priority: 'P1', questionsByLesson: P1_MATH_CLASSICAL_REVIEW_SCENARIOS_BY_LESSON }),
+  Object.freeze({ id: 'p1-review-neural-training', priority: 'P1', questionsByLesson: P1_NEURAL_TRAINING_REVIEW_SCENARIOS_BY_LESSON }),
+  Object.freeze({ id: 'p1-review-transformer-rag', priority: 'P1', questionsByLesson: P1_TRANSFORMER_RAG_REVIEW_SCENARIOS_BY_LESSON }),
+  Object.freeze({ id: 'p1-review-rl-diffusion-systems', priority: 'P1', questionsByLesson: P1_RL_DIFFUSION_SYSTEMS_REVIEW_SCENARIOS_BY_LESSON }),
   Object.freeze({ id: 'p1-classical-ml-applied-decisions', priority: 'P1', questionsByLesson: P1_CLASSICAL_ML_APPLIED_DECISION_SCENARIOS_BY_LESSON }),
   Object.freeze({ id: 'p1-classical-ml-decisions', priority: 'P1', questionsByLesson: P1_CLASSICAL_ML_DECISION_SCENARIOS_BY_LESSON }),
   Object.freeze({ id: 'p1-classical-ml-gaps', priority: 'P1', questionsByLesson: P1_CLASSICAL_ML_GAP_SCENARIOS_BY_LESSON }),
